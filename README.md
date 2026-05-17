@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_3_17`.
+Current package version: `v2_4_0`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -79,6 +79,8 @@ Patterns live in styles. Voicing and expression are core-level shared systems.
 - Provides rule/workflow-based Agent routes before full LLM integration.
 - Prepares immediate practice playback from natural-language-like user input.
 - Creates practice plan and session review responses.
+- Builds task-scoped LLM context runtime preview packets without calling a real LLM provider.
+- Exposes a bounded runloop preview contract for future tool workflows.
 - Maintains trace logging for Agent steps.
 - Exposes capability and contract manifests for HarmonyOS integration.
 
@@ -183,6 +185,8 @@ POST /agent/practice/plan
 POST /agent/session/review
 GET  /agent/capabilities
 GET  /agent/context/profiles
+GET  /agent/context/runtime/spec
+POST /agent/context/runtime/preview
 GET  /agent/contracts/arkts
 GET  /agent/contracts/arkts/files
 GET  /agent/contracts/frontend-pack
@@ -260,9 +264,9 @@ docs/GENERATION_RULES_SUMMARY_V2.md
 
 ## Current Development Status
 
-`v2_3_17` is a harness hardening and changelog split baseline. It keeps runtime generation behavior unchanged while making the repository a cleaner starting point for two parallel development windows:
+`v2_4_0` is the Agent LLM Context Runtime Foundation baseline for `feature/agent-workflow`. It adds preview-only task-scoped context packets, bounded runloop metadata, Agent runtime preview routes, and synchronized HarmonyOS contract fixtures. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ```text
-Agent window  -> feature/agent-workflow
-Engine window -> feature/engine-deepening
+Current active window -> feature/agent-workflow
+Engine-deepening work -> not touched in this delivery
 ```

@@ -110,17 +110,6 @@ git push
 
 提交前检查是否有敏感信息（API key 等）。
 
-### 第八步：切换回 main
-
-提交推送完成后，切换回 main 分支，让本地工作区回到 main 的内容，方便用户部署：
-
-```
-git checkout main
-git pull origin main
-```
-
-这是安全的——feature 分支的代码已经 push 到 GitHub，切换分支只是改变工作区显示的文件内容，不会丢失任何已提交的代码。
-
 提交后按标准格式汇报：
 
 ```
@@ -132,8 +121,6 @@ commit：abc1234 feat(agent): add LLM workflow foundation
 检查结果：
 - compileall passed
 - pytest passed
-
-本地已切回 main，工作区为 main 最新内容。
 
 下一步建议：创建 PR 或继续当前分支下一阶段开发。
 ```

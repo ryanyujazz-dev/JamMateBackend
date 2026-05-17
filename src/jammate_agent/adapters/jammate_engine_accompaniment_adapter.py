@@ -89,7 +89,7 @@ class JamMateEngineAccompanimentAdapter:
     def _build_output_filename(self, request: AccompanimentRequest) -> str:
         title = (request.leadsheet or {}).get("title", "practice_playback")
         safe_title = "".join(c.lower() if c.isalnum() else "_" for c in title).strip("_") or "practice_playback"
-        return f"v2_3_17_agent_{safe_title}_{request.config.style}_{request.config.tempo}.mid"
+        return f"v2_4_0_agent_{safe_title}_{request.config.style}_{request.config.tempo}.mid"
 
     def _cache_key(self, request: AccompanimentRequest) -> str:
         title = (request.leadsheet or {}).get("title", "practice_playback")

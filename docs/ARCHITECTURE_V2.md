@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Architecture
 
-Current baseline: `v2_3_17`.
+Current baseline: `v2_4_0`.
 
 This document records the canonical architecture. Version-specific delivery notes belong in separate `docs/*V2_x_x*.md` files.
 
@@ -109,6 +109,27 @@ jammate_agent/adapters/
 ```
 
 The Agent is currently workflow/rule based. Full LLM integration is a future enhancement and should preserve deterministic tool/workflow boundaries.
+
+
+### LLM Context Runtime Foundation
+
+`v2_4_0` promotes the existing Agent context/trace/contract owners into a previewable LLM runtime envelope without connecting a real provider:
+
+```text
+ContextBuilder
+  -> ContextPacket
+  -> BoundedAgentRunLoop.preview()
+  -> AgentContextRuntimePreviewResponse
+  -> TraceLogger
+```
+
+Rules:
+
+- Context packets are task-scoped and should include only current request, client context, relevant learner/session/material summaries, capability manifest, constraints, allowed tools, output contract, and routing hints.
+- `BoundedAgentRunLoop` is preview-only in `v2_4_0`: no real LLM call and no autonomous tool execution.
+- Future LLM providers must obey the task-specific allowed tool list and bounded step policy.
+- This layer belongs to `jammate_agent/core/` and must not import engine internals.
+- Engine access remains adapter-only through `jammate_agent/adapters/`.
 
 ---
 

@@ -93,7 +93,7 @@ def generate_direct_accompaniment(request: DirectAccompanimentGenerateRequest) -
 def _default_output_path(leadsheet: dict[str, Any], style: str, tempo: int) -> str:
     title = str(leadsheet.get("title", "direct_accompaniment"))
     safe_title = "".join(c.lower() if c.isalnum() else "_" for c in title).strip("_") or "direct_accompaniment"
-    return f"demos/v2_3_17_direct_{safe_title}_{style}_{tempo}.mid"
+    return f"demos/v2_4_0_direct_{safe_title}_{style}_{tempo}.mid"
 
 
 def _cache_key(leadsheet: dict[str, Any], style: str, tempo: int, choruses: int) -> str:

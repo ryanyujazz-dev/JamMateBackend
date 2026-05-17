@@ -10,7 +10,19 @@ from jammate_agent.core.capability_registry import CapabilityRegistry
 from jammate_agent.core.context import ContextBuilder
 from jammate_agent.core.guardrails import PracticePlanGuardrails
 from jammate_agent.core.intent_classifier import AgentIntentType, IntentClassifier
+from jammate_agent.core.runloop import BoundedAgentRunLoop
 from jammate_agent.core.trace import TraceLogger
+
+
+@dataclass
+class AgentContextRuntimeResult:
+    ok: bool
+    task_type: str
+    context_packet: dict[str, Any]
+    runloop_preview: dict[str, Any]
+    trace_id: str | None = None
+    error_code: str | None = None
+    message: str | None = None
 
 
 @dataclass
@@ -40,6 +52,7 @@ class JamMateAgent:
         self.capabilities = capabilities
         self.intent_classifier = IntentClassifier()
         self.context_builder = ContextBuilder()
+        self.runloop = BoundedAgentRunLoop()
         self.guardrails = PracticePlanGuardrails()
         self.trace_logger = trace_logger or TraceLogger()
 
@@ -85,6 +98,43 @@ class JamMateAgent:
             error_code=result.error_code,
             message=result.message,
             options=result.options or [],
+            trace_id=trace.trace_id,
+        )
+
+
+    def build_llm_context_runtime(
+        self,
+        user_input: str,
+        task_type: str | None = None,
+        request_id: str | None = None,
+        client_context: dict[str, Any] | None = None,
+        available_minutes: int | None = None,
+        duration_minutes: int | None = None,
+        instrument: str = "piano",
+        local_unsynced_summary: dict[str, Any] | None = None,
+    ) -> AgentContextRuntimeResult:
+        resolved_task_type = task_type or self.intent_classifier.classify(user_input).value
+        trace = self.trace_logger.start("llm_context_runtime_preview", user_input, request_id)
+        context = self.context_builder.build(
+            resolved_task_type,
+            user_input,
+            request_id=request_id,
+            client_context=client_context or {},
+            available_minutes=available_minutes,
+            duration_minutes=duration_minutes,
+            instrument=instrument,
+            local_unsynced_summary=local_unsynced_summary or {},
+        )
+        trace.context_packet_summary = context.summary()
+        self.trace_logger.add_step(trace, "context_runtime_packet_built", trace.context_packet_summary)
+        runloop_preview = self.runloop.preview(context)
+        self.trace_logger.add_step(trace, "bounded_runloop_previewed", runloop_preview.to_dict())
+        self.trace_logger.finish(trace, "passed", {"task_type": context.task_type, "next_action": runloop_preview.next_action})
+        return AgentContextRuntimeResult(
+            ok=True,
+            task_type=context.task_type,
+            context_packet=context.to_dict(),
+            runloop_preview=runloop_preview.to_dict(),
             trace_id=trace.trace_id,
         )
 

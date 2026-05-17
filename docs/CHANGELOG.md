@@ -4,6 +4,14 @@ This file is the chronological project history. README should remain the project
 
 ---
 
+## v2_4_0 — Agent LLM Context Runtime Foundation
+
+- Promoted the existing Agent `ContextBuilder` / `ContextPacket` into a task-scoped LLM context runtime preview envelope.
+- Added preview-only `BoundedAgentRunLoop` contract with bounded steps, task-specific allowed tools, and no real LLM/tool execution in this version.
+- Added `GET /agent/context/runtime/spec` and `POST /agent/context/runtime/preview` for HarmonyOS/backend inspection.
+- Synchronized Agent capability/context manifests, ArkTS contract generation, frontend fixtures, and smoke-pack files around the new runtime preview contract.
+- Kept `feature/agent-workflow` scoped to Agent/API/HarmonyOS contracts; accompaniment engine generation behavior is unchanged from `v2_3_17`.
+
 ## v2_3_17 — Harness Hardening and Changelog Split
 
 - Compressed `agent.md` into a short hard development harness.

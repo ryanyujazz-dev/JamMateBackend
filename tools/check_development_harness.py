@@ -95,7 +95,8 @@ def check_document_roles() -> None:
     for token in ("Mandatory Architecture Boundary", "Cleanup Before Every Delivery", "Minimal File Split Principle"):
         if token not in agent:
             fail(f"agent.md missing hard harness token: {token}")
-    if "v2_3_17" not in changelog or "v2_3_10" not in changelog:
+    current_version = read("VERSION").strip()
+    if current_version not in changelog or "v2_3_17" not in changelog or "v2_3_10" not in changelog:
         fail("CHANGELOG.md must contain current and recent project history")
 
 

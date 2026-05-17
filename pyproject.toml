@@ -1,6 +1,6 @@
 [project]
 name = "jammate-engine"
-version = "2.3.17"
+version = "2.4.0"
 description = "JamMatePyEngineV2 Harness Hardening and Changelog Split"
 requires-python = ">=3.10"
 dependencies = [

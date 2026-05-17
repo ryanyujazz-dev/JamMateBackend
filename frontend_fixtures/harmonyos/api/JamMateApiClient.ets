@@ -1,10 +1,10 @@
-// JamMate API Client Sketch v2_3_17
+// JamMate API Client Sketch v2_4_0
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 
-import type { AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse } from '../model/AgentTypes'
+import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse } from '../model/AgentTypes'
 import type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'
-import { mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
+import { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
 
 export class JamMateApiClient {
   constructor(private readonly baseUrl: string) {}
@@ -21,6 +21,11 @@ export class JamMateApiClient {
   async prepareAgentPlayback(request: AgentPlaybackPrepareRequest): Promise<AgentResponse> {
     const raw = await this.post('/agent/playback/prepare', request as Record<string, unknown>)
     return mapAgentResponse(raw)
+  }
+
+  async previewAgentContextRuntime(request: AgentContextRuntimePreviewRequest): Promise<AgentContextRuntimePreviewResponse> {
+    const raw = await this.post('/agent/context/runtime/preview', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as AgentContextRuntimePreviewResponse
   }
 
   async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {

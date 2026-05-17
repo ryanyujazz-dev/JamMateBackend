@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_3_17`.
+Current baseline: `v2_4_0`.
 
-`v2_3_17_harness_hardening_and_changelog_split` is a cleanup baseline for starting parallel development. Runtime music generation behavior is unchanged from `v2_3_15`.
+`v2_4_0_agent_llm_context_runtime_foundation` establishes the Agent-side LLM context runtime preview envelope on `feature/agent-workflow`. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ---
 
@@ -26,7 +26,7 @@ Scope:
 Suggested next task:
 
 ```text
-v2_4_0_agent_llm_context_runtime_foundation
+v2_4_1_agent_llm_provider_boundary
 ```
 
 ### Engine branch

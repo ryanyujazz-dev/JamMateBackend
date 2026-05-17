@@ -1,6 +1,6 @@
 # JamMate API Contract V2
 
-Current baseline: `v2_3_17`.
+Current baseline: `v2_4_0`.
 
 This document records the stable API contract shape. Detailed version-specific API delivery notes live in separate `docs/*V2_x_x*.md` files.
 
@@ -43,7 +43,7 @@ Expected response:
 {
   "ok": true,
   "service": "jammate-api",
-  "engine_version": "v2_3_17",
+  "engine_version": "v2_4_0",
   "agent_version": "v0_1"
 }
 ```
@@ -137,6 +137,60 @@ Expected response shape:
 
 HarmonyOS should loop the returned asset until its local practice timer reaches `target_duration_minutes` or the user stops.
 
+
+---
+
+### Agent LLM context runtime preview
+
+```text
+GET  /agent/context/runtime/spec
+POST /agent/context/runtime/preview
+```
+
+Use this on `feature/agent-workflow` to inspect the task-scoped context packet and bounded runloop envelope that a future LLM provider would receive. `v2_4_0` does not call an LLM and does not execute autonomous tools.
+
+Example request:
+
+```json
+{
+  "requestId": "ctx_preview_001",
+  "userInput": "我想练 Blue Bossa 20分钟，帮我安排一下",
+  "taskType": "immediate_practice_playback",
+  "durationMinutes": 20,
+  "instrument": "piano",
+  "clientContext": {
+    "currentScreen": "practice_home",
+    "availableMinutes": 20,
+    "timezone": "America/Los_Angeles",
+    "locale": "zh-CN"
+  }
+}
+```
+
+Expected response shape:
+
+```json
+{
+  "ok": true,
+  "task_type": "immediate_practice_playback",
+  "context_packet": {
+    "context_runtime_version": "v2_4_0",
+    "task_type": "immediate_practice_playback",
+    "allowed_tools": ["chart_resolve", "agent_playback_prepare"],
+    "runtime_policy": {
+      "tool_loop_mode": "bounded_preview",
+      "llm_provider_configured": false
+    }
+  },
+  "runloop_preview": {
+    "runtime_mode": "preview_only",
+    "tool_execution_enabled": false,
+    "next_action": "deterministic_workflow_fallback"
+  },
+  "trace_id": "trace_..."
+}
+```
+
 ---
 
 ### Practice planning
@@ -164,6 +218,8 @@ Returns a next-step recommendation based on submitted review data.
 ```text
 GET /agent/capabilities
 GET /agent/context/profiles
+GET /agent/context/runtime/spec
+POST /agent/context/runtime/preview
 GET /agent/contracts/arkts
 GET /agent/contracts/arkts/files
 GET /agent/contracts/frontend-pack

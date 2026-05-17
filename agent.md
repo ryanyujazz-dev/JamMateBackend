@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_3_17`.
+Current version: `v2_4_0`.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -132,4 +132,4 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_3_17_harness_hardening_and_changelog_split` is a documentation / harness hardening baseline for starting parallel Agent and Engine development windows. Runtime music generation behavior is unchanged from `v2_3_16`.
+`v2_4_0_agent_llm_context_runtime_foundation` is the active `feature/agent-workflow` baseline. It adds a preview-only Agent LLM context runtime envelope, bounded runloop metadata, API/contract/fixture synchronization, and traceable runtime preview responses. Runtime music generation behavior is unchanged from `v2_3_17`.

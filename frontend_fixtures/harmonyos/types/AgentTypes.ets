@@ -1,4 +1,4 @@
-// JamMate Agent API Types v2_3_17
+// JamMate Agent API Types v2_4_0
 // Copy target: entry/src/main/ets/features/jammateAgent/model/AgentTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 
@@ -42,6 +42,55 @@ export interface AgentPlaybackPrepareRequest {
   userInput: string
   durationMinutes?: number
   clientContext?: ClientContext
+}
+
+export interface AgentContextRuntimePreviewRequest {
+  requestId?: string | null
+  userInput: string
+  taskType?: AgentIntentType | null
+  clientContext?: ClientContext
+  availableMinutes?: number | null
+  durationMinutes?: number | null
+  instrument?: string
+  localUnsyncedSummary?: Record<string, unknown>
+}
+
+export interface ContextPacket {
+  contextRuntimeVersion: string
+  taskType: AgentIntentType | string
+  selectedContextLayers: string[]
+  systemProductContext: Record<string, unknown>
+  userRequest: Record<string, unknown>
+  clientContext: Record<string, unknown>
+  capabilities: Record<string, unknown>
+  constraints: Record<string, unknown>
+  allowedTools: string[]
+  outputContract: Record<string, unknown>
+  runtimePolicy: Record<string, unknown>
+  routingHints: Record<string, unknown>
+}
+
+export interface RunLoopPreview {
+  contractVersion: string
+  ok: boolean
+  runtimeMode: 'preview_only' | string
+  llmProviderConfigured: boolean
+  toolExecutionEnabled: boolean
+  maxSteps: number
+  allowedTools: string[]
+  nextAction: string
+  reason: string
+  warnings: string[]
+}
+
+export interface AgentContextRuntimePreviewResponse {
+  ok: boolean
+  taskType: AgentIntentType | string
+  contextPacket: ContextPacket
+  runloopPreview: RunLoopPreview
+  traceId?: string | null
+  errorCode?: string | null
+  message?: string | null
 }
 
 export interface AgentOption {

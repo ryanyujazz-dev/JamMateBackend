@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from jammate_agent.core.context import CONTEXT_PROFILES, CONTEXT_RUNTIME_VERSION
+from jammate_agent.core.runloop import BoundedAgentRunLoop, RUNLOOP_CONTRACT_VERSION
+
 
 @dataclass(frozen=True)
 class AgentToolContract:
@@ -77,9 +80,17 @@ def agent_capability_manifest() -> dict[str, Any]:
             input_contract={"route": "POST /agent/session/review", "schema": "SessionReviewRequest"},
             output_contract={"schema": "NextStepRecommendation"},
         ),
+        AgentToolContract(
+            name="agent_llm_context_runtime_preview",
+            description="Preview task-scoped ContextPacket and bounded runloop envelope before any real LLM provider is connected.",
+            requires_llm=False,
+            direct_client_callable=True,
+            input_contract={"route": "POST /agent/context/runtime/preview", "schema": "AgentContextRuntimePreviewRequest"},
+            output_contract={"schema": "AgentContextRuntimePreviewResponse", "runtime_mode": "preview_only"},
+        ),
     ]
     return {
-        "version": "v2_3_17",
+        "version": CONTEXT_RUNTIME_VERSION,
         "agent_name": "JamMateAgent",
         "principle": "LLM/Agent is an enhancement path, not a required path. Direct accompaniment remains callable without LLM.",
         "available_styles": ["medium_swing", "bossa_nova", "jazz_ballad"],
@@ -93,47 +104,65 @@ def agent_capability_manifest() -> dict[str, Any]:
 
 
 def context_profile_manifest() -> dict[str, Any]:
-    profiles = [
-        ContextProfileContract(
-            task_type="practice_plan_generation",
-            required_context_layers=["system_product_context", "capability_manifest", "user_request", "client_context"],
-            optional_context_layers=["learner_summary", "active_goal", "relevant_history", "routine_templates"],
-            output_schema="PracticePlan",
-            llm_required=False,
-        ),
-        ContextProfileContract(
-            task_type="immediate_practice_playback",
-            required_context_layers=["system_product_context", "capability_manifest", "user_request", "chart_resolution_context"],
-            optional_context_layers=["arrangement_intent", "active_session"],
-            output_schema="PlaybackPrepareResult",
-            llm_required=False,
-        ),
-        ContextProfileContract(
-            task_type="session_review",
-            required_context_layers=["session_review", "current_session"],
-            optional_context_layers=["relevant_past_reviews", "active_goal", "learner_summary"],
-            output_schema="NextStepRecommendation",
-            llm_required=False,
-        ),
-        ContextProfileContract(
-            task_type="coach_qa",
-            required_context_layers=["user_question", "current_screen_or_session"],
-            optional_context_layers=["music_concept_context", "relevant_history"],
-            output_schema="CoachResponse",
-            llm_required=True,
-        ),
-    ]
+    profiles = [profile.to_dict() for profile in CONTEXT_PROFILES.values()]
     return {
-        "version": "v2_3_17",
-        "context_rule": "LLM receives ContextPacket selected by task type; HarmonyOS sends current user input, client state, and object ids only.",
-        "profiles": [profile.to_dict() for profile in profiles],
+        "version": CONTEXT_RUNTIME_VERSION,
+        "context_rule": "LLM receives a task-scoped ContextPacket selected by task type; HarmonyOS sends current input, client state, and object ids only.",
+        "runtime_preview_route": "POST /agent/context/runtime/preview",
+        "runtime_spec_route": "GET /agent/context/runtime/spec",
+        "profiles": profiles,
+    }
+
+
+def llm_context_runtime_contract() -> dict[str, Any]:
+    runloop_contract = BoundedAgentRunLoop().contract()
+    return {
+        "version": CONTEXT_RUNTIME_VERSION,
+        "context_runtime_version": CONTEXT_RUNTIME_VERSION,
+        "runloop_contract_version": RUNLOOP_CONTRACT_VERSION,
+        "routes": {
+            "preview": "POST /agent/context/runtime/preview",
+            "spec": "GET /agent/context/runtime/spec",
+        },
+        "request_schema": {
+            "request_id": "string | null",
+            "user_input": "string",
+            "task_type": "practice_plan_generation | immediate_practice_playback | session_review | coach_qa | null",
+            "client_context": "ClientContext",
+            "available_minutes": "number | null",
+            "duration_minutes": "number | null",
+            "instrument": "string",
+            "local_unsynced_summary": "Record<string, unknown>",
+        },
+        "response_schema": {
+            "ok": "boolean",
+            "task_type": "string",
+            "context_packet": "ContextPacket",
+            "runloop_preview": "RunLoopPreview",
+            "trace_id": "string | null",
+        },
+        "context_packet_layers": {
+            "system_product_context": "Stable JamMate architecture and boundary principles.",
+            "user_request": "Current user input plus request metadata only.",
+            "client_context": "HarmonyOS screen/session/material ids and local availability.",
+            "capability_manifest": "Current allowed styles, practice modes, routes, and tool boundaries.",
+            "constraints": "Runtime constraints such as response case, local timer ownership, and engine independence.",
+            "allowed_tools": "Task-specific tool allow-list for future bounded LLM tool calls.",
+            "output_contract": "Expected response schema and case policy.",
+        },
+        "runloop": runloop_contract,
+        "non_goals": [
+            "No real LLM network call in v2_4_0.",
+            "No autonomous tool execution in v2_4_0.",
+            "No accompaniment engine generation-rule changes in feature/agent-workflow.",
+        ],
     }
 
 
 def arkts_contract_sketch() -> dict[str, Any]:
     """Compact contract sketch for HarmonyOS codegen/reference."""
     return {
-        "version": "v2_3_17",
+        "version": CONTEXT_RUNTIME_VERSION,
         "note": "This is a reference sketch. ArkTS source should define equivalent interfaces in PracticeTypes.ets / AgentTypes.ets.",
         "interfaces": {
             "ClientContext": {
@@ -155,6 +184,32 @@ def arkts_contract_sketch() -> dict[str, Any]:
                 "userInput": "string",
                 "durationMinutes": "number",
                 "clientContext": "ClientContext",
+            },
+            "AgentContextRuntimePreviewRequest": {
+                "requestId": "string | null",
+                "userInput": "string",
+                "taskType": "string | null",
+                "clientContext": "ClientContext",
+                "availableMinutes": "number | null",
+                "durationMinutes": "number | null",
+                "instrument": "string",
+                "localUnsyncedSummary": "Record<string, Object>",
+            },
+            "ContextPacket": {
+                "contextRuntimeVersion": "string",
+                "taskType": "string",
+                "selectedContextLayers": "string[]",
+                "allowedTools": "string[]",
+                "runtimePolicy": "Record<string, Object>",
+                "outputContract": "Record<string, Object>",
+                "routingHints": "Record<string, Object>",
+            },
+            "RunLoopPreview": {
+                "runtimeMode": "preview_only | string",
+                "llmProviderConfigured": "boolean",
+                "toolExecutionEnabled": "boolean",
+                "allowedTools": "string[]",
+                "nextAction": "string",
             },
             "PracticePlan": {
                 "planId": "string",
@@ -199,7 +254,7 @@ def arkts_contract_sketch() -> dict[str, Any]:
 def harmonyos_playback_contract() -> dict[str, Any]:
     """Playback and cache rules for HarmonyOS client implementation."""
     return {
-        "version": "v2_3_17",
+        "version": CONTEXT_RUNTIME_VERSION,
         "response_case": "snake_case",
         "request_case": "snake_case_or_camelCase",
         "principle": "Agent/LLM is an enhancement path. HarmonyOS can run the local practice workspace without LLM and can directly call /accompaniment/generate when parameters are explicit.",
@@ -234,6 +289,7 @@ def harmonyos_playback_contract() -> dict[str, Any]:
         "agent_paths": [
             "POST /agent/practice/plan for natural-language planning",
             "POST /agent/playback/prepare for natural-language immediate practice playback",
+            "POST /agent/context/runtime/preview for preview-only future LLM context/runtime inspection",
         ],
     }
 
@@ -241,7 +297,7 @@ def harmonyos_playback_contract() -> dict[str, Any]:
 def agent_api_usage_examples() -> dict[str, Any]:
     """Machine-readable HarmonyOS integration examples."""
     return {
-        "version": "v2_3_17",
+        "version": CONTEXT_RUNTIME_VERSION,
         "examples": {
             "health_check": {
                 "method": "GET",
@@ -286,6 +342,17 @@ def agent_api_usage_examples() -> dict[str, Any]:
                 },
                 "response_focus": ["ok", "plan.blocks", "trace_id"],
             },
+            "agent_context_runtime_preview": {
+                "method": "POST",
+                "path": "/agent/context/runtime/preview",
+                "request": {
+                    "requestId": "ctx_preview_001",
+                    "userInput": "我想练 Blue Bossa 20分钟，帮我安排一下",
+                    "taskType": "immediate_practice_playback",
+                    "durationMinutes": 20,
+                },
+                "response_focus": ["ok", "context_packet.allowed_tools", "runloop_preview.runtime_mode", "trace_id"],
+            },
         },
     }
 
@@ -293,7 +360,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_3_17
+// JamMate Agent / Practice API Contract v2_4_0
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'
@@ -321,6 +388,55 @@ export interface AgentPlaybackPrepareRequest {
   userInput: string
   durationMinutes?: number
   clientContext?: ClientContext
+}
+
+export interface AgentContextRuntimePreviewRequest {
+  requestId?: string | null
+  userInput: string
+  taskType?: AgentIntentType | null
+  clientContext?: ClientContext
+  availableMinutes?: number | null
+  durationMinutes?: number | null
+  instrument?: string
+  localUnsyncedSummary?: Record<string, Object>
+}
+
+export interface ContextPacket {
+  contextRuntimeVersion: string
+  taskType: AgentIntentType | string
+  selectedContextLayers: string[]
+  systemProductContext: Record<string, Object>
+  userRequest: Record<string, Object>
+  clientContext: Record<string, Object>
+  capabilities: Record<string, Object>
+  constraints: Record<string, Object>
+  allowedTools: string[]
+  outputContract: Record<string, Object>
+  runtimePolicy: Record<string, Object>
+  routingHints: Record<string, Object>
+}
+
+export interface RunLoopPreview {
+  contractVersion: string
+  ok: boolean
+  runtimeMode: 'preview_only' | string
+  llmProviderConfigured: boolean
+  toolExecutionEnabled: boolean
+  maxSteps: number
+  allowedTools: string[]
+  nextAction: string
+  reason: string
+  warnings: string[]
+}
+
+export interface AgentContextRuntimePreviewResponse {
+  ok: boolean
+  taskType: AgentIntentType | string
+  contextPacket: ContextPacket
+  runloopPreview: RunLoopPreview
+  traceId?: string | null
+  errorCode?: string | null
+  message?: string | null
 }
 
 export interface DirectAccompanimentGenerateRequest {
@@ -433,7 +549,7 @@ export interface AgentResponse {
 }
 '''.strip()
     return {
-        "version": "v2_3_17",
+        "version": CONTEXT_RUNTIME_VERSION,
         "filename_suggestion": "AgentTypes.ets",
         "response_case": "snake_case",
         "request_case": "camelCase_or_snake_case",
@@ -444,7 +560,7 @@ export interface AgentResponse {
 def response_case_policy_manifest() -> dict[str, Any]:
     """Canonical API case policy for Python backend and HarmonyOS client-domain mapping."""
     return {
-        "version": "v2_3_17",
+        "version": CONTEXT_RUNTIME_VERSION,
         "canonical_backend_response_case": "snake_case",
         "accepted_request_cases": ["snake_case", "camelCase"],
         "harmonyos_client_domain_case": "camelCase",
