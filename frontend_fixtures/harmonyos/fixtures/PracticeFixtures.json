@@ -1,5 +1,5 @@
 {
-  "version": "v2_4_0",
+  "version": "v2_4_1",
   "note": "Fixtures are UI/store mocks, not golden musical output.",
   "response_case": "snake_case",
   "client_domain_case": "camelCase",

@@ -53,7 +53,7 @@ def agent_capability_manifest() -> dict[str, Any]:
             description="Direct client-callable accompaniment generation path; does not require Agent/LLM.",
             requires_llm=False,
             direct_client_callable=True,
-            input_contract={"route": "POST /accompaniment/generate", "schema": "DirectAccompanimentGenerateRequest"},
+            input_contract={"route": "POST /accompaniment/generate", "schema": "DirectAccompanimentGenerateRequest", "preferred_chart_input": "inline jammate_leadsheet_v2", "fallback_chart_input": "tune"},
             output_contract={"asset_format": "midi_base64", "requires_client_looping": False},
         ),
         AgentToolContract(
@@ -152,8 +152,8 @@ def llm_context_runtime_contract() -> dict[str, Any]:
         },
         "runloop": runloop_contract,
         "non_goals": [
-            "No real LLM network call in v2_4_0.",
-            "No autonomous tool execution in v2_4_0.",
+            "No real LLM network call in v2_4_1.",
+            "No autonomous tool execution in v2_4_1.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
         ],
     }
@@ -285,6 +285,7 @@ def harmonyos_playback_contract() -> dict[str, Any]:
         "non_llm_paths": [
             "local practice task / routine / timer / review",
             "POST /accompaniment/generate for explicit manual accompaniment settings",
+            "POST /accompaniment/generate prefers inline jammate_leadsheet_v2 with sections + written_form; tune is fallback only",
         ],
         "agent_paths": [
             "POST /agent/practice/plan for natural-language planning",
@@ -308,11 +309,27 @@ def agent_api_usage_examples() -> dict[str, Any]:
                 "method": "POST",
                 "path": "/accompaniment/generate",
                 "request": {
+                    "leadsheet": {
+                        "schema_version": "jammate_leadsheet_v2",
+                        "title": "HarmonyOS Inline Smoke",
+                        "key": "C",
+                        "sections": {
+                            "A": {
+                                "label": "A",
+                                "bars": [
+                                    {"chords": [{"beat": 1.0, "symbol": "Cmaj7"}, {"beat": 3.0, "symbol": "Dm7"}]},
+                                    {"chords": [{"beat": 1.0, "symbol": "G7"}, {"beat": 3.0, "symbol": "Cmaj7"}]},
+                                ],
+                            }
+                        },
+                        "written_form": ["A"],
+                    },
                     "tune": "Blue Bossa",
                     "style": "bossa_nova",
                     "tempo": 120,
-                    "choruses": 3,
+                    "choruses": 1,
                     "seed": 42,
+                    "outputFormat": "midi_base64",
                 },
                 "response_focus": ["ok", "asset.midi_base64", "asset.cache_key"],
             },
@@ -360,7 +377,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_4_0
+// JamMate Agent / Practice API Contract v2_4_1
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'
@@ -439,9 +456,18 @@ export interface AgentContextRuntimePreviewResponse {
   message?: string | null
 }
 
+export interface JamMateLeadsheetV2 {
+  schema_version: 'jammate_leadsheet_v2'
+  title: string
+  key?: string
+  sections: Record<string, Object> | Array<Record<string, Object>>
+  written_form: Array<string | Record<string, Object>>
+  metadata?: Record<string, Object>
+}
+
 export interface DirectAccompanimentGenerateRequest {
-  leadsheet?: Record<string, Object> | null
-  tune?: string | null
+  leadsheet?: JamMateLeadsheetV2 | Record<string, Object> | null
+  tune?: string | null // fallback only; inline leadsheet is preferred for custom charts
   style?: JamMateStyle
   tempo?: number
   choruses?: number

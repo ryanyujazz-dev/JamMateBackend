@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_4_0`.
+Current package version: `v2_4_1`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -156,11 +156,25 @@ POST /accompaniment/generate
 
 Use this when the client already knows the tune/style/tempo/chorus settings.
 
-Typical request:
+Typical HarmonyOS request prefers inline `jammate_leadsheet_v2` and keeps `tune` only as a fallback hint:
 
 ```json
 {
-  "tune": "Blue Bossa",
+  "leadsheet": {
+    "schema_version": "jammate_leadsheet_v2",
+    "title": "User Custom Chart",
+    "key": "C",
+    "sections": {
+      "A": {
+        "label": "A",
+        "bars": [
+          { "chords": [{ "beat": 1.0, "symbol": "Cmaj7" }] }
+        ]
+      }
+    },
+    "written_form": ["A"]
+  },
+  "tune": "optional fallback only",
   "style": "bossa_nova",
   "tempo": 120,
   "choruses": 1,
@@ -264,7 +278,7 @@ docs/GENERATION_RULES_SUMMARY_V2.md
 
 ## Current Development Status
 
-`v2_4_0` is the Agent LLM Context Runtime Foundation baseline for `feature/agent-workflow`. It adds preview-only task-scoped context packets, bounded runloop metadata, Agent runtime preview routes, and synchronized HarmonyOS contract fixtures. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_1` is the HarmonyOS generate contract sync baseline for `feature/agent-workflow`. It confirms `POST /accompaniment/generate` as the current direct playback route, promotes inline `jammate_leadsheet_v2` with `sections + written_form` as the preferred chart input, preserves camelCase/snake_case request compatibility, and keeps backend responses canonical snake_case. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ```text
 Current active window -> feature/agent-workflow

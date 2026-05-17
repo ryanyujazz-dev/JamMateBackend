@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_4_0`.
+Current baseline: `v2_4_1`.
 
-`v2_4_0_agent_llm_context_runtime_foundation` establishes the Agent-side LLM context runtime preview envelope on `feature/agent-workflow`. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_1_harmonyos_generate_contract_sync` hardens the HarmonyOS direct accompaniment contract on `feature/agent-workflow`. It keeps `/accompaniment/generate` as the active route, prefers inline `jammate_leadsheet_v2` with `sections + written_form`, preserves camelCase/snake_case request compatibility, and leaves runtime music generation behavior unchanged from `v2_3_17`.
 
 ---
 
@@ -26,7 +26,7 @@ Scope:
 Suggested next task:
 
 ```text
-v2_4_1_agent_llm_provider_boundary
+v2_4_2_agent_llm_provider_boundary
 ```
 
 ### Engine branch

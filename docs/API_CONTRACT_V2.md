@@ -1,6 +1,6 @@
 # JamMate API Contract V2
 
-Current baseline: `v2_4_0`.
+Current baseline: `v2_4_1`.
 
 This document records the stable API contract shape. Detailed version-specific API delivery notes live in separate `docs/*V2_x_x*.md` files.
 
@@ -43,7 +43,7 @@ Expected response:
 {
   "ok": true,
   "service": "jammate-api",
-  "engine_version": "v2_4_0",
+  "engine_version": "v2_4_1",
   "agent_version": "v0_1"
 }
 ```
@@ -56,21 +56,56 @@ Expected response:
 POST /accompaniment/generate
 ```
 
-Use this when the client has explicit tune/style/tempo/chorus parameters.
+This is the current HarmonyOS direct playback route. Prefer inline `jammate_leadsheet_v2` so user-custom charts do not depend on the server tune resolver. `tune` may still be sent as a fallback hint, but inline `leadsheet` takes priority when both are present.
+
+Request rules:
+
+- Preferred score body: `leadsheet.schema_version = "jammate_leadsheet_v2"`.
+- Preferred V2 score fields: `sections` + `written_form`.
+- Do not use old Harmony bridge `blocks` + `playback_form` as the direct-generation contract.
+- Requests may use camelCase or snake_case for API fields, for example `outputFormat` / `output_format` and `voicingOverride` / `voicing_override`.
+- Backend responses remain canonical snake_case.
+- Practice duration is owned by the HarmonyOS local timer; the backend should not generate 20/30/45-minute long MIDI files.
 
 Example request:
 
 ```json
 {
+  "leadsheet": {
+    "schema_version": "jammate_leadsheet_v2",
+    "title": "HarmonyOS Inline Smoke",
+    "key": "C",
+    "sections": {
+      "A": {
+        "label": "A",
+        "bars": [
+          {
+            "chords": [
+              { "beat": 1.0, "symbol": "Cmaj7" },
+              { "beat": 3.0, "symbol": "Dm7" }
+            ]
+          },
+          {
+            "chords": [
+              { "beat": 1.0, "symbol": "G7" },
+              { "beat": 3.0, "symbol": "Cmaj7" }
+            ]
+          }
+        ]
+      }
+    },
+    "written_form": ["A"]
+  },
   "tune": "Blue Bossa",
   "style": "bossa_nova",
   "tempo": 120,
   "choruses": 1,
+  "voicingOverride": { "harmonicExpansionEnabled": false },
   "outputFormat": "midi_base64"
 }
 ```
 
-Expected response shape:
+Minimum HarmonyOS playback response shape:
 
 ```json
 {
@@ -79,11 +114,12 @@ Expected response shape:
     "format": "midi_base64",
     "midi_base64": "...",
     "midi_path": "demos/...mid",
-    "cache_key": "direct_accomp:...",
-    "debug_summary": {}
+    "cache_key": "direct_accomp:..."
   }
 }
 ```
+
+The backend may include `asset.debug_summary` for diagnostics; HarmonyOS should map snake_case to camelCase on the client side when needed.
 
 ---
 
@@ -147,7 +183,7 @@ GET  /agent/context/runtime/spec
 POST /agent/context/runtime/preview
 ```
 
-Use this on `feature/agent-workflow` to inspect the task-scoped context packet and bounded runloop envelope that a future LLM provider would receive. `v2_4_0` does not call an LLM and does not execute autonomous tools.
+Use this on `feature/agent-workflow` to inspect the task-scoped context packet and bounded runloop envelope that a future LLM provider would receive. `v2_4_1` does not call an LLM and does not execute autonomous tools.
 
 Example request:
 
@@ -174,7 +210,7 @@ Expected response shape:
   "ok": true,
   "task_type": "immediate_practice_playback",
   "context_packet": {
-    "context_runtime_version": "v2_4_0",
+    "context_runtime_version": "v2_4_1",
     "task_type": "immediate_practice_playback",
     "allowed_tools": ["chart_resolve", "agent_playback_prepare"],
     "runtime_policy": {

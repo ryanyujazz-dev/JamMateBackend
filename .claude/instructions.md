@@ -129,9 +129,15 @@ commit：abc1234 feat(agent): add LLM workflow foundation
 
 ## PR 合并流程
 
-合并顺序：**先合并 Agent 分支 → 再让 Engine 分支同步 main 后合并**。这样 API/Agent 合同先稳定，Engine 分支再补齐音乐生成深化。
+### 并行开发的核心约束
 
-### 第一步：合并 feature/agent-workflow → main
+两个分支并行开发时，ChatGPT 给的全量 zip 会让共有文件（VERSION、README、docs 等）在两边各自不同。如果直接 merge，会产生大量冲突且难以解决。
+
+**解决方案：合并前需要对齐一次。** 先合并第一个分支，然后让 ChatGPT 基于最新 main 重新出一个第二个分支的 zip，再用新 zip 覆盖第二个分支，最后合并。
+
+### 合并顺序：先 Agent → 对齐 → 再 Engine
+
+#### 第一步：合并 feature/agent-workflow → main
 
 1. 执行：
    ```
@@ -149,22 +155,18 @@ commit：abc1234 feat(agent): add LLM workflow foundation
    gh pr merge <PR编号> --merge
    ```
 
-### 第二步：同步 main 到 feature/engine-deepening
+#### 第二步：对齐 Engine 分支
 
-Agent 合入 main 后，立即同步：
-```
-git checkout feature/engine-deepening
-git fetch origin
-git merge origin/main
-```
-如有冲突，解决后：
-```
-git add .
-git commit -m "merge: sync main into engine-deepening"
-git push origin feature/engine-deepening
-```
+Agent 合入 main 后，**不要直接 git merge main 到 engine 分支**（会大量冲突）。
 
-### 第三步：合并 feature/engine-deepening → main
+正确的做法：
+1. 提醒用户把合并后的 main 状态告诉 ChatGPT 窗口 B（复制 VERSION、README、关键 docs 过去）
+2. ChatGPT 基于最新 main 重新出一个 engine zip
+3. 用户把新 zip 给我，按正常 zip 更新流程（解压 → checkout engine-deepening → rsync 覆盖 → 提交推送）
+
+#### 第三步：合并 feature/engine-deepening → main
+
+对齐完成后，合并应该是干净的：
 
 1. 执行：
    ```

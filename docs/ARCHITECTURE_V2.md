@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Architecture
 
-Current baseline: `v2_4_0`.
+Current baseline: `v2_4_1`.
 
 This document records the canonical architecture. Version-specific delivery notes belong in separate `docs/*V2_x_x*.md` files.
 
@@ -113,7 +113,7 @@ The Agent is currently workflow/rule based. Full LLM integration is a future enh
 
 ### LLM Context Runtime Foundation
 
-`v2_4_0` promotes the existing Agent context/trace/contract owners into a previewable LLM runtime envelope without connecting a real provider:
+`v2_4_1` promotes the existing Agent context/trace/contract owners into a previewable LLM runtime envelope without connecting a real provider:
 
 ```text
 ContextBuilder
@@ -126,7 +126,7 @@ ContextBuilder
 Rules:
 
 - Context packets are task-scoped and should include only current request, client context, relevant learner/session/material summaries, capability manifest, constraints, allowed tools, output contract, and routing hints.
-- `BoundedAgentRunLoop` is preview-only in `v2_4_0`: no real LLM call and no autonomous tool execution.
+- `BoundedAgentRunLoop` is preview-only in `v2_4_1`: no real LLM call and no autonomous tool execution.
 - Future LLM providers must obey the task-specific allowed tool list and bounded step policy.
 - This layer belongs to `jammate_agent/core/` and must not import engine internals.
 - Engine access remains adapter-only through `jammate_agent/adapters/`.
@@ -148,6 +148,8 @@ jammate_api/
 
 API contracts:
 
+- HarmonyOS direct accompaniment uses `POST /accompaniment/generate`, not legacy `/v1/generate-midi-base64`.
+- Direct accompaniment should prefer inline `jammate_leadsheet_v2` using `sections + written_form`; `tune` is fallback only.
 - Requests accept snake_case and camelCase where useful.
 - Backend responses are canonical snake_case.
 - HarmonyOS frontend types are camelCase and should use generated `CaseAdapter.ets` for mapping.

@@ -1,4 +1,4 @@
-// JamMate API Client Sketch v2_4_0
+// JamMate API Client Sketch v2_4_1
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 

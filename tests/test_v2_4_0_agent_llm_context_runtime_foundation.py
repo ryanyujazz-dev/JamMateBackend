@@ -19,11 +19,11 @@ def test_context_runtime_spec_declares_preview_only_bounded_runloop() -> None:
     payload = response.json()
     assert payload["ok"] is True
     spec = payload["spec"]
-    assert spec["version"] == "v2_4_0"
+    assert spec["version"] == "v2_4_1"
     assert spec["routes"]["preview"] == "POST /agent/context/runtime/preview"
     assert spec["runloop"]["execution_status"]["llm_calls_enabled"] is False
     assert spec["runloop"]["execution_status"]["autonomous_tool_execution_enabled"] is False
-    assert "No real LLM network call in v2_4_0." in spec["non_goals"]
+    assert "No real LLM network call in v2_4_1." in spec["non_goals"]
 
 
 def test_context_runtime_preview_builds_traceable_task_scoped_packet() -> None:
@@ -50,7 +50,7 @@ def test_context_runtime_preview_builds_traceable_task_scoped_packet() -> None:
     assert payload["task_type"] == "immediate_practice_playback"
 
     context = payload["context_packet"]
-    assert context["context_runtime_version"] == "v2_4_0"
+    assert context["context_runtime_version"] == "v2_4_1"
     assert context["allowed_tools"] == ["chart_resolve", "agent_playback_prepare"]
     assert context["output_contract"]["schema"] == "PlaybackPrepareResult"
     assert context["constraints"]["harmonyos_local_timer_owns_practice_duration"] is True
@@ -98,7 +98,7 @@ def test_context_builder_runtime_packet_stays_agent_side_and_task_scoped() -> No
         client_context={"current_screen": "practice_home", "available_minutes": 45},
     )
     data = packet.to_dict()
-    assert data["context_runtime_version"] == "v2_4_0"
+    assert data["context_runtime_version"] == "v2_4_1"
     assert data["allowed_tools"] == ["agent_practice_plan"]
     assert data["runtime_policy"]["tool_loop_mode"] == "bounded_preview"
     assert data["constraints"]["must_preserve_engine_independence"] is True

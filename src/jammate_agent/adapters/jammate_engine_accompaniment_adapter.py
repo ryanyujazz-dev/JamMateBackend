@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from jammate_agent.capabilities.accompaniment.models import AccompanimentAsset, AccompanimentRequest
+from jammate_engine.api.version import ENGINE_VERSION_TAG
 from jammate_engine.runtime.generate import generate_accompaniment
 
 
@@ -89,7 +90,7 @@ class JamMateEngineAccompanimentAdapter:
     def _build_output_filename(self, request: AccompanimentRequest) -> str:
         title = (request.leadsheet or {}).get("title", "practice_playback")
         safe_title = "".join(c.lower() if c.isalnum() else "_" for c in title).strip("_") or "practice_playback"
-        return f"v2_4_0_agent_{safe_title}_{request.config.style}_{request.config.tempo}.mid"
+        return f"{ENGINE_VERSION_TAG}_agent_{safe_title}_{request.config.style}_{request.config.tempo}.mid"
 
     def _cache_key(self, request: AccompanimentRequest) -> str:
         title = (request.leadsheet or {}).get("title", "practice_playback")

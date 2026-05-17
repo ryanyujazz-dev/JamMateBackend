@@ -4,6 +4,15 @@ This file is the chronological project history. README should remain the project
 
 ---
 
+## v2_4_1 — HarmonyOS Generate Contract Sync
+
+- Hardened `POST /accompaniment/generate` as the current HarmonyOS direct accompaniment route.
+- Promoted inline `jammate_leadsheet_v2` with `sections + written_form` as the preferred direct-generation chart input; `tune` remains fallback only.
+- Added leadsheet content signatures to direct output paths and `asset.cache_key` to avoid user-custom chart cache collisions.
+- Added graceful `INVALID_LEADSHEET` response handling for malformed inline leadsheets.
+- Synchronized HarmonyOS ArkTS contract types, fixture pack, smoke pack, API docs, and capability manifests around the inline leadsheet contract.
+- Runtime music generation behavior is unchanged from `v2_3_17`; no voicing/pattern/expression/pedal deepening in this delivery.
+
 ## v2_4_0 — Agent LLM Context Runtime Foundation
 
 - Promoted the existing Agent `ContextBuilder` / `ContextPacket` into a task-scoped LLM context runtime preview envelope.

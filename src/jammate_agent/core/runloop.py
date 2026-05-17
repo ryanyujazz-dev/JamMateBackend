@@ -5,14 +5,14 @@ from typing import Any
 
 from jammate_agent.core.context import ContextPacket
 
-RUNLOOP_CONTRACT_VERSION = "v2_4_0"
+RUNLOOP_CONTRACT_VERSION = "v2_4_1"
 
 
 @dataclass(frozen=True)
 class BoundedRunLoopPolicy:
     """Safety contract for future LLM tool execution.
 
-    v2_4_0 does not call an LLM and does not execute autonomous tools. The policy
+    v2_4_1 does not call an LLM and does not execute autonomous tools. The policy
     is made explicit now so future LLM providers have a deterministic envelope:
     bounded steps, task-scoped tool allow-list, and workflow fallbacks.
     """
@@ -44,7 +44,7 @@ class RunLoopPreviewResult:
     max_steps: int
     allowed_tools: list[str] = field(default_factory=list)
     next_action: str = "deterministic_workflow_fallback"
-    reason: str = "LLM provider is not configured in v2_4_0; use existing deterministic workflow."
+    reason: str = "LLM provider is not configured in v2_4_1; use existing deterministic workflow."
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -78,9 +78,9 @@ class BoundedAgentRunLoop:
         tool_execution_enabled = False
         next_action = "llm_required_but_unavailable" if context_packet.runtime_policy.get("llm_required") else "deterministic_workflow_fallback"
         reason = (
-            "This task requires an LLM, but v2_4_0 only exposes the context/runtime envelope."
+            "This task requires an LLM, but v2_4_1 only exposes the context/runtime envelope."
             if next_action == "llm_required_but_unavailable"
-            else "LLM provider is not configured in v2_4_0; use existing deterministic workflow."
+            else "LLM provider is not configured in v2_4_1; use existing deterministic workflow."
         )
         return RunLoopPreviewResult(
             ok=True,
