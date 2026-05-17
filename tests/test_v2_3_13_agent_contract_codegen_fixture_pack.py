@@ -13,7 +13,7 @@ def test_arkts_contract_files_endpoint_returns_split_copyable_files() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_3_15"
+    assert payload["version"] == "v2_3_16"
     files = {item["filename"]: item for item in payload["files"]}
     assert {"AgentTypes.ets", "PracticeTypes.ets", "PlaybackTypes.ets", "JamMateApiClient.ets"}.issubset(files)
     assert "export interface AgentResponse" in files["AgentTypes.ets"]["source"]
@@ -28,7 +28,7 @@ def test_frontend_fixture_pack_endpoint_contains_plan_playback_and_direct_fixtur
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_3_15"
+    assert payload["version"] == "v2_3_16"
     fixtures = payload["fixtures"]
     assert fixtures["agentPracticePlanResponse"]["plan"]["blocks"]
     assert fixtures["agentPlaybackPrepareResponse"]["playbackInstruction"]["clientLoopUntilTargetDuration"] is True
@@ -61,4 +61,4 @@ def test_repository_frontend_fixture_files_are_present_and_aligned() -> None:
     assert (fixture_root / "types" / "PlaybackTypes.ets").exists()
     assert (fixture_root / "api" / "JamMateApiClient.ets").exists()
     assert (fixture_root / "fixtures" / "PracticeFixtures.json").exists()
-    assert "v2_3_15" in (fixture_root / "README.md").read_text(encoding="utf-8")
+    assert "v2_3_16" in (fixture_root / "README.md").read_text(encoding="utf-8")

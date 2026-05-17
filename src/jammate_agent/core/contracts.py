@@ -79,7 +79,7 @@ def agent_capability_manifest() -> dict[str, Any]:
         ),
     ]
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "agent_name": "JamMateAgent",
         "principle": "LLM/Agent is an enhancement path, not a required path. Direct accompaniment remains callable without LLM.",
         "available_styles": ["medium_swing", "bossa_nova", "jazz_ballad"],
@@ -124,7 +124,7 @@ def context_profile_manifest() -> dict[str, Any]:
         ),
     ]
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "context_rule": "LLM receives ContextPacket selected by task type; HarmonyOS sends current user input, client state, and object ids only.",
         "profiles": [profile.to_dict() for profile in profiles],
     }
@@ -133,7 +133,7 @@ def context_profile_manifest() -> dict[str, Any]:
 def arkts_contract_sketch() -> dict[str, Any]:
     """Compact contract sketch for HarmonyOS codegen/reference."""
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "note": "This is a reference sketch. ArkTS source should define equivalent interfaces in PracticeTypes.ets / AgentTypes.ets.",
         "interfaces": {
             "ClientContext": {
@@ -199,7 +199,7 @@ def arkts_contract_sketch() -> dict[str, Any]:
 def harmonyos_playback_contract() -> dict[str, Any]:
     """Playback and cache rules for HarmonyOS client implementation."""
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "response_case": "snake_case",
         "request_case": "snake_case_or_camelCase",
         "principle": "Agent/LLM is an enhancement path. HarmonyOS can run the local practice workspace without LLM and can directly call /accompaniment/generate when parameters are explicit.",
@@ -241,7 +241,7 @@ def harmonyos_playback_contract() -> dict[str, Any]:
 def agent_api_usage_examples() -> dict[str, Any]:
     """Machine-readable HarmonyOS integration examples."""
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "examples": {
             "health_check": {
                 "method": "GET",
@@ -293,7 +293,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_3_15
+// JamMate Agent / Practice API Contract v2_3_16
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'
@@ -433,7 +433,7 @@ export interface AgentResponse {
 }
 '''.strip()
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "filename_suggestion": "AgentTypes.ets",
         "response_case": "snake_case",
         "request_case": "camelCase_or_snake_case",
@@ -444,7 +444,7 @@ export interface AgentResponse {
 def response_case_policy_manifest() -> dict[str, Any]:
     """Canonical API case policy for Python backend and HarmonyOS client-domain mapping."""
     return {
-        "version": "v2_3_15",
+        "version": "v2_3_16",
         "canonical_backend_response_case": "snake_case",
         "accepted_request_cases": ["snake_case", "camelCase"],
         "harmonyos_client_domain_case": "camelCase",

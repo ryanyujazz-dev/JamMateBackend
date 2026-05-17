@@ -1,3 +1,9 @@
+# v2_3_16 Cleanup / Delivery Hygiene Addendum
+
+Every engineering handoff must perform a lightweight cleanup before packaging: remove Python/test caches, transient Agent traces, OS/editor noise, temporary unpack folders, and local secrets. README must remain the project-facing overview: core design理念, directory architecture, core functionality, startup/validation commands. Version-by-version implementation logs belong in docs, not as repeated README blocks.
+
+Packaging rule: ship a clean full project package suitable for branch import. Do not include `.git`, `.env`, `.venv`, `__pycache__`, `.pytest_cache`, `.DS_Store`, or transient `demos/agent_traces`. Preserve small relevant MIDI demos when they are part of listening validation.
+
 # Development Harness V2 — Compact
 Current version: `v2_3_9`.
 ## v2_3_9 update — Pedal Policy Documentation / Expression Boundary Clarification: documentation-only; patterns expose pedal-relevant facts, Expression owns pedal intent, MIDI realizer materializes approved CC64/re-pedal.

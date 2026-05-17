@@ -15,7 +15,7 @@ def test_case_policy_endpoint_declares_snake_backend_and_camel_client_domain() -
     payload = response.json()
     assert payload["ok"] is True
     policy = payload["policy"]
-    assert policy["version"] == "v2_3_15"
+    assert policy["version"] == "v2_3_16"
     assert policy["canonical_backend_response_case"] == "snake_case"
     assert policy["harmonyos_client_domain_case"] == "camelCase"
     assert "CaseAdapter.ets" == policy["adapter_file"]
@@ -45,7 +45,7 @@ def test_arkts_contract_files_include_case_adapter_and_camel_domain_types() -> N
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_3_15"
+    assert payload["version"] == "v2_3_16"
     assert payload["response_case"] == "snake_case"
     assert payload["client_domain_case"] == "camelCase"
     files = {item["filename"]: item for item in payload["files"]}
@@ -74,4 +74,4 @@ def test_repository_frontend_fixture_pack_writes_case_adapter_file() -> None:
     assert (fixture_root / "api" / "CaseAdapter.ets").exists()
     assert "deepSnakeToCamel" in (fixture_root / "api" / "CaseAdapter.ets").read_text(encoding="utf-8")
     assert "mapAgentResponse" in (fixture_root / "api" / "JamMateApiClient.ets").read_text(encoding="utf-8")
-    assert "v2_3_15" in (fixture_root / "README.md").read_text(encoding="utf-8")
+    assert "v2_3_16" in (fixture_root / "README.md").read_text(encoding="utf-8")
