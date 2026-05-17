@@ -46,6 +46,7 @@ class JsonTraceStore:
         self.trace_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, trace: AgentTrace) -> Path:
+        self.trace_dir.mkdir(parents=True, exist_ok=True)
         trace.updated_at = datetime.now()
         path = self.trace_dir / f"{trace.trace_id}.json"
         path.write_text(json.dumps(trace.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")

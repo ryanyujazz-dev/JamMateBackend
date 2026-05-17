@@ -22,3 +22,6 @@ echo "4 optional) POST /agent/practice/plan"
 curl -s -X POST "${BASE_URL}/agent/practice/plan" \
   -H "Content-Type: application/json" \
   -d @smoke_agent_practice_plan_misty.json | python -m json.tool
+
+echo "5 optional) POST /agent/context/runtime/preview"
+curl -s -X POST "${BASE_URL}/agent/context/runtime/preview"   -H "Content-Type: application/json"   -d @smoke_agent_context_runtime_preview.json | python -m json.tool

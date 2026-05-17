@@ -46,6 +46,17 @@ class AgentPlaybackPrepareRequest(ApiModel):
     client_context: ClientContext = Field(default_factory=ClientContext)
 
 
+class AgentContextRuntimePreviewRequest(ApiModel):
+    request_id: str | None = None
+    user_input: str
+    task_type: str | None = None
+    client_context: ClientContext = Field(default_factory=ClientContext)
+    available_minutes: int | None = None
+    duration_minutes: int | None = None
+    instrument: str = "piano"
+    local_unsynced_summary: dict[str, Any] = Field(default_factory=dict)
+
+
 class SessionReviewRequest(ApiModel):
     session_id: str
     completed: bool = True

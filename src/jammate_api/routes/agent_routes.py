@@ -22,11 +22,12 @@ from jammate_agent.core.contracts import (
     arkts_contract_source,
     context_profile_manifest,
     harmonyos_playback_contract,
+    llm_context_runtime_contract,
     response_case_policy_manifest,
 )
 from jammate_agent.core.jammate_agent import JamMateAgent
 from jammate_agent.core.trace import JsonTraceStore, TraceLogger
-from jammate_api.schemas import AgentMessageRequest, AgentPlanRequest, AgentPlaybackPrepareRequest, SessionReviewRequest
+from jammate_api.schemas import AgentContextRuntimePreviewRequest, AgentMessageRequest, AgentPlanRequest, AgentPlaybackPrepareRequest, SessionReviewRequest
 
 router = APIRouter(prefix="/agent", tags=["jammate-agent"])
 
@@ -67,6 +68,24 @@ def get_arkts_contract_sketch() -> dict:
     return {"ok": True, "contract": arkts_contract_sketch()}
 
 
+@router.get("/context/runtime/spec")
+def get_context_runtime_spec() -> dict:
+    return {"ok": True, "spec": llm_context_runtime_contract()}
+
+
+@router.post("/context/runtime/preview")
+def preview_context_runtime(request: AgentContextRuntimePreviewRequest) -> dict:
+    result = build_agent().build_llm_context_runtime(
+        request.user_input,
+        task_type=request.task_type,
+        request_id=request.request_id,
+        client_context=request.client_context.model_dump(),
+        available_minutes=request.available_minutes,
+        duration_minutes=request.duration_minutes,
+        instrument=request.instrument,
+        local_unsynced_summary=request.local_unsynced_summary,
+    )
+    return result.__dict__
 
 
 @router.get("/contracts/arkts/source")
@@ -105,6 +124,7 @@ def get_harmonyos_api_smoke_pack() -> dict:
 def get_harmonyos_api_smoke_pack_files() -> dict:
     return {"ok": True, **harmonyos_api_smoke_pack_files()}
 
+
 @router.get("/contracts/case-policy")
 def get_response_case_policy() -> dict:
     return {"ok": True, "policy": response_case_policy_manifest()}
@@ -113,6 +133,7 @@ def get_response_case_policy() -> dict:
 @router.get("/playback/spec")
 def get_playback_integration_spec() -> dict:
     return {"ok": True, "spec": harmonyos_playback_contract()}
+
 
 @router.get("/traces")
 def list_agent_traces(limit: int = 20) -> dict:

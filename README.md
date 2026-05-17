@@ -1,356 +1,272 @@
-# JamMatePyEngineV2 v2_3_15
+# JamMatePyEngineV2
 
-## v2_3_15 update — HarmonyOS API Smoke Test Pack
-
-This pass adds a copy-friendly smoke-test pack for HarmonyOS and LAN integration. Runtime music generation is unchanged. New endpoints: `GET /agent/contracts/smoke-pack` and `GET /agent/contracts/smoke-pack/files`. New files live under `frontend_fixtures/harmonyos/smoke/`.
-
-# JamMatePyEngineV2 v2_3_15
-
-## v2_3_15 update — HarmonyOS API Smoke Test Pack
-
-This pass hardens the response case policy between Python and HarmonyOS. Runtime music generation is unchanged. Backend API responses remain canonical `snake_case`; generated HarmonyOS contract files now expose camelCase client-domain types plus `CaseAdapter.ets` and an updated `JamMateApiClient.ets` to map backend responses before UI/store use.
-
-Key endpoints:
+JamMatePyEngineV2 is the Python backend foundation for JamMate. It currently contains three sibling systems:
 
 ```text
-GET  /agent/contracts/case-policy
-GET  /agent/contracts/arkts/files
-GET  /agent/contracts/frontend-pack
-POST /agent/playback/prepare
+src/
+  jammate_engine/   # Independent accompaniment generation kernel
+  jammate_agent/    # Agent / practice orchestration layer
+  jammate_api/      # FastAPI service assembly layer
+```
+
+Current package version: `v2_4_0`.
+
+This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
+
+---
+
+## Core Design Principles
+
+### 1. Engine independence
+
+`jammate_engine` is the independent music-generation kernel. It owns leadsheet expansion, style policies, pattern planning, anticipation, expression, voicing, realization, and MIDI export. It must not import `jammate_agent`.
+
+HarmonyOS or any other client can directly call the engine through `/accompaniment/generate` when tune/style/tempo/chorus parameters are explicit.
+
+### 2. Agent as orchestration, not engine internals
+
+`jammate_agent` is a sibling orchestration layer. It can interpret practice intent, prepare immediate playback, resolve chart/material context, build practice plans, record session reviews, and call the engine through provider/adapters.
+
+The Agent may use the engine only through an adapter boundary, not by embedding practice logic inside the engine.
+
+### 3. API as assembly boundary
+
+`jammate_api` exposes both routes:
+
+```text
+Direct path:
+HarmonyOS -> /accompaniment/generate -> jammate_engine -> MIDI asset
+
+Agent path:
+HarmonyOS -> /agent/playback/prepare -> jammate_agent -> engine adapter -> jammate_engine -> MIDI asset
+```
+
+### 4. Local-first HarmonyOS practice module
+
+The HarmonyOS practice UI should be able to run local practice tasks, routines, timers, reviews, history, and pending sync without LLM. Python backend services provide accompaniment generation, Agent orchestration, future LLM planning, and deeper analysis.
+
+### 5. Pattern / anticipation / expression / voicing separation
+
+The engine pipeline keeps musical responsibilities separate:
+
+```text
+Pattern       = horizontal pitchless rhythm / event layout
+Anticipation  = pitchless event movement across chord-region boundaries
+Expression    = duration, release, velocity, articulation, pedal intent
+Voicing       = vertical pitch realization
+MIDI          = final note / CC materialization
+```
+
+Patterns live in styles. Voicing and expression are core-level shared systems.
+
+---
+
+## Current Main Capabilities
+
+### Accompaniment engine
+
+- Reads V2 leadsheet-style examples from `examples/leadsheets/`.
+- Generates accompaniment MIDI for standard-tune practice demos.
+- Supports current core styles:
+  - `medium_swing`
+  - `bossa_nova`
+  - `jazz_ballad`
+- Exports MIDI assets and optional base64 payloads for API clients.
+- Maintains voicing, expression, anticipation, style pattern, and pedal boundaries.
+
+### JamMate Agent foundation
+
+- Provides rule/workflow-based Agent routes before full LLM integration.
+- Prepares immediate practice playback from natural-language-like user input.
+- Creates practice plan and session review responses.
+- Builds task-scoped LLM context runtime preview packets without calling a real LLM provider.
+- Exposes a bounded runloop preview contract for future tool workflows.
+- Maintains trace logging for Agent steps.
+- Exposes capability and contract manifests for HarmonyOS integration.
+
+### HarmonyOS API / contract support
+
+- Exposes direct accompaniment and Agent routes.
+- Provides generated ArkTS contract files and frontend fixture packs.
+- Keeps backend responses canonical `snake_case`.
+- Provides HarmonyOS client-domain `camelCase` types and `CaseAdapter.ets` mapping.
+- Provides smoke-test JSON/curl files for LAN testing from a phone to the Mac backend.
+
+---
+
+## Directory Architecture
+
+```text
+JamMatePyEngineV2/
+  VERSION
+  pyproject.toml
+  README.md
+  agent.md
+
+  src/
+    jammate_engine/
+      api/                 # Engine-facing version/API helpers
+      core/                # Shared harmony, performance, voicing, expression concepts
+      generation/          # Runtime generation planning and musical generation packages
+      midi/                # MIDI writing / rendering boundaries
+      realization/         # Final event realization helpers
+      runtime/             # Public engine runtime entry point
+      styles/              # Style-specific pattern/policy packages
+      utils/
+      vocabulary/
+
+    jammate_agent/
+      core/                # Agent workflow, context, contracts, trace, guardrails
+      capabilities/        # Practice/accompaniment/chart capabilities
+      adapters/            # Boundaries to engine/chart providers
+
+    jammate_api/
+      app.py               # FastAPI app assembly
+      schemas.py           # API request schema compatibility
+      routes/              # Health, accompaniment, agent, practice routes
+
+  examples/
+    leadsheets/            # V2 leadsheet examples: standards and smoke fixtures
+    scripts/               # Demo generation scripts
+
+  frontend_fixtures/
+    harmonyos/             # ArkTS types, API client sketch, fixtures, smoke pack
+
+  docs/                    # Architecture, contracts, style rules, development harness
+  tests/                   # Targeted regression and contract tests
+  tools/                   # Demo/audit utilities
+  demos/                   # Small generated MIDI listening/demo artifacts
+```
+
+---
+
+## Public API Overview
+
+### Health
+
+```text
+GET /health
+```
+
+### Direct accompaniment path
+
+```text
 POST /accompaniment/generate
 ```
 
-Important client rule: call raw backend endpoints as before, then map responses with `CaseAdapter.ets`. UI and local store code should consume camelCase fields such as `traceId`, `playbackInstruction`, `targetDurationMinutes`, `midiBase64`, and `cacheKey`. Practice duration remains a local HarmonyOS timer target.
+Use this when the client already knows the tune/style/tempo/chorus settings.
 
-# JamMatePyEngineV2 v2_3_11
+Typical request:
 
-## v2_3_11 update — JamMate Agent Context and Contract Hardening
+```json
+{
+  "tune": "Blue Bossa",
+  "style": "bossa_nova",
+  "tempo": 120,
+  "choruses": 1,
+  "outputFormat": "midi_base64"
+}
+```
 
-This pass hardens the sibling `jammate_agent` / `jammate_api` layer introduced in v2_3_10. Runtime music generation remains unchanged. New API-facing contracts expose Agent capabilities, context profiles, ArkTS contract sketches, and persistent trace lookup for HarmonyOS integration.
-
-Key endpoints:
+### Agent immediate playback path
 
 ```text
+POST /agent/playback/prepare
+```
+
+Use this when the user asks in practice language, for example: “I want to practice Blue Bossa for 20 minutes.”
+
+The backend prepares a MIDI asset and a playback instruction. Practice duration remains a HarmonyOS local timer responsibility; the returned asset may be looped until the target duration.
+
+### Agent and contract helper routes
+
+```text
+POST /agent/practice/plan
+POST /agent/session/review
 GET  /agent/capabilities
 GET  /agent/context/profiles
+GET  /agent/context/runtime/spec
+POST /agent/context/runtime/preview
 GET  /agent/contracts/arkts
+GET  /agent/contracts/arkts/files
+GET  /agent/contracts/frontend-pack
+GET  /agent/contracts/smoke-pack
 GET  /agent/traces
 GET  /agent/traces/{trace_id}
 ```
 
-API request schemas now accept both Python `snake_case` and HarmonyOS-friendly `camelCase` payloads, e.g. `user_input` or `userInput`, `duration_minutes` or `durationMinutes`.
+---
 
-# JamMatePyEngineV2 v2_3_10
+## Running the Backend Locally
 
-## v2_3_10 update — JamMate Agent / Engine / API Boundary Foundation
-
-This pass introduces sibling packages `jammate_agent` and `jammate_api` while keeping `jammate_engine` as an independent accompaniment generation kernel. HarmonyOS can now use two paths: direct engine accompaniment via `/accompaniment/generate`, or Agent orchestration via `/agent/*`. The Agent treats JamMatePyEngine as an accompaniment provider/tool, not as an internal dependency of practice logic.
-
-
-
-## v2_3_9 update — Pedal Policy Documentation / Expression Boundary Clarification
-
-Documentation-only pass. Pedal policy is now specified as an expression-layer contract: patterns expose pedal-relevant facts, expression chooses `none/light/sustain/lush`, and the MIDI realizer only materializes approved intent with re-pedal realism. Runtime generation logic is unchanged from v2_3_9.
-
-## v2_3_9 update — Ballad Re-pedal Offset / Pedal Changeover Realism
-Jazz Ballad CC64 now lifts before the next harmony and re-presses shortly after the new chord attack; Bossa/Swing stay dry.
-## v2_3_9 update — Pedal Realizer / MIDI CC64 Boundary Audit
-
-Expression pedal intent now reaches the MIDI boundary through an explicit CC64 realizer. Jazz Ballad may materialize `light` / `sustain` pedal intent as MIDI controller 64; Bossa Nova and Medium Swing remain dry by default. The demo matrix now checks Ballad has CC64 pedal spans while Bossa/Swing have zero CC64 events.
-
-
-Current package: **v2_3_15 — HarmonyOS API Smoke Test Pack**.
-
-This pass keeps the v2_3_5 anticipation timing-grid contract locked and refines only expression-layer release / pedal behavior for already-moved anticipated chords. Bossa anticipations release dry and clean, Ballad anticipations use light-pedal metadata for connected but less smeared ties, and Medium Swing pushes remain dry and short.
-
-## v2_3_9 update — Anticipation Pedal / Release Micro-tuning
-
-- Keeps the v2_3_5 timing-grid contract intact: Swing anticipations still perform at the triplet upbeat, while Bossa/Ballad remain straight 4&.
-- Adds expression-layer release/pedal micro-tuning for anticipated chords.
-- Bossa anticipated chords are dry and short after beat 1; Ballad anticipated chords use light pedal metadata instead of full sustain pedal; Medium Swing pushes remain dry and short.
-- Demo matrix now checks anticipation release/pedal signals in addition to timing-grid, tie, and overlap checks.
-
-
-Architecture reminder: VoicingTextureIntent and VoicingTextureState remain LLM-facing/runtime abstractions in texture_plan.py; family selection, method lock, and Disposition Projection follow Capability Reuse Before New Construction.
-
-## v2_2_89 update — Upper Structure / Voicing Guard Listening Refinement
-
-This pass refines existing voicing guard and selector scoring after Upper Structure / altered-dominant color work. It adds the generic `low_register_single_note` guard below E2, exposes the guard in `register_guard` audit metadata, and adds Upper Structure register scoring so altered Upper Structure candidates are less likely to drift into sharp top notes or muddy low-register stacks. Runtime source authorization remains unchanged: harmonic expansion, altered-dominant functional scope, and LLM semantic controls still decide whether a source is legal.
-
-## v2_2_88 update — Minor V→i / Turnaround Altered Coverage Audit
-
-This pass verifies that `Bm7b5 → E7 → Am` behaves differently depending on the real home key: in A minor the E7 is a resolving V7, while in C major it is a secondary/local minor dominant. It also locks the turnaround case `Cmaj7 → A7 → Dm7 → G7 → Cmaj7`, where A7 remains secondary and G7 is the global resolving V7.
-
-`AlteredDominantPolicyDecision` now exposes `inferred_functional_scope` so explicit chart symbols such as `E7b9` can preserve `functional_scope=explicit_chord_symbol_altered` while audit still records the underlying motion as `resolving_v7` or `secondary_dominant`. Rooted color, rootless A/B, and Upper Structure source notes now include `altered_dominant_inferred_functional_scope_*`.
-
-## v2_2_88 update — Altered Dominant Intensity / Source Weight Calibration
-
-This pass turns altered-dominant intensity from a gate label into selector/audit behavior. The shared altered policy now exposes source-family weight biases for `rooted_color`, `rootless_ab`, and `upper_structure`, and candidate scoring records `altered_dominant_intensity_score` plus `altered_dominant_source_kind`.
-
-The default intensity curve is source-specific: `light` keeps altered color secondary, `medium` makes rooted altered color audible, `high` is the normal jazz setting, and `full` strongly favors legal altered pools. Style metadata supplies different profiles: Medium Swing defaults more strongly to altered/rootless, Jazz Ballad favors rooted and upper color, and Bossa Nova remains conservative.
-
-Upper Structure source planning now uses intensity to mix safe and altered sources: light keeps safe material first, high places altered material first while retaining a safe option, and full uses altered-only dominant Upper Structure when the functional gate authorizes it. Altered authorization still depends on v2_2_85 functional scope / LLM-selected altered dominant region control; v2_2_88 only tunes how legal altered sources compete.
-
-## v2_2_85 update — Altered Dominant Functional Scope / LLM Semantic Control Tuning
-
-Altered dominant is no longer authorized only by dominant chord quality. The gate now resolves `AlteredDominantFunctionalScope` before allowing unnotated altered color, distinguishing resolving V7, secondary dominant, static/blues dominant, backdoor dominant, nonfunctional dominant, explicit chord-symbol altered material, and LLM-selected altered dominant region control.
-
-Policy metadata may use `altered_dominant_policy.scopes` such as `resolving_v7`, `secondary_dominants`, `static_blues_dominants`, `backdoor_dominants`, `functional_dominants`, `all_dominants`, or `llm_selected`. LLM-selected altered dominant region selection can match region, section, phrase, chord symbol, chorus index, performance bar, written bar, or source bar metadata. Functional context is bridged from chord-region metadata into voicing policy metadata, so rooted color, rootless A/B, and Upper Structure altered choices share one policy decision instead of each source family guessing from quality alone.
-
-## v2_2_86 update — Project Audit / Documentation Plan Sync
-
-This pass is a repository synchronization and planning pass. Runtime generation logic is unchanged. It advances the package/version surfaces, adds `docs/PROJECT_AUDIT_DEVELOPMENT_TASK_PLAN_V2_2_86.md`, records the canonical validation command `PYTHONPATH=src python -m pytest -q`, and sets the next implementation target as `v2_2_88 — Altered Dominant Intensity / Source Weight Calibration`.
-
-The audit confirms that v2_2_85's Altered Dominant Functional Scope / LLM Semantic Control Tuning is already wired through one policy decision shared by rooted color, rootless A/B, and Upper Structure. The remaining gap is not functional authorization; it is source-weight and intensity calibration.
-
-
-## v2_3_9 Demo Matrix / Listening Regression Thresholds
-
-The canonical demo/audit tool is still `tools/demo_audit_pipeline.py`. v2_3_9 adds a small manifest-driven demo matrix and threshold validation so standard listening demos are checked for three choruses, non-zero note events, piano events, register guard violations, altered signals, and upper-structure signals where expected.
-
-Recommended command:
+From the project root:
 
 ```bash
-PYTHONPATH=src python tools/demo_audit_pipeline.py --fail-on-thresholds
+PYTHONPATH=src uv run uvicorn jammate_api.app:app --host 0.0.0.0 --port 8000
 ```
 
-See `docs/DEMO_MATRIX_LISTENING_REGRESSION_THRESHOLDS_V2_3_1.md`.
+Mac local test:
 
-## v2_3_9 — Anticipation Tie Sustain Repair
+```text
+http://127.0.0.1:8000/health
+```
 
-- Fixed cross-bar anticipation duration: a next-region beat-1 event moved to previous 4& now sustains for `lead_in_beats + original source-region duration`, instead of being clipped by the ordinary region-duration clamp.
-- Ordinary region clamp remains active for non-anticipated events.
-- Added audit metadata and regression tests for anticipated tie sustain.
-- Canonical validation remains: `python -m compileall src tools`, `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python -m pytest -q`, `python tools/check_development_harness.py`, and `PYTHONPATH=src python tools/demo_audit_pipeline.py --fail-on-thresholds`.
+Phone-to-Mac LAN test:
 
-Compatibility token index: v2_0_46; v2_1_4 foundation component rooted foundation component; v2_1_5; v2_1_6; v2_1_7; v2_1_9; v2_1_10; v2_1_11; v2_1_12; v2_1_13; v2_1_15; v2_1_43; harmonic expansion; rootless AB; shell plus color; chart fidelity; voicing architecture; closed listening verification.
+```text
+http://<MAC_LAN_IP>:8000/health
+```
 
-Compatibility token index B: v2_1_0 — Medium Swing Piano Musicality Tuning Pass 1; root_echo_compact_probability_multiplier; rootless_ab_safe; HarmonicExpansionPolicy; VoicingColorPolicy; color_policy_mode=chord_symbol_only; rootless_ab_content_type_with_5; rootless_ab_content_type_with_13; m7 + 13; modal gate; VoicingTexturePlan; ContentRecipe; canonical source; inversion/orientation family; A-B-A; B-A-B; third-fifth-seventh-ninth; 7-9-3-5.
+The phone must use the Mac LAN IP, not `127.0.0.1`.
 
-Compatibility token index C: No BassFoundation retune; chord_symbol_has_explicit_color; 3-note; 5-note; 6-note; Dorian; modal; CanonicalClosedSource; DispositionGenerator; VoiceLeadingScorer; 3-5-7-9; 7-9-3-5; 5-7-9-3; 9-3-5-7; canonical source rotation and inversion/orientation family.
+---
 
-Compatibility token index D: m7b5; m11b5; ABA; BAB; half-diminished texture plan; canonical source ABA BAB progression orientation.
+## Basic Validation Commands
 
-Compatibility token index E: v2_1_17 rootless_ab_register_center_score register center; v2_1_18 Locrian b9 b13 half-diminished; v2_1_19 basic_4note_1357 4_note_basic_1357; v2_1_20 root_third_seventh_altered_color basic_4note_altered_dominant_compatibility_source altered dominant; v2_1_21 Harmonic expansion does not replace the chord; v2_1_22 functional degree source; v2_1_23 4-note source inventory; standalone; shell_plus_5; shell_plus_specified_color; shell_plus_expanded_color; directed minor-second directed m2; 3-note closed; 1351 3513 5135; 4-note triad-aware closed listening.
-
-
-## Compact compatibility aliases from DEVELOPMENT_TASK_PLAN_V2
-
-Current version: `v2_3_11`.
-# Development Task Plan V2 — Compact
-## v2_3_9 update — Anticipation Pedal / Release Micro-tuning
-Goal: keep the v2_3_5 timing-grid contract locked while refining expression-layer release/pedal behavior for anticipated chords. Bossa anticipations are dry and release shortly after beat 1; Ballad anticipations stay connected but use light-pedal metadata instead of full sustain; Medium Swing pushes remain dry and short. Demo matrix now validates anticipation release/pedal signals in addition to timing-grid, tie, and overlap checks.
-Validation: `python -m compileall src tools`; segmented pytest coverage `739 passed`; `python tools/check_development_harness.py`; `PYTHONPATH=src python tools/demo_audit_pipeline.py --fail-on-thresholds`.
-Recommended next step: `v2_3_9 — Pedal Realizer / MIDI CC64 Boundary Audit`, deciding whether expression pedal metadata should remain diagnostic or be converted into actual MIDI controller events through a dedicated realization boundary.
-## v2_2_89 update — Upper Structure / Voicing Guard Listening Refinement
-Current scope: add `low_register_single_note` audit/guard metadata and Upper Structure top-register scoring; next path is `v2_3_9 — Anticipation Timing Grid Contract Repair`.
-## v2_2_88 / v2_2_87 active locked notes
-Minor V→i / Turnaround Altered Coverage Audit is key-aware and locked (`Bm7b5 → E7 → Am`); Altered Dominant Intensity / Source Weight Calibration remains active for `rooted_color`, `rootless_ab`, and `upper_structure`.
-Validation commands:
 ```bash
-python -m compileall src
+PYTHONPATH=src python -m compileall -q src tests tools examples/scripts
 PYTHONPATH=src python -m pytest -q
-python tools/check_development_harness.py
+PYTHONPATH=src python examples/scripts/generate_minimal_demo.py
 ```
-## Active task policy
-Do not preselect the next runtime task when the user has not asked. Record only the immediate user-selected task and stable backlog items.
-## Current completed pass
-`v2_2_43 — SPREAD Candidate Selector Contract / Runtime Gate Skeleton`: safety-gated selector contract landed in `core/voicing/disposition/spread.py`; runtime style-generation logic unchanged.
-## Stable near-term options, not automatic next tasks
-- Medium Swing family-level VoicingTextureState runtime pilot.
-- Rescue nearest-motion improvement.
-- Ballad SPREAD foundation planning.
-- Further standard-tune demo coverage.
-## Contract aliases
-`v2_2_20 update — VoicingTextureState / LLM Intent Architecture Planning`; `v2_2_21 update — VoicingTextureIntent / VoicingTextureState Contract Planning Pass`; `derive_voicing_texture_intent`; `derive_voicing_texture_state`; `voicing_texture_state_engine_resolved_contract_v2_2_21`; `v2_1_0 — Medium Swing Piano Musicality Tuning Pass 1`; `root echo density`; `scale_near_nextR`; `old-engine lane weighting`; `ThreeBeatSkeleton`; `R-R-*`; `40 : 40 : 10`; `legacy random`; `candidate_preflight`; `target_nextR_note`; `v2_2_1 — Disposition Projection Entry Pass`.
-The next engineering target should be selected by the user.
-## Active near-term route — SPREAD notes foundation
-Current selected route is SPREAD notes/projection, not style retuning.
-1. `v2_2_37 — Spread Recipe Reuse Audit + Contract Skeleton`: completed. `spread_recipe_reuse_audit()` and `spread_recipe_contract_skeleton()` record reusable source/orientation/projection resources and forbid reuse of final placed closed/open voicing results.
-2. `v2_2_38 — Lower Group Recipe Inventory`: implement lower recipes and metadata only: 1-note root; 2-note `root+7`, `root+3`, `root+5`, `3+7`; 3-note `root+5+upper_root`, `root+3+7`, `root+7+upper3`, `root+5+upper3`; one-octave lower span guard.
-3. `v2_2_39 — Upper Source Adapter`: reuse existing 3-note/4-note source, orientation, color policy, and DROP2/DROP3 resources without reusing final placed voicing results.
-4. `v2_2_40 — Basic SPREAD Projection`: implement `1+3`, `1+4`, `2+3`, `2+4`, `3+3` with group register/gap/span guards and debug metadata; no style runtime retune.
-5. `v2_2_41 — Group-wise Voice-Leading Scorer`: add separated lower/upper/top-motion scoring so ii-V-I lower movements can emerge naturally.
-6. `v2_2_42 — SPREAD Candidate Selector Contract / Runtime Gate Skeleton`: add explicit-policy safety gate and notes-only selector result; no style runtime wiring.
-7. Later: Ballad SPREAD runtime pilot after notes/projection audits sound reliable.
-Do not implement expression, pedal, dynamics, duration, or Ballad retune inside these notes passes.
-Compatibility SPREAD notes tokens: 1-note: `root` only; 5-note: `1+4`, `2+3`; lower functional group + upper source/projection group; not directly reuse a final placed closed/open voicing result; Do not implement expression.
-## Compact shipped-contract alias index
-This index preserves stable contract names for regression tests while avoiding old rolling task prose. Tokens: 生成规则梳理总结; Medium Swing / BassFoundation; ThreeBeatSkeleton; Five-zone register model; Seventh Bias Audit; Target Continuity Audit; 代码落位; 规则包组织方式; Pattern rules; Voicing rules; Expression rules; Timing rules; Current known; Style rule baseline docs and formal tuning entry point through `v2_0_46`; v2_0_46 Style Rule Baseline Docs + Tuning Entry Point; STYLE_RULE_BASELINE_V2.md; STYLE_TUNING_ENTRY_POINT_V2.md; Medium Swing Piano baseline; Bossa Piano baseline; Jazz Ballad Piano baseline; v2_1_0 — Medium Swing Piano Musicality Tuning Pass 1; piano musical audit; expression audit; v2_1_4 rooted foundation component; root; foundation component; rooted foundation component; standalone; 2-note standalone voicings; Do **not** treat `root + 3 / 10` as an independent 2-note tuning class; Rooted dyad component pool, not standalone review targets; foundation/support component for 4/5/6-note recipes; v2_1_5; shell_plus_5; shell_plus_1or5; 3rd + 7th + 5th; 3 + 7 + 5; not a triad; v2_1_6; specified color; shell_plus_specified_color; v2_1_7; expanded shell color; harmonic expansion; v2_1_8; superseded; v2_1_9; _color_minor_second_direction_adjustment; move color toward the other shell; v2_1_10; rootless_ab_safe; chord_symbol_has_explicit_color; rootless_ab_explicit_chord_symbol_color_used; rootless_ab_harmonic_expansion_enabled; rootless_ab_content_type_halfdim_with_9; v2_1_11; HarmonicExpansionPolicy; VoicingColorPolicy; harmonic_expansion_enabled; color_policy_mode; chord_symbol_only; explicit_chord_symbol_color; v2_1_12; rootless A/B orientation; canonical source; canonical_closed_position_source; rootless_A; rootless_B; rootless_ab_inversion_weight; 3579; 7935; with_5; with_13; v2_1_13; minor 13 modal gate; Locrian; Half-diminished is not a separate rootless source; v2_1_15; canonical inversions; v2_1_16; Voicing Source Module Boundary Cleanup; source_balance.py; No new subfolder; Minimal File Split Principle; v2_1_17; rootless_ab_average_pitch_target_low; rootless_ab_average_pitch_target_high; v2_1_18; halfdim Locrian rootless A/B; v2_1_19; basic_4note_root_third_fifth_seventh; root-third-fifth-seventh; v2_1_20; altered_dominant_rootless; rooted/rootless altered color families; v2_1_21; harmonic expansion cleanup; v2_1_22; functional source degree naming; v2_1_23; basic_4note_source_family; basic_4note_source_role_order; v2_1_24; four_note_color_gate; v2_1_27; four_note_allowed_color_set_contract_v2_1_27; chart_color_fidelity; explicit_chart_color; explicit_chart_color_plus_harmonic_expansion; v2_1_37; Do not generalize v2_1_37 immediately; v2_1_40; 3-note closed listening verification; root-third-fifth; per-source nearest; no-seventh symbols use real triad/add/sus sources; v2_1_42; 4-Note Triad-Aware Closed Source Sync; 1351; 3513; 5135; sus2, density=4, closed; closed register floor down by a major third; F3 / MIDI 53; v2_1_43; source_balance.py; Current audit version: `v2_2_10`; Source-of-truth matrix; Documentation update policy; Canonical reading path; No new docs subfolder is needed; v2_1_44; Current plan version: `v2_2_5`; closed legality filter; per-source nearest-motion realization; 1351 / 3513 / 5135; v2_2_0; v2_2_1 — Disposition Projection Entry Pass; v2_2_5; v2_2_8; OPEN method candidate pool rule; v2_2_8 Progression / Phrase-level Voicing Method Lock Contract; VoicingMethodLockSpec; auto_method_lock_scope_enabled; open_projection_method_pool; active_open_projection_method; method_lock_follow_metadata_from_seed_candidate; v2_2_10; method_lock_rescue_runtime_enabled; v2_2_12; harmonic_context_adapter; metadata_harmonic_context_adapter; harmonic_context_backed_method_lock_scope_adapter_v2_2_14; v2_2_14; method_lock_seed_then_follow_runtime_wiring_v2_2_14; method_lock_rescue_planning_v2_2_14; method_lock_filtered_all_candidates; v2_2_20; v2_2_21; VoicingTextureIntent; VoicingTextureState; VoicingTexturePlan; VoicingTexturePlan -> ContentRecipe -> CanonicalClosedSource -> DispositionGenerator -> VoiceLeadingScorer; derive_voicing_texture_intent; derive_voicing_texture_state; voicing_texture_state_engine_resolved_contract_v2_2_21; default listening behavior unchanged; the next engineering target should be selected by the user.
-## Additional compact compatibility aliases
-generation/bass_foundation/; Do not add more core infrastructure; No BassFoundation retune; 3-note; 5-note; 6-note; rootless_ab_content_type_with_5; rootless_ab_content_type_with_13; m7 + 13; m7b5; m11b5; b3 + b7 + b5; shell_plus_expanded_color; supersedes; replaces; directed minor-second; directed m2; runtime_filtering_enabled=True; HarmonicContext-backed Method Lock Scope Adapter; Seed-Then-Follow; Method Lock Rescue; Method Lock Rescue Runtime; OpenProjectionMethod.DROP2; ii-V; V-I; ii-V-I; progression_phrase_voicing_method_lock_planning_only; locked_method; open_projection_method; boundary_test_source; DROP2 Audit Fixture; open_drop2_parent_closed_degrees; docs/ARCHITECTURE_V2.md; docs/PIPELINE_V2.md; docs/SYSTEM_CONTRACTS_V2.md; docs/API_CONTRACT_V2.md; docs/GENERATION_RULES_SUMMARY_V2.md; docs/STYLE_RULE_BASELINE_V2.md; docs/STYLE_TUNING_ENTRY_POINT_V2.md; docs/DEVELOPMENT_TASK_PLAN_V2.md; docs/DEVELOPMENT_HARNESS_V2.md; docs/NEW_FILE_PLACEMENT_GUIDE_V2.md; docs/FUTURE_IDEAS_BACKLOG_V2.md; docs/VOICING_MODULE_FILE_AUDIT_V2.md; docs/PROJECT_DOCUMENTATION_AUDIT_V2.md; docs/CLOSED_3_4_NOTE_BASELINE_AND_PRE_DISPOSITION_PLAN_V2.md; docs/DISPOSITION_PROJECTION_ARCHITECTURE_V2.md; docs/VOICING_TEXTURE_STATE_ARCHITECTURE_V2.md; generate_closed_34note_baseline_smoke_listening.py; generate_3note_closed_listening_verification_demos.py; generate_4note_source_weight_listening_verification_demos.py; generate_4note_triad_closed_listening_verification_demos.py; generate_4note_triad_closed_listening_verification_demos; closed_34note_baseline_smoke_summary; 4-note triad-aware closed listening; closed register downshift; closed legality; avg_closed_4note_source_collapse_distance; closed_3note_closed_legality_then_nearest_motion; closed_3note_per_source_minimum_motion; closed_4note_per_source_minimum_motion; closed_4note_minimum_motion_events; closed_voicing_lowest_note_floor; min_closed_voicing_lowest_note; max_closed_voicing_span; max_density; min_density; preferred_density.
-## v2_2_56 update — Ballad SPREAD 1+3 Pilot + Demo
-- Completed explicit-only `spread_1plus3_contract`: lower root + upper 3-note stack with v2_2_54 source-integrity gate. Default style runtime unchanged. Continue one lower+upper grouping at a time with Misty/standard demo review; likely next: `v2_2_58 — Ballad SPREAD 2+3 Pilot + Demo` unless 1+3 needs tuning first.
-## v2_2_55 update — Ballad SPREAD 1+4 Upper DROP2/DROP3 Only Audit
-- `SPREAD_UPPER_4NOTE_DROP2_DROP3_ONLY_VERSION = "v2_2_55"`: SPREAD upper 4-note blocks reuse only OPEN DROP2/DROP3; DROP2&4 remains OPEN-family only and is filtered out at the SPREAD adapter boundary. Demo/audit: `v2_2_55_misty_jazz_ballad_spread_1plus4_upper_drop2_drop3_only_audit_demo.mid` + JSON summary. Future SPREAD lower+upper groupings should be developed one grouping or small coherent group at a time with standard-tune listening review.
-## v2_2_54 update — Global Seventh-Chord Expansion Source Integrity Gate
-- `GLOBAL_SEVENTH_CHORD_EXPANSION_SOURCE_INTEGRITY_GATE_VERSION = "v2_2_54"`: global voicing source gate for CLOSED/OPEN/SPREAD/future grouped voicings. Seventh-chord expansions preserve 3+7 identity (and half-dim/dim keep b5); triad/add paths may keep `1-3-5-9`, but seventh chords use sources such as `1-3-7-9`, `1-3-7-13`, `3-5-7-9`, `3-13-7-9`. Demo: `v2_2_54_misty_jazz_ballad_global_source_integrity_demo.mid`.
-## Final compact compatibility aliases
-A-B-A; B-A-B; Dorian; modal; 3-5-7-9; 7-9-3-5; 5-7-9-3; 9-3-5-7; Content Recipe; ContentRecipe; Register Center; register center; b9; b13; 1357; 1-3-5-7; color_permission.py; four_note_sources.py; SEVENTH_BASIC altered-dominant compatibility path has been removed; 4-Note Source Weight Implementation / Listening Prep Pass; 4-Note Source Weight Listening Verification Pass; 3-note functional closed; no partial fallback; 2-note Guide-Tone Shell; Rule Change Documentation Sync Standard; 不能只改代码、不改规则文档; root/1; root / 1; shell+1/root; 1251; 2512; 5125; docs/VOICING_SYSTEM_V2_DESIGN.md; docs/VOICING_MODULE_CORE_LOGIC_V2.md; docs/VOICING_TUNING_WORKFLOW_V2.md; Voicing Source Module Boundary Cleanup; _four_note_color_permission_notes; from .color_permission import; from .four_note_sources import; source_family_weights; mode-aware gate buckets; four_note_source_balance_gate_modes; four_note_source_balance_keys; source_family; source_type; source weight; altered dominant; compatibility path; root_third_fifth_seventh; root_third_fifth_sixth; root_fourth_fifth_seventh; root_third_fifth_ninth; root_third_ninth; root_third_seventh_altered_color; root-third-fifth-sixth; root-third-seventh-altered-color; rooted_color_4note; rooted_color_4note_source_family; rooted_color_4note_functional_content_type_; rootless_ab_content_type_with_5; rootless_ab_content_type_with_13; rootless_ab_inversion_index; rootless_ab_inversion_prior_score; rootless_ab_degree_order; basic_4note_legacy_source_family_alias; basic_4note_altered_dominant_compatibility_source; basic_4note_dim7_source_family; basic_4note_1357; 4_note_basic_1357; hard binding concept; not a new progression recognizer; OpenProjectionMethod.DROP3; OpenProjectionMethod.DROP2_AND_4; same DispositionFamily + ProjectionMethod; method lock rescue; same-family fallback; generic open fallback; closed compact fallback; nearest motion; source-order compact stack; parent-closed; parent_closed; closed_parent_placement_callback.
-Compact consistency index (historical shipped contract aliases, not active roadmap): ABA; BAB; 8:2; 52-74; 60-74; 3-b7-X-Y; Harmonic expansion does not replace the chord; functional degree source; 4-Note Source Gating Audit; Mode-Aware Source Weight; Unified Color Permission + Chart Fidelity; Eleventh / #11 / Explicit Extension Source Completion; Color Source Gating Regression; four_mode_aware; v2_1_37; v2_1_40; v2_1_43; B3-F4; Rule Change Documentation Sync Standard; 规则变化就必须同步文档; 1451; 1351; 1251; core/harmony/harmonic_context.py; OpenProjectionMethod.GENERIC_OPEN; planning-only.
-Compact contract token index B (historical shipped docs preserved as aliases, not active roadmap): rootless_ab_register_center_score; generated demo artifacts are not packaged; third-fifth-seventh-ninth; source_family_weights_by_gate; AllowedColorSet; root-third-seventh-eleventh; alt palette; G9 / G7#9 / G7b13 / Bm11b5; Top-k nearest realizations; common-tone; 3-note closed; 4-note closed; 3513; 5135; Progression / phrase-level voicing method lock.
-Compact contract token index C: Gesture-driven revoicing; 2_note_guide_tone_shell; per-source nearest.
-Compact contract token index D: Do not generalize v2_1_37 immediately; All the Things You Are.
-Texture-state placement note: Capability Reuse Before New Construction keeps LLM-facing VoicingTextureIntent and engine VoicingTextureState in texture_plan.py; Disposition Projection remains low-level, and method lock remains progression continuity.
-Compact harness contract index: classic_fill_min_gap_regions; classic fill; logical grid; same current-root note; timing_intent; BassFoundation Musicality Audit; Region Decision Trace; target-to-target; target_nextR_note; Seventh lower-lane; Target Continuity Audit; Pattern rules; Voicing rules; Expression rules; Timing rules; generate_closed_34note_baseline_smoke_listening.py; CLOSED_3_4_NOTE_BASELINE_AND_PRE_DISPOSITION_PLAN_V2.md; legacy Disposition; resolver migration is not part of v2_2_x; project_source_to_disposition(); DispositionProjectionResult; v2_2_2 — Closed Projection Migration / No Behavior Change; src/jammate_engine/core/voicing/disposition/closed.py; place_compact_closed_seed_layout; strict_closed_register_variants; closed_projection_migrated; v2_2_3 — Legacy Disposition Cleanup Pass; src/jammate_engine/core/voicing/disposition/open.py; src/jammate_engine/core/voicing/disposition/spread.py; src/jammate_engine/core/voicing/disposition/placement_utils.py; disposition/facade.py is now only a placement facade; v2_2_4 — Open Projection Skeleton / DROP2 4-note Only; v2_2_5 update — DROP2 Parent-Closed Projection Correction Pass; place_drop2_projection_from_closed_parent; open_drop2_parent_closed_notes; not from a direct source-order compact stack; v2_2_7 update — OPEN Method Candidate Pool / DROP3-DROP2&4 Skeleton Pass; open_projection_method_pool; DROP3; DROP2_AND_4.
-Compact package organization token: BassFoundation 规则包; generation/bass_foundation/.
-## v2_2_27 update — Standard Tune V2 LeadSheet Examples Pass
-Add V2-native standard-tune examples for `Autumn Leaves`, `Blue Bossa`, and `Misty` under `examples/leadsheets/`. Each example is a source-score fixture with `sections + written_form`, no melody, and no embedded performance repetitions. `examples/scripts/generate_standard_tune_v2_examples_demos.py` renders three-chorus Medium Swing / Bossa Nova / Jazz Ballad demos from those examples.
-## v2_2_27 update — Standard Tune V2 LeadSheet Examples Pass
-Add `Autumn Leaves`, `Blue Bossa`, and `Misty` as V2-native `sections + written_form` examples. Validate and generate three-chorus demos across Medium Swing, Bossa Nova, and Jazz Ballad through `generate_standard_tune_v2_examples_demos.py`. This closes the stable leadsheet-example pass before returning to voicing/texture/style runtime work when the user chooses.
-## v2_2_28 update — Medium Swing OPEN Texture State Runtime Pilot
-Medium Swing now consumes `VoicingTextureState` at runtime. Policy metadata enables `voicing_texture_state_runtime_filtering_enabled`, sets primary/allowed family to OPEN, and candidate generation filters legacy dispositions before projection. This prevents CLOSED/OPEN family switching from being a per-chord random choice while preserving the existing OPEN method pool and method-weight selector.
-## v2_2_29 — Texture-State Rescue / Nearest-Motion
-When a strict method lock or texture-state path enters explicit rescue, fallback candidates must not be selected only because they are legal. The selector reuses existing voice-leading continuity cost and applies `texture_state_rescue_nearest_motion` to collapse rescue pools to the nearest previous voicing before weighted selection. This is core voicing behavior, not a style pattern rule.
-## Recent Medium Swing Phrase/Section Texture Lock Refinement
-Delivered: Medium Swing section-scoped `VoicingTextureState` runtime wiring. This keeps the OPEN-family texture filter scoped to chart sections and prepares future bridge/chorus contrast without adding a planner.
-## v2_2_38 update — Lower Group Recipe Inventory
-`v2_2_38 — Lower Group Recipe Inventory`: implemented the SPREAD lower/foundation inventory in `core/voicing/disposition/spread.py`. The pass adds chord-quality-aware lower group resolution through Harmony-owned 3rd/5th/7th rules, a register/octave guard, and debug metadata. Covered recipes: 1-note `root`; 2-note `root+7 / root+3 / root+5 / 3+7`; 3-note `root+5+upper_root / root+3+7 / root+7+upper3 / root+5+upper3`. Runtime style behavior is unchanged.
-Next recommended route: `v2_2_39 — Upper Source Adapter`, reusing existing 3-note/4-note source/orientation/color/drop resources without reusing final placed closed/open voicings.
-## v2_2_39 update — Upper Source Adapter
-`v2_2_39 — Upper Source Adapter`: implemented the SPREAD upper-source adapter in the existing `core/voicing/disposition/spread.py` file. It reuses `content_planner`, existing 3-note / 4-note source and orientation metadata, shared color permission, and DROP2/DROP3 projection-resource refs. It adds `UPPER_SOURCE_ADAPTER_VERSION`, `SpreadUpperSourceOption`, `SpreadUpperSourceAdapterResult`, `adapt_spread_upper_source`, and `spread_upper_source_adapter_debug`. Runtime behavior is unchanged; outputs are source_oriented_not_placed, notes-only, and cannot reuse final placed closed/open candidates.
-Recommended next task: `v2_2_40 — Basic SPREAD Projection`, combining lower group placements and adapted upper source options into legal lower/upper group placements with register, gap, and span guards, still without expression/pedal retune.
-## v2_2_40 — Basic SPREAD Projection
-Basic SPREAD Projection adds a notes-only projection skeleton in the existing `core/voicing/disposition/spread.py` module. It combines the v2_2_38 lower inventory + upper source adapter from v2_2_39 into placed lower/upper candidates while keeping `runtime_enabled=false`.
-Required public contract tokens: `BASIC_SPREAD_PROJECTION_VERSION`, `SpreadProjectionRegisterPolicy`, `SpreadProjectionCandidate`, `SpreadProjectionResult`, `project_basic_spread_contract`, `project_basic_spread_candidates`, and `basic_spread_projection_debug`.
-The layer owns `group_gap_guard`, `span_guard`, lower/upper register metadata, and candidate legality metadata. It remains notes-only, does not touch expression or pedal, and does not reuse final placed closed/open voicing results. `1+4` is still interpreted as lower root foundation plus an upper DROP2/DROP3-derived projection block.
-## v2_2_41 — Group-wise Voice-Leading Scorer
-Group-wise Voice-Leading Scorer adds notes-only SPREAD continuity scoring in the existing `core/voicing/disposition/spread.py` owner. It introduces `GROUPWISE_SPREAD_VOICE_LEADING_VERSION = "v2_2_41"`, `SpreadGroupwiseVoiceLeadingWeights`, `SpreadGroupwiseVoiceLeadingScore`, `score_spread_groupwise_voice_leading`, `rank_spread_candidates_by_groupwise_voice_leading`, `select_spread_candidate_by_groupwise_voice_leading`, and `spread_groupwise_voice_leading_path_debug`.
-The scorer works only on `SpreadProjectionCandidate` objects produced by Basic SPREAD Projection. It does not change `project_basic_spread_candidates()` ordering, does not create a runtime `VoicingCandidate`, does not enable SPREAD in Medium Swing/Bossa/Ballad, and remains `runtime_enabled=false`, notes-only, with no expression or pedal behavior.
-Scoring is explicitly group-wise rather than total-motion-only. The component metadata includes `lower_group_motion`, `upper_group_motion`, `top_voice_motion`, `group_gap_change`, `span_penalty`, `register_penalty`, `weighted_penalty`, and `continuity_score`. This preserves the SPREAD model as lower/foundation group + upper/projection group and prepares for later Ballad SPREAD pilot work without violating Pattern / Voicing / Expression separation.
-## v2_2_42 — SPREAD Candidate Selector Contract / Runtime Gate Skeleton
-SPREAD Candidate Selector Contract / Runtime Gate Skeleton adds a safety-gated selector surface in the existing `core/voicing/disposition/spread.py` owner. It introduces `SPREAD_SELECTOR_RUNTIME_GATE_VERSION = "v2_2_42"`, `SpreadRuntimeGateDecision`, `SpreadCandidateSelectorRequest`, `SpreadCandidateSelectorResult`, `spread_runtime_gate_from_policy`, `select_spread_candidate_with_runtime_gate`, and `spread_candidate_selector_contract_debug`.
-The gate is closed by default. To open it, policy metadata must explicitly request the SPREAD selector gate, for example `spread_selector_enabled=true` / `spread_runtime_gate_enabled=true`, and the resolved texture family must request `spread` through `primary_family`, `allowed_families`, or `VoicingTextureState`. Even when open, the result remains a notes-only `SpreadProjectionCandidate`: `candidate_conversion_allowed=false`, `style_runtime_wiring_enabled=false`, `runtime_enabled=false`, and no expression or pedal behavior is introduced. This is a selector contract / runtime gate skeleton only; it does not retune Ballad, Bossa, or Medium Swing runtime behavior.
-## v2_2_43 — SPREAD Runtime Pilot Planning / Ballad Entry Contract
-SPREAD Runtime Pilot Planning / Ballad Entry Contract adds a guarded Jazz Ballad pilot entry contract in the existing `core/voicing/disposition/spread.py` owner. It introduces `BALLAD_SPREAD_RUNTIME_ENTRY_CONTRACT_VERSION = "v2_2_43"`, `BalladSpreadEntryScene`, `BalladSpreadRuntimeEntryContract`, `BalladSpreadRuntimeEntryDecision`, `BalladSpreadRuntimePilotResult`, `ballad_spread_runtime_entry_contract`, `resolve_ballad_spread_runtime_entry`, `select_ballad_spread_pilot_candidate`, and `ballad_spread_runtime_entry_debug`.
-The contract is planning/debug only: Jazz Ballad must explicitly set `ballad_spread_runtime_pilot.enabled=true` and still pass the existing SPREAD selector gate before notes-only pilot selection can return a `SpreadProjectionCandidate`. It keeps `style_runtime_wiring_enabled=false`, `candidate_conversion_allowed=false`, `runtime_enabled=false`, `notes-only`, and `no_expression_or_pedal=true`; Medium Swing and Bossa remain unaffected. Ballad pilot grouping is limited to `1+4`, `2+3`, `2+4`, and `3+3`, with `3+4` / 7-note thick ending left for a later explicit ending/climax pass.
-## v2_2_44 update — Ballad SPREAD Runtime Pilot Wiring Plan + Safe Dry Run
-`core/voicing/disposition/spread.py` now exposes `BALLAD_SPREAD_RUNTIME_SAFE_DRY_RUN_VERSION`, `BalladSpreadRuntimePilotWiringPlan`, `BalladSpreadRuntimeDryRunChordTrace`, `BalladSpreadRuntimeSafeDryRunResult`, `ballad_spread_runtime_pilot_wiring_plan`, `run_ballad_spread_runtime_safe_dry_run`, and `ballad_spread_runtime_safe_dry_run_debug`. This pass validates the safe chain `entry_contract_to_selector_gate_to_notes_only_candidate_to_future_conversion_boundary` for an explicitly enabled Ballad SPREAD pilot. The result remains a notes-only `SpreadProjectionCandidate`; `candidate_conversion_allowed=false`, `style_runtime_wiring_enabled=false`, and `runtime_enabled=false`. It is safe dry run only, with no expression/pedal changes and no default Ballad runtime retune. Medium Swing and Bossa remain unaffected.
-## v2_2_45 update — Ballad SPREAD Runtime Conversion Boundary Audit
-- Added `SPREAD_RUNTIME_CONVERSION_BOUNDARY_AUDIT_VERSION` in the existing `core.voicing.disposition.spread` owner.
-- Added `SpreadRuntimeConversionBoundaryStatus`, `SpreadRuntimeConversionFieldAudit`, `SpreadRuntimeConversionBoundaryAudit`, and `BalladSpreadRuntimeConversionBoundaryAuditResult`.
-- Added `spread_runtime_conversion_boundary_audit`, `audit_ballad_spread_runtime_conversion_boundaries`, `spread_runtime_conversion_boundary_debug`, and `ballad_spread_runtime_conversion_boundary_debug`.
-- This stage audits the future `SpreadProjectionCandidate_to_VoicingCandidate_boundary_audit_only` path and explicitly does not create a runtime `VoicingCandidate`.
-- The audit records mappable fields such as notes/degrees, adapter-required fields such as `content_family/root_support/bass_relation/interval_structure`, and the v2_2_46 `runtime_functional_grouping_value_exists` alignment for `1+4` before any SPREAD runtime conversion.
-- `candidate_conversion_allowed=false`, `candidate_generator_wiring_allowed=false`, `style_runtime_wiring_enabled=false`, and `runtime_enabled=false`; no expression/pedal/touch behavior is changed.
-- Medium Swing and Bossa remain unaffected. This is boundary audit only, not Ballad runtime retune.
-## v2_2_46 update — FunctionalGrouping 1+4 Contract Alignment
-Tokens: `FUNCTIONAL_GROUPING_1PLUS4_CONTRACT_ALIGNMENT_VERSION`, `FunctionalGrouping.ONE_PLUS_FOUR`, `SpreadFunctionalGroupingContractAlignment`, `align_spread_functional_grouping_contract`, `functional_grouping_1plus4_contract_alignment_debug`, `runtime_functional_grouping_value_exists`, `foundation_group`, `projection_group`, `candidate_conversion_allowed=false`, `candidate_generator_wiring_allowed=false`, `style_runtime_wiring_enabled=false`, `runtime_enabled=false`; Medium Swing and Bossa remain unaffected.
-Meaning: SPREAD `1+4` is now aligned with the core abstract grouping taxonomy as lower/foundation root plus upper/projection 4-note block. The projection map can partition a five-note candidate as `foundation_group=[0]` and `projection_group=[1,2,3,4]`. This is contract alignment only: it does not convert `SpreadProjectionCandidate` into `VoicingCandidate`, does not wire candidate_generator, and does not touch expression or pedal.
-## v2_2_47 update — SPREAD Runtime Adapter Skeleton
-- Added `SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION = "v2_2_47"` in the existing `core/voicing/disposition/spread.py` module; no new parallel voicing system or new file split was introduced.
-- New contract/debug surfaces: `SpreadRuntimeAdapterStatus`, `SpreadRuntimeAdapterFieldMapping`, `SpreadRuntimeAdapterResult`, `BalladSpreadRuntimeAdapterSkeletonResult`, `spread_projection_candidate_to_voicing_candidate_adapter`, `run_ballad_spread_runtime_adapter_skeleton`, `spread_runtime_adapter_skeleton_debug`, and `ballad_spread_runtime_adapter_skeleton_debug`.
-- The adapter maps a legal `SpreadProjectionCandidate` to a `VoicingCandidate` only when explicitly requested for dry-run/debug verification; default behavior remains blocked.
-- Field mapping preserves notes, degrees, `FunctionalGrouping.ONE_PLUS_FOUR`, foundation/projection group roles, projection map metadata, register/span/gap guards, and SPREAD source metadata.
-- `candidate_generator_wiring_allowed=false`, `style_runtime_wiring_enabled=false`, and `runtime_enabled=false` remain hard boundaries; this is adapter skeleton only, not Ballad runtime retune.
-- Jazz Ballad metadata now declares `SpreadProjectionCandidate_to_VoicingCandidate_adapter_skeleton_only`; Medium Swing and Bossa remain unaffected.
-## v2_2_48 update — Ballad SPREAD Runtime Pilot Candidate Pool Integration
-- Added `BALLAD_SPREAD_RUNTIME_CANDIDATE_POOL_INTEGRATION_VERSION = "v2_2_48"` in the existing `core/voicing/disposition/spread.py` owner; no new parallel voicing system or new SPREAD file split was introduced.
-- New contract/debug surfaces: `BalladSpreadRuntimeCandidatePoolStatus`, `BalladSpreadRuntimeCandidatePoolPlan`, `BalladSpreadRuntimeCandidatePoolResult`, `ballad_spread_runtime_candidate_pool_plan`, `build_ballad_spread_runtime_pilot_candidate_pool`, and `ballad_spread_runtime_candidate_pool_debug`.
-- The candidate pool is closed by default: `candidate_pool_enabled=false`, `adapter_conversion_allowed=false`, `candidate_pool_merge_allowed=false`, and `candidate_generator_wiring_allowed=false` in the default Jazz Ballad policy metadata.
-- When explicitly enabled for `jazz_ballad`, the pilot may prepend adapted SPREAD `VoicingCandidate` skeletons to the runtime candidate pool while preserving the existing non-SPREAD pool as fallback: `fallback_to_existing_pool=true` and `default_style_runtime_unchanged=true`.
-- The integration is still a controlled pilot candidate source: no expression/pedal/touch behavior is changed, no Ballad default retune is enabled, and Medium Swing and Bossa remain unaffected.
-## v2_2_49 update — Ballad SPREAD Pilot Selection Weight + Fallback Audit
-- Added `BALLAD_SPREAD_PILOT_SELECTION_WEIGHT_FALLBACK_AUDIT_VERSION = "v2_2_49"` in the existing `core/voicing/disposition/spread.py` owner; no new parallel voicing system or new SPREAD file split was introduced.
-- New audit/debug surfaces: `BalladSpreadPilotSelectionAuditStatus`, `BalladSpreadPilotSelectionWeightPlan`, `BalladSpreadPilotSelectionWeightFallbackAuditResult`, `ballad_spread_pilot_selection_weight_plan`, `audit_ballad_spread_pilot_selection_weight_and_fallback`, and `ballad_spread_pilot_selection_weight_fallback_audit_debug`.
-- The audit checks explicit Ballad pilot pool safety before any real selection: `fallback_required=true`, `candidate_order_is_selection_priority=false`, `selector_scoring_still_authoritative=true`, and `candidate_selection_not_performed=true`.
-- Explicit SPREAD pilot candidates remain secondary pilot candidates rather than a default replacement for the existing non-SPREAD pool. The fallback pool must be retained, SPREAD raw-score margin and candidate share are audited, and dominance risk is reported instead of silently retuning selection.
-- This pass remains audit-only: `style_runtime_default_enabled=false`, `default_style_runtime_unchanged=true`, `runtime_enabled=false`, no expression/pedal/touch retune, and Medium Swing and Bossa remain unaffected.
-### v2_2_50 — Ballad SPREAD Pilot Runtime Enablement Guard + First Listening Isolation
-- Adds `BALLAD_SPREAD_PILOT_RUNTIME_ENABLEMENT_GUARD_VERSION = "v2_2_50"` in the existing SPREAD disposition module.
-- Adds `BalladSpreadPilotRuntimeEnablementGuardStatus`, `BalladSpreadPilotRuntimeEnablementGuardPlan`, and `BalladSpreadPilotRuntimeEnablementGuardResult`.
-- Adds `ballad_spread_pilot_runtime_enablement_guard_plan`, `guard_ballad_spread_pilot_runtime_enablement`, and `ballad_spread_pilot_runtime_enablement_guard_debug`.
-- Candidate generation now requires the v2_2_50 guard before consuming explicit Ballad SPREAD pilot candidates: `runtime_guard_enabled=false` and `listening_isolation_enabled=false` are the default style-policy values.
-- First listening isolation is generated by `examples/scripts/generate_ballad_spread_first_listening_isolation_demo.py` and writes `v2_2_50_misty_jazz_ballad_spread_first_listening_isolation_demo.mid`.
-- The pilot remains `first_listening_isolation_only=true`: fallback is retained, expression/pedal are not changed, and Medium Swing and Bossa remain unaffected.
-### v2_2_51 — Expression Region Duration Clamp for Ballad SPREAD Listening Clarity
-- Adds `EXPRESSION_REGION_DURATION_CLAMP_VERSION = "v2_2_51"` in the existing core expression resolver.
-- Concrete expression durations are clamped to the remaining length of their own harmonic/chord region when region metadata is available. Pattern remains pitchless; style expression profiles still describe desired touch/sustain.
-- This directly addresses Ballad SPREAD first-listening clarity: warm sustain can no longer spill over dense two-chord bars and blur into the next chord region.
-- The expression audit exposes clamp metadata and does not treat intentionally region-clamped Ballad soft sustain as a soft-sustain error.
-- No SPREAD voicing retune, no pedal retune, no new voicing system, and no Medium Swing/Bossa behavior change by policy.
-- Listening demo: `v2_2_51_misty_jazz_ballad_spread_region_clamped_listening_demo.mid`.
-## v2_2_52 update — Ballad SPREAD 1+4 True Isolation Fix
-- Adds `BALLAD_SPREAD_1PLUS4_TRUE_ISOLATION_FIX_VERSION = "v2_2_52"` in the existing `core/voicing/disposition/spread.py` owner; no new parallel voicing system or new file split was introduced.
-- Adds explicit listening-isolation metadata: `ballad_spread_1plus4_true_isolation.enabled=true`, `required_recipe_id="spread_1plus4_contract"`, and `fallback_only_when_missing=true`.
-- In first-listening isolation mode, candidate generation now filters the guarded pool to the matching SPREAD pilot candidate when available, so the selector cannot choose the normal 4-note fallback pool during a requested 1+4 isolation demo.
-- Fallback remains available only when the requested SPREAD contract cannot be built at all; Medium Swing and Bossa remain blocked by the existing Ballad style gate.
-- This pass does not change expression, pedal, pattern, or default Jazz Ballad runtime policy. It only fixes the isolation demo contract so `1+4 = lower root + upper 4-note block` can actually be heard as a 5-note piano voicing.
-- Listening demo: `v2_2_52_misty_jazz_ballad_spread_1plus4_true_isolation_demo.mid`.
-## v2_2_53 update — SPREAD 1+4 Upper Compact Closed Parent Alignment
-- Adds `SPREAD_1PLUS4_UPPER_COMPACT_CLOSED_PARENT_ALIGNMENT_VERSION = "v2_2_53"` and reuses CLOSED compact parent construction before OPEN-owned DROP2/DROP3 projection for SPREAD 1+4 upper 4-note blocks. No parallel voicing system or Ballad expression/pedal/pattern retune. Demo: `v2_2_53_misty_jazz_ballad_spread_1plus4_compact_parent_alignment_demo.mid`.
-## v2_2_58 update — Ballad SPREAD 2+3 Pilot + Dual Demo
-- Completed explicit-only `spread_2plus3_contract` listening pilot: lower 2-note foundation + upper 3-note source, density 5.
-- From this version onward, each SPREAD lower+upper grouping audit should output two standard-tune listening demos: unexpanded/chord-symbol-only and expansion-enabled.
-- Expansion-enabled SPREAD grouping demos should target about 60% actual expanded color events by default, while preserving v2_2_54 seventh-chord source integrity.
-- Default Jazz Ballad runtime remains unchanged; this is still an explicit isolation workflow.
-- Recommended next: `v2_2_58 — Ballad SPREAD 2+4 Pilot + Dual Demo`, unless the user wants to tune 2+3 first after listening.
-- v2_2_58: `spread_2plus3_contract` lower fix: rooted `root+3/root+5/root+7` equal family, rootless `3+7` separate mode, lower A0-E2/top≥G1, upper shell+1 excluded, dual demos remain required.
-## v2_2_60 update — Ballad SPREAD 2+3 Closed Upper Groupwise Voice-Leading Fix
-- For `spread_2plus3_contract`, upper 3-note placement must be a compact closed upper group, not source-order spread. The upper group lowest note floor is F3.
-- Lower 2-note rooted foundation for this pilot is E2-E3. `root+3`, `root+5`, and `root+7` are equal-weight rooted candidates; rootless `3+7` is a separate mode.
-- Runtime listening isolation may emit multiple legal SPREAD candidates so the final selector can collapse by lower/upper groupwise nearest motion. This is gated and must not change default style runtime.
-- `shell+1/root` remains excluded from SPREAD upper 3-note pools, and the v2_2_54 source-integrity baseline still applies.
-- v2_2_60 register correction: `spread_2plus3_contract` upper 3-note closed stack must have lowest upper note >= F3; lower 2-note rooted foundation is constrained to E2-E3.
-## v2_2_72 update — Ballad SPREAD 2+3 Whole Register C2-A4
-- `spread_2plus3_contract` listening isolation now uses rooted bass anchor policy: in rooted lower mode, the root must be the lowest note and must sit inside the root-bass anchor window.
-- Lower `root+3`, `root+5`, and `root+7` remain equal inventory candidates; rootless `3+7` remains a separate lower foundation mode and is not mixed into rooted demos.
-- The previous mechanical lower E2-E3 / upper F3 floor design is replaced by whole-voicing register/span/gap guard plus groupwise voice-leading and whole-voicing scoring.
-- Upper 3-note remains closed stack and continues to exclude `shell+1/root` from the SPREAD upper 3-note pool.
-- Dual listening workflow remains mandatory for this grouping: unexpanded demo plus expanded demo targeting about 60% actual expansion.
-## v2_2_72 update — Ballad SPREAD 2+4 Pilot Dual Demo
-- `spread_2plus4_contract` is explicit listening-isolation only; default Ballad runtime remains unchanged unless requested by metadata.
-- Lower 2-note foundation reuses the approved 2+3 rooted bass-anchor logic: root is the lowest note in C2-C3, `root+3/root+5/root+7` are the equal-weight rooted family, and rootless `3+7` stays a separate mode.
-- Upper 4-note group reuses the approved 1+4 upper logic: CLOSED compact parent + OPEN DROP2/DROP3 projection; DROP2&4 is not allowed in SPREAD upper 4-note.
-- The 2+4 pilot uses whole-register C2-G5 plus gap/span guard, groupwise voice-leading, and whole-voicing scoring.
-- Dual-demo workflow remains required: unexpanded and expansion-enabled standard-tune demos; expansion-enabled target is about 60% actual color and must preserve v2_2_54 seventh-chord source integrity.
-## v2_2_72 update — Ballad SPREAD 3+3 Pilot Dual Demo
-- `spread_3plus3_contract` is now available for explicit Ballad listening isolation.
-- Lower group: rooted 3-note foundation inventory (`root+5+upper_root`, `root+3+7`, `root+7+upper3`, `root+5+upper3`) with root as the lowest note.
-- Register policy: root bass anchor `C2-C3`; full voicing guard `C2-G5`; no separate hard LH/RH register split.
-- Upper group: 3-note closed stack, shell+1/root excluded, same upper source policy as approved `2+3`.
-- Expanded demo target is approximately 60%; unexpanded and expanded demos must both be generated for review.
-## v2_2_72 update — Ballad SPREAD 3+3 Lower Recipe / Register Fix
-- `spread_3plus3_contract` lower rooted foundation keeps `root+3+7` and removes `root+5+7`; `root+5+7` is not part of the 3-note lower spread pool.
-- Remaining lower 3-note recipes are `root+5+upper_root`, `root+3+7`, `root+7+upper3`, and `root+5+upper3`.
-- 3-note lower spread span guard is 16 semitones, while root remains the lowest bass anchor in C2-C3.
-- Upper 3-note remains closed stack and forbids shell+1/root. Dual Misty demos remain unexpanded plus expansion-enabled at about 60%.
-## v2_2_72 update — Ballad SPREAD 2+3 / 2+4 / 3+3 Register Raised M3 Dual Demos
-- Preserve approved rooted SPREAD grouping logic for `2+3`, `2+4`, and `3+3`.
-- Keep root as lowest bass anchor in C2-C3. Do not mechanically move the root anchor window to E2-E3; for Eb-rooted material this would force an octave jump rather than a musical major-third register lift.
-- Raise the upper/whole listening register target by a major third:
-  - `2+3`: whole register ceiling A4 -> C#5.
-  - `2+4` / `3+3`: whole register ceiling G5 -> B5.
-- Continue dual-demo workflow: unexpanded plus expansion-enabled around 60%.
-- Keep v2_2_54 source integrity baseline and all approved SPREAD guards intact.
-## v2_2_72 update — Ballad SPREAD Lower Foundation Quality Gate
-- SPREAD lower foundation is now chord-quality aware instead of a homogeneous random pool.
-- Lower 2-note: `root+5` is treated as triad/root-fifth foundation material; seventh-family chords prefer `root+3` / `root+7`, while triad-family chords can use `root+3` / `root+5`.
-- Lower 3-note: seventh-or-above chords prefer `root+3+7` / `root+7+upper3`; triad-family chords prefer `root+5+upper_root` / `root+5+upper3`.
-- Existing root anchor E2-E3, root-lowest guard, high-tail span guard, P5 lower-to-upper gap guard, and unexpanded/expanded 60% demo workflow remain intact.
-## v2_2_72 update — Ballad SPREAD 3+4 Pilot Dual Demo
-- Added explicit Ballad SPREAD `3+4` listening isolation as a thick texture candidate.
-- `3+4` reuses the approved `3+3` lower 3-note rooted foundation logic and the approved `2+4` / `1+4` upper 4-note DROP2/DROP3 logic.
-- SPREAD upper 4-note still excludes DROP2&4; for `3+4`, upper 4-note projection now can emit all legal parent projections so overlap/gap guards and groupwise voice-leading can choose a non-overlapping version.
-- Register / guard baseline remains: root anchor `E2–E3`, root must be the lowest note, high-tail lower span guard, lower-top to upper-bottom gap `<= P5`, no upper/lower MIDI-note overlap, and full voicing within the Ballad SPREAD whole register.
-- Dual demo workflow remains required: unexpanded and harmonic-expansion-on versions; expanded demo target remains about 60%.
-## v2_2_72 update — Ballad SPREAD 3+4 Lower Recipe Gate
-- `3+4` lower 3-note is no longer the full `3+3` lower pool. Seventh-or-above chords use `root+7+upper3` only; triad-family chords use `root+5+upper3` only.
-- The root-anchor high-tail span guard is disabled only for `spread_3plus4_contract`; other SPREAD groupings keep the guard.
-- Upper 4-note remains DROP2 / DROP3 only, with optional octave-shift candidate emission so thick lower groups can satisfy the P5 gap and no-overlap guards.
-- Dual Misty demos: `v2_2_72_misty_jazz_ballad_spread_3plus4_lower_recipe_gate_unexpanded_demo.mid` and `v2_2_72_misty_jazz_ballad_spread_3plus4_lower_recipe_gate_expanded_60pct_demo.mid`.
-## v2_2_72 update — Ballad SPREAD 3+4 Root Anchor Lowered
-- `3+4` keeps the approved lower recipe gate: seventh-or-above chords use `root+7+upper3`; triad-family chords use `root+5+upper3`.
-- For `3+4` only, the root bass anchor register is lowered four semitones from `E2–E3` to `C2–C3` to reduce overall height.
-- The `3+4` anchor-tail span guard remains disabled; the P5 lower-to-upper gap guard, no-overlap guard, root-lowest rule, DROP2/DROP3-only upper 4-note policy, and source-integrity gate remain active.
-- Dual Misty demos are exported for unexpanded and expansion-enabled approximately 60% color versions.
-## v2_2_73 update — Ballad SPREAD 3+4 Root Target Fine Tune
-3+4 keeps the C2–C3 root window but lowers its root target to Eb2/MIDI 39; this preserves the v2_2_54 source-integrity gate, DROP2/DROP3-only upper 4-note rule, root-lowest rule, P5 gap cap, and overlap guard while reducing the thick lower group's C3-side bias.
-- v2_2_85 — Altered Dominant Functional Scope / LLM Semantic Control Tuning: unnotated altered color is gated by resolving V7, secondary, static/blues, backdoor, explicit-symbol, or LLM-selected altered dominant region metadata; rooted color/rootless A-B/Upper Structure share one decision.
-## Current milestone: v2_3_9 — Demo Matrix / Listening Regression Thresholds
-v2_3_9 validates canonical demo/audit outputs through a small manifest-driven matrix; next: v2_3_9 — Style-specific Demo Matrix Expansion / Regression Coverage.
-## v2_3_9 — Anticipation Tie Sustain Repair
-- Fixed cross-bar anticipation duration: a next-region beat-1 event moved to previous 4& now sustains for `lead_in_beats + original source-region duration`, instead of being clipped by the ordinary region-duration clamp.
-- Ordinary region clamp remains active for non-anticipated events.
-- Added audit metadata and regression tests for anticipated tie sustain.
-- Canonical validation remains: `python -m compileall src tools`, `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=src python -m pytest -q`, `python tools/check_development_harness.py`, and `PYTHONPATH=src python tools/demo_audit_pipeline.py --fail-on-thresholds`.
+
+For HarmonyOS smoke testing:
+
+```bash
+cd frontend_fixtures/harmonyos/smoke
+bash curl_smoke.sh http://127.0.0.1:8000
+```
+
+---
+
+## Development Workflow
+
+Current recommended Git branches:
+
+```text
+main                       # Stable only; do not commit directly
+feature/agent-workflow      # Agent / API / HarmonyOS / LLM workflow development
+feature/engine-deepening    # Engine / voicing / pattern / expression / style tuning
+```
+
+Each ChatGPT engineering delivery should be treated as a full project package. Before packaging and handing off, remove cache/temp artifacts, keep README focused on project identity and architecture, and keep version surfaces aligned.
+
+See:
+
+```text
+docs/DEVELOPMENT_HARNESS_V2.md
+docs/ARCHITECTURE_V2.md
+docs/API_CONTRACT_V2.md
+docs/STYLE_TUNING_ENTRY_POINT_V2.md
+docs/GENERATION_RULES_SUMMARY_V2.md
+```
+
+---
+
+## Current Development Status
+
+`v2_4_0` is the Agent LLM Context Runtime Foundation baseline for `feature/agent-workflow`. It adds preview-only task-scoped context packets, bounded runloop metadata, Agent runtime preview routes, and synchronized HarmonyOS contract fixtures. Runtime music generation behavior is unchanged from `v2_3_17`.
+
+```text
+Current active window -> feature/agent-workflow
+Engine-deepening work -> not touched in this delivery
+```

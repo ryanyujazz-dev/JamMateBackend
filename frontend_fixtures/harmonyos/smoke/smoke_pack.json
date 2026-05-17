@@ -1,5 +1,5 @@
 {
-  "version": "v2_3_15",
+  "version": "v2_4_0",
   "purpose": "Minimal HarmonyOS-to-Python smoke validation pack.",
   "base_url_examples": {
     "local_mac": "http://127.0.0.1:8000",
@@ -76,6 +76,26 @@
       }
     },
     {
+      "name": "agent_context_runtime_preview",
+      "method": "POST",
+      "path": "/agent/context/runtime/preview",
+      "request": {
+        "userInput": "我今天有45分钟，想练Misty的ballad comping",
+        "taskType": "practice_plan_generation",
+        "availableMinutes": 45,
+        "clientContext": {
+          "currentScreen": "practice_home",
+          "availableMinutes": 45,
+          "locale": "zh-CN"
+        }
+      },
+      "expect": {
+        "ok": true,
+        "context_packet.allowed_tools": "non_empty",
+        "runloop_preview.runtime_mode": "preview_only"
+      }
+    },
+    {
       "name": "session_review",
       "method": "POST",
       "path": "/agent/session/review",
@@ -136,6 +156,16 @@
       "userInput": "我今天有45分钟，想练Misty的ballad comping",
       "availableMinutes": 45,
       "instrument": "piano"
+    },
+    "agentContextRuntimePreview": {
+      "userInput": "我今天有45分钟，想练Misty的ballad comping",
+      "taskType": "practice_plan_generation",
+      "availableMinutes": 45,
+      "clientContext": {
+        "currentScreen": "practice_home",
+        "availableMinutes": 45,
+        "locale": "zh-CN"
+      }
     },
     "sessionReview": {
       "sessionId": "session_smoke_001",

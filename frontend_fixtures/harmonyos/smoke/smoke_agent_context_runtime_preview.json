@@ -1,0 +1,10 @@
+{
+  "userInput": "我今天有45分钟，想练Misty的ballad comping",
+  "taskType": "practice_plan_generation",
+  "availableMinutes": 45,
+  "clientContext": {
+    "currentScreen": "practice_home",
+    "availableMinutes": 45,
+    "locale": "zh-CN"
+  }
+}

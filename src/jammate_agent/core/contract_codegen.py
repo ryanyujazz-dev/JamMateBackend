@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-CONTRACT_VERSION = "v2_3_15"
+CONTRACT_VERSION = "v2_4_0"
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class GeneratedContractFile:
 
 
 AGENT_TYPES_ETS = r'''
-// JamMate Agent API Types v2_3_15
+// JamMate Agent API Types v2_4_0
 // Copy target: entry/src/main/ets/features/jammateAgent/model/AgentTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 
@@ -67,6 +67,55 @@ export interface AgentPlaybackPrepareRequest {
   userInput: string
   durationMinutes?: number
   clientContext?: ClientContext
+}
+
+export interface AgentContextRuntimePreviewRequest {
+  requestId?: string | null
+  userInput: string
+  taskType?: AgentIntentType | null
+  clientContext?: ClientContext
+  availableMinutes?: number | null
+  durationMinutes?: number | null
+  instrument?: string
+  localUnsyncedSummary?: Record<string, unknown>
+}
+
+export interface ContextPacket {
+  contextRuntimeVersion: string
+  taskType: AgentIntentType | string
+  selectedContextLayers: string[]
+  systemProductContext: Record<string, unknown>
+  userRequest: Record<string, unknown>
+  clientContext: Record<string, unknown>
+  capabilities: Record<string, unknown>
+  constraints: Record<string, unknown>
+  allowedTools: string[]
+  outputContract: Record<string, unknown>
+  runtimePolicy: Record<string, unknown>
+  routingHints: Record<string, unknown>
+}
+
+export interface RunLoopPreview {
+  contractVersion: string
+  ok: boolean
+  runtimeMode: 'preview_only' | string
+  llmProviderConfigured: boolean
+  toolExecutionEnabled: boolean
+  maxSteps: number
+  allowedTools: string[]
+  nextAction: string
+  reason: string
+  warnings: string[]
+}
+
+export interface AgentContextRuntimePreviewResponse {
+  ok: boolean
+  taskType: AgentIntentType | string
+  contextPacket: ContextPacket
+  runloopPreview: RunLoopPreview
+  traceId?: string | null
+  errorCode?: string | null
+  message?: string | null
 }
 
 export interface AgentOption {
@@ -135,18 +184,18 @@ export interface AgentContractFilesResponse {
 
 
 
-PRACTICE_TYPES_ETS = "\n// JamMate Practice Domain Types v2_3_15\n// Copy target: entry/src/main/ets/features/practice/model/PracticeTypes.ets\n// Client-domain types are camelCase. Backend raw snake_case payloads should be mapped by CaseAdapter.ets.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type ExerciseBlockType =\n  | 'technique'\n  | 'time_feel'\n  | 'ear_training'\n  | 'guide_tone'\n  | 'voicing'\n  | 'comping'\n  | 'improvisation'\n  | 'transcription'\n  | 'repertoire'\n  | 'review'\n  | 'custom'\n  | string\n\nexport type ExerciseBlockStatus = 'pending' | 'active' | 'completed' | 'skipped' | string\nexport type PracticeSessionStatus = 'planned' | 'active' | 'paused' | 'completed' | 'abandoned' | string\nexport type SyncStatus = 'local_only' | 'pending' | 'synced' | 'conflict' | 'failed' | string\n\nexport interface PracticeMaterial {\n  type: string\n  tune?: string | null\n  section?: string | null\n  key?: string | null\n  progression?: string | null\n  bars?: number | null\n  raw?: Record<string, unknown>\n}\n\nexport interface AccompanimentPracticeConfig {\n  enabled: boolean\n  style: JamMateStyle | string\n  tempo: number\n  loopCount?: number | null\n  durationMinutes?: number | null\n  sectionLoop: boolean\n  mutedRoles: Array<'piano' | 'bass' | 'drums' | 'melody' | string>\n  countIn: boolean\n  harmonicExpansionEnabled: boolean\n  density: string\n  practiceRole: string\n  outputFormat: 'midi_base64' | 'asset_id'\n  arrangementIntent: Record<string, unknown>\n}\n\nexport interface ExerciseBlock {\n  blockId: string\n  type: ExerciseBlockType\n  title: string\n  intent: string\n  durationMinutes: number\n  material?: PracticeMaterial | null\n  tempo?: number | null\n  style?: string | null\n  accompanimentConfig?: AccompanimentPracticeConfig | null\n  successCriteria: string[]\n  reviewPrompt?: string | null\n  status: ExerciseBlockStatus\n}\n\nexport interface PracticePlan {\n  planId: string\n  title: string\n  durationMinutes: number\n  mainFocus: string\n  blocks: ExerciseBlock[]\n  estimatedDifficulty: string\n  explanation?: string | null\n  source: 'rule_based' | 'llm' | 'template' | 'hybrid' | string\n}\n\nexport interface PracticeSession {\n  sessionId: string\n  planId?: string | null\n  startedAt?: string | null\n  endedAt?: string | null\n  status: PracticeSessionStatus\n  totalPlannedMinutes?: number | null\n  totalActualMinutes: number\n  currentBlockId?: string | null\n  blocks: ExerciseBlock[]\n  syncStatus: SyncStatus\n}\n\nexport interface StuckPoint {\n  material?: string | null\n  issue: string\n}\n\nexport interface SessionReview {\n  sessionId?: string\n  completed?: boolean\n  difficulty?: 'too_easy' | 'easy' | 'good_challenge' | 'too_hard' | string\n  focusScore?: number | null\n  timeFeel?: 'stable' | 'rushing' | 'dragging' | 'unsure' | string | null\n  tempoResult?: Record<string, unknown> | null\n  stuckPoints?: StuckPoint[]\n  notes?: string | null\n  nextActionPreference?: string | null\n}\n\nexport interface NextStepRecommendation {\n  recommendationId: string\n  source: 'rule_based' | 'llm' | 'hybrid' | string\n  summary: string\n  actions: Array<Record<string, unknown>>\n}\n".strip() + "\n"
+PRACTICE_TYPES_ETS = "\n// JamMate Practice Domain Types v2_4_0\n// Copy target: entry/src/main/ets/features/practice/model/PracticeTypes.ets\n// Client-domain types are camelCase. Backend raw snake_case payloads should be mapped by CaseAdapter.ets.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type ExerciseBlockType =\n  | 'technique'\n  | 'time_feel'\n  | 'ear_training'\n  | 'guide_tone'\n  | 'voicing'\n  | 'comping'\n  | 'improvisation'\n  | 'transcription'\n  | 'repertoire'\n  | 'review'\n  | 'custom'\n  | string\n\nexport type ExerciseBlockStatus = 'pending' | 'active' | 'completed' | 'skipped' | string\nexport type PracticeSessionStatus = 'planned' | 'active' | 'paused' | 'completed' | 'abandoned' | string\nexport type SyncStatus = 'local_only' | 'pending' | 'synced' | 'conflict' | 'failed' | string\n\nexport interface PracticeMaterial {\n  type: string\n  tune?: string | null\n  section?: string | null\n  key?: string | null\n  progression?: string | null\n  bars?: number | null\n  raw?: Record<string, unknown>\n}\n\nexport interface AccompanimentPracticeConfig {\n  enabled: boolean\n  style: JamMateStyle | string\n  tempo: number\n  loopCount?: number | null\n  durationMinutes?: number | null\n  sectionLoop: boolean\n  mutedRoles: Array<'piano' | 'bass' | 'drums' | 'melody' | string>\n  countIn: boolean\n  harmonicExpansionEnabled: boolean\n  density: string\n  practiceRole: string\n  outputFormat: 'midi_base64' | 'asset_id'\n  arrangementIntent: Record<string, unknown>\n}\n\nexport interface ExerciseBlock {\n  blockId: string\n  type: ExerciseBlockType\n  title: string\n  intent: string\n  durationMinutes: number\n  material?: PracticeMaterial | null\n  tempo?: number | null\n  style?: string | null\n  accompanimentConfig?: AccompanimentPracticeConfig | null\n  successCriteria: string[]\n  reviewPrompt?: string | null\n  status: ExerciseBlockStatus\n}\n\nexport interface PracticePlan {\n  planId: string\n  title: string\n  durationMinutes: number\n  mainFocus: string\n  blocks: ExerciseBlock[]\n  estimatedDifficulty: string\n  explanation?: string | null\n  source: 'rule_based' | 'llm' | 'template' | 'hybrid' | string\n}\n\nexport interface PracticeSession {\n  sessionId: string\n  planId?: string | null\n  startedAt?: string | null\n  endedAt?: string | null\n  status: PracticeSessionStatus\n  totalPlannedMinutes?: number | null\n  totalActualMinutes: number\n  currentBlockId?: string | null\n  blocks: ExerciseBlock[]\n  syncStatus: SyncStatus\n}\n\nexport interface StuckPoint {\n  material?: string | null\n  issue: string\n}\n\nexport interface SessionReview {\n  sessionId?: string\n  completed?: boolean\n  difficulty?: 'too_easy' | 'easy' | 'good_challenge' | 'too_hard' | string\n  focusScore?: number | null\n  timeFeel?: 'stable' | 'rushing' | 'dragging' | 'unsure' | string | null\n  tempoResult?: Record<string, unknown> | null\n  stuckPoints?: StuckPoint[]\n  notes?: string | null\n  nextActionPreference?: string | null\n}\n\nexport interface NextStepRecommendation {\n  recommendationId: string\n  source: 'rule_based' | 'llm' | 'hybrid' | string\n  summary: string\n  actions: Array<Record<string, unknown>>\n}\n".strip() + "\n"
 
 
 
-PLAYBACK_TYPES_ETS = "\n// JamMate Playback / Accompaniment Types v2_3_15\n// Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets\n// Client-domain types are camelCase. Duration is a practice-timer concern.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type AssetLoopMode = 'loop_until_target_duration' | string\n\nexport interface DirectAccompanimentGenerateRequest {\n  leadsheet?: Record<string, unknown> | null\n  tune?: string | null\n  style?: JamMateStyle\n  tempo?: number\n  choruses?: number\n  seed?: number\n  outputPath?: string | null\n  ensemble?: Record<string, unknown>\n  voicingOverride?: Record<string, unknown>\n  outputFormat?: 'midi_base64'\n}\n\nexport interface AccompanimentAsset {\n  assetId?: string\n  format: 'midi_base64'\n  midiBase64: string\n  midiPath?: string | null\n  durationSeconds?: number | null\n  cacheKey?: string | null\n  debugSummary?: Record<string, unknown>\n}\n\nexport interface PlaybackInstruction {\n  autoStart: boolean\n  targetDurationMinutes: number\n  clientLoopUntilTargetDuration: boolean\n  assetLoopMode?: AssetLoopMode\n  stopCondition?: string\n  requiresLocalTimer?: boolean\n  cachePolicy?: {\n    cacheKey?: string | null\n    scope?: string\n    reuseWhenRequestSignatureMatches?: boolean\n  }\n}\n\nexport interface PlaybackState {\n  status: 'idle' | 'preparing_remote_asset' | 'ready_cached' | 'playing' | 'paused' | 'completed' | 'failed'\n  cacheKey?: string | null\n  assetId?: string | null\n  targetDurationMinutes?: number | null\n  elapsedSeconds: number\n  errorMessage?: string | null\n}\n\nexport interface DirectAccompanimentGenerateResponse {\n  ok: boolean\n  asset?: AccompanimentAsset\n  errorCode?: string\n  message?: string\n  options?: Array<Record<string, unknown>>\n}\n".strip() + "\n"
+PLAYBACK_TYPES_ETS = "\n// JamMate Playback / Accompaniment Types v2_4_0\n// Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets\n// Client-domain types are camelCase. Duration is a practice-timer concern.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type AssetLoopMode = 'loop_until_target_duration' | string\n\nexport interface DirectAccompanimentGenerateRequest {\n  leadsheet?: Record<string, unknown> | null\n  tune?: string | null\n  style?: JamMateStyle\n  tempo?: number\n  choruses?: number\n  seed?: number\n  outputPath?: string | null\n  ensemble?: Record<string, unknown>\n  voicingOverride?: Record<string, unknown>\n  outputFormat?: 'midi_base64'\n}\n\nexport interface AccompanimentAsset {\n  assetId?: string\n  format: 'midi_base64'\n  midiBase64: string\n  midiPath?: string | null\n  durationSeconds?: number | null\n  cacheKey?: string | null\n  debugSummary?: Record<string, unknown>\n}\n\nexport interface PlaybackInstruction {\n  autoStart: boolean\n  targetDurationMinutes: number\n  clientLoopUntilTargetDuration: boolean\n  assetLoopMode?: AssetLoopMode\n  stopCondition?: string\n  requiresLocalTimer?: boolean\n  cachePolicy?: {\n    cacheKey?: string | null\n    scope?: string\n    reuseWhenRequestSignatureMatches?: boolean\n  }\n}\n\nexport interface PlaybackState {\n  status: 'idle' | 'preparing_remote_asset' | 'ready_cached' | 'playing' | 'paused' | 'completed' | 'failed'\n  cacheKey?: string | null\n  assetId?: string | null\n  targetDurationMinutes?: number | null\n  elapsedSeconds: number\n  errorMessage?: string | null\n}\n\nexport interface DirectAccompanimentGenerateResponse {\n  ok: boolean\n  asset?: AccompanimentAsset\n  errorCode?: string\n  message?: string\n  options?: Array<Record<string, unknown>>\n}\n".strip() + "\n"
 
 
 
-CASE_ADAPTER_ETS = "\n// JamMate Case Adapter v2_3_15\n// Copy target: entry/src/main/ets/features/jammateAgent/api/CaseAdapter.ets\n// Backend canonical response: snake_case. Client-domain model: camelCase.\n\nimport type { AgentResponse } from '../model/AgentTypes'\nimport type { DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'\n\nfunction snakeToCamelKey(key: string): string {\n  return key.replace(/_([a-zA-Z0-9])/g, (_match: string, letter: string): string => letter.toUpperCase())\n}\n\nfunction camelToSnakeKey(key: string): string {\n  return key.replace(/[A-Z]/g, (letter: string): string => `_${letter.toLowerCase()}`)\n}\n\nexport function deepSnakeToCamel(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepSnakeToCamel(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[snakeToCamelKey(key)] = deepSnakeToCamel((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function deepCamelToSnake(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepCamelToSnake(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[camelToSnakeKey(key)] = deepCamelToSnake((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function mapAgentResponse(raw: Record<string, unknown>): AgentResponse {\n  return deepSnakeToCamel(raw) as AgentResponse\n}\n\nexport function mapDirectAccompanimentResponse(raw: Record<string, unknown>): DirectAccompanimentGenerateResponse {\n  return deepSnakeToCamel(raw) as DirectAccompanimentGenerateResponse\n}\n".strip() + "\n"
+CASE_ADAPTER_ETS = "\n// JamMate Case Adapter v2_4_0\n// Copy target: entry/src/main/ets/features/jammateAgent/api/CaseAdapter.ets\n// Backend canonical response: snake_case. Client-domain model: camelCase.\n\nimport type { AgentResponse } from '../model/AgentTypes'\nimport type { DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'\n\nfunction snakeToCamelKey(key: string): string {\n  return key.replace(/_([a-zA-Z0-9])/g, (_match: string, letter: string): string => letter.toUpperCase())\n}\n\nfunction camelToSnakeKey(key: string): string {\n  return key.replace(/[A-Z]/g, (letter: string): string => `_${letter.toLowerCase()}`)\n}\n\nexport function deepSnakeToCamel(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepSnakeToCamel(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[snakeToCamelKey(key)] = deepSnakeToCamel((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function deepCamelToSnake(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepCamelToSnake(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[camelToSnakeKey(key)] = deepCamelToSnake((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function mapAgentResponse(raw: Record<string, unknown>): AgentResponse {\n  return deepSnakeToCamel(raw) as AgentResponse\n}\n\nexport function mapDirectAccompanimentResponse(raw: Record<string, unknown>): DirectAccompanimentGenerateResponse {\n  return deepSnakeToCamel(raw) as DirectAccompanimentGenerateResponse\n}\n".strip() + "\n"
 
 
-API_CLIENT_EXAMPLE_ETS = "\n// JamMate API Client Sketch v2_3_15\n// Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets\n// Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.\n\nimport type { AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse } from '../model/AgentTypes'\nimport type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'\nimport { mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'\n\nexport class JamMateApiClient {\n  constructor(private readonly baseUrl: string) {}\n\n  async health(): Promise<Record<string, unknown>> {\n    return this.get('/health')\n  }\n\n  async generatePracticePlan(request: AgentPlanRequest): Promise<AgentResponse> {\n    const raw = await this.post('/agent/practice/plan', request as Record<string, unknown>)\n    return mapAgentResponse(raw)\n  }\n\n  async prepareAgentPlayback(request: AgentPlaybackPrepareRequest): Promise<AgentResponse> {\n    const raw = await this.post('/agent/playback/prepare', request as Record<string, unknown>)\n    return mapAgentResponse(raw)\n  }\n\n  async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {\n    const raw = await this.post('/accompaniment/generate', request as Record<string, unknown>)\n    return mapDirectAccompanimentResponse(raw)\n  }\n\n  private async get(path: string): Promise<Record<string, unknown>> {\n    throw new Error(`Replace JamMateApiClient.get with HarmonyOS HTTP implementation: ${this.baseUrl}${path}`)\n  }\n\n  private async post(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {\n    throw new Error(`Replace JamMateApiClient.post with HarmonyOS HTTP implementation: ${this.baseUrl}${path} body=${JSON.stringify(body)}`)\n  }\n}\n".strip() + "\n"
+API_CLIENT_EXAMPLE_ETS = "\n// JamMate API Client Sketch v2_4_0\n// Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets\n// Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.\n\nimport type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse } from '../model/AgentTypes'\nimport type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'\nimport { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'\n\nexport class JamMateApiClient {\n  constructor(private readonly baseUrl: string) {}\n\n  async health(): Promise<Record<string, unknown>> {\n    return this.get('/health')\n  }\n\n  async generatePracticePlan(request: AgentPlanRequest): Promise<AgentResponse> {\n    const raw = await this.post('/agent/practice/plan', request as Record<string, unknown>)\n    return mapAgentResponse(raw)\n  }\n\n  async prepareAgentPlayback(request: AgentPlaybackPrepareRequest): Promise<AgentResponse> {\n    const raw = await this.post('/agent/playback/prepare', request as Record<string, unknown>)\n    return mapAgentResponse(raw)\n  }\n\n  async previewAgentContextRuntime(request: AgentContextRuntimePreviewRequest): Promise<AgentContextRuntimePreviewResponse> {\n    const raw = await this.post('/agent/context/runtime/preview', request as Record<string, unknown>)\n    return deepSnakeToCamel(raw) as AgentContextRuntimePreviewResponse\n  }\n\n  async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {\n    const raw = await this.post('/accompaniment/generate', request as Record<string, unknown>)\n    return mapDirectAccompanimentResponse(raw)\n  }\n\n  private async get(path: string): Promise<Record<string, unknown>> {\n    throw new Error(`Replace JamMateApiClient.get with HarmonyOS HTTP implementation: ${this.baseUrl}${path}`)\n  }\n\n  private async post(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {\n    throw new Error(`Replace JamMateApiClient.post with HarmonyOS HTTP implementation: ${this.baseUrl}${path} body=${JSON.stringify(body)}`)\n  }\n}\n".strip() + "\n"
 
 
 
@@ -321,6 +370,37 @@ def frontend_fixture_pack() -> dict[str, Any]:
                 "explanation": "Fixture playback response for UI/cache/player testing.",
                 "trace_id": "trace_fixture_playback_001",
             },
+            "agentContextRuntimePreviewResponse": {
+                "ok": True,
+                "task_type": "practice_plan_generation",
+                "context_packet": {
+                    "context_runtime_version": CONTRACT_VERSION,
+                    "task_type": "practice_plan_generation",
+                    "selected_context_layers": ["system_product_context", "capability_manifest", "user_request", "client_context"],
+                    "system_product_context": {"product": "JamMate", "architecture": "engine_agent_api_sibling_packages"},
+                    "user_request": {"text": "我今天有45分钟，想练Misty的ballad comping"},
+                    "client_context": {"current_screen": "practice_home", "available_minutes": 45},
+                    "capabilities": {"available_styles": ["medium_swing", "bossa_nova", "jazz_ballad"]},
+                    "constraints": {"available_minutes": 45, "backend_response_case": "snake_case"},
+                    "allowed_tools": ["agent_practice_plan"],
+                    "output_contract": {"schema": "PracticePlan", "response_case": "snake_case"},
+                    "runtime_policy": {"llm_provider_configured": False, "tool_loop_mode": "bounded_preview"},
+                    "routing_hints": {"preferred_route": "POST /agent/practice/plan"},
+                },
+                "runloop_preview": {
+                    "contract_version": CONTRACT_VERSION,
+                    "ok": True,
+                    "runtime_mode": "preview_only",
+                    "llm_provider_configured": False,
+                    "tool_execution_enabled": False,
+                    "max_steps": 4,
+                    "allowed_tools": ["agent_practice_plan"],
+                    "next_action": "deterministic_workflow_fallback",
+                    "reason": "LLM provider is not configured in v2_4_0; use existing deterministic workflow.",
+                    "warnings": [],
+                },
+                "trace_id": "trace_fixture_context_runtime_001",
+            },
             "directAccompanimentGenerateResponse": {
                 "ok": True,
                 "asset": {
@@ -441,6 +521,12 @@ def harmonyos_api_smoke_pack() -> dict[str, Any]:
         "availableMinutes": 45,
         "instrument": "piano",
     }
+    context_preview_request = {
+        "userInput": "我今天有45分钟，想练Misty的ballad comping",
+        "taskType": "practice_plan_generation",
+        "availableMinutes": 45,
+        "clientContext": {"currentScreen": "practice_home", "availableMinutes": 45, "locale": "zh-CN"},
+    }
     session_review_request = {
         "sessionId": "session_smoke_001",
         "completed": True,
@@ -470,6 +556,7 @@ def harmonyos_api_smoke_pack() -> dict[str, Any]:
         ],
         "optional_smoke_sequence": [
             {"name": "agent_practice_plan", "method": "POST", "path": "/agent/practice/plan", "request": plan_request, "expect": {"ok": True, "plan.blocks": "non_empty"}},
+            {"name": "agent_context_runtime_preview", "method": "POST", "path": "/agent/context/runtime/preview", "request": context_preview_request, "expect": {"ok": True, "context_packet.allowed_tools": "non_empty", "runloop_preview.runtime_mode": "preview_only"}},
             {"name": "session_review", "method": "POST", "path": "/agent/session/review", "request": session_review_request, "expect": {"ok": True, "recommendation.summary": "non_empty"}},
             {"name": "trace_list", "method": "GET", "path": "/agent/traces", "expect": {"ok": True}},
         ],
@@ -477,6 +564,7 @@ def harmonyos_api_smoke_pack() -> dict[str, Any]:
             "directAccompanimentBlueBossa": direct_request,
             "agentPlaybackBlueBossa": agent_playback_request,
             "agentPracticePlanMisty": plan_request,
+            "agentContextRuntimePreview": context_preview_request,
             "sessionReview": session_review_request,
         },
         "playback_assertions": {
@@ -517,6 +605,11 @@ echo "4 optional) POST /agent/practice/plan"
 curl -s -X POST "${{BASE_URL}}/agent/practice/plan" \\
   -H "Content-Type: application/json" \\
   -d @smoke_agent_practice_plan_misty.json | python -m json.tool
+
+echo "5 optional) POST /agent/context/runtime/preview"
+curl -s -X POST "${{BASE_URL}}/agent/context/runtime/preview" \
+  -H "Content-Type: application/json" \
+  -d @smoke_agent_context_runtime_preview.json | python -m json.tool
 '''
     readme = f'''# JamMate HarmonyOS API Smoke Pack {CONTRACT_VERSION}
 
@@ -561,6 +654,7 @@ Practice duration is owned by HarmonyOS local timer. The returned MIDI asset sho
         {"relative_path": "smoke_direct_accompaniment_blue_bossa.json", "purpose": "Direct engine path request without Agent/LLM.", "source": json.dumps(requests["directAccompanimentBlueBossa"], ensure_ascii=False, indent=2) + "\n"},
         {"relative_path": "smoke_agent_playback_blue_bossa.json", "purpose": "Agent immediate playback request.", "source": json.dumps(requests["agentPlaybackBlueBossa"], ensure_ascii=False, indent=2) + "\n"},
         {"relative_path": "smoke_agent_practice_plan_misty.json", "purpose": "Agent practice plan request.", "source": json.dumps(requests["agentPracticePlanMisty"], ensure_ascii=False, indent=2) + "\n"},
+        {"relative_path": "smoke_agent_context_runtime_preview.json", "purpose": "Agent LLM context runtime preview request.", "source": json.dumps(requests["agentContextRuntimePreview"], ensure_ascii=False, indent=2) + "\n"},
         {"relative_path": "smoke_session_review.json", "purpose": "Session review request.", "source": json.dumps(requests["sessionReview"], ensure_ascii=False, indent=2) + "\n"},
     ]
     return {"version": CONTRACT_VERSION, "files": files}

@@ -1,7 +1,7 @@
 [project]
 name = "jammate-engine"
-version = "2.3.15"
-description = "JamMatePyEngineV2 HarmonyOS API Smoke Test Pack"
+version = "2.4.0"
+description = "JamMatePyEngineV2 Harness Hardening and Changelog Split"
 requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.110",
