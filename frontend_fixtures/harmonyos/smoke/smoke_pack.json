@@ -1,5 +1,5 @@
 {
-  "version": "v2_3_16",
+  "version": "v2_3_17",
   "purpose": "Minimal HarmonyOS-to-Python smoke validation pack.",
   "base_url_examples": {
     "local_mac": "http://127.0.0.1:8000",

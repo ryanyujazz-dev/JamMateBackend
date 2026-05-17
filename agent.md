@@ -1,12 +1,27 @@
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_3_16`.
+Current version: `v2_3_17`.
 
-This file is the compact instruction index for future development windows. README is the user-facing project overview; detailed implementation history belongs in `docs/`.
+This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
 ---
 
-## Mandatory Architecture Boundary
+## 0. Required Reading Order
+
+Before any new development window changes code, read:
+
+1. `README.md`
+2. `agent.md`
+3. `docs/ARCHITECTURE_V2.md`
+4. `docs/API_CONTRACT_V2.md`
+5. `docs/DEVELOPMENT_TASK_PLAN_V2.md`
+6. For engine work: `docs/PIPELINE_V2.md`, `docs/GENERATION_RULES_SUMMARY_V2.md`, `docs/STYLE_RULE_BASELINE_V2.md`, `docs/STYLE_TUNING_ENTRY_POINT_V2.md`
+7. For placement decisions: `docs/NEW_FILE_PLACEMENT_GUIDE_V2.md`
+8. For historical context only: `docs/CHANGELOG.md`
+
+---
+
+## 1. Mandatory Architecture Boundary
 
 ```text
 src/jammate_engine/   # Independent accompaniment generation kernel
@@ -18,13 +33,13 @@ Rules:
 
 - `jammate_engine` must not import `jammate_agent`.
 - `jammate_engine` must remain directly callable without LLM/Agent.
-- `jammate_agent` may use `jammate_engine` only through provider/adapter boundaries.
+- `jammate_agent` may import/use `jammate_engine` only inside `src/jammate_agent/adapters/`.
 - `jammate_api` may assemble direct engine routes and Agent routes.
 - HarmonyOS local practice workflows must not require LLM.
 
 ---
 
-## Core Pipeline Boundary
+## 2. Core Music Pipeline Boundary
 
 ```text
 Pattern       = horizontal pitchless rhythm / event layout
@@ -38,9 +53,7 @@ Patterns live in styles. Voicing and expression are core-level shared systems. D
 
 ---
 
-## Two-Window Development Split
-
-Use two branches/windows after this baseline:
+## 3. Two-Window Development Split
 
 ```text
 feature/agent-workflow
@@ -50,64 +63,73 @@ feature/engine-deepening
   Engine / voicing / pattern / expression / style tuning / listening demos
 ```
 
-If a task changes both Agent/API and engine generation deeply, stop and ask whether to split or which branch should own it.
+If a task changes both Agent/API and engine generation deeply, stop and ask whether to split the work or which branch should own it.
 
 ---
 
-## Required Reading Order
+## 4. Capability Reuse Before New Construction
 
-1. `README.md`
-2. `agent.md`
-3. `docs/DEVELOPMENT_HARNESS_V2.md`
-4. `docs/ARCHITECTURE_V2.md`
-5. `docs/API_CONTRACT_V2.md`
-6. `docs/PIPELINE_V2.md`
-7. `docs/SYSTEM_CONTRACTS_V2.md`
-8. `docs/GENERATION_RULES_SUMMARY_V2.md`
-9. `docs/STYLE_RULE_BASELINE_V2.md`
-10. `docs/STYLE_TUNING_ENTRY_POINT_V2.md`
-11. `docs/NEW_FILE_PLACEMENT_GUIDE_V2.md`
-12. `docs/DEVELOPMENT_TASK_PLAN_V2.md`
-13. `docs/FUTURE_IDEAS_BACKLOG_V2.md`
+Before building a new capability, perform a reuse audit. Prefer an existing local implementation, adapter, facade, metadata extension, shared resolver, or adjacent owner file before creating a new subsystem.
+
+Minimum reuse-audit checklist:
+
+- Is there an existing local implementation that can be generalized?
+- Is there an adapter/facade boundary that should own this?
+- Can metadata or policy extension solve it without a new module?
+- Is there an existing core owner, for example `core/harmony/harmonic_context.py`, that should be extended instead of creating a new recognizer?
 
 ---
 
-## Cleanup Before Every Delivery
-
-Before packaging any engineering handoff:
-
-- Remove `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.DS_Store`, transient trace files, and temporary unpack/build folders.
-- Do not package `.env`, `.venv`, API keys, local secrets, or Git metadata.
-- Keep README focused on project identity, architecture, core functionality, and startup instructions.
-- Put version-specific implementation notes in `docs/`, not as repeated README changelog blocks.
-- Run at least `PYTHONPATH=src python -m compileall -q src tests tools examples/scripts`.
-- Run targeted pytest or full pytest when dependencies are available.
-- Preserve relevant small listening demos when the delivery changes music generation.
-
----
-
-## Development Rules
-
-- Do not output continuation development documents unless explicitly requested.
-- Each engineering delivery should include or preserve a current standard-tune listening demo where relevant.
-- Update docs with any rule/code behavior change; do not only change code.
-- Capture non-immediate ideas in `docs/FUTURE_IDEAS_BACKLOG_V2.md`.
-- Prefer existing modules/facades/resolvers before creating new files.
-
----
-
-## Minimal File Split Principle
+## 5. Minimal File Split Principle
 
 Do not create a new file/module/planner/recognizer before checking whether an existing file or domain package can naturally carry the change. New files must have a stable architectural reason, not merely aesthetic separation.
 
 ---
 
-## Capability Reuse Before New Construction
+## 6. Documentation and Changelog Rules
 
-Before adding a new capability, perform a reuse audit. Prefer an existing local implementation, adapter, facade, metadata extension, or shared resolver before building a new subsystem.
+- README = project identity, core design理念, directory architecture, core functionality, startup / validation commands.
+- `agent.md` = hard development harness only.
+- `docs/CHANGELOG.md` = chronological version history.
+- Focused architecture/API/rule docs remain in `docs/`.
+- Do not put rolling version logs back into README.
+- Do not output continuation development documents unless explicitly requested.
+- Capture non-immediate ideas in the Future Ideas Backlog: `docs/FUTURE_IDEAS_BACKLOG_V2.md`.
+- If generation rules change, update `docs/GENERATION_RULES_SUMMARY_V2.md`.
 
 ---
 
-## Current Active Baseline
+## 7. Cleanup Before Every Delivery
 
-`v2_3_16_project_cleanup_and_readme_consolidation` is a cleanup baseline for starting parallel Agent and Engine development windows. Runtime music generation behavior is unchanged from `v2_3_15`.
+Before packaging any engineering handoff:
+
+```bash
+PYTHONPATH=src python -m compileall -q src tests tools examples/scripts
+PYTHONPATH=src python tools/check_development_harness.py
+```
+
+Also run targeted pytest or full pytest when dependencies are available.
+
+Remove before zip:
+
+```text
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+demos/agent_traces/
+temporary unpack/build folders
+.env
+.venv
+local secrets
+.git
+```
+
+Preserve relevant small listening demos when the delivery changes music generation or when the package is used as a current baseline.
+
+---
+
+## 8. Current Active Baseline
+
+`v2_3_17_harness_hardening_and_changelog_split` is a documentation / harness hardening baseline for starting parallel Agent and Engine development windows. Runtime music generation behavior is unchanged from `v2_3_16`.

@@ -1,7 +1,7 @@
 [project]
 name = "jammate-engine"
-version = "2.3.16"
-description = "JamMatePyEngineV2 Project Cleanup and README Consolidation"
+version = "2.3.17"
+description = "JamMatePyEngineV2 Harness Hardening and Changelog Split"
 requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.110",

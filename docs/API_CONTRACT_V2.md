@@ -1,6 +1,6 @@
 # JamMate API Contract V2
 
-Current baseline: `v2_3_16`.
+Current baseline: `v2_3_17`.
 
 This document records the stable API contract shape. Detailed version-specific API delivery notes live in separate `docs/*V2_x_x*.md` files.
 
@@ -43,7 +43,7 @@ Expected response:
 {
   "ok": true,
   "service": "jammate-api",
-  "engine_version": "v2_3_16",
+  "engine_version": "v2_3_17",
   "agent_version": "v0_1"
 }
 ```

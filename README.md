@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_3_16`.
+Current package version: `v2_3_17`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -260,7 +260,7 @@ docs/GENERATION_RULES_SUMMARY_V2.md
 
 ## Current Development Status
 
-`v2_3_16` is a project cleanup and README consolidation baseline. It keeps runtime generation behavior unchanged while making the repository a cleaner starting point for two parallel development windows:
+`v2_3_17` is a harness hardening and changelog split baseline. It keeps runtime generation behavior unchanged while making the repository a cleaner starting point for two parallel development windows:
 
 ```text
 Agent window  -> feature/agent-workflow

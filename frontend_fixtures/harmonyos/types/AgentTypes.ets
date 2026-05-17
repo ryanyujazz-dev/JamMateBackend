@@ -1,4 +1,4 @@
-// JamMate Agent API Types v2_3_16
+// JamMate Agent API Types v2_3_17
 // Copy target: entry/src/main/ets/features/jammateAgent/model/AgentTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 

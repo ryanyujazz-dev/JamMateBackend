@@ -1,4 +1,4 @@
-# v2_3_16 — Project Cleanup and README Consolidation
+# v2_3_17 — Harness Hardening and Changelog Split
 
 This pass prepares the repository as a clean baseline for two-window development.
 
@@ -11,7 +11,7 @@ The pass focuses on:
 - README consolidation into a project-facing overview.
 - Agent harness cleanup and two-window branch guidance.
 - Delivery hygiene rule: cleanup caches/temp artifacts before every package handoff.
-- Version surface alignment to `v2_3_16`.
+- Version surface alignment to `v2_3_17`.
 - Removal of transient cache/trace artifacts from the packaged project.
 
 ## README Policy

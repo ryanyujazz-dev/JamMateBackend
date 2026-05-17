@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_3_16`.
+Current baseline: `v2_3_17`.
 
-`v2_3_16_project_cleanup_and_readme_consolidation` is a cleanup baseline for starting parallel development. Runtime music generation behavior is unchanged from `v2_3_15`.
+`v2_3_17_harness_hardening_and_changelog_split` is a cleanup baseline for starting parallel development. Runtime music generation behavior is unchanged from `v2_3_15`.
 
 ---
 
