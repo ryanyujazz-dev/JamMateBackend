@@ -1,0 +1,1315 @@
+{
+  "bass_foundation_audit": {},
+  "demo_audit_pipeline_version": "v2_3_9",
+  "engine_version": "v2_3_9",
+  "expression_foundation_audit": {
+    "anticipation_avg_release_beats": 0.025,
+    "anticipation_duration_micro_tuned_count": 11,
+    "anticipation_pedal_modes": {
+      "none": 11
+    },
+    "anticipation_pedal_release_micro_tuned_count": 11,
+    "anticipation_tie_event_count": 11,
+    "articulations": {
+      "short": 96,
+      "sustain": 51
+    },
+    "avg_duration_beats": 0.741,
+    "avg_release_beats": 0.047,
+    "avg_velocity": 54.612,
+    "contract_version": "v2_0_45",
+    "cross_next_event_count": 0,
+    "cross_region_count": 0,
+    "events": 147,
+    "flag_counts": {},
+    "missing_expression_count": 0,
+    "pedal_modes": {
+      "light": 51,
+      "none": 96
+    },
+    "profiles": {
+      "core_short": 96,
+      "core_sustain": 51
+    },
+    "short_event_count": 96,
+    "short_overlap_count": 0,
+    "style_id": "bossa_nova",
+    "sustain_chop_risk_count": 0,
+    "sustain_event_count": 51,
+    "touches": {
+      "clear": 96,
+      "light": 51
+    },
+    "track_filter": "piano",
+    "warning_count": 0
+  },
+  "midi_path": "demos/v2_3_9_blue_bossa_minor_altered_pipeline_demo.mid",
+  "pedal_realization_audit": {
+    "allowed_modes": [],
+    "boundary": "expression_pedal_intent_to_midi_cc64_with_style_repedal_offset_only_no_pattern_voicing_decision",
+    "cc64_event_count": 0,
+    "cc64_off_count": 0,
+    "cc64_on_count": 0,
+    "eligible_tracks": [
+      "piano"
+    ],
+    "enabled": true,
+    "intent_note_counts_by_mode": {
+      "light": 204,
+      "none": 588
+    },
+    "pedal_realizer_version": "v2_3_9",
+    "realized_span_counts_by_mode": {},
+    "repedal_adjusted_span_count": 0,
+    "repedal_gap_beats_avg": 0.0,
+    "repedal_gap_beats_max": 0.0,
+    "repedal_gap_beats_min": 0.0,
+    "repedal_gap_count": 0,
+    "repedal_offset_enabled": false,
+    "repedal_policy": {
+      "enabled": false,
+      "lift_before_next_onset_beats": 0.0,
+      "minimum_gap_beats": 0.0,
+      "minimum_span_beats": 0.0,
+      "on_after_attack_beats": 0.0,
+      "reason": "dry_or_unknown_style_no_cc64_repedal_offset"
+    },
+    "repedal_policy_version": "v2_3_9",
+    "repedal_warning_count": 0,
+    "repedal_warnings_sample": [],
+    "spans_sample": [],
+    "style": "bossa_nova",
+    "suppressed_note_counts_by_reason": {
+      "light:style_boundary": 204
+    }
+  },
+  "piano_event_summary": {
+    "altered_degree_events": 48,
+    "altered_dominant_functional_scopes": {},
+    "altered_dominant_inferred_scopes": {},
+    "altered_dominant_source_kinds": {
+      "rooted_color": 24
+    },
+    "anticipation_events": 11,
+    "anticipation_tie_expression_events": 11,
+    "anticipation_timing_grid_error_max": 0.0,
+    "anticipation_timing_grid_events": 11,
+    "anticipation_timing_grid_failures": 0,
+    "anticipation_timing_grid_samples": [
+      {
+        "actual_performed_onset_beat": 7.5,
+        "chord_symbol": "Fm7",
+        "event_id": "c0_b2_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 7.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 7.5,
+        "original_onset_beat": 8.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c0_b2_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 11.5,
+        "chord_symbol": "Fm7",
+        "event_id": "c0_b3_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 11.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 11.5,
+        "original_onset_beat": 12.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c0_b3_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 31.5,
+        "chord_symbol": "Ebm7",
+        "event_id": "c0_b8_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 31.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 31.5,
+        "original_onset_beat": 32.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c0_b8_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 55.5,
+        "chord_symbol": "Cm7",
+        "event_id": "c0_b14_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 55.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 55.5,
+        "original_onset_beat": 56.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c0_b14_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 95.5,
+        "chord_symbol": "Ebm7",
+        "event_id": "c1_b8_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 95.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 95.5,
+        "original_onset_beat": 96.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c1_b8_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 123.5,
+        "chord_symbol": "Dm7b5",
+        "event_id": "c1_b15_ch0_bossa_piano_half_region_1_2_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 123.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 123.5,
+        "original_onset_beat": 124.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c1_b15_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 143.5,
+        "chord_symbol": "Dm7b5",
+        "event_id": "c2_b4_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 143.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 143.5,
+        "original_onset_beat": 144.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c2_b4_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 147.5,
+        "chord_symbol": "G7b9",
+        "event_id": "c2_b5_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 147.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 147.5,
+        "original_onset_beat": 148.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c2_b5_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 159.5,
+        "chord_symbol": "Ebm7",
+        "event_id": "c2_b8_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 159.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 159.5,
+        "original_onset_beat": 160.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c2_b8_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 171.5,
+        "chord_symbol": "Dbmaj7",
+        "event_id": "c2_b11_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 171.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 171.5,
+        "original_onset_beat": 172.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c2_b11_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      },
+      {
+        "actual_performed_onset_beat": 183.5,
+        "chord_symbol": "Cm7",
+        "event_id": "c2_b14_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "expected_performed_onset_beat": 183.5,
+        "expected_upbeat_fraction": 0.5,
+        "logical_lead_in_beats": 0.5,
+        "logical_onset_beat": 183.5,
+        "original_onset_beat": 184.0,
+        "performed_lead_in_beats": 0.5,
+        "region_id": "c2_b14_ch0",
+        "timing_error_beats": 0.0,
+        "timing_grid": "straight_upbeat",
+        "timing_grid_ok": true,
+        "timing_intent": "straight_even"
+      }
+    ],
+    "average_pitch_mean": 64.393,
+    "content_families": {
+      "rooted_color": 24,
+      "rootless_A": 99,
+      "rootless_B": 15,
+      "seventh_chord_basic": 9
+    },
+    "dispositions": {
+      "closed": 147
+    },
+    "dominant_event_count": 147,
+    "event_count": 147,
+    "low_register_single_note_guard": {
+      "passed": 147
+    },
+    "projection_methods": {},
+    "register_guard_violations": 0,
+    "selected_altered_or_colored_events_sample": [
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b4_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c0_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b4_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c0_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b4_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c0_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b5_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c0_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b5_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c0_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b5_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c0_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b12_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c0_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b12_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c0_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b12_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c0_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b13_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c0_b13_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b13_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c0_b13_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b13_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c0_b13_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b15_ch0_bossa_piano_half_region_1_2_0",
+        "region_id": "c0_b15_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b15_ch0_bossa_piano_half_region_1_2_1",
+        "region_id": "c0_b15_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b15_ch1_bossa_piano_half_region_1_2_0",
+        "region_id": "c0_b15_ch1",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c0_b15_ch1_bossa_piano_half_region_1_2_1",
+        "region_id": "c0_b15_ch1",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b9",
+          "b3",
+          "b5",
+          "b7"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b4_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c1_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b9",
+          "b3",
+          "b5",
+          "b7"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b4_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c1_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b9",
+          "b3",
+          "b5",
+          "b7"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b4_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c1_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b5_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c1_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b5_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c1_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b5_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c1_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b12_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c1_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b12_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c1_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b12_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c1_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b13_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c1_b13_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b13_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c1_b13_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b13_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c1_b13_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b15_ch0_bossa_piano_half_region_1_2_0__anticipated_from_previous",
+        "region_id": "c1_b15_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b15_ch0_bossa_piano_half_region_1_2_1",
+        "region_id": "c1_b15_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b15_ch1_bossa_piano_half_region_1_2_0",
+        "region_id": "c1_b15_ch1",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c1_b15_ch1_bossa_piano_half_region_1_2_1",
+        "region_id": "c1_b15_ch1",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b9",
+          "b3",
+          "b5",
+          "b7"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b4_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "region_id": "c2_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b9",
+          "b3",
+          "b5",
+          "b7"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b4_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c2_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b9",
+          "b3",
+          "b5",
+          "b7"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b4_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c2_b4_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b5_ch0_bossa_piano_core_batida_1_2_3and_0__anticipated_from_previous",
+        "region_id": "c2_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b5_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c2_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.02,
+        "altered_dominant_source_kind": "rooted_color",
+        "chord_symbol": "G7b9",
+        "content_family": "rooted_color",
+        "degrees": [
+          "b7",
+          "R",
+          "b9",
+          "3"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b5_ch0_bossa_piano_core_batida_1_2_3and_2",
+        "region_id": "c2_b5_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b12_ch0_bossa_piano_core_batida_1_2_3and_0",
+        "region_id": "c2_b12_ch0",
+        "upper_structure_register_score": 0.0
+      },
+      {
+        "altered_dominant_intensity_score": 0.0,
+        "altered_dominant_source_kind": "",
+        "chord_symbol": "Dm7b5",
+        "content_family": "rootless_A",
+        "degrees": [
+          "b7",
+          "b9",
+          "b3",
+          "b5"
+        ],
+        "disposition": "closed",
+        "event_id": "c2_b12_ch0_bossa_piano_core_batida_1_2_3and_1",
+        "region_id": "c2_b12_ch0",
+        "upper_structure_register_score": 0.0
+      }
+    ],
+    "top_note_average": 68.694,
+    "top_note_max": 72,
+    "upper_structure_register_refinement_events": 0
+  },
+  "piano_musical_audit": {
+    "articulations": {
+      "short": 96,
+      "sustain": 51
+    },
+    "avg_chart_color_fidelity_score": 0.052,
+    "avg_closed_3note_source_collapse_distance": 0.0,
+    "avg_closed_3note_source_collapse_total_motion": 0.0,
+    "avg_closed_4note_source_collapse_distance": 0.0,
+    "avg_closed_4note_source_collapse_total_motion": 0.0,
+    "avg_duration_beats": 0.741,
+    "avg_four_note_source_balance_score": 0.033,
+    "avg_open_drop2_parent_closed_span": 0.0,
+    "avg_open_drop2_span": 0.0,
+    "avg_open_named_projection_parent_closed_span": 0.0,
+    "avg_open_named_projection_span": 0.0,
+    "avg_realized_notes_per_event": 4,
+    "avg_velocity": 54.612,
+    "closed_3note_minimum_motion_events": 0,
+    "closed_4note_minimum_motion_events": 0,
+    "closed_minimum_motion_events": 0,
+    "content_families": {
+      "rooted_color": 24,
+      "rootless_A": 99,
+      "rootless_B": 15,
+      "seventh_chord_basic": 9
+    },
+    "contract_version": "v2_2_38",
+    "densities": {
+      "4": 147
+    },
+    "disposition_projection_families": {
+      "closed": 147
+    },
+    "disposition_projection_methods": {
+      "compact": 147
+    },
+    "dispositions": {
+      "closed": 147
+    },
+    "events": 147,
+    "expression_audit": {
+      "anticipation_avg_release_beats": 0.025,
+      "anticipation_duration_micro_tuned_count": 11,
+      "anticipation_pedal_modes": {
+        "none": 11
+      },
+      "anticipation_pedal_release_micro_tuned_count": 11,
+      "anticipation_tie_event_count": 11,
+      "articulations": {
+        "short": 96,
+        "sustain": 51
+      },
+      "avg_duration_beats": 0.741,
+      "avg_release_beats": 0.047,
+      "avg_velocity": 54.612,
+      "contract_version": "v2_0_45",
+      "cross_next_event_count": 0,
+      "cross_region_count": 0,
+      "events": 147,
+      "flag_counts": {},
+      "missing_expression_count": 0,
+      "pedal_modes": {
+        "light": 51,
+        "none": 96
+      },
+      "profiles": {
+        "core_short": 96,
+        "core_sustain": 51
+      },
+      "short_event_count": 96,
+      "short_overlap_count": 0,
+      "style_id": "bossa_nova",
+      "sustain_chop_risk_count": 0,
+      "sustain_event_count": 51,
+      "touches": {
+        "clear": 96,
+        "light": 51
+      },
+      "track_filter": "piano",
+      "warning_count": 0
+    },
+    "expression_flags": {},
+    "expression_profiles": {
+      "core_short": 96,
+      "core_sustain": 51
+    },
+    "failed_register_guard_count": 0,
+    "four_note_source_balance_gate_modes": {
+      "chord_symbol_only": 9,
+      "explicit_chart_color_plus_harmonic_expansion": 24,
+      "harmonic_expansion": 114
+    },
+    "four_note_source_balance_keys": {
+      "root_third_fifth_seventh": 9,
+      "root_third_seventh_altered_color": 24,
+      "third_fifth_seventh_ninth": 111,
+      "third_thirteenth_seventh_ninth": 3
+    },
+    "functional_groupings": {
+      "1+3": 9,
+      "2+2": 138
+    },
+    "gestures": {
+      "simultaneous_onset": 147
+    },
+    "legacy_projection_callback_used_count": 147,
+    "legacy_projection_cleanup_required_count": 147,
+    "max_closed_3note_source_collapse_distance": 0.0,
+    "max_closed_3note_source_collapse_total_motion": 0.0,
+    "max_closed_4note_source_collapse_distance": 0.0,
+    "max_closed_4note_source_collapse_total_motion": 0.0,
+    "max_closed_voicing_span": 11,
+    "max_open_drop2_parent_closed_span": null,
+    "max_open_drop2_span": null,
+    "max_open_named_projection_parent_closed_span": null,
+    "max_open_named_projection_span": null,
+    "migrated_projection_paths": {},
+    "min_closed_voicing_lowest_note": 54,
+    "min_open_drop2_lowest_note": null,
+    "min_open_named_projection_lowest_note": null,
+    "missing_note_events": 0,
+    "note_events_by_track": {
+      "bass": 102,
+      "drums": 102,
+      "piano": 588
+    },
+    "open_drop2_events": 0,
+    "open_named_projection_events": 0,
+    "open_named_projection_methods": {},
+    "region_voicing_reuse_count": 96,
+    "register_guard_reasons": {
+      "ok": 147
+    },
+    "root_included_events": 33,
+    "root_support": {
+      "rootless_allowed": 147
+    },
+    "rootless_events": 114,
+    "style": "bossa_nova",
+    "three_note_degree_orders": {},
+    "three_note_source_role_orders": {},
+    "three_note_source_types": {},
+    "timing_policy": {
+      "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
+      "feel": "straight",
+      "half_beat_grid": 0.5,
+      "humanization": {
+        "affect_tracks": [],
+        "enabled": false,
+        "humanize_literal": false,
+        "max_offset_beats": 0.0,
+        "profile_name": "bossa_nova_disabled_default",
+        "seed": 0,
+        "velocity_jitter": 0
+      },
+      "metadata": {
+        "stage": "v2_0_43_timing_policy_contract",
+        "style": "bossa_nova"
+      },
+      "swing_ratio": 0.6666666666666666,
+      "version": "v2_0_43"
+    },
+    "title": "Blue Bossa",
+    "top_patterns": [
+      [
+        "bossa_piano_core_batida_1_2_3and",
+        135
+      ],
+      [
+        "bossa_piano_half_region_1_2",
+        12
+      ]
+    ],
+    "triad_4note_degree_orders": {},
+    "triad_4note_source_role_orders": {},
+    "triad_4note_source_types": {},
+    "voicing_texture_contrast_roles": {
+      "baseline": 147
+    },
+    "voicing_texture_method_percentages_by_contrast_role": {
+      "baseline": {
+        "compact": 1.0
+      }
+    },
+    "voicing_texture_methods_by_contrast_role": {
+      "baseline": {
+        "compact": 147
+      }
+    },
+    "voicing_texture_methods_by_scope": {
+      "unknown": {
+        "compact": 147
+      }
+    },
+    "voicing_texture_open_method_weight_plans_by_contrast_role": {
+      "baseline": {
+        "drop2": 0.3,
+        "drop2_and_4": 0.03,
+        "drop3": 0.09,
+        "generic_open": 0.58
+      }
+    },
+    "voicing_texture_scope_counts": {
+      "unknown": 147
+    }
+  },
+  "request": {
+    "choruses": 3,
+    "description": "Three-chorus Blue Bossa listening demo for minor V and light Bossa altered audit checks.",
+    "ensemble": {
+      "bass_present": true
+    },
+    "job_id": "blue_bossa_minor_altered_pipeline_demo",
+    "leadsheet": "blue_bossa.json",
+    "seed": 88,
+    "style": "bossa_nova",
+    "tags": [
+      "standard_tune",
+      "bossa_nova",
+      "minor_v",
+      "altered_dominant"
+    ],
+    "tempo": 132,
+    "voicing_override": {
+      "color_policy_mode": "altered_dominant",
+      "enabled": true,
+      "harmonic_expansion_enabled": true
+    },
+    "voicing_override_metadata_keys": [
+      "altered_dominant_enabled",
+      "altered_dominant_policy",
+      "color_policy_mode",
+      "demo_audit_pipeline_job_controlled",
+      "harmonic_expansion_enabled"
+    ]
+  },
+  "runtime_summary": {
+    "active_pattern_events": 351,
+    "ensemble_context": {
+      "allow_rootless_without_bass": false,
+      "bass_channel": 1,
+      "bass_foundation_provider": "bass_track",
+      "bass_present": true,
+      "drum_channel": 9,
+      "drums_present": true,
+      "harmonic_comping_role": "harmonic_comping",
+      "metadata": {},
+      "needs_piano_lh_bass_foundation": false,
+      "piano_channel": 0,
+      "piano_lh_bass_foundation_enabled": true,
+      "piano_lh_high": 54,
+      "piano_lh_low": 36,
+      "piano_present": true,
+      "piano_rh_high": 79,
+      "piano_rh_low": 55,
+      "piano_split_role_enabled": true,
+      "should_force_root_in_harmonic_voicing": false
+    },
+    "leadsheet_schema_version": "jammate_leadsheet_v2",
+    "midi_render_audit": {
+      "midi_render_version": "v2_3_9",
+      "pedal_realization": {
+        "allowed_modes": [],
+        "boundary": "expression_pedal_intent_to_midi_cc64_with_style_repedal_offset_only_no_pattern_voicing_decision",
+        "cc64_event_count": 0,
+        "cc64_off_count": 0,
+        "cc64_on_count": 0,
+        "eligible_tracks": [
+          "piano"
+        ],
+        "enabled": true,
+        "intent_note_counts_by_mode": {
+          "light": 204,
+          "none": 588
+        },
+        "pedal_realizer_version": "v2_3_9",
+        "realized_span_counts_by_mode": {},
+        "repedal_adjusted_span_count": 0,
+        "repedal_gap_beats_avg": 0.0,
+        "repedal_gap_beats_max": 0.0,
+        "repedal_gap_beats_min": 0.0,
+        "repedal_gap_count": 0,
+        "repedal_offset_enabled": false,
+        "repedal_policy": {
+          "enabled": false,
+          "lift_before_next_onset_beats": 0.0,
+          "minimum_gap_beats": 0.0,
+          "minimum_span_beats": 0.0,
+          "on_after_attack_beats": 0.0,
+          "reason": "dry_or_unknown_style_no_cc64_repedal_offset"
+        },
+        "repedal_policy_version": "v2_3_9",
+        "repedal_warning_count": 0,
+        "repedal_warnings_sample": [],
+        "spans_sample": [],
+        "style": "bossa_nova",
+        "suppressed_note_counts_by_reason": {
+          "light:style_boundary": 204
+        }
+      },
+      "timing_policy": {
+        "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
+        "feel": "straight",
+        "half_beat_grid": 0.5,
+        "humanization": {
+          "affect_tracks": [],
+          "enabled": false,
+          "humanize_literal": false,
+          "max_offset_beats": 0.0,
+          "profile_name": "bossa_nova_disabled_default",
+          "seed": 0,
+          "velocity_jitter": 0
+        },
+        "metadata": {
+          "stage": "v2_0_43_timing_policy_contract",
+          "style": "bossa_nova"
+        },
+        "swing_ratio": 0.6666666666666666,
+        "version": "v2_0_43"
+      }
+    },
+    "note_events": 792,
+    "note_events_by_track": {
+      "bass": 102,
+      "drums": 102,
+      "piano": 588
+    },
+    "pattern_events": 362,
+    "performance_bars": 48,
+    "performance_choruses": 3,
+    "pipeline": [
+      "leadsheet",
+      "form_expansion",
+      "style_pattern_planning",
+      "bass_foundation_target_to_target_generation",
+      "bass_foundation_root_echo_ornament",
+      "pitchless_gesture_requests",
+      "anticipation_pitchless_timeline_rewrite",
+      "expression_policy_resolution",
+      "expression_sustain_duration_foundation_audit",
+      "voicing_resolution",
+      "gesture_projection",
+      "realization",
+      "timing_policy_resolution",
+      "humanization_policy_application",
+      "piano_musical_debug_audit",
+      "pedal_intent_to_midi_cc64_boundary",
+      "midi_rendering"
+    ],
+    "regions": 51,
+    "style": "bossa_nova",
+    "suppressed_pattern_events": 11,
+    "timing_policy": {
+      "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
+      "feel": "straight",
+      "half_beat_grid": 0.5,
+      "humanization": {
+        "affect_tracks": [],
+        "enabled": false,
+        "humanize_literal": false,
+        "max_offset_beats": 0.0,
+        "profile_name": "bossa_nova_disabled_default",
+        "seed": 0,
+        "velocity_jitter": 0
+      },
+      "metadata": {
+        "stage": "v2_0_43_timing_policy_contract",
+        "style": "bossa_nova"
+      },
+      "swing_ratio": 0.6666666666666666,
+      "version": "v2_0_43"
+    },
+    "title": "Blue Bossa",
+    "written_bars": 16
+  }
+}

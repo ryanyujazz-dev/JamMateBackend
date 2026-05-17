@@ -1,0 +1,23 @@
+{
+  "title": "Color-Rich Ballad Voicing Progression",
+  "key": "C",
+  "tempo": 76,
+  "default_time_signature": {"numerator": 4, "denominator": 4},
+  "metadata": {"fixture_role": "v2_1_35_4note_source_weight_listening_ballad"},
+  "bars": [
+    "Cmaj9",
+    "Am9",
+    "Dm11",
+    "G13",
+    "Cmaj7#11",
+    "Fmaj13",
+    "Bm11b5",
+    "E7b9b13",
+    "Am9",
+    "D7#11",
+    "Dm9",
+    "G7alt",
+    "C6/9",
+    "Cmaj9"
+  ]
+}

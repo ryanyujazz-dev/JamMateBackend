@@ -1,0 +1,166 @@
+{
+  "version": "v2_3_15",
+  "purpose": "Minimal HarmonyOS-to-Python smoke validation pack.",
+  "base_url_examples": {
+    "local_mac": "http://127.0.0.1:8000",
+    "phone_to_mac_lan": "http://<MAC_LAN_IP>:8000"
+  },
+  "server_start": {
+    "command": "PYTHONPATH=src uvicorn jammate_api.app:app --host 0.0.0.0 --port 8000",
+    "health_check": "GET /health"
+  },
+  "minimum_smoke_sequence": [
+    {
+      "step": 1,
+      "name": "health",
+      "method": "GET",
+      "path": "/health",
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "step": 2,
+      "name": "direct_accompaniment",
+      "method": "POST",
+      "path": "/accompaniment/generate",
+      "request": {
+        "tune": "Blue Bossa",
+        "style": "bossa_nova",
+        "tempo": 120,
+        "choruses": 1,
+        "seed": 42,
+        "outputFormat": "midi_base64"
+      },
+      "expect": {
+        "ok": true,
+        "asset.midi_base64": "non_empty",
+        "asset.cache_key": "starts_with:direct_accomp:"
+      }
+    },
+    {
+      "step": 3,
+      "name": "agent_playback_prepare",
+      "method": "POST",
+      "path": "/agent/playback/prepare",
+      "request": {
+        "userInput": "我想练 Blue Bossa 20分钟，帮我生成 Bossa Nova 伴奏",
+        "durationMinutes": 20,
+        "clientContext": {
+          "currentScreen": "practice_home",
+          "availableMinutes": 20,
+          "timezone": "America/Los_Angeles",
+          "locale": "zh-CN"
+        }
+      },
+      "expect": {
+        "ok": true,
+        "asset.midi_base64": "non_empty",
+        "playback_instruction.client_loop_until_target_duration": true
+      }
+    }
+  ],
+  "optional_smoke_sequence": [
+    {
+      "name": "agent_practice_plan",
+      "method": "POST",
+      "path": "/agent/practice/plan",
+      "request": {
+        "userInput": "我今天有45分钟，想练Misty的ballad comping",
+        "availableMinutes": 45,
+        "instrument": "piano"
+      },
+      "expect": {
+        "ok": true,
+        "plan.blocks": "non_empty"
+      }
+    },
+    {
+      "name": "session_review",
+      "method": "POST",
+      "path": "/agent/session/review",
+      "request": {
+        "sessionId": "session_smoke_001",
+        "completed": true,
+        "difficulty": "good_challenge",
+        "focusScore": 4,
+        "timeFeel": "stable",
+        "tempoResult": {
+          "tempo": 90,
+          "stable": true,
+          "should_raise_next_time": true
+        },
+        "stuckPoints": [
+          {
+            "material": "Misty A section",
+            "issue": "left hand still gets messy"
+          }
+        ],
+        "notes": "HarmonyOS smoke review payload.",
+        "nextActionPreference": "continue"
+      },
+      "expect": {
+        "ok": true,
+        "recommendation.summary": "non_empty"
+      }
+    },
+    {
+      "name": "trace_list",
+      "method": "GET",
+      "path": "/agent/traces",
+      "expect": {
+        "ok": true
+      }
+    }
+  ],
+  "requests": {
+    "directAccompanimentBlueBossa": {
+      "tune": "Blue Bossa",
+      "style": "bossa_nova",
+      "tempo": 120,
+      "choruses": 1,
+      "seed": 42,
+      "outputFormat": "midi_base64"
+    },
+    "agentPlaybackBlueBossa": {
+      "userInput": "我想练 Blue Bossa 20分钟，帮我生成 Bossa Nova 伴奏",
+      "durationMinutes": 20,
+      "clientContext": {
+        "currentScreen": "practice_home",
+        "availableMinutes": 20,
+        "timezone": "America/Los_Angeles",
+        "locale": "zh-CN"
+      }
+    },
+    "agentPracticePlanMisty": {
+      "userInput": "我今天有45分钟，想练Misty的ballad comping",
+      "availableMinutes": 45,
+      "instrument": "piano"
+    },
+    "sessionReview": {
+      "sessionId": "session_smoke_001",
+      "completed": true,
+      "difficulty": "good_challenge",
+      "focusScore": 4,
+      "timeFeel": "stable",
+      "tempoResult": {
+        "tempo": 90,
+        "stable": true,
+        "should_raise_next_time": true
+      },
+      "stuckPoints": [
+        {
+          "material": "Misty A section",
+          "issue": "left hand still gets messy"
+        }
+      ],
+      "notes": "HarmonyOS smoke review payload.",
+      "nextActionPreference": "continue"
+    }
+  },
+  "playback_assertions": {
+    "duration_rule": "Practice duration is controlled by HarmonyOS local timer, not by generating a 20/30/45-minute MIDI file.",
+    "loop_rule": "If playback_instruction.client_loop_until_target_duration is true, loop the returned asset until the local timer reaches targetDurationMinutes or user stops.",
+    "cache_rule": "Use asset.cache_key as the local cache identity when present."
+  }
+}

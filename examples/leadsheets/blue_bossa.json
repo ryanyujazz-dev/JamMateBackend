@@ -1,0 +1,183 @@
+{
+  "schema_version": "jammate_leadsheet_v2",
+  "title": "Blue Bossa",
+  "composer": "Kenny Dorham",
+  "key": "Cm",
+  "tempo": 140,
+  "default_time_signature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "metadata": {
+    "fixture_role": "standard_tune_v2_leadsheet_example",
+    "style_reference": "bossa_nova",
+    "melody_not_included": true,
+    "performance_repetitions_live_in_request": true
+  },
+  "sections": {
+    "A1": {
+      "label": "A1",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Fm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Fm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dm7b5"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "G7b9"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            }
+          ]
+        }
+      ]
+    },
+    "B": {
+      "label": "B",
+      "phrase": "B",
+      "role": "bridge",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Ebm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Ab7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dbmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dbmaj7"
+            }
+          ]
+        }
+      ]
+    },
+    "A2": {
+      "label": "A2",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dm7b5"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "G7b9"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dm7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "G7b9"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "written_form": [
+    {
+      "section": "A1"
+    },
+    {
+      "section": "B"
+    },
+    {
+      "section": "A2"
+    }
+  ]
+}

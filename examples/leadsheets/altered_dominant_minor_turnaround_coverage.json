@@ -1,0 +1,28 @@
+{
+  "schema_version": "jammate_leadsheet_v2",
+  "title": "Altered Dominant Minor Turnaround Coverage Fixture",
+  "composer": "JamMate Test Fixture",
+  "key": "A minor",
+  "tempo": 84,
+  "default_time_signature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "metadata": {
+    "fixture_role": "v2_2_88_minor_turnaround_altered_coverage",
+    "style_reference": "jazz_ballad",
+    "melody_not_included": true,
+    "performance_repetitions_live_in_request": true
+  },
+  "bars": [
+    {"chords": [{"beat": 1.0, "symbol": "Am6"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Bm7b5"}, {"beat": 3.0, "symbol": "E7"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Am6"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Am6"}, {"beat": 3.0, "symbol": "F#7"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Bm7b5"}, {"beat": 3.0, "symbol": "E7b9"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Am6"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Cmaj7"}, {"beat": 3.0, "symbol": "A7"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Dm7"}, {"beat": 3.0, "symbol": "G7"}]},
+    {"chords": [{"beat": 1.0, "symbol": "Cmaj7"}]}
+  ]
+}

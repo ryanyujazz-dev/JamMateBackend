@@ -1,0 +1,25 @@
+{
+  "title": "4-Note Triad-Aware Closed Source Stress Progression",
+  "key": "C",
+  "tempo": 120,
+  "default_time_signature": {"numerator": 4, "denominator": 4},
+  "metadata": {"fixture_role": "v2_1_42_4note_triad_aware_closed_listening_verification"},
+  "bars": [
+    "C",
+    "Cm",
+    "Csus2",
+    "Csus4",
+    "Cadd9",
+    "Cmadd9",
+    "C6",
+    "C6/9",
+    "F",
+    "Fm",
+    "Fsus2",
+    "Fsus4",
+    "Fadd9",
+    "G",
+    "Gsus4",
+    "C"
+  ]
+}

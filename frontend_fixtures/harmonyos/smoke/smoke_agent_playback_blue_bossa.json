@@ -1,0 +1,10 @@
+{
+  "userInput": "我想练 Blue Bossa 20分钟，帮我生成 Bossa Nova 伴奏",
+  "durationMinutes": 20,
+  "clientContext": {
+    "currentScreen": "practice_home",
+    "availableMinutes": 20,
+    "timezone": "America/Los_Angeles",
+    "locale": "zh-CN"
+  }
+}

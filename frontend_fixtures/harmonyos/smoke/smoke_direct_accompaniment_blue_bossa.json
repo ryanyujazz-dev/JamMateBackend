@@ -1,0 +1,8 @@
+{
+  "tune": "Blue Bossa",
+  "style": "bossa_nova",
+  "tempo": 120,
+  "choruses": 1,
+  "seed": 42,
+  "outputFormat": "midi_base64"
+}

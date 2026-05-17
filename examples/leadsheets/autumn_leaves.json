@@ -1,0 +1,405 @@
+{
+  "schema_version": "jammate_leadsheet_v2",
+  "title": "Autumn Leaves",
+  "composer": "Joseph Kosma",
+  "key": "Gm",
+  "tempo": 132,
+  "default_time_signature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "metadata": {
+    "fixture_role": "standard_tune_v2_leadsheet_example",
+    "style_reference": "medium_swing",
+    "melody_not_included": true,
+    "performance_repetitions_live_in_request": true
+  },
+  "sections": {
+    "A1": {
+      "label": "A1",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        }
+      ]
+    },
+    "A2": {
+      "label": "A2",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        }
+      ]
+    },
+    "B": {
+      "label": "B",
+      "phrase": "B",
+      "role": "bridge",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "A7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "D7"
+            }
+          ]
+        }
+      ]
+    },
+    "A3": {
+      "label": "A3",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "F7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm6"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "written_form": [
+    {
+      "section": "A1"
+    },
+    {
+      "section": "A2"
+    },
+    {
+      "section": "B"
+    },
+    {
+      "section": "A3"
+    }
+  ]
+}

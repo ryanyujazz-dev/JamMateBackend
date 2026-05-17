@@ -1,0 +1,21 @@
+{
+  "title": "Color-Rich Bossa Progression",
+  "key": "C minor",
+  "tempo": 128,
+  "default_time_signature": {"numerator": 4, "denominator": 4},
+  "metadata": {"fixture_role": "v2_1_35_4note_source_weight_listening_bossa"},
+  "bars": [
+    "Cm9",
+    "Fm9",
+    "Dm11b5",
+    "G7b9",
+    "Cm9",
+    "C7#9",
+    "Fm9",
+    "Bb13",
+    "Ebmaj9",
+    "Abmaj7#11",
+    "Dm11b5",
+    "G7alt"
+  ]
+}

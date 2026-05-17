@@ -1,0 +1,318 @@
+{
+  "version": "v2_3_15",
+  "note": "Fixtures are UI/store mocks, not golden musical output.",
+  "response_case": "snake_case",
+  "client_domain_case": "camelCase",
+  "fixtures": {
+    "rawBackendAgentPracticePlanResponse": {
+      "ok": true,
+      "intent_type": "practice_plan_generation",
+      "plan": {
+        "plan_id": "plan_fixture_misty_45",
+        "title": "Misty Ballad Comping 45",
+        "duration_minutes": 45,
+        "main_focus": "Misty ballad comping with stable lower foundation",
+        "estimated_difficulty": "medium",
+        "explanation": "Fixture plan for UI preview and local store testing.",
+        "source": "rule_based",
+        "blocks": [
+          {
+            "block_id": "block_fixture_voicing",
+            "type": "voicing",
+            "title": "Misty A段 lower foundation",
+            "intent": "控制 lower foundation 与 voice-leading，不让左手过乱。",
+            "duration_minutes": 12,
+            "material": {
+              "type": "tune",
+              "tune": "Misty",
+              "section": "A",
+              "key": "Eb major",
+              "raw": {}
+            },
+            "tempo": 76,
+            "style": "jazz_ballad",
+            "accompaniment_config": null,
+            "success_criteria": [
+              "lower group 稳定",
+              "top voice 不乱跳"
+            ],
+            "review_prompt": "左手 foundation 是否清楚？",
+            "status": "pending"
+          },
+          {
+            "block_id": "block_fixture_comping",
+            "type": "comping",
+            "title": "Misty A段 with bass/drums",
+            "intent": "关闭钢琴伴奏声部，跟 bass/drums 练 comping。",
+            "duration_minutes": 28,
+            "material": {
+              "type": "tune",
+              "tune": "Misty",
+              "section": "A",
+              "key": "Eb major",
+              "raw": {}
+            },
+            "tempo": 76,
+            "style": "jazz_ballad",
+            "accompaniment_config": {
+              "enabled": true,
+              "style": "jazz_ballad",
+              "tempo": 76,
+              "loop_count": 3,
+              "duration_minutes": null,
+              "section_loop": true,
+              "muted_roles": [
+                "piano"
+              ],
+              "count_in": true,
+              "harmonic_expansion_enabled": false,
+              "density": "normal",
+              "practice_role": "piano_comping",
+              "output_format": "midi_base64",
+              "arrangement_intent": {}
+            },
+            "success_criteria": [
+              "不抢拍",
+              "和声连接清楚"
+            ],
+            "review_prompt": "是否能跟 rhythm section 稳定 comp？",
+            "status": "pending"
+          },
+          {
+            "block_id": "block_fixture_review",
+            "type": "review",
+            "title": "Review",
+            "intent": "记录本次卡点与下次动作。",
+            "duration_minutes": 5,
+            "material": null,
+            "tempo": null,
+            "style": null,
+            "accompaniment_config": null,
+            "success_criteria": [],
+            "review_prompt": "今天最卡的点是什么？",
+            "status": "pending"
+          }
+        ]
+      },
+      "trace_id": "trace_fixture_plan_001"
+    },
+    "agentPracticePlanResponse": {
+      "ok": true,
+      "intentType": "practice_plan_generation",
+      "plan": {
+        "planId": "plan_fixture_misty_45",
+        "title": "Misty Ballad Comping 45",
+        "durationMinutes": 45,
+        "mainFocus": "Misty ballad comping with stable lower foundation",
+        "estimatedDifficulty": "medium",
+        "explanation": "Fixture plan for UI preview and local store testing.",
+        "source": "rule_based",
+        "blocks": [
+          {
+            "blockId": "block_fixture_voicing",
+            "type": "voicing",
+            "title": "Misty A段 lower foundation",
+            "intent": "控制 lower foundation 与 voice-leading，不让左手过乱。",
+            "durationMinutes": 12,
+            "material": {
+              "type": "tune",
+              "tune": "Misty",
+              "section": "A",
+              "key": "Eb major",
+              "raw": {}
+            },
+            "tempo": 76,
+            "style": "jazz_ballad",
+            "accompanimentConfig": null,
+            "successCriteria": [
+              "lower group 稳定",
+              "top voice 不乱跳"
+            ],
+            "reviewPrompt": "左手 foundation 是否清楚？",
+            "status": "pending"
+          },
+          {
+            "blockId": "block_fixture_comping",
+            "type": "comping",
+            "title": "Misty A段 with bass/drums",
+            "intent": "关闭钢琴伴奏声部，跟 bass/drums 练 comping。",
+            "durationMinutes": 28,
+            "material": {
+              "type": "tune",
+              "tune": "Misty",
+              "section": "A",
+              "key": "Eb major",
+              "raw": {}
+            },
+            "tempo": 76,
+            "style": "jazz_ballad",
+            "accompanimentConfig": {
+              "enabled": true,
+              "style": "jazz_ballad",
+              "tempo": 76,
+              "loopCount": 3,
+              "durationMinutes": null,
+              "sectionLoop": true,
+              "mutedRoles": [
+                "piano"
+              ],
+              "countIn": true,
+              "harmonicExpansionEnabled": false,
+              "density": "normal",
+              "practiceRole": "piano_comping",
+              "outputFormat": "midi_base64",
+              "arrangementIntent": {}
+            },
+            "successCriteria": [
+              "不抢拍",
+              "和声连接清楚"
+            ],
+            "reviewPrompt": "是否能跟 rhythm section 稳定 comp？",
+            "status": "pending"
+          },
+          {
+            "blockId": "block_fixture_review",
+            "type": "review",
+            "title": "Review",
+            "intent": "记录本次卡点与下次动作。",
+            "durationMinutes": 5,
+            "material": null,
+            "tempo": null,
+            "style": null,
+            "accompanimentConfig": null,
+            "successCriteria": [],
+            "reviewPrompt": "今天最卡的点是什么？",
+            "status": "pending"
+          }
+        ]
+      },
+      "traceId": "trace_fixture_plan_001"
+    },
+    "rawBackendAgentPlaybackPrepareResponse": {
+      "ok": true,
+      "intent_type": "immediate_practice_playback",
+      "practice_session": {
+        "status": "active",
+        "total_planned_minutes": 20,
+        "material": {
+          "type": "tune",
+          "tune": "Blue Bossa",
+          "raw": {}
+        }
+      },
+      "asset": {
+        "asset_id": "asset_fixture_blue_bossa",
+        "format": "midi_base64",
+        "midi_base64": "TVRoZAAAAAYAAQABAGBNVHJrAAAABAD/LwA=",
+        "midi_path": "demos/fixture_blue_bossa.mid",
+        "duration_seconds": 72,
+        "cache_key": "agent_playback:blue_bossa:bossa_nova:120:choruses3:harmony0",
+        "debug_summary": {
+          "fixture": true,
+          "path": "agent_playback_prepare"
+        }
+      },
+      "playback_instruction": {
+        "auto_start": true,
+        "target_duration_minutes": 20,
+        "client_loop_until_target_duration": true,
+        "asset_loop_mode": "loop_until_target_duration",
+        "requires_local_timer": true,
+        "stop_condition": "practice_timer_reaches_target_duration_or_user_stops",
+        "cache_policy": {
+          "cache_key": "agent_playback:blue_bossa:bossa_nova:120:choruses3:harmony0",
+          "scope": "recent_practice_asset",
+          "reuse_when_request_signature_matches": true
+        }
+      },
+      "explanation": "Fixture playback response for UI/cache/player testing.",
+      "trace_id": "trace_fixture_playback_001"
+    },
+    "agentPlaybackPrepareResponse": {
+      "ok": true,
+      "intentType": "immediate_practice_playback",
+      "practiceSession": {
+        "status": "active",
+        "totalPlannedMinutes": 20,
+        "material": {
+          "type": "tune",
+          "tune": "Blue Bossa",
+          "raw": {}
+        }
+      },
+      "asset": {
+        "assetId": "asset_fixture_blue_bossa",
+        "format": "midi_base64",
+        "midiBase64": "TVRoZAAAAAYAAQABAGBNVHJrAAAABAD/LwA=",
+        "midiPath": "demos/fixture_blue_bossa.mid",
+        "durationSeconds": 72,
+        "cacheKey": "agent_playback:blue_bossa:bossa_nova:120:choruses3:harmony0",
+        "debugSummary": {
+          "fixture": true,
+          "path": "agent_playback_prepare"
+        }
+      },
+      "playbackInstruction": {
+        "autoStart": true,
+        "targetDurationMinutes": 20,
+        "clientLoopUntilTargetDuration": true,
+        "assetLoopMode": "loop_until_target_duration",
+        "requiresLocalTimer": true,
+        "stopCondition": "practice_timer_reaches_target_duration_or_user_stops",
+        "cachePolicy": {
+          "cacheKey": "agent_playback:blue_bossa:bossa_nova:120:choruses3:harmony0",
+          "scope": "recent_practice_asset",
+          "reuseWhenRequestSignatureMatches": true
+        }
+      },
+      "explanation": "Fixture playback response for UI/cache/player testing.",
+      "traceId": "trace_fixture_playback_001"
+    },
+    "rawBackendDirectAccompanimentGenerateResponse": {
+      "ok": true,
+      "asset": {
+        "format": "midi_base64",
+        "midi_base64": "TVRoZAAAAAYAAQABAGBNVHJrAAAABAD/LwA=",
+        "midi_path": "demos/fixture_direct_blue_bossa.mid",
+        "cache_key": "direct_accomp:blue_bossa:bossa_nova:120:choruses3",
+        "debug_summary": {
+          "fixture": true,
+          "path": "direct_accompaniment_api"
+        }
+      }
+    },
+    "directAccompanimentGenerateResponse": {
+      "ok": true,
+      "asset": {
+        "format": "midi_base64",
+        "midiBase64": "TVRoZAAAAAYAAQABAGBNVHJrAAAABAD/LwA=",
+        "midiPath": "demos/fixture_direct_blue_bossa.mid",
+        "cacheKey": "direct_accomp:blue_bossa:bossa_nova:120:choruses3",
+        "debugSummary": {
+          "fixture": true,
+          "path": "direct_accompaniment_api"
+        }
+      }
+    },
+    "sessionReviewRequest": {
+      "sessionId": "session_fixture_001",
+      "completed": true,
+      "difficulty": "good_challenge",
+      "focusScore": 4,
+      "timeFeel": "stable",
+      "tempoResult": {
+        "tempo": 90,
+        "stable": true,
+        "should_raise_next_time": true
+      },
+      "stuckPoints": [
+        {
+          "material": "Misty A section",
+          "issue": "left hand still gets messy"
+        }
+      ],
+      "notes": "整体稳定，但左手需要更清晰。",
+      "nextActionPreference": "continue"
+    }
+  }
+}

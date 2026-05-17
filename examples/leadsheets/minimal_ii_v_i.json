@@ -1,0 +1,43 @@
+{
+  "title": "Minimal ii V I",
+  "key": "C",
+  "tempo": 132,
+  "default_time_signature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "bars": [
+    {
+      "chords": [
+        {
+          "symbol": "Dm7",
+          "beat": 1
+        }
+      ]
+    },
+    {
+      "chords": [
+        {
+          "symbol": "G7",
+          "beat": 1
+        }
+      ]
+    },
+    {
+      "chords": [
+        {
+          "symbol": "Cmaj7",
+          "beat": 1
+        }
+      ]
+    },
+    {
+      "chords": [
+        {
+          "symbol": "Cmaj7",
+          "beat": 1
+        }
+      ]
+    }
+  ]
+}

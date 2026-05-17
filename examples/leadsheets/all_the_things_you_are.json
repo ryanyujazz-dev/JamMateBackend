@@ -1,0 +1,363 @@
+{
+  "schema_version": "jammate_leadsheet_v2",
+  "title": "All the Things You Are",
+  "composer": "Jerome Kern",
+  "key": "Ab",
+  "tempo": 132,
+  "default_time_signature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "metadata": {
+    "fixture_role": "standard_tune_v2_leadsheet_contract",
+    "performance_repetitions_live_in_request": true
+  },
+  "sections": {
+    "A1": {
+      "label": "A1",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Fm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Eb7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Abmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dbmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "G7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cmaj7"
+            }
+          ]
+        }
+      ]
+    },
+    "A2": {
+      "label": "A2",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Fm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bb7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Ebmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Abmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gmaj7"
+            }
+          ]
+        }
+      ]
+    },
+    "B": {
+      "label": "B",
+      "phrase": "B",
+      "role": "bridge",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Am7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "D7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "F#m7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "B7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Emaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Emaj7"
+            }
+          ]
+        }
+      ]
+    },
+    "A3": {
+      "label": "A3",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Fm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Eb7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Abmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dbmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dbm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "Gb7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Bbm7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Eb7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Abmaj7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Gm7b5"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "C7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Fm7"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "written_form": [
+    {
+      "section": "A1"
+    },
+    {
+      "section": "A2"
+    },
+    {
+      "section": "B"
+    },
+    {
+      "section": "A3"
+    }
+  ]
+}

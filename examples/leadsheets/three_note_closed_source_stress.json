@@ -1,0 +1,25 @@
+{
+  "title": "3-Note Closed Source Stress Progression",
+  "key": "C",
+  "tempo": 120,
+  "default_time_signature": {"numerator": 4, "denominator": 4},
+  "metadata": {"fixture_role": "v2_1_40_3note_closed_listening_verification"},
+  "bars": [
+    "C",
+    "Cadd9",
+    "C6",
+    "Csus4",
+    "Cm",
+    "Cmadd9",
+    "Dm7",
+    "Dm9",
+    "Dm11",
+    "G7",
+    "G7b9",
+    "G7#9",
+    "G13",
+    "Cmaj9",
+    "Bm7b5",
+    "C"
+  ]
+}

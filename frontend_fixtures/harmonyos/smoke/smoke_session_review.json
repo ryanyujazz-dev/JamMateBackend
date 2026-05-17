@@ -1,0 +1,20 @@
+{
+  "sessionId": "session_smoke_001",
+  "completed": true,
+  "difficulty": "good_challenge",
+  "focusScore": 4,
+  "timeFeel": "stable",
+  "tempoResult": {
+    "tempo": 90,
+    "stable": true,
+    "should_raise_next_time": true
+  },
+  "stuckPoints": [
+    {
+      "material": "Misty A section",
+      "issue": "left hand still gets messy"
+    }
+  ],
+  "notes": "HarmonyOS smoke review payload.",
+  "nextActionPreference": "continue"
+}

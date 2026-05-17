@@ -1,0 +1,21 @@
+{
+  "title": "Color-Rich 251 Stress Progression",
+  "key": "C",
+  "tempo": 132,
+  "default_time_signature": {"numerator": 4, "denominator": 4},
+  "metadata": {"fixture_role": "v2_1_35_4note_source_weight_listening_medium_swing"},
+  "bars": [
+    "Dm9",
+    "G13",
+    "Cmaj9",
+    "Cmaj7#11",
+    "Bm11b5",
+    "E7b9b13",
+    "Am9",
+    "D7#11",
+    "Dm11",
+    "G7alt",
+    "C6/9",
+    "Cmaj9"
+  ]
+}
