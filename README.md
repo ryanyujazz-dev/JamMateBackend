@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_4_12`.
+Current package version: `v2_4_13`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -342,7 +342,7 @@ The trace viewer never executes tools, calls an LLM provider, dispatches workflo
 
 ## Current Development Status
 
-`v2_4_12` is the Agent terminal LLM config wizard baseline for `feature/agent-workflow`. It preserves terminal chat, optional provider-backed conversation, validation-only `/tool-preview`, explicit `--trace-dir` export, read-only trace viewer, context/profile/session controls, and JSON-only tool-call candidate extraction, then adds `setup` / `doctor` / `config-path` plus local `.env`-style config loading. Extracted candidates are previewed against the current ContextPacket allow-list and never executed. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch remain disabled. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_13` is the Agent tool-call preview trace contract baseline for `feature/agent-workflow`. It preserves terminal chat, optional provider-backed conversation, local `setup` / `doctor` config, validation-only `/tool-preview`, explicit `--trace-dir` export, read-only trace viewer, context/profile/session controls, and JSON-only tool-call candidate extraction, then adds a stable trace summary for the chain from LLM response to preview validation and execution guard. Extracted candidates are previewed against the current ContextPacket allow-list and never executed. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch remain disabled. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ```text
 Current active window -> feature/agent-workflow

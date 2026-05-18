@@ -1,6 +1,6 @@
 [project]
 name = "jammate-engine"
-version = "2.4.12"
+version = "2.4.13"
 description = "JamMatePyEngineV2 Agent Terminal LLM Config Wizard"
 requires-python = ">=3.10"
 dependencies = [

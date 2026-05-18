@@ -1,8 +1,8 @@
-# v2_4_12 — Agent Terminal LLM Config Wizard
+# v2_4_13 — Agent Terminal LLM Config Wizard
 
 ## Goal
 
-`v2_4_12_agent_terminal_llm_config_wizard` improves terminal LLM chat setup without changing Agent tool execution or accompaniment engine behavior.
+`v2_4_13_agent_terminal_llm_config_wizard` improves terminal LLM chat setup without changing Agent tool execution or accompaniment engine behavior.
 
 The previous developer flow required manual shell exports before terminal chat could call a provider. This version keeps environment variables as the highest-precedence mechanism, but adds a local config-file setup and doctor flow so a developer can run terminal chat with less friction.
 
@@ -98,4 +98,4 @@ adapter / engine calls remain disabled
 API runloop preview remains provider-call disabled
 ```
 
-`v2_4_12` is still an Agent workflow debugging milestone, not an autonomous execution milestone.
+`v2_4_13` is still an Agent workflow debugging milestone, not an autonomous execution milestone.

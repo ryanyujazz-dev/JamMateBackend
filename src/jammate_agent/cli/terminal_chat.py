@@ -19,13 +19,15 @@ from jammate_agent.core.llm_provider import (
 )
 from jammate_agent.core.tool_invocation import (
     TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+    TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION,
     ToolInvocationProposal,
+    build_tool_call_preview_trace_summary,
     extract_tool_call_candidates,
     preview_tool_invocation,
 )
 from jammate_agent.core.trace import AgentTrace, JsonTraceStore, TraceLogger
 
-TERMINAL_CHAT_VERSION = "v2_4_12"
+TERMINAL_CHAT_VERSION = "v2_4_13"
 
 
 @dataclass
@@ -44,11 +46,11 @@ class TerminalChatSession:
     switch task profiles, inspect ContextPacket summaries, reset local chat
     history, and change instrument hints without restarting the CLI.
 
-    v2_4_12 additionally scans successful assistant text for explicit JSON
+    v2_4_13 additionally scans successful assistant text for explicit JSON
     tool-call candidates and sends them through the preview contract. Extracted
     candidates never execute tools or engine workflows.
 
-    v2_4_12 adds setup/doctor configuration helpers and local config-file
+    v2_4_13 adds setup/doctor configuration helpers and local config-file
     loading for terminal LLM use. These helpers do not change tool execution
     policy and do not expose API keys in status, trace, or response payloads.
     """
@@ -113,6 +115,7 @@ class TerminalChatSession:
             "autonomous_tool_execution_enabled": False,
         }
         candidate_previews: list[dict[str, Any]] = []
+        extraction = extract_tool_call_candidates(None)
         if result.ok and result.content:
             extraction = extract_tool_call_candidates(result.content)
             extraction_payload = extraction.to_dict()
@@ -145,10 +148,19 @@ class TerminalChatSession:
                 )
             self.history.append({"role": "user", "content": user_input})
             self.history.append({"role": "assistant", "content": result.content})
+        trace_summary = build_tool_call_preview_trace_summary(
+            extraction=extraction,
+            candidate_previews=candidate_previews,
+            task_type=packet.task_type,
+            source="terminal_chat_cli",
+        )
+        self._add_trace_step(trace, "terminal_tool_call_preview_trace_summary_recorded", trace_summary)
         response["tool_call_candidate_extraction_version"] = TOOL_CALL_CANDIDATE_EXTRACTION_VERSION
+        response["tool_call_preview_trace_contract_version"] = TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION
         response["tool_call_candidate_extraction"] = extraction_payload
         response["tool_call_candidate_previews"] = candidate_previews
         response["tool_call_candidate_preview_count"] = len(candidate_previews)
+        response["tool_call_preview_trace_summary"] = trace_summary
         self._finish_trace(
             trace,
             "passed" if result.ok else "guarded",
@@ -157,8 +169,10 @@ class TerminalChatSession:
                 "task_type": packet.task_type,
                 "terminal_chat_version": TERMINAL_CHAT_VERSION,
                 "tool_execution_enabled": False,
+                "tool_call_preview_trace_contract_version": TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION,
                 "tool_call_candidate_count": extraction_payload.get("candidate_count", 0),
                 "tool_call_candidate_preview_count": len(candidate_previews),
+                "tool_call_preview_trace_summary": trace_summary,
             },
         )
         response["trace_id"] = self.last_trace_id

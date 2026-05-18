@@ -7,7 +7,7 @@ from jammate_agent.core.llm_provider import LLMProviderConfig
 from jammate_agent.core.tool_invocation import TOOL_INVOCATION_PREVIEW_VERSION, DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, summarize_tools_for_names, validate_allowed_tools
 
-CONTEXT_RUNTIME_VERSION = "v2_4_12"
+CONTEXT_RUNTIME_VERSION = "v2_4_13"
 
 
 @dataclass

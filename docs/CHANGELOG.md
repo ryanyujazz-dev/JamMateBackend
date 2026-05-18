@@ -1,5 +1,15 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_4_13 — Agent Tool Call Preview Trace Contract
+
+- Added a stable terminal tool-call preview trace contract for the chain: LLM response -> explicit JSON candidate extraction -> preview validation -> execution guard.
+- Focused doc: `docs/AGENT_TOOL_CALL_PREVIEW_TRACE_CONTRACT_V2_4_13.md`.
+- Added `build_tool_call_preview_trace_summary(...)` and `tool_call_preview_trace_contract()` in `jammate_agent.core.tool_invocation`, reusing the existing tool invocation owner.
+- Terminal chat trace export now records `terminal_tool_call_preview_trace_summary_recorded` and places `tool_call_preview_trace_summary` in `final_response_summary`.
+- Trace API/runtime specs expose the tool-call preview trace boundary for HarmonyOS and terminal debugging.
+- The contract is trace-only: no tool execution, no deterministic workflow dispatch, no API route dispatch, no adapter call, and no engine call.
+- Runtime music generation behavior is unchanged.
+
 ## v2_4_12 — Agent Terminal LLM Config Wizard
 
 - Added `jammate-agent-chat setup`, `jammate-agent-chat doctor`, and `jammate-agent-chat config-path` for local terminal LLM configuration.

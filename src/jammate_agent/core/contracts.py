@@ -9,6 +9,7 @@ from jammate_agent.core.runloop import BoundedAgentRunLoop, RUNLOOP_CONTRACT_VER
 from jammate_agent.core.tool_invocation import (
     TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
     TOOL_INVOCATION_PREVIEW_VERSION,
+    tool_call_preview_trace_contract,
     tool_invocation_preview_contract,
 )
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, tool_registry_manifest
@@ -156,13 +157,14 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             ],
         },
         "trace_api_boundary": trace_api_contract(),
+        "tool_call_preview_trace_boundary": tool_call_preview_trace_contract(),
         "non_goals": [
-            "No real LLM network call from the API runloop preview in v2_4_12.",
-            "No autonomous tool execution in v2_4_12.",
-            "No runloop-driven tool execution in v2_4_12; tools are descriptor-only.",
-            "No runloop-driven tool execution in v2_4_12; tools are descriptor-only and invocation preview is validation-only.",
+            "No real LLM network call from the API runloop preview in v2_4_13.",
+            "No autonomous tool execution in v2_4_13.",
+            "No runloop-driven tool execution in v2_4_13; tools are descriptor-only.",
+            "No runloop-driven tool execution in v2_4_13; tools are descriptor-only and invocation preview is validation-only.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
-            "Trace API and terminal trace viewer only shape/read trace list/detail/spec responses; they do not execute tools, call LLM providers, dispatch workflows, or call the engine adapter.",
+            "Trace API and terminal trace viewer only shape/read trace list/detail/spec responses; tool-call preview trace contract only shapes terminal candidate/preview summaries; they do not execute tools, call LLM providers, dispatch workflows, or call the engine adapter.",
         ],
     }
 
@@ -450,7 +452,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_4_12
+// JamMate Agent / Practice API Contract v2_4_13
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'

@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_4_12`.
+Current baseline: `v2_4_13`.
 
-`v2_4_12_agent_terminal_llm_config_wizard` adds `jammate-agent-chat setup`, `doctor`, `config-path`, and local config-file loading on top of terminal chat, `/tool-preview`, trace export, read-only trace viewer, context controls, and JSON-only tool-call candidate extraction. It keeps env vars as the highest-precedence config source, masks API key values from status/trace/output, and still never executes tools, dispatches workflows, calls adapters, calls API routes, or calls engine code. Runtime music generation behavior is unchanged from `v2_3_17`; HarmonyOS direct `/accompaniment/generate` contract from `v2_4_1` remains intact.
+`v2_4_13_agent_tool_call_preview_trace_contract` hardens the terminal tool-call preview trace chain after the v2_4_12 LLM config wizard. Terminal chat now records a stable trace summary for LLM response -> explicit JSON candidate extraction -> preview validation -> execution guard. It still never executes tools, dispatches workflows, calls adapters, calls API routes, or calls engine code. Runtime music generation behavior is unchanged from `v2_3_17`; HarmonyOS direct `/accompaniment/generate` contract from `v2_4_1` remains intact.
 
 ---
 
@@ -26,7 +26,7 @@ Scope:
 Suggested next task:
 
 ```text
-v2_4_13_agent_tool_call_preview_trace_contract
+v2_4_14_agent_tool_execution_confirmation_gate
 ```
 
 ### Engine branch
