@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, get_tool_descriptor, validate_allowed_tools
+from jammate_agent.core.llm_provider import LLMRequestEnvelope, build_llm_provider_from_env
 
 TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_13"
 TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_13"
@@ -19,6 +20,18 @@ CONTROLLED_WORKFLOW_EXECUTION_VERSION = "v2_6_5"
 HARMONYOS_AGENT_ACTION_CONTRACT_VERSION = "v2_6_6"
 AGENT_RUNTIME_SKELETON_CLEANUP_VERSION = "v2_6_7"
 PRACTICE_PLAN_ACTION_CARD_E2E_VERSION = "v2_6_8"
+PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION = "v2_6_9"
+ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION = "v2_7_0"
+PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION = "v2_7_1"
+ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION = "v2_7_2"
+CONTEXT_ENGINEERING_SKELETON_VERSION = "v2_7_3"
+ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION = CONTEXT_ENGINEERING_SKELETON_VERSION
+PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION = CONTEXT_ENGINEERING_SKELETON_VERSION
+TODAY_PRACTICE_CONTEXT_E2E_VERSION = CONTEXT_ENGINEERING_SKELETON_VERSION
+TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION = "v2_7_4"
+USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION = "v2_7_5"
+TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION = "v2_7_6"
+TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION = "v2_7_7"
 
 
 @dataclass(frozen=True)
@@ -226,6 +239,10 @@ class AgentRuntimeSkeletonSnapshot:
         "/execute-controlled",
         "/action-card",
         "/runtime-skeleton",
+        "/playback-prepare-guarded",
+        "/routine-config-prepare",
+        "/practice-plan-routine-candidate",
+        "/routine-history-context",
     )
     api_routes: tuple[str, ...] = (
         "GET /agent/runtime/skeleton",
@@ -237,6 +254,12 @@ class AgentRuntimeSkeletonSnapshot:
         "POST /agent/tools/workflows/execute-controlled",
         "POST /agent/actions/preview",
         "POST /agent/actions/execute-controlled",
+        "GET /agent/actions/playback-prepare/spec",
+        "POST /agent/actions/playback-prepare/guarded-preview",
+        "GET /agent/actions/routine-config/spec",
+        "POST /agent/actions/routine-config/prepare",
+        "GET /agent/actions/practice-plan/routine-candidate/spec",
+        "POST /agent/actions/practice-plan/routine-candidate/prepare",
     )
     next_recommended_stage: str = "specific_agent_feature_development"
 
@@ -268,6 +291,8 @@ class AgentRuntimeSkeletonSnapshot:
                 "agent_docs_only": True,
                 "shared_docs_modified_by_agent_branch": False,
             },
+            "practice_plan_to_routine_candidate_bridge_version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+            "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
             "next_recommended_stage": self.next_recommended_stage,
         }
 
@@ -1957,6 +1982,3444 @@ def _style_default_tempo(style: str) -> int:
         return 140
     return 120
 
+
+@dataclass(frozen=True)
+class PlaybackPrepareGuardedActionPayload:
+    """v2_6_9 guarded design payload for agent_playback_prepare.
+
+    This payload lets HarmonyOS Routine render a high-risk playback preparation
+    candidate and the exact client-side confirmation semantics needed before a
+    future Routine start action. It is intentionally not execution: it does not
+    call /accompaniment/generate, call engine adapters, create MIDI assets, or
+    start playback.
+    """
+
+    payload_contract_version: str
+    playback_request_candidate: dict[str, Any]
+    routine_config_candidate: dict[str, Any]
+    risk_gate: dict[str, Any]
+    confirmation_ladder: tuple[dict[str, Any], ...]
+    next_client_actions: tuple[str, ...]
+    client_button_semantics: dict[str, Any]
+    trace_id: str | None = None
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    agent_playback_prepare_execution_enabled: bool = False
+    requires_final_routine_start_confirmation: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "playback_request_candidate": _redact_sensitive_values(self.playback_request_candidate),
+            "routine_config_candidate": _redact_sensitive_values(self.routine_config_candidate),
+            "risk_gate": _redact_sensitive_values(self.risk_gate),
+            "confirmation_ladder": [_redact_sensitive_values(step) for step in self.confirmation_ladder],
+            "next_client_actions": list(self.next_client_actions),
+            "client_button_semantics": _redact_sensitive_values(self.client_button_semantics),
+            "trace_id": self.trace_id,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "agent_playback_prepare_execution_enabled": self.agent_playback_prepare_execution_enabled,
+            "requires_final_routine_start_confirmation": self.requires_final_routine_start_confirmation,
+        }
+
+
+def build_playback_prepare_guarded_action_payload(
+    workflow_dispatch_result: ToolWorkflowDispatchResult,
+    *,
+    trace_id: str | None = None,
+) -> PlaybackPrepareGuardedActionPayload:
+    """Build a Routine-facing guarded payload for agent_playback_prepare.
+
+    The input should be a descriptor-only workflow dispatch dry-run. This
+    function deliberately does not call any workflow runner; it only reshapes the
+    approved dry-run request into a client-renderable guarded design payload.
+    """
+
+    request = workflow_dispatch_result.execution_result.request
+    args = dict(request.arguments_preview or {})
+    descriptor = workflow_dispatch_result.workflow_descriptor
+    tool_name = request.tool_name
+    raw_duration = args.get("duration_minutes", args.get("durationMinutes", args.get("availableMinutes", 20)))
+    try:
+        duration_minutes = int(raw_duration)
+    except (TypeError, ValueError):
+        duration_minutes = 20
+    style = str(args.get("style") or args.get("styleId") or _infer_style_from_text(args) or "medium_swing")
+    tempo = args.get("tempo") or args.get("bpm") or _style_default_tempo(style)
+    try:
+        tempo_value = int(tempo)
+    except (TypeError, ValueError):
+        tempo_value = _style_default_tempo(style)
+    tune_title = args.get("tune_title") or args.get("tuneTitle") or args.get("tune") or args.get("song")
+    routine_name = args.get("routine_name") or args.get("routineName") or (f"{tune_title} Routine" if tune_title else "JamMate Playback Routine")
+    muted_roles = args.get("muted_roles") or args.get("mutedRoles") or []
+    if not isinstance(muted_roles, list):
+        muted_roles = [str(muted_roles)]
+    leadsheet = args.get("score_document") or args.get("scoreDocument") or args.get("leadsheet")
+    has_inline_leadsheet = isinstance(leadsheet, dict) and bool(leadsheet.get("schema_version") or leadsheet.get("schemaVersion") or leadsheet.get("sections"))
+    playback_request_candidate = {
+        "tool_name": tool_name,
+        "workflow_name": descriptor.workflow_name if descriptor else "ImmediatePlaybackWorkflow.prepare",
+        "route": descriptor.route if descriptor else "POST /agent/playback/prepare",
+        "adapter_boundary": descriptor.adapter_boundary if descriptor else "jammate_agent.adapters.JamMateEngineAccompanimentAdapter",
+        "duration_minutes": duration_minutes,
+        "style": style,
+        "tempo": tempo_value,
+        "tune_title": tune_title,
+        "has_inline_leadsheet": has_inline_leadsheet,
+        "muted_roles": list(muted_roles),
+        "output_format": args.get("output_format") or args.get("outputFormat") or "midi_base64",
+        "loop_enabled": bool(args.get("loop_enabled", args.get("loopEnabled", True))),
+        "count_in_enabled": bool(args.get("count_in_enabled", args.get("countInEnabled", True))),
+        "client_timer_owns_duration": True,
+        "call_enabled_now": False,
+        "requires_user_start_confirmation": True,
+        "requires_accompaniment_generate_after_start_confirmation": True,
+    }
+    routine_config_candidate = {
+        "routine_name": routine_name,
+        "practice_goal": args.get("practice_goal") or args.get("practiceGoal") or "Immediate practice playback",
+        "duration_minutes": duration_minutes,
+        "style": style,
+        "tempo": tempo_value,
+        "tune_title": tune_title,
+        "loop_enabled": True,
+        "count_in_enabled": playback_request_candidate["count_in_enabled"],
+        "output_format": "midi_base64",
+        "source": "agent_playback_prepare_guarded_design",
+        "agent_tool_name": "agent_playback_prepare",
+        "trace_id": trace_id,
+        "requires_user_start_confirmation": True,
+        "requires_backend_generation_confirmation": True,
+        "accompaniment_generate_call_enabled": False,
+        "playback_execution_enabled": False,
+    }
+    risk_gate = {
+        "side_effect_level": request.side_effect_level,
+        "risk_summary": "agent_playback_prepare is high risk because future execution can create a MIDI asset and prepare playback.",
+        "requires_user_confirmation": True,
+        "requires_final_routine_start_confirmation": True,
+        "requires_visible_parameter_review": True,
+        "agent_may_execute_without_user": False,
+        "allowed_current_stage": "guarded_design_only",
+        "blocked_current_stage": [
+            "POST /accompaniment/generate",
+            "JamMateEngineAccompanimentAdapter.prepare",
+            "MIDI asset creation",
+            "Playback start",
+        ],
+    }
+    confirmation_ladder = (
+        {"step": "tool_call_preview", "status": "completed" if workflow_dispatch_result.execution_result.ok else "blocked", "side_effects": False},
+        {"step": "user_confirmation", "status": request.confirmation_status, "user_approved": request.user_approved, "side_effects": False},
+        {"step": "executor_dry_run", "status": workflow_dispatch_result.execution_result.status, "side_effects": False},
+        {"step": "workflow_descriptor_resolution", "status": workflow_dispatch_result.status, "side_effects": False},
+        {"step": "future_routine_start_confirmation", "status": "required_not_executed", "side_effects": False},
+        {"step": "future_accompaniment_generation", "status": "blocked_in_v2_6_9", "side_effects": False},
+    )
+    return PlaybackPrepareGuardedActionPayload(
+        payload_contract_version=PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+        playback_request_candidate=playback_request_candidate,
+        routine_config_candidate=routine_config_candidate,
+        risk_gate=risk_gate,
+        confirmation_ladder=confirmation_ladder,
+        next_client_actions=("review_playback_request", "open_routine_setup", "edit_request", "dismiss", "view_trace"),
+        client_button_semantics={
+            "primary": {
+                "action": "open_routine_setup",
+                "label": "Review in Routine Setup",
+                "does_call_accompaniment_generate": False,
+                "does_start_playback": False,
+                "requires_separate_start_confirmation": True,
+            },
+            "dangerous_future_primary": {
+                "action": "routine_start_after_confirmation",
+                "label": "Start Routine",
+                "enabled_now": False,
+                "requires_user_confirmation": True,
+                "would_call_accompaniment_generate": True,
+            },
+            "secondary": [
+                {"action": "edit_request", "label": "Edit Request", "side_effect_level": "none"},
+                {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+            ],
+        },
+        trace_id=trace_id,
+    )
+
+
+def build_playback_prepare_guarded_design_summary(
+    *,
+    action_card: HarmonyOSAgentActionCard | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    result_preview = action_card.result_preview if action_card else {}
+    payload = result_preview.get("playback_prepare_guarded_payload") if isinstance(result_preview, dict) else None
+    request_candidate = payload.get("playback_request_candidate") if isinstance(payload, dict) else {}
+    return {
+        "playback_prepare_guarded_design_version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+        "source": source,
+        "has_action_card": action_card is not None,
+        "has_playback_prepare_guarded_payload": isinstance(payload, dict),
+        "action_id": action_card.action_id if action_card else None,
+        "tool_name": action_card.tool_name if action_card else None,
+        "style": request_candidate.get("style") if isinstance(request_candidate, dict) else None,
+        "tempo": request_candidate.get("tempo") if isinstance(request_candidate, dict) else None,
+        "duration_minutes": request_candidate.get("duration_minutes") if isinstance(request_candidate, dict) else None,
+        "next_client_actions": payload.get("next_client_actions", []) if isinstance(payload, dict) else [],
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "agent_playback_prepare_execution_enabled": False,
+    }
+
+
+def playback_prepare_guarded_design_contract() -> dict[str, Any]:
+    return {
+        "version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+        "playback_prepare_guarded_design_version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+        "spec_route": "GET /agent/actions/playback-prepare/spec",
+        "guarded_preview_route": "POST /agent/actions/playback-prepare/guarded-preview",
+        "terminal_command": "/playback-prepare-guarded",
+        "surface": "HarmonyOS Routine playback-prepare guarded ActionCard payload",
+        "mode": "agent_playback_prepare_guarded_design_only",
+        "execution_status": {
+            "playback_prepare_guarded_payload_enabled": True,
+            "routine_setup_candidate_enabled": True,
+            "agent_playback_prepare_real_execution_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "autonomous_execution_enabled": False,
+        },
+        "payload_schema": {
+            "payload_contract_version": "v2_6_9",
+            "playback_request_candidate": "Candidate request for future user-confirmed Routine start; call_enabled_now=false",
+            "routine_config_candidate": "RoutineConfig candidate for opening setup only; does not start playback",
+            "risk_gate": "High-risk guard summary and blocked current-stage side effects",
+            "confirmation_ladder": "Preview -> user confirmation -> dry-run -> descriptor -> future start confirmation",
+            "next_client_actions": "review_playback_request | open_routine_setup | edit_request | dismiss | view_trace",
+            "client_button_semantics": "button action metadata for HarmonyOS Routine",
+        },
+        "rules": [
+            "agent_playback_prepare is allowed to be previewed, confirmed, dry-run, and descriptor-resolved only.",
+            "The guarded payload may open Routine setup but must not call /accompaniment/generate.",
+            "A future playable Routine start remains a separate user-confirmed client action.",
+            "This contract never calls engine adapters, creates MIDI assets, or starts playback.",
+        ],
+        "guards": {
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "agent_playback_prepare_real_execution_enabled": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+@dataclass(frozen=True)
+class RoutineConfigPrepareActionPayload:
+    """v2_7_0 editable RoutineConfig draft payload.
+
+    This payload converts a natural-language request, a practice-plan payload,
+    or a single practice-plan block into a HarmonyOS Routine setup candidate. It
+    is a draft-only contract: it does not call /accompaniment/generate, call
+    engine adapters, create MIDI assets, or start playback.
+    """
+
+    payload_contract_version: str
+    routine_config_candidate: dict[str, Any]
+    routine_blocks: tuple[dict[str, Any], ...]
+    source_inputs: dict[str, Any]
+    validation: dict[str, Any]
+    next_client_actions: tuple[str, ...]
+    client_button_semantics: dict[str, Any]
+    trace_id: str | None = None
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    editable: bool = True
+    requires_user_start_confirmation: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "routine_config_candidate": _redact_sensitive_values(self.routine_config_candidate),
+            "routine_blocks": [_redact_sensitive_values(block) for block in self.routine_blocks],
+            "source_inputs": _redact_sensitive_values(self.source_inputs),
+            "validation": _redact_sensitive_values(self.validation),
+            "next_client_actions": list(self.next_client_actions),
+            "client_button_semantics": _redact_sensitive_values(self.client_button_semantics),
+            "trace_id": self.trace_id,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "editable": self.editable,
+            "requires_user_start_confirmation": self.requires_user_start_confirmation,
+        }
+
+
+def build_routine_config_prepare_action_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    tool_name: str = "agent_routine_config_prepare",
+    trace_id: str | None = None,
+    source: str = "agent_routine_config_prepare",
+) -> RoutineConfigPrepareActionPayload:
+    """Build an editable RoutineConfig candidate without side effects."""
+
+    args = dict(arguments or {})
+    plan = args.get("practice_plan") or args.get("practicePlan") or args.get("plan")
+    block = args.get("practice_block") or args.get("practiceBlock") or args.get("block")
+    blocks: list[Any] = []
+    if isinstance(plan, dict) and isinstance(plan.get("blocks"), list):
+        blocks = list(plan.get("blocks") or [])
+    elif isinstance(block, dict):
+        blocks = [block]
+    routine_blocks = tuple(_routine_block_from_plan_block(item, index) for index, item in enumerate(blocks))
+    playable_blocks = [item for item in routine_blocks if item.get("requires_accompaniment_asset")]
+    first_playable = playable_blocks[0] if playable_blocks else (routine_blocks[0] if routine_blocks else {})
+    material = first_playable.get("material") if isinstance(first_playable.get("material"), dict) else {}
+    accompaniment = first_playable.get("accompaniment_request_candidate") if isinstance(first_playable.get("accompaniment_request_candidate"), dict) else {}
+
+    user_text = str(args.get("user_input") or args.get("userInput") or args.get("text") or args.get("prompt") or "")
+    raw_duration = (
+        args.get("duration_minutes")
+        or args.get("durationMinutes")
+        or args.get("available_minutes")
+        or args.get("availableMinutes")
+        or (plan.get("duration_minutes") if isinstance(plan, dict) else None)
+        or first_playable.get("duration_minutes")
+        or sum(int(item.get("duration_minutes") or 0) for item in routine_blocks)
+        or 20
+    )
+    duration_minutes, duration_warning = _coerce_int_with_bounds(raw_duration, default=20, minimum=1, maximum=180)
+
+    style = str(
+        args.get("style")
+        or args.get("styleId")
+        or accompaniment.get("style")
+        or first_playable.get("style")
+        or _infer_style_from_text(args)
+        or "medium_swing"
+    )
+    raw_tempo = args.get("tempo") or args.get("bpm") or accompaniment.get("tempo") or first_playable.get("tempo") or _style_default_tempo(style)
+    tempo, tempo_warning = _coerce_int_with_bounds(raw_tempo, default=_style_default_tempo(style), minimum=40, maximum=260)
+    tune_title = (
+        args.get("tune_title")
+        or args.get("tuneTitle")
+        or args.get("tune")
+        or args.get("song")
+        or material.get("tune")
+        or _infer_tune_from_text(user_text)
+    )
+    routine_name = str(
+        args.get("routine_name")
+        or args.get("routineName")
+        or (plan.get("title") if isinstance(plan, dict) else None)
+        or (f"{tune_title} Routine" if tune_title else "JamMate Routine Draft")
+    )
+    practice_goal = (
+        args.get("practice_goal")
+        or args.get("practiceGoal")
+        or args.get("goal")
+        or (plan.get("main_focus") if isinstance(plan, dict) else None)
+        or first_playable.get("intent")
+        or "Practice with JamMate Routine"
+    )
+    muted_roles = args.get("muted_roles") or args.get("mutedRoles") or accompaniment.get("muted_roles") or []
+    if not isinstance(muted_roles, list):
+        muted_roles = [str(muted_roles)]
+    instruments = args.get("instruments") if isinstance(args.get("instruments"), dict) else {
+        "piano": "piano" not in muted_roles,
+        "bass": "bass" not in muted_roles,
+        "drums": "drums" not in muted_roles,
+    }
+    leadsheet = args.get("score_document") or args.get("scoreDocument") or args.get("leadsheet")
+    has_inline_leadsheet = isinstance(leadsheet, dict) and bool(leadsheet.get("schema_version") or leadsheet.get("schemaVersion") or leadsheet.get("sections"))
+    candidate = {
+        "schema_version": "jammate_routine_config_candidate_v1",
+        "routine_name": routine_name,
+        "practice_goal": practice_goal,
+        "duration_minutes": duration_minutes,
+        "style": style,
+        "tempo": tempo,
+        "key": args.get("key"),
+        "tune_id": args.get("tune_id") or args.get("tuneId"),
+        "tune_title": tune_title,
+        "has_inline_leadsheet": has_inline_leadsheet,
+        "leadsheet": leadsheet if has_inline_leadsheet else None,
+        "chorus_count": args.get("chorus_count") or args.get("chorusCount"),
+        "loop_enabled": bool(args.get("loop_enabled", args.get("loopEnabled", True))),
+        "count_in_enabled": bool(args.get("count_in_enabled", args.get("countInEnabled", accompaniment.get("count_in_enabled", True)))),
+        "output_format": args.get("output_format") or args.get("outputFormat") or "midi_base64",
+        "voicing_override": args.get("voicing_override") or args.get("voicingOverride"),
+        "seed": args.get("seed"),
+        "instruments": instruments,
+        "muted_roles": list(muted_roles),
+        "source": source,
+        "agent_tool_name": tool_name,
+        "trace_id": trace_id,
+        "editable": True,
+        "readiness_status": "draft",
+        "requires_user_review": True,
+        "requires_user_start_confirmation": True,
+        "requires_backend_generation_confirmation": True,
+        "client_timer_owns_duration": True,
+        "accompaniment_generate_call_enabled": False,
+        "playback_execution_enabled": False,
+    }
+    accompaniment_request_candidate = {
+        "route": "POST /accompaniment/generate",
+        "style": style,
+        "tempo": tempo,
+        "tune_title": tune_title,
+        "has_inline_leadsheet": has_inline_leadsheet,
+        "muted_roles": list(muted_roles),
+        "output_format": candidate["output_format"],
+        "loop_enabled": candidate["loop_enabled"],
+        "count_in_enabled": candidate["count_in_enabled"],
+        "call_enabled_now": False,
+        "requires_user_start_confirmation": True,
+    }
+    candidate["accompaniment_request_candidate"] = accompaniment_request_candidate
+    warnings = [warning for warning in (duration_warning, tempo_warning) if warning]
+    if not tune_title and not has_inline_leadsheet:
+        warnings.append("routine_config_has_no_tune_or_inline_leadsheet_yet")
+    validation = {
+        "status": "draft_valid_with_warnings" if warnings else "draft_valid",
+        "warnings": warnings,
+        "duration_minutes_valid": 1 <= duration_minutes <= 180,
+        "tempo_valid": 40 <= tempo <= 260,
+        "style_supported_by_current_manifest": style in {"medium_swing", "bossa_nova", "jazz_ballad"},
+        "requires_user_review_before_start": True,
+        "call_enabled_now": False,
+    }
+    source_inputs = {
+        "source": source,
+        "tool_name": tool_name,
+        "has_user_input": bool(user_text),
+        "has_practice_plan": isinstance(plan, dict),
+        "practice_plan_block_count": len(blocks),
+        "has_practice_block": isinstance(block, dict),
+        "has_inline_leadsheet": has_inline_leadsheet,
+        "derived_from_playable_block": bool(playable_blocks),
+    }
+    return RoutineConfigPrepareActionPayload(
+        payload_contract_version=ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+        routine_config_candidate=candidate,
+        routine_blocks=routine_blocks,
+        source_inputs=source_inputs,
+        validation=validation,
+        next_client_actions=("open_routine_setup", "edit_routine_config", "save_routine_draft", "dismiss", "view_trace"),
+        client_button_semantics={
+            "primary": {
+                "action": "open_routine_setup",
+                "label": "Open Routine Setup",
+                "does_call_accompaniment_generate": False,
+                "does_start_playback": False,
+                "requires_separate_start_confirmation": True,
+            },
+            "secondary": [
+                {"action": "edit_routine_config", "label": "Edit Routine", "side_effect_level": "none"},
+                {"action": "save_routine_draft", "label": "Save Draft", "side_effect_level": "local_only"},
+                {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+            ],
+        },
+        trace_id=trace_id,
+    )
+
+
+def build_routine_config_prepare_summary(
+    *,
+    action_card: HarmonyOSAgentActionCard | None = None,
+    payload: RoutineConfigPrepareActionPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    active_payload = payload.to_dict() if payload else None
+    if active_payload is None and action_card is not None:
+        result_preview = action_card.result_preview if isinstance(action_card.result_preview, dict) else {}
+        active_payload = result_preview.get("routine_config_prepare_payload") if isinstance(result_preview, dict) else None
+    candidate = active_payload.get("routine_config_candidate") if isinstance(active_payload, dict) else {}
+    return {
+        "routine_config_prepare_contract_version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+        "source": source,
+        "has_action_card": action_card is not None,
+        "has_routine_config_prepare_payload": isinstance(active_payload, dict),
+        "action_id": action_card.action_id if action_card else None,
+        "tool_name": action_card.tool_name if action_card else (candidate.get("agent_tool_name") if isinstance(candidate, dict) else None),
+        "routine_name": candidate.get("routine_name") if isinstance(candidate, dict) else None,
+        "style": candidate.get("style") if isinstance(candidate, dict) else None,
+        "tempo": candidate.get("tempo") if isinstance(candidate, dict) else None,
+        "duration_minutes": candidate.get("duration_minutes") if isinstance(candidate, dict) else None,
+        "next_client_actions": active_payload.get("next_client_actions", []) if isinstance(active_payload, dict) else [],
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def routine_config_prepare_contract() -> dict[str, Any]:
+    return {
+        "version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+        "routine_config_prepare_contract_version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+        "spec_route": "GET /agent/actions/routine-config/spec",
+        "prepare_route": "POST /agent/actions/routine-config/prepare",
+        "terminal_command": "/routine-config-prepare",
+        "surface": "HarmonyOS Routine editable RoutineConfig draft payload",
+        "mode": "routine_config_candidate_only_no_playback",
+        "execution_status": {
+            "routine_config_payload_enabled": True,
+            "open_routine_setup_enabled": True,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "autonomous_execution_enabled": False,
+        },
+        "payload_schema": {
+            "payload_contract_version": "v2_7_0",
+            "routine_config_candidate": "Editable RoutineConfig candidate for HarmonyOS Routine setup",
+            "routine_blocks": "RoutinePracticeBlock[] derived from a practice plan when available",
+            "source_inputs": "Derivation metadata from user input / plan / block / leadsheet",
+            "validation": "Draft validation and warnings; call_enabled_now=false",
+            "next_client_actions": "open_routine_setup | edit_routine_config | save_routine_draft | dismiss | view_trace",
+            "client_button_semantics": "button action metadata for HarmonyOS Routine",
+        },
+        "rules": [
+            "RoutineConfig prepare returns an editable setup draft only.",
+            "Opening Routine setup is not playback execution and does not call /accompaniment/generate.",
+            "Starting a playable Routine remains a separate user-confirmed client action.",
+            "This contract never calls engine adapters, creates MIDI assets, or starts playback.",
+        ],
+        "guards": {
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "routine_start_enabled": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+@dataclass(frozen=True)
+class PracticePlanToRoutineCandidateBridgePayload:
+    """v2_7_1 neutral bridge from practice-plan block data to Routine candidates.
+
+    This payload is deliberately UI-flow agnostic. It gives HarmonyOS Routine a
+    candidate object that can be rendered as a setup page, bottom sheet, current
+    form fill, queue item, template, or another client-owned flow. It does not
+    require the client to open a specific page and it never calls playback,
+    /accompaniment/generate, engine adapters, or MIDI asset creation.
+    """
+
+    payload_contract_version: str
+    source: str
+    candidate_scope: str
+    selected_block: dict[str, Any]
+    routine_candidate: dict[str, Any]
+    routine_config_candidate: dict[str, Any]
+    practice_plan_reference: dict[str, Any]
+    frontend_flow_contract: dict[str, Any]
+    available_client_actions: tuple[str, ...]
+    client_action_semantics: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "candidate_scope": self.candidate_scope,
+            "selected_block": _redact_sensitive_values(self.selected_block),
+            "routine_candidate": _redact_sensitive_values(self.routine_candidate),
+            "routine_config_candidate": _redact_sensitive_values(self.routine_config_candidate),
+            "practice_plan_reference": _redact_sensitive_values(self.practice_plan_reference),
+            "frontend_flow_contract": _redact_sensitive_values(self.frontend_flow_contract),
+            "available_client_actions": list(self.available_client_actions),
+            "client_action_semantics": _redact_sensitive_values(self.client_action_semantics),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+        }
+
+
+def build_practice_plan_to_routine_candidate_bridge_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    action_card: HarmonyOSAgentActionCard | None = None,
+    controlled_result: ControlledWorkflowExecutionResult | None = None,
+    trace_id: str | None = None,
+    source: str = "practice_plan_to_routine_candidate_bridge",
+) -> PracticePlanToRoutineCandidateBridgePayload:
+    """Build a UI-flow-agnostic Routine candidate from a practice plan block.
+
+    Accepted inputs are intentionally flexible so the HarmonyOS client can use
+    this bridge from different UI flows: a full practice-plan ActionCard, a
+    routine_practice_plan_payload, a raw practice plan, or a single practice
+    block. The output is only candidate data; the client owns presentation and
+    follow-up actions.
+    """
+
+    args = dict(arguments or {})
+    plan_payload = _extract_routine_practice_plan_payload(args, action_card=action_card, controlled_result=controlled_result, trace_id=trace_id)
+    plan_ref = plan_payload.get("plan") if isinstance(plan_payload.get("plan"), dict) else {}
+    routine_blocks = plan_payload.get("routine_blocks") if isinstance(plan_payload.get("routine_blocks"), list) else []
+
+    if not routine_blocks:
+        raw_plan = args.get("practice_plan") or args.get("practicePlan") or args.get("plan")
+        raw_block = args.get("practice_block") or args.get("practiceBlock") or args.get("block")
+        if isinstance(raw_plan, dict) and isinstance(raw_plan.get("blocks"), list):
+            routine_blocks = [_routine_block_from_plan_block(block, index) for index, block in enumerate(raw_plan.get("blocks") or [])]
+            plan_ref = {
+                "plan_id": raw_plan.get("plan_id"),
+                "title": raw_plan.get("title"),
+                "duration_minutes": raw_plan.get("duration_minutes"),
+                "main_focus": raw_plan.get("main_focus"),
+                "block_count": len(routine_blocks),
+            }
+        elif isinstance(raw_block, dict):
+            routine_blocks = [_routine_block_from_plan_block(raw_block, 0)]
+            plan_ref = {"plan_id": None, "title": None, "duration_minutes": raw_block.get("duration_minutes"), "block_count": 1}
+
+    selected_block = _select_routine_candidate_block(
+        routine_blocks,
+        block_id=args.get("block_id") or args.get("blockId"),
+        block_index=args.get("block_index") if "block_index" in args else args.get("blockIndex"),
+    )
+    if not selected_block and routine_blocks:
+        selected_block = dict(routine_blocks[0])
+    selected_block = dict(selected_block or {})
+
+    bridge_args: dict[str, Any] = {
+        "practicePlan": {"blocks": [selected_block]} if selected_block else plan_payload.get("plan"),
+        "practiceBlock": selected_block,
+        "durationMinutes": selected_block.get("duration_minutes") or plan_ref.get("duration_minutes") or args.get("durationMinutes") or args.get("duration_minutes") or 20,
+        "style": selected_block.get("style") or args.get("style"),
+        "tempo": selected_block.get("tempo") or args.get("tempo"),
+        "tuneTitle": ((selected_block.get("material") or {}).get("tune") if isinstance(selected_block.get("material"), dict) else None) or args.get("tuneTitle") or args.get("tune_title"),
+        "practiceGoal": selected_block.get("intent") or plan_ref.get("main_focus") or args.get("practiceGoal") or args.get("practice_goal"),
+    }
+    bridge_args = {key: value for key, value in bridge_args.items() if value is not None}
+    routine_config_payload = build_routine_config_prepare_action_payload(
+        bridge_args,
+        tool_name="agent_practice_plan_to_routine_candidate_bridge",
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+        source=source,
+    ).to_dict()
+    routine_config_candidate = dict(routine_config_payload.get("routine_config_candidate") or {})
+    routine_candidate = dict(routine_config_candidate)
+    routine_candidate.update({
+        "candidate_schema_version": "jammate_routine_candidate_v1",
+        "candidate_id": f"routine_candidate_{selected_block.get('block_id') or selected_block.get('block_index') or 'plan'}",
+        "candidate_source": "practice_plan_block" if selected_block else "practice_plan",
+        "source_plan_id": plan_ref.get("plan_id"),
+        "source_block_id": selected_block.get("block_id"),
+        "source_block_index": selected_block.get("block_index"),
+        "frontend_flow_assumption": False,
+        "client_decides_presentation": True,
+        "call_enabled_now": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "playback_execution_enabled": False,
+    })
+
+    warnings: list[str] = []
+    if not selected_block:
+        warnings.append("no_selected_practice_plan_block_available")
+    if not routine_candidate.get("tune_title") and not routine_candidate.get("has_inline_leadsheet"):
+        warnings.append("routine_candidate_has_no_tune_or_inline_leadsheet_yet")
+    validation = {
+        "status": "candidate_valid_with_warnings" if warnings else "candidate_valid",
+        "warnings": warnings,
+        "selected_block_found": bool(selected_block),
+        "client_must_choose_presentation": True,
+        "requires_user_review_before_start": True,
+        "call_enabled_now": False,
+    }
+    frontend_flow_contract = {
+        "frontend_flow_assumption": False,
+        "client_decides_presentation": True,
+        "recommended_default_action": "present_routine_candidate",
+        "allowed_presentation_modes": [
+            "routine_setup_page",
+            "bottom_sheet_confirmation",
+            "current_routine_form_fill",
+            "routine_queue_item",
+            "template_library_item",
+            "custom_client_flow",
+        ],
+        "backend_does_not_require_open_routine_setup": True,
+        "backend_does_not_start_playback": True,
+    }
+    available_actions = (
+        "present_routine_candidate",
+        "apply_to_current_routine",
+        "show_confirmation_sheet",
+        "add_to_routine_queue",
+        "save_as_template",
+        "dismiss",
+        "view_trace",
+    )
+    client_action_semantics = {
+        "primary": {
+            "action": "present_routine_candidate",
+            "label": "Review Routine Candidate",
+            "presentation_mode": "client_decides",
+            "does_call_accompaniment_generate": False,
+            "does_start_playback": False,
+            "requires_separate_start_confirmation": True,
+        },
+        "alternatives": [
+            {"action": "apply_to_current_routine", "label": "Apply to Current Routine Form", "side_effect_level": "local_ui_state"},
+            {"action": "show_confirmation_sheet", "label": "Show Confirmation", "side_effect_level": "none"},
+            {"action": "add_to_routine_queue", "label": "Add to Routine Queue", "side_effect_level": "local_only"},
+            {"action": "save_as_template", "label": "Save as Template", "side_effect_level": "local_only"},
+            {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+        ],
+    }
+    return PracticePlanToRoutineCandidateBridgePayload(
+        payload_contract_version=PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+        source=source,
+        candidate_scope="practice_plan_block" if selected_block else "practice_plan",
+        selected_block=selected_block,
+        routine_candidate=routine_candidate,
+        routine_config_candidate=routine_config_candidate,
+        practice_plan_reference={
+            "plan_id": plan_ref.get("plan_id"),
+            "title": plan_ref.get("title"),
+            "duration_minutes": plan_ref.get("duration_minutes"),
+            "main_focus": plan_ref.get("main_focus"),
+            "block_count": plan_ref.get("block_count") or len(routine_blocks),
+            "source_payload_contract_version": plan_payload.get("payload_contract_version"),
+        },
+        frontend_flow_contract=frontend_flow_contract,
+        available_client_actions=available_actions,
+        client_action_semantics=client_action_semantics,
+        validation=validation,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_practice_plan_to_routine_candidate_bridge_summary(
+    *,
+    payload: PracticePlanToRoutineCandidateBridgePayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    candidate = data.get("routine_candidate") if isinstance(data.get("routine_candidate"), dict) else {}
+    flow = data.get("frontend_flow_contract") if isinstance(data.get("frontend_flow_contract"), dict) else {}
+    return {
+        "practice_plan_to_routine_candidate_bridge_version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "candidate_scope": data.get("candidate_scope"),
+        "candidate_id": candidate.get("candidate_id"),
+        "source_block_id": candidate.get("source_block_id"),
+        "style": candidate.get("style"),
+        "tempo": candidate.get("tempo"),
+        "duration_minutes": candidate.get("duration_minutes"),
+        "frontend_flow_assumption": flow.get("frontend_flow_assumption"),
+        "client_decides_presentation": flow.get("client_decides_presentation"),
+        "available_client_actions": data.get("available_client_actions", []),
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def practice_plan_to_routine_candidate_bridge_contract() -> dict[str, Any]:
+    return {
+        "version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+        "practice_plan_to_routine_candidate_bridge_version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+        "spec_route": "GET /agent/actions/practice-plan/routine-candidate/spec",
+        "prepare_route": "POST /agent/actions/practice-plan/routine-candidate/prepare",
+        "terminal_command": "/practice-plan-routine-candidate",
+        "surface": "HarmonyOS Routine practice-plan block to UI-flow-agnostic Routine candidate bridge",
+        "mode": "routine_candidate_only_client_decides_presentation",
+        "execution_status": {
+            "routine_candidate_payload_enabled": True,
+            "frontend_flow_assumption": False,
+            "client_decides_presentation": True,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "autonomous_execution_enabled": False,
+        },
+        "payload_schema": {
+            "payload_contract_version": "v2_7_1",
+            "selected_block": "RoutinePracticeBlock selected by block_id/block_index or first playable block",
+            "routine_candidate": "Routine candidate data; not a command to open any specific UI flow",
+            "routine_config_candidate": "Backward-compatible editable RoutineConfig candidate alias",
+            "frontend_flow_contract": "client_decides_presentation=true and allowed_presentation_modes[]",
+            "available_client_actions": "present_routine_candidate | apply_to_current_routine | show_confirmation_sheet | add_to_routine_queue | save_as_template | dismiss | view_trace",
+            "client_action_semantics": "UI-neutral action semantics for HarmonyOS Routine",
+        },
+        "rules": [
+            "The Agent backend returns candidate data only; the HarmonyOS client decides presentation and navigation.",
+            "This bridge must not require opening a Routine setup page; setup page is only one possible presentation mode.",
+            "Starting a playable Routine remains a separate user-confirmed client action.",
+            "This contract never calls /accompaniment/generate, engine adapters, MIDI asset creation, or playback.",
+        ],
+        "guards": {
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "routine_start_enabled": False,
+            "frontend_flow_hardcoded": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+@dataclass(frozen=True)
+class RoutineHistoryContextIntakePayload:
+    """v2_7_2 Routine history intake payload for future Agent context.
+
+    This contract converts HarmonyOS Routine completion/history records into a
+    compact PracticeHistoryContext section for later ContextPacket assembly. It
+    is not a Routine summary page, recommendation card, database implementation,
+    playback command, or accompaniment generation trigger.
+    """
+
+    payload_contract_version: str
+    source: str
+    routine_history_records: tuple[dict[str, Any], ...]
+    practice_history_context_items: tuple[dict[str, Any], ...]
+    context_packet_section: dict[str, Any]
+    aggregate_summary: dict[str, Any]
+    storage_boundary: dict[str, Any]
+    validation: dict[str, Any]
+    client_action_semantics: dict[str, Any]
+    trace_id: str | None = None
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    recommendation_card_created: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "routine_history_records": _redact_sensitive_values(list(self.routine_history_records)),
+            "practice_history_context_items": _redact_sensitive_values(list(self.practice_history_context_items)),
+            "context_packet_section": _redact_sensitive_values(self.context_packet_section),
+            "aggregate_summary": _redact_sensitive_values(self.aggregate_summary),
+            "storage_boundary": _redact_sensitive_values(self.storage_boundary),
+            "validation": _redact_sensitive_values(self.validation),
+            "client_action_semantics": _redact_sensitive_values(self.client_action_semantics),
+            "trace_id": self.trace_id,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "recommendation_card_created": self.recommendation_card_created,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+        }
+
+
+def build_routine_history_context_intake_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "routine_history_context_intake",
+) -> RoutineHistoryContextIntakePayload:
+    """Normalize Routine history records into Agent-readable context.
+
+    HarmonyOS may keep richer local session/playback state, but this payload only
+    preserves concise, long-lived practice-history facts useful for a future LLM
+    turn such as "今天该练什么". Client-only playback details and MIDI assets are
+    explicitly dropped.
+    """
+
+    args = dict(arguments or {})
+    raw_records = _extract_routine_history_records(args)
+    normalized_records: list[dict[str, Any]] = []
+    context_items: list[dict[str, Any]] = []
+    dropped_fields: dict[str, list[str]] = {}
+    warnings: list[str] = []
+
+    max_records_raw = args.get("max_records") or args.get("maxRecords") or 10
+    try:
+        max_records = max(1, min(50, int(max_records_raw)))
+    except (TypeError, ValueError):
+        max_records = 10
+        warnings.append("invalid_max_records_defaulted_to_10")
+
+    for index, raw_record in enumerate(raw_records[:max_records]):
+        if not isinstance(raw_record, dict):
+            warnings.append(f"record_{index}_ignored_not_object")
+            continue
+        normalized, context_item, dropped = _normalize_routine_history_record(raw_record, index=index)
+        normalized_records.append(normalized)
+        context_items.append(context_item)
+        if dropped:
+            dropped_fields[str(normalized.get("routine_id") or normalized.get("session_id") or index)] = dropped
+
+    summary = _summarize_practice_history_context_items(context_items)
+    context_section = {
+        "section_name": "practice_history_context",
+        "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+        "purpose": "Context for the next user-initiated Agent planning turn, not an automatic post-session recommendation.",
+        "recent_practice_history": context_items,
+        "aggregate_summary": summary,
+        "context_usage_policy": {
+            "use_when_user_asks_what_to_practice_next": True,
+            "do_not_create_post_session_recommendation_card": True,
+            "do_not_start_routine": True,
+            "do_not_call_accompaniment_generate": True,
+        },
+    }
+    if not context_items:
+        warnings.append("no_routine_history_records_available")
+    validation = {
+        "status": "context_ready_with_warnings" if warnings else "context_ready",
+        "warnings": warnings,
+        "input_record_count": len(raw_records),
+        "normalized_record_count": len(normalized_records),
+        "context_item_count": len(context_items),
+        "dropped_client_only_fields": dropped_fields,
+        "contains_midi_base64": False,
+        "contains_local_midi_path": False,
+        "contains_playback_position": False,
+    }
+    storage_boundary = {
+        "harmonyos_local_owns": [
+            "current RoutineSession state",
+            "timer / pause / resume / playback position",
+            "local MIDI file path and playback cache",
+            "temporary Routine setup drafts",
+            "Routine summary page display state",
+        ],
+        "backend_should_persist_summary_for_agent_context": [
+            "PracticePlan",
+            "RoutineHistory summary",
+            "PracticeHistoryContextItem",
+            "UserPracticeProfile",
+            "saved leadsheets / routine templates when user opts in",
+            "Agent trace metadata",
+        ],
+        "this_contract_persists_to_database": False,
+        "this_contract_is_context_intake_only": True,
+    }
+    client_action_semantics = {
+        "primary": {
+            "action": "sync_routine_history_summary",
+            "label": "Sync Routine history summary",
+            "side_effect_level": "backend_summary_write_when_backend_persistence_exists",
+            "does_create_recommendation_card": False,
+            "does_start_playback": False,
+        },
+        "next_llm_turn_usage": {
+            "action": "include_practice_history_context_in_context_packet",
+            "trigger": "user_initiated_llm_question",
+            "example_user_input": "今天该练什么？",
+        },
+    }
+    return RoutineHistoryContextIntakePayload(
+        payload_contract_version=ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+        source=source,
+        routine_history_records=tuple(normalized_records),
+        practice_history_context_items=tuple(context_items),
+        context_packet_section=context_section,
+        aggregate_summary=summary,
+        storage_boundary=storage_boundary,
+        validation=validation,
+        client_action_semantics=client_action_semantics,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_routine_history_context_intake_summary(
+    *,
+    payload: RoutineHistoryContextIntakePayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    aggregate = data.get("aggregate_summary") if isinstance(data.get("aggregate_summary"), dict) else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "context_item_count": aggregate.get("context_item_count", 0),
+        "completed_count": aggregate.get("completed_count", 0),
+        "total_practice_minutes": aggregate.get("total_practice_minutes", 0),
+        "recent_tunes": aggregate.get("recent_tunes", []),
+        "recent_styles": aggregate.get("recent_styles", []),
+        "validation_status": validation.get("status"),
+        "recommendation_card_created": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def routine_history_context_intake_contract() -> dict[str, Any]:
+    return {
+        "version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+        "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+        "spec_route": "GET /agent/context/routine-history/spec",
+        "intake_route": "POST /agent/context/routine-history/intake",
+        "terminal_command": "/routine-history-context",
+        "surface": "HarmonyOS Routine history summary to Agent PracticeHistoryContext intake",
+        "mode": "context_intake_only_no_post_session_recommendation_card",
+        "execution_status": {
+            "routine_history_context_payload_enabled": True,
+            "context_packet_section_enabled": True,
+            "database_persistence_implemented": False,
+            "post_session_recommendation_card_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "routine_history_records": "Normalized RoutineHistoryRecord[] summary; no local playback internals",
+            "practice_history_context_items": "Agent-readable compact history items for next LLM turn",
+            "context_packet_section": "practice_history_context section that ContextBuilder may include",
+            "aggregate_summary": "recent styles/tunes/minutes/completion summary",
+            "storage_boundary": "local-vs-backend ownership guidance",
+            "validation": "dropped_client_only_fields and context readiness warnings",
+        },
+        "rules": [
+            "Routine end page stays client-owned and should only show completed content/time/recorded status.",
+            "Agent should use this history on the next user-initiated planning conversation, not automatically at session end.",
+            "The payload must not include midi_base64, local MIDI paths, current playback position, or timer state.",
+            "This contract does not persist data to a database yet; it only defines the normalized intake/context shape.",
+        ],
+        "guards": {
+            "payload_creates_post_session_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+
+@dataclass(frozen=True)
+class ActivePracticePlanContextIntakePayload:
+    """v2_7_3 active PracticePlan intake payload for Agent context engineering.
+
+    This contract turns a saved or client-provided long-term PracticePlan into a
+    compact context section. It is context-only: no Routine is started, no
+    accompaniment is generated, and no Agent recommendation card is created.
+    """
+
+    payload_contract_version: str
+    source: str
+    active_practice_plan: dict[str, Any]
+    active_plan_context_items: tuple[dict[str, Any], ...]
+    context_packet_section: dict[str, Any]
+    aggregate_summary: dict[str, Any]
+    storage_boundary: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    recommendation_created: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "active_practice_plan": _redact_sensitive_values(self.active_practice_plan),
+            "active_plan_context_items": _redact_sensitive_values(list(self.active_plan_context_items)),
+            "context_packet_section": _redact_sensitive_values(self.context_packet_section),
+            "aggregate_summary": _redact_sensitive_values(self.aggregate_summary),
+            "storage_boundary": _redact_sensitive_values(self.storage_boundary),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "recommendation_created": self.recommendation_created,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+        }
+
+
+def build_active_practice_plan_context_intake_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "active_practice_plan_context_intake",
+) -> ActivePracticePlanContextIntakePayload:
+    """Normalize the active long-term PracticePlan for future ContextPackets."""
+
+    args = dict(arguments or {})
+    plan = _extract_active_practice_plan(args)
+    warnings: list[str] = []
+    normalized_plan, context_items, plan_warnings = _normalize_active_practice_plan(plan)
+    warnings.extend(plan_warnings)
+    summary = _summarize_active_plan_context_items(context_items)
+    context_section = {
+        "section_name": "active_practice_plan_context",
+        "active_practice_plan_context_intake_version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+        "purpose": "Long-term plan context for a future user-initiated next-practice conversation.",
+        "active_plan": normalized_plan,
+        "plan_blocks": context_items,
+        "aggregate_summary": summary,
+        "context_usage_policy": {
+            "use_when_user_asks_what_to_practice_next": True,
+            "combine_with_routine_history_context": True,
+            "do_not_create_recommendation_card_by_itself": True,
+            "do_not_start_routine": True,
+            "do_not_call_accompaniment_generate": True,
+        },
+    }
+    validation = {
+        "status": "context_ready_with_warnings" if warnings else "context_ready",
+        "warnings": warnings,
+        "active_plan_present": bool(normalized_plan.get("plan_id") or normalized_plan.get("title") or context_items),
+        "plan_block_count": len(context_items),
+        "contains_midi_base64": False,
+        "contains_local_midi_path": False,
+        "contains_playback_position": False,
+    }
+    storage_boundary = {
+        "backend_should_persist": [
+            "PracticePlan identity and status",
+            "PracticePlan blocks / goals / suggested duration / style / tune / tempo",
+            "Plan progress summary and block completion state",
+        ],
+        "harmonyos_client_may_cache": [
+            "last opened plan id",
+            "current UI selection",
+            "local editable Routine candidate derived from a block",
+        ],
+        "this_contract_persists_to_database": False,
+        "this_contract_is_context_intake_only": True,
+    }
+    return ActivePracticePlanContextIntakePayload(
+        payload_contract_version=ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+        source=source,
+        active_practice_plan=normalized_plan,
+        active_plan_context_items=tuple(context_items),
+        context_packet_section=context_section,
+        aggregate_summary=summary,
+        storage_boundary=storage_boundary,
+        validation=validation,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_active_practice_plan_context_intake_summary(
+    *,
+    payload: ActivePracticePlanContextIntakePayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    summary = data.get("aggregate_summary") if isinstance(data.get("aggregate_summary"), dict) else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "active_practice_plan_context_intake_version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+        "context_engineering_skeleton_version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "active_plan_present": validation.get("active_plan_present", False),
+        "plan_block_count": summary.get("plan_block_count", 0),
+        "pending_block_count": summary.get("pending_block_count", 0),
+        "completed_block_count": summary.get("completed_block_count", 0),
+        "next_candidate_block_id": (summary.get("next_candidate_block") or {}).get("block_id") if isinstance(summary.get("next_candidate_block"), dict) else None,
+        "validation_status": validation.get("status"),
+        "recommendation_created": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def active_practice_plan_context_intake_contract() -> dict[str, Any]:
+    return {
+        "version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+        "active_practice_plan_context_intake_version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+        "spec_route": "GET /agent/context/active-practice-plan/spec",
+        "intake_route": "POST /agent/context/active-practice-plan/intake",
+        "terminal_command": "/active-practice-plan-context",
+        "surface": "Active PracticePlan to Agent context intake",
+        "mode": "context_intake_only_no_recommendation_no_execution",
+        "execution_status": {
+            "active_practice_plan_context_payload_enabled": True,
+            "context_packet_section_enabled": True,
+            "database_persistence_implemented": False,
+            "recommendation_card_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "active_practice_plan": "Normalized active PracticePlan summary",
+            "active_plan_context_items": "Normalized plan block context items",
+            "context_packet_section": "active_practice_plan_context section that ContextBuilder may include",
+            "aggregate_summary": "pending/completed block summary and next candidate block",
+            "storage_boundary": "local-vs-backend ownership guidance",
+            "validation": "context readiness warnings and sanitized status",
+        },
+        "rules": [
+            "The active plan is long-term context and should be persisted by backend storage when available.",
+            "This contract only normalizes active plan context; it does not decide today's practice by itself.",
+            "Use together with RoutineHistoryContext and user availability on the next user-initiated Agent planning turn.",
+        ],
+        "guards": {
+            "payload_creates_recommendation": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+@dataclass(frozen=True)
+class PracticeContextAssemblyPolicyPayload:
+    """v2_7_3 assembly policy for plan + history + availability context.
+
+    This is the Context Engineering skeleton layer. It combines already-normalized
+    context sections into decision inputs for a future LLM turn. It does not run
+    an LLM and does not produce an Agent recommendation by itself.
+    """
+
+    payload_contract_version: str
+    source: str
+    active_practice_plan_context: dict[str, Any]
+    routine_history_context: dict[str, Any]
+    today_constraints: dict[str, Any]
+    assembled_context: dict[str, Any]
+    assembly_policy: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    recommendation_created: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "active_practice_plan_context": _redact_sensitive_values(self.active_practice_plan_context),
+            "routine_history_context": _redact_sensitive_values(self.routine_history_context),
+            "today_constraints": _redact_sensitive_values(self.today_constraints),
+            "assembled_context": _redact_sensitive_values(self.assembled_context),
+            "assembly_policy": _redact_sensitive_values(self.assembly_policy),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "recommendation_created": self.recommendation_created,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+        }
+
+
+def build_practice_context_assembly_policy_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "practice_context_assembly_policy",
+) -> PracticeContextAssemblyPolicyPayload:
+    """Build a normalized context assembly payload from plan/history inputs."""
+
+    args = dict(arguments or {})
+    active_section = _extract_active_practice_plan_context_section(args)
+    if not active_section:
+        active_payload = build_active_practice_plan_context_intake_payload(args, trace_id=trace_id, source=f"{source}:active_plan_inline")
+        active_section = active_payload.context_packet_section
+    history_section = _extract_routine_history_context_section(args)
+    if not history_section:
+        history_payload = build_routine_history_context_intake_payload(args, trace_id=trace_id, source=f"{source}:routine_history_inline")
+        history_section = history_payload.context_packet_section
+
+    today_constraints = _normalize_today_constraints(args)
+    active_blocks = _active_plan_blocks_from_section(active_section)
+    history_items = _history_items_from_section(history_section)
+    completed_block_ids = {str(item.get("plan_block_id")) for item in history_items if item.get("plan_block_id") and item.get("completed")}
+    pending_blocks = [block for block in active_blocks if str(block.get("block_id")) not in completed_block_ids and not block.get("completed")]
+    overdue_or_gap_blocks = _derive_context_gap_blocks(active_blocks, history_items)
+    next_candidate = pending_blocks[0] if pending_blocks else {}
+    assembled_context = {
+        "section_name": "assembled_practice_context",
+        "context_engineering_skeleton_version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+        "active_practice_plan_context": active_section,
+        "practice_history_context": history_section,
+        "today_constraints": today_constraints,
+        "derived_progress": {
+            "completed_plan_block_ids_from_history": sorted(completed_block_ids),
+            "pending_plan_blocks": pending_blocks[:12],
+            "next_candidate_block": next_candidate,
+            "overdue_or_gap_blocks": overdue_or_gap_blocks[:12],
+        },
+        "llm_decision_inputs": {
+            "should_continue_original_plan_input_available": bool(active_blocks),
+            "should_adjust_based_on_recent_history_input_available": bool(history_items),
+            "available_minutes": today_constraints.get("available_minutes"),
+            "user_question": today_constraints.get("user_input"),
+        },
+        "context_usage_policy": {
+            "use_for_next_user_initiated_practice_guidance": True,
+            "do_not_recommend_without_llm_or_deterministic_planner": True,
+            "do_not_create_post_session_card": True,
+            "do_not_start_routine": True,
+        },
+    }
+    warnings: list[str] = []
+    if not active_blocks:
+        warnings.append("active_practice_plan_context_missing_or_empty")
+    if not history_items:
+        warnings.append("routine_history_context_missing_or_empty")
+    if today_constraints.get("available_minutes") is None:
+        warnings.append("available_minutes_not_supplied")
+    assembly_policy = {
+        "policy_version": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        "priority_order": ["current_user_request", "today_constraints", "active_practice_plan", "recent_routine_history", "user_profile"],
+        "max_recent_history_items": 10,
+        "max_plan_blocks": 24,
+        "history_usage": "summarize_recent_completed_and_incomplete_sessions",
+        "plan_usage": "preserve_active_plan_order_and_completion_state",
+        "token_budget_policy": {
+            "default_max_context_items": 24,
+            "summarize_before_truncating": True,
+            "drop_client_playback_internals": True,
+        },
+        "frontend_flow_assumption": False,
+        "client_decides_presentation": True,
+    }
+    validation = {
+        "status": "assembly_ready_with_warnings" if warnings else "assembly_ready",
+        "warnings": warnings,
+        "has_active_practice_plan_context": bool(active_blocks),
+        "has_routine_history_context": bool(history_items),
+        "pending_block_count": len(pending_blocks),
+        "completed_block_count_from_history": len(completed_block_ids),
+        "llm_called": False,
+        "recommendation_created": False,
+        "contains_midi_base64": False,
+        "contains_local_midi_path": False,
+    }
+    return PracticeContextAssemblyPolicyPayload(
+        payload_contract_version=PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        source=source,
+        active_practice_plan_context=active_section,
+        routine_history_context=history_section,
+        today_constraints=today_constraints,
+        assembled_context=assembled_context,
+        assembly_policy=assembly_policy,
+        validation=validation,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_practice_context_assembly_policy_summary(
+    *,
+    payload: PracticeContextAssemblyPolicyPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    assembled = data.get("assembled_context") if isinstance(data.get("assembled_context"), dict) else {}
+    progress = assembled.get("derived_progress") if isinstance(assembled.get("derived_progress"), dict) else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "practice_context_assembly_policy_version": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        "context_engineering_skeleton_version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "has_active_practice_plan_context": validation.get("has_active_practice_plan_context", False),
+        "has_routine_history_context": validation.get("has_routine_history_context", False),
+        "pending_block_count": validation.get("pending_block_count", 0),
+        "completed_block_count_from_history": validation.get("completed_block_count_from_history", 0),
+        "next_candidate_block_id": (progress.get("next_candidate_block") or {}).get("block_id") if isinstance(progress.get("next_candidate_block"), dict) else None,
+        "validation_status": validation.get("status"),
+        "llm_called": False,
+        "recommendation_created": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def practice_context_assembly_policy_contract() -> dict[str, Any]:
+    return {
+        "version": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        "practice_context_assembly_policy_version": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        "spec_route": "GET /agent/context/practice-assembly/spec",
+        "build_route": "POST /agent/context/practice-assembly/build",
+        "terminal_command": "/practice-context-assembly",
+        "surface": "Practice context assembly policy for active plan + history + today constraints",
+        "mode": "context_assembly_only_no_llm_no_recommendation_no_execution",
+        "execution_status": {
+            "active_plan_and_history_assembly_enabled": True,
+            "context_packet_section_enabled": True,
+            "llm_call_enabled": False,
+            "recommendation_card_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "active_practice_plan_context": "Context section from active plan intake",
+            "routine_history_context": "Context section from routine history intake",
+            "today_constraints": "available minutes, user input, current date/time if client supplies it",
+            "assembled_context": "LLM decision-input context; not a recommendation",
+            "assembly_policy": "priority, truncation, summarization, frontend-flow-neutral rules",
+            "validation": "readiness and warnings",
+        },
+        "rules": [
+            "This layer assembles context only; it does not call the LLM or decide what the user should practice.",
+            "The same assembled context can support multiple HarmonyOS UI flows because no frontend flow is hard-coded.",
+            "Routine end remains client-owned; assembled context is used on the next user-initiated planning turn.",
+        ],
+        "guards": {
+            "payload_calls_llm": False,
+            "payload_creates_recommendation": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+def build_today_practice_context_e2e_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_context_e2e",
+) -> PracticeContextAssemblyPolicyPayload:
+    """Build the context-only E2E payload for a future '今天该练什么' turn.
+
+    This intentionally reuses the assembly payload type. It returns decision
+    inputs that can be handed to an LLM later; it does not generate the answer.
+    """
+
+    args = dict(arguments or {})
+    if not (args.get("user_input") or args.get("userInput")):
+        args["user_input"] = "今天该练什么？"
+    return build_practice_context_assembly_policy_payload(args, trace_id=trace_id, source=source)
+
+
+def build_today_practice_context_e2e_summary(
+    *,
+    payload: PracticeContextAssemblyPolicyPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    summary = build_practice_context_assembly_policy_summary(payload=payload, source=source)
+    summary["today_practice_context_e2e_version"] = TODAY_PRACTICE_CONTEXT_E2E_VERSION
+    summary["ready_for_future_llm_turn"] = bool(summary.get("has_active_practice_plan_context") or summary.get("has_routine_history_context"))
+    summary["recommendation_created"] = False
+    summary["llm_called"] = False
+    return summary
+
+
+def today_practice_context_e2e_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_CONTEXT_E2E_VERSION,
+        "today_practice_context_e2e_version": TODAY_PRACTICE_CONTEXT_E2E_VERSION,
+        "spec_route": "GET /agent/context/today-practice/spec",
+        "preview_route": "POST /agent/context/today-practice/preview",
+        "terminal_command": "/today-practice-context",
+        "surface": "Context-only E2E for the next user-initiated 'what should I practice today' turn",
+        "mode": "context_preview_only_no_llm_no_recommendation_no_execution",
+        "execution_status": {
+            "today_practice_context_preview_enabled": True,
+            "llm_call_enabled": False,
+            "recommendation_created": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "rules": [
+            "This route prepares the context for a future LLM answer; it does not answer by itself.",
+            "The LLM should use active PracticePlan plus recent RoutineHistory to decide continue-plan vs adjust-plan only when the user asks.",
+            "No post-session card is created automatically.",
+        ],
+        "guards": {
+            "payload_calls_llm": False,
+            "payload_creates_recommendation": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+        },
+        "uses_contracts": {
+            "active_practice_plan_context_intake": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+            "routine_history_context_intake": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+            "practice_context_assembly_policy": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        },
+    }
+
+
+
+@dataclass(frozen=True)
+class UserCapabilityMapAndIntentTaxonomyPayload:
+    """v2_7_5 user-facing LLM capability map and intent taxonomy.
+
+    This payload answers the product question: what can a user ask the JamMate
+    LLM/Agent to do, what should only become a candidate, what requires user
+    confirmation, and what is forbidden. It is a contract/preview surface only;
+    it does not call an LLM, execute tools, start Routine, or generate MIDI.
+    """
+
+    payload_contract_version: str
+    source: str
+    user_input: str | None
+    capability_layers: tuple[dict[str, Any], ...]
+    intent_taxonomy: tuple[dict[str, Any], ...]
+    allowed_action_types: tuple[dict[str, Any], ...]
+    side_effect_policy: dict[str, Any]
+    routine_agent_boundaries: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    routine_started: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "user_input": self.user_input,
+            "capability_layers": _redact_sensitive_values(list(self.capability_layers)),
+            "intent_taxonomy": _redact_sensitive_values(list(self.intent_taxonomy)),
+            "allowed_action_types": _redact_sensitive_values(list(self.allowed_action_types)),
+            "side_effect_policy": _redact_sensitive_values(self.side_effect_policy),
+            "routine_agent_boundaries": _redact_sensitive_values(self.routine_agent_boundaries),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "routine_started": self.routine_started,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+        }
+
+
+def _agent_user_capability_layers() -> tuple[dict[str, Any], ...]:
+    return (
+        {
+            "layer_id": "pure_coach_qa",
+            "title": "Pure coach Q&A",
+            "description": "Explain practice goals, harmony, style, plan rationale, and how to listen while practicing.",
+            "side_effect_level": "none",
+            "requires_user_confirmation": False,
+            "current_status": "allowed_as_direct_answer",
+            "examples": ["为什么今天练 ii-V-I？", "Blue Bossa 的 bossa comping 要注意什么？"],
+        },
+        {
+            "layer_id": "context_guidance",
+            "title": "Context-based practice guidance",
+            "description": "Use active plan, recent Routine history, available minutes, and user goals to answer user-initiated planning questions.",
+            "side_effect_level": "none",
+            "requires_user_confirmation": False,
+            "current_status": "prompt_contract_ready_no_llm_call_in_v2_7_5",
+            "examples": ["今天该练什么？", "我最近练得怎么样？"],
+        },
+        {
+            "layer_id": "candidate_generation",
+            "title": "Candidate generation",
+            "description": "Prepare editable candidates such as PracticePlan, RoutineConfig, RoutineCandidate, or guarded playback request drafts.",
+            "side_effect_level": "none_to_low",
+            "requires_user_confirmation": False,
+            "current_status": "available_as_preview_or_controlled_low_risk_payload",
+            "examples": ["帮我安排四周练习计划", "把这个 block 转成 Routine 候选", "帮我准备一个 Misty ballad 练习配置"],
+        },
+        {
+            "layer_id": "confirmation_required_actions",
+            "title": "Confirmation-required actions",
+            "description": "Actions that may save user assets, create/update plans, start generation, or change Routine state must be previewed and confirmed first.",
+            "side_effect_level": "low_to_high",
+            "requires_user_confirmation": True,
+            "current_status": "contracted_but_most_real_execution_still_disabled",
+            "examples": ["保存这个计划", "按这个配置生成伴奏", "确认后开始 Routine"],
+        },
+        {
+            "layer_id": "forbidden_direct_actions",
+            "title": "Forbidden direct actions",
+            "description": "LLM must never directly control playback, bypass confirmation, call engine internals, or mutate musical generation rules.",
+            "side_effect_level": "high_or_engine_internal",
+            "requires_user_confirmation": True,
+            "current_status": "forbidden_for_llm_autonomy",
+            "examples": ["直接开始播放", "直接调用 /accompaniment/generate", "直接改 voicing/pattern/pedal 规则"],
+        },
+    )
+
+
+def _agent_user_intent_taxonomy() -> tuple[dict[str, Any], ...]:
+    return (
+        {
+            "intent_type": "today_practice_guidance",
+            "user_examples": ["今天该练什么？", "我只有 20 分钟，练什么好？"],
+            "required_context": ["active_practice_plan_context", "routine_history_context", "available_minutes"],
+            "llm_role": "coach_guidance",
+            "output_family": "TodayPracticeGuidanceOutput",
+            "allowed_action_type": "answer_with_optional_routine_candidates",
+            "requires_confirmation_before_execution": True,
+            "current_contract": "today_practice_guidance_prompt_contract_v2_7_4",
+        },
+        {
+            "intent_type": "practice_plan_generation",
+            "user_examples": ["帮我安排一个四周爵士 comping 练习计划"],
+            "required_context": ["user_goal", "available_minutes", "instrument"],
+            "llm_role": "practice_planner",
+            "output_family": "PracticePlanCandidate",
+            "allowed_action_type": "generate_practice_plan_candidate",
+            "requires_confirmation_before_execution": False,
+            "current_contract": "agent_practice_plan_controlled_execution_v2_6_5",
+        },
+        {
+            "intent_type": "routine_config_prepare",
+            "user_examples": ["就练这个", "把第二个 block 变成练习配置"],
+            "required_context": ["selected_practice_block_or_user_intent"],
+            "llm_role": "routine_config_assistant",
+            "output_family": "RoutineConfigCandidate",
+            "allowed_action_type": "prepare_editable_routine_candidate",
+            "requires_confirmation_before_execution": True,
+            "current_contract": "routine_config_prepare_v2_7_0_or_practice_plan_to_routine_candidate_bridge_v2_7_1",
+        },
+        {
+            "intent_type": "playback_prepare_guarded",
+            "user_examples": ["帮我准备一个 20 分钟 Misty ballad 伴奏"],
+            "required_context": ["tune_or_leadsheet", "style", "tempo_or_difficulty", "duration_minutes"],
+            "llm_role": "playback_request_preparer",
+            "output_family": "PlaybackPrepareGuardedPayload",
+            "allowed_action_type": "prepare_guarded_playback_candidate",
+            "requires_confirmation_before_execution": True,
+            "current_contract": "playback_prepare_guarded_design_v2_6_9",
+        },
+        {
+            "intent_type": "difficulty_adjustment",
+            "user_examples": ["太快了，帮我降一点难度", "先只练前 8 小节"],
+            "required_context": ["current_routine_candidate_or_active_session_summary"],
+            "llm_role": "difficulty_adjustment_assistant",
+            "output_family": "RoutineConfigCandidatePatch",
+            "allowed_action_type": "prepare_candidate_patch_only",
+            "requires_confirmation_before_execution": True,
+            "current_contract": "planned_after_v2_7_5",
+        },
+        {
+            "intent_type": "practice_explanation",
+            "user_examples": ["为什么练这个？", "这个练习怎么听自己是否稳定？"],
+            "required_context": ["current_plan_or_routine_context_optional"],
+            "llm_role": "coach_explainer",
+            "output_family": "PlainCoachAnswer",
+            "allowed_action_type": "direct_answer_no_tool",
+            "requires_confirmation_before_execution": False,
+            "current_contract": "pure_qa_allowed_no_side_effect",
+        },
+        {
+            "intent_type": "routine_history_review",
+            "user_examples": ["我最近练得怎么样？", "上周有没有坚持练？"],
+            "required_context": ["routine_history_context"],
+            "llm_role": "practice_history_reviewer",
+            "output_family": "PracticeHistoryReviewAnswer",
+            "allowed_action_type": "answer_from_history_context",
+            "requires_confirmation_before_execution": False,
+            "current_contract": "routine_history_context_intake_v2_7_2",
+        },
+    )
+
+
+def _agent_allowed_action_types() -> tuple[dict[str, Any], ...]:
+    return (
+        {"action_type": "direct_answer_no_tool", "side_effect_level": "none", "confirmation_required": False, "current_status": "allowed"},
+        {"action_type": "generate_practice_plan_candidate", "side_effect_level": "none", "confirmation_required": False, "current_status": "controlled_agent_practice_plan_allowed"},
+        {"action_type": "prepare_editable_routine_candidate", "side_effect_level": "none", "confirmation_required": False, "current_status": "allowed_as_candidate_only"},
+        {"action_type": "prepare_guarded_playback_candidate", "side_effect_level": "low", "confirmation_required": True, "current_status": "guarded_preview_only"},
+        {"action_type": "save_or_update_user_plan", "side_effect_level": "low", "confirmation_required": True, "current_status": "future_executor_required"},
+        {"action_type": "call_accompaniment_generate", "side_effect_level": "high", "confirmation_required": True, "current_status": "disabled_for_agent_in_v2_7_5"},
+        {"action_type": "start_routine_or_playback", "side_effect_level": "high", "confirmation_required": True, "current_status": "client_owned_disabled_for_agent_in_v2_7_5"},
+        {"action_type": "mutate_engine_generation_rules", "side_effect_level": "engine_internal", "confirmation_required": False, "current_status": "forbidden"},
+    )
+
+
+def build_user_capability_map_and_intent_taxonomy_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "user_capability_map_and_intent_taxonomy",
+) -> UserCapabilityMapAndIntentTaxonomyPayload:
+    args = dict(arguments or {})
+    user_input = args.get("user_input") or args.get("userInput")
+    capability_layers = _agent_user_capability_layers()
+    intent_taxonomy = _agent_user_intent_taxonomy()
+    allowed_action_types = _agent_allowed_action_types()
+    side_effect_policy = {
+        "policy_version": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        "side_effect_levels": {
+            "none": "May answer or prepare context/candidates without confirmation.",
+            "low": "May affect saved user-facing objects only after explicit preview and confirmation.",
+            "high": "May generate assets, start playback, or call backend generation only after explicit confirmation and a dedicated executor boundary.",
+            "engine_internal": "Forbidden for LLM/Agent autonomy; engine generation-rule development stays on Engine track.",
+        },
+        "confirmation_rule": "Any action that saves state, calls /accompaniment/generate, creates MIDI assets, starts Routine, or changes playback must require user confirmation.",
+        "autonomous_execution_enabled": False,
+        "llm_direct_playback_control_enabled": False,
+    }
+    routine_agent_boundaries = {
+        "routine_end_page_agent_recommendation_card_enabled": False,
+        "routine_end_page_owner": "HarmonyOS client",
+        "next_practice_guidance_trigger": "next_user_initiated_llm_turn",
+        "frontend_flow_assumption": False,
+        "client_decides_presentation": True,
+        "backend_agent_role": "produce context, candidates, validation, and controlled action contracts only",
+        "forbidden_direct_calls": [
+            "direct /accompaniment/generate from LLM",
+            "direct engine adapter dispatch from LLM",
+            "direct playback/timer control from LLM",
+            "direct pattern/voicing/expression/pedal mutation",
+        ],
+    }
+    validation = {
+        "status": "capability_map_ready",
+        "capability_layer_count": len(capability_layers),
+        "intent_type_count": len(intent_taxonomy),
+        "allowed_action_type_count": len(allowed_action_types),
+        "has_today_practice_guidance_intent": any(item.get("intent_type") == "today_practice_guidance" for item in intent_taxonomy),
+        "has_routine_config_prepare_intent": any(item.get("intent_type") == "routine_config_prepare" for item in intent_taxonomy),
+        "llm_called": False,
+        "tool_executed": False,
+        "contains_midi_base64": False,
+        "contains_local_midi_path": False,
+        "contains_api_key": False,
+    }
+    return UserCapabilityMapAndIntentTaxonomyPayload(
+        payload_contract_version=USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        source=source,
+        user_input=str(user_input) if user_input is not None else None,
+        capability_layers=capability_layers,
+        intent_taxonomy=intent_taxonomy,
+        allowed_action_types=allowed_action_types,
+        side_effect_policy=side_effect_policy,
+        routine_agent_boundaries=routine_agent_boundaries,
+        validation=validation,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_user_capability_map_and_intent_taxonomy_summary(
+    *,
+    payload: UserCapabilityMapAndIntentTaxonomyPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "user_capability_map_and_intent_taxonomy_version": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "capability_layer_count": validation.get("capability_layer_count", 0),
+        "intent_type_count": validation.get("intent_type_count", 0),
+        "allowed_action_type_count": validation.get("allowed_action_type_count", 0),
+        "validation_status": validation.get("status"),
+        "has_today_practice_guidance_intent": validation.get("has_today_practice_guidance_intent", False),
+        "has_routine_config_prepare_intent": validation.get("has_routine_config_prepare_intent", False),
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def user_capability_map_and_intent_taxonomy_contract() -> dict[str, Any]:
+    return {
+        "version": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        "user_capability_map_and_intent_taxonomy_version": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        "spec_route": "GET /agent/capabilities/user-intents/spec",
+        "preview_route": "POST /agent/capabilities/user-intents/preview",
+        "terminal_command": "/user-capability-map",
+        "surface": "User-facing LLM capability map and intent taxonomy for JamMate Routine Agent",
+        "mode": "capability_planning_contract_only_no_llm_no_execution",
+        "execution_status": {
+            "capability_map_enabled": True,
+            "intent_taxonomy_enabled": True,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "capability_layers": "What users can ask the LLM/Agent to do, grouped by side-effect level.",
+            "intent_taxonomy": "Supported and planned user intent families with required context and output family.",
+            "allowed_action_types": "Action type allow/guard map for future validation and prompt contracts.",
+            "side_effect_policy": "Confirmation and autonomy rules.",
+            "routine_agent_boundaries": "Routine-specific boundaries including no automatic post-session recommendation card.",
+        },
+        "rules": [
+            "The LLM may answer and prepare candidates, but it must not directly start playback or call accompaniment generation.",
+            "Routine end remains client-owned; the Agent uses history on the next user-initiated turn.",
+            "Any state-changing, asset-generating, or playback-starting action must pass preview, confirmation, executor, dispatcher, and trace boundaries.",
+            "The capability map is a contract for prompts, validators, and HarmonyOS presentation; it does not execute tools by itself.",
+        ],
+        "guards": {
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+        "current_capability_summary": {
+            "direct_answer_no_tool": "allowed",
+            "practice_plan_candidate": "available",
+            "routine_config_candidate": "available",
+            "playback_prepare_candidate": "guarded_preview_only",
+            "call_accompaniment_generate": "disabled_for_agent",
+            "start_routine_or_playback": "client_owned_disabled_for_agent",
+        },
+    }
+
+@dataclass(frozen=True)
+class TodayPracticeGuidancePromptContractPayload:
+    """v2_7_4 prompt/output contract for the future today-practice LLM turn.
+
+    This payload is still a preview surface. It builds the messages, output
+    schema, and guard policy that a future provider call should use when the
+    user explicitly asks "今天该练什么？". It does not call the LLM, produce the
+    final recommendation, start Routine, or generate accompaniment assets.
+    """
+
+    payload_contract_version: str
+    source: str
+    assembled_practice_context: dict[str, Any]
+    prompt_messages: tuple[dict[str, Any], ...]
+    output_schema: dict[str, Any]
+    prompt_policy: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    guidance_response_created: bool = False
+    recommendation_created: bool = False
+    routine_start_enabled: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "assembled_practice_context": _redact_sensitive_values(self.assembled_practice_context),
+            "prompt_messages": _redact_sensitive_values(list(self.prompt_messages)),
+            "output_schema": _redact_sensitive_values(self.output_schema),
+            "prompt_policy": _redact_sensitive_values(self.prompt_policy),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "guidance_response_created": self.guidance_response_created,
+            "recommendation_created": self.recommendation_created,
+            "routine_start_enabled": self.routine_start_enabled,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+        }
+
+
+def build_today_practice_guidance_prompt_contract_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_prompt_contract",
+) -> TodayPracticeGuidancePromptContractPayload:
+    """Build a provider-ready prompt/output contract preview for today practice guidance.
+
+    The function reuses v2_7_3 context assembly. The returned prompt messages are
+    deterministic preview data only; callers must use a separate LLM provider
+    boundary to actually generate a response in a later stage.
+    """
+
+    args = dict(arguments or {})
+    raw_assembled = args.get("assembled_practice_context") or args.get("assembledPracticeContext")
+    if isinstance(raw_assembled, dict):
+        assembled_context = _redact_sensitive_values(dict(raw_assembled))
+    else:
+        assembled_context = build_today_practice_context_e2e_payload(
+            args,
+            trace_id=trace_id,
+            source="today_practice_guidance_prompt_contract_context_builder",
+        ).assembled_context
+
+    today_constraints = assembled_context.get("today_constraints") if isinstance(assembled_context.get("today_constraints"), dict) else {}
+    progress = assembled_context.get("derived_progress") if isinstance(assembled_context.get("derived_progress"), dict) else {}
+    user_question = today_constraints.get("user_input") or args.get("user_input") or args.get("userInput") or "今天该练什么？"
+    next_candidate = progress.get("next_candidate_block") if isinstance(progress.get("next_candidate_block"), dict) else {}
+
+    prompt_messages = (
+        {
+            "role": "system",
+            "content": (
+                "You are JamMate's practice-planning assistant. Use only the supplied "
+                "practice context to answer the user's next-practice question. Return a "
+                "compact JSON object matching TodayPracticeGuidanceOutput. Do not start "
+                "Routine, do not call tools, and do not create playback or accompaniment assets."
+            ),
+        },
+        {
+            "role": "developer",
+            "content": (
+                "Decision policy: first check whether the active plan has a reasonable next "
+                "pending block; then compare recent Routine history for completed, repeated, "
+                "or skipped work. Recommend continuing the plan unless recent history clearly "
+                "justifies adjustment. Keep reasoning as a short user-facing summary, not hidden "
+                "chain-of-thought."
+            ),
+        },
+        {
+            "role": "user",
+            "content": user_question,
+        },
+        {
+            "role": "context",
+            "name": "assembled_practice_context",
+            "content_json": assembled_context,
+        },
+    )
+    output_schema = {
+        "schema_name": "TodayPracticeGuidanceOutput",
+        "schema_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+        "response_case": "snake_case",
+        "required_fields": [
+            "guidance_mode",
+            "summary",
+            "recommended_focus",
+            "recommended_blocks",
+            "routine_candidates",
+            "user_confirmation_required",
+            "next_client_actions",
+        ],
+        "fields": {
+            "guidance_mode": "continue_original_plan | adjust_based_on_history | fallback_without_plan | ask_clarifying_question",
+            "summary": "Short user-facing explanation; no hidden chain-of-thought.",
+            "recommended_focus": "One concise focus for today's practice.",
+            "recommended_blocks": "Array of selected practice blocks or custom focus blocks.",
+            "routine_candidates": "UI-flow-neutral Routine candidate drafts; client decides presentation.",
+            "adjustment_reason": "Optional concise reason when not following the original plan.",
+            "user_confirmation_required": "Must be true before any Routine start or accompaniment generation.",
+            "next_client_actions": "show_guidance | present_routine_candidate | ask_follow_up | dismiss",
+            "trace_id": "Optional trace id supplied by runtime.",
+        },
+        "forbidden_fields": [
+            "midi_base64",
+            "local_midi_path",
+            "api_key",
+            "raw_tool_execution_result",
+            "hidden_chain_of_thought",
+        ],
+    }
+    warnings: list[str] = []
+    if not assembled_context.get("active_practice_plan_context"):
+        warnings.append("active_practice_plan_context_missing")
+    if not assembled_context.get("practice_history_context"):
+        warnings.append("routine_history_context_missing")
+    if today_constraints.get("available_minutes") is None:
+        warnings.append("available_minutes_not_supplied")
+    if not next_candidate:
+        warnings.append("next_candidate_block_missing")
+
+    prompt_policy = {
+        "policy_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+        "llm_call_enabled_in_this_contract": False,
+        "provider_boundary_required_for_future_call": True,
+        "autonomous_tool_execution_enabled": False,
+        "routine_start_requires_user_confirmation": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "guidance_only_not_action": True,
+        "max_prompt_messages": 4,
+        "context_priority_order": [
+            "current_user_question",
+            "today_constraints",
+            "active_practice_plan_context",
+            "routine_history_context",
+            "derived_progress",
+        ],
+        "answer_rules": [
+            "Prefer continuing the active plan when recent history does not contradict it.",
+            "Adjust only when recent Routine history suggests repetition, fatigue, missed work, or time mismatch.",
+            "Return Routine candidates as drafts only; the HarmonyOS client decides presentation and requires confirmation before starting.",
+        ],
+    }
+    validation = {
+        "status": "prompt_contract_ready_with_warnings" if warnings else "prompt_contract_ready",
+        "warnings": warnings,
+        "has_assembled_practice_context": bool(assembled_context),
+        "prompt_message_count": len(prompt_messages),
+        "output_schema_name": output_schema["schema_name"],
+        "ready_for_future_llm_provider_call": bool(assembled_context),
+        "llm_called": False,
+        "guidance_response_created": False,
+        "contains_midi_base64": False,
+        "contains_local_midi_path": False,
+        "contains_api_key": False,
+    }
+    return TodayPracticeGuidancePromptContractPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+        source=source,
+        assembled_practice_context=assembled_context,
+        prompt_messages=prompt_messages,
+        output_schema=output_schema,
+        prompt_policy=prompt_policy,
+        validation=validation,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_today_practice_guidance_prompt_contract_summary(
+    *,
+    payload: TodayPracticeGuidancePromptContractPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    assembled = data.get("assembled_practice_context") if isinstance(data.get("assembled_practice_context"), dict) else {}
+    progress = assembled.get("derived_progress") if isinstance(assembled.get("derived_progress"), dict) else {}
+    next_candidate = progress.get("next_candidate_block") if isinstance(progress.get("next_candidate_block"), dict) else {}
+    return {
+        "today_practice_guidance_prompt_contract_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "ready_for_future_llm_provider_call": validation.get("ready_for_future_llm_provider_call", False),
+        "validation_status": validation.get("status"),
+        "prompt_message_count": validation.get("prompt_message_count", 0),
+        "output_schema_name": validation.get("output_schema_name"),
+        "next_candidate_block_id": next_candidate.get("block_id"),
+        "llm_called": False,
+        "guidance_response_created": False,
+        "recommendation_created": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def today_practice_guidance_prompt_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+        "today_practice_guidance_prompt_contract_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/prompt-preview",
+        "terminal_command": "/today-practice-guidance-prompt",
+        "surface": "LLM prompt and output contract for user-initiated today-practice guidance",
+        "mode": "prompt_output_contract_only_no_llm_no_execution",
+        "execution_status": {
+            "prompt_preview_enabled": True,
+            "output_schema_enabled": True,
+            "llm_call_enabled": False,
+            "guidance_response_created": False,
+            "recommendation_card_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "assembled_practice_context": "Context from v2_7_3 active plan + Routine history + today constraints assembly",
+            "prompt_messages": "Provider-boundary-ready system/developer/user/context messages; not sent in this route",
+            "output_schema": "TodayPracticeGuidanceOutput schema the future LLM response must satisfy",
+            "prompt_policy": "Decision and guard policy for continue-plan vs adjust-plan guidance",
+            "validation": "Readiness and sanitization status",
+        },
+        "rules": [
+            "This contract does not call the LLM; it only builds the prompt and response schema.",
+            "The LLM guidance is only for the next user-initiated conversation turn, not an automatic post-session card.",
+            "Any Routine start or accompaniment generation remains a separate user-confirmed client action.",
+            "Routine candidates returned by a future LLM must be UI-flow-neutral; HarmonyOS decides presentation.",
+        ],
+        "guards": {
+            "payload_calls_llm": False,
+            "payload_creates_guidance_response": False,
+            "payload_creates_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "today_practice_context_e2e": TODAY_PRACTICE_CONTEXT_E2E_VERSION,
+            "practice_context_assembly_policy": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+        },
+    }
+
+
+
+
+
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return False
+
+def _coerce_int(value: Any, *, default: int = 0) -> int:
+    try:
+        if value is None or value == "":
+            return default
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceOutputValidationPayload:
+    """v2_7_6 validation gate for future LLM TodayPracticeGuidanceOutput.
+
+    This validates a structured LLM result after the v2_7_4 prompt/output
+    contract. It may accept guidance/candidate drafts for display, but it must
+    block any attempt to start Routine, call /accompaniment/generate, invoke
+    engine adapters, create MIDI assets, or bypass user confirmation.
+    """
+
+    payload_contract_version: str
+    source: str
+    raw_guidance_output_preview: dict[str, Any]
+    normalized_guidance_output: dict[str, Any]
+    validation_policy: dict[str, Any]
+    validation: dict[str, Any]
+    blocked_reasons: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+    trace_id: str | None = None
+    llm_called: bool = False
+    guidance_response_validated: bool = True
+    routine_start_enabled: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "raw_guidance_output_preview": _redact_sensitive_values(self.raw_guidance_output_preview),
+            "normalized_guidance_output": _redact_sensitive_values(self.normalized_guidance_output),
+            "validation_policy": _redact_sensitive_values(self.validation_policy),
+            "validation": _redact_sensitive_values(self.validation),
+            "blocked_reasons": list(self.blocked_reasons),
+            "warnings": list(self.warnings),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "guidance_response_validated": self.guidance_response_validated,
+            "routine_start_enabled": self.routine_start_enabled,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+        }
+
+
+def _today_guidance_candidate_output(arguments: dict[str, Any]) -> dict[str, Any]:
+    for key in (
+        "today_practice_guidance_output",
+        "todayPracticeGuidanceOutput",
+        "guidance_output",
+        "guidanceOutput",
+        "output",
+        "llm_output",
+        "llmOutput",
+        "response",
+    ):
+        value = arguments.get(key)
+        if isinstance(value, dict):
+            return dict(value)
+    return dict(arguments)
+
+
+
+def _redact_today_guidance_forbidden_fields(value: Any) -> Any:
+    forbidden_keys = {
+        "midi_base64",
+        "midiBase64",
+        "local_midi_path",
+        "localMidiPath",
+        "api_key",
+        "apiKey",
+        "raw_tool_execution_result",
+        "rawToolExecutionResult",
+        "hidden_chain_of_thought",
+        "hiddenChainOfThought",
+    }
+    if isinstance(value, dict):
+        return {
+            str(key): "[REDACTED]" if key in forbidden_keys else _redact_today_guidance_forbidden_fields(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_today_guidance_forbidden_fields(item) for item in value]
+    return value
+
+def _contains_forbidden_today_guidance_field(value: Any, path: str = "") -> list[str]:
+    forbidden_keys = {
+        "midi_base64",
+        "midiBase64",
+        "local_midi_path",
+        "localMidiPath",
+        "api_key",
+        "apiKey",
+        "raw_tool_execution_result",
+        "rawToolExecutionResult",
+        "hidden_chain_of_thought",
+        "hiddenChainOfThought",
+    }
+    hits: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            if key in forbidden_keys:
+                hits.append(child_path)
+            hits.extend(_contains_forbidden_today_guidance_field(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            child_path = f"{path}[{index}]" if path else f"[{index}]"
+            hits.extend(_contains_forbidden_today_guidance_field(child, child_path))
+    return hits
+
+
+def _normalize_guidance_blocks(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    blocks: list[dict[str, Any]] = []
+    for index, item in enumerate(value[:8]):
+        if not isinstance(item, dict):
+            continue
+        duration = item.get("duration_minutes") or item.get("durationMinutes") or item.get("suggested_duration_minutes") or item.get("suggestedDurationMinutes")
+        block = {
+            "block_id": item.get("block_id") or item.get("blockId") or f"recommended_block_{index + 1}",
+            "title": item.get("title") or item.get("name") or item.get("goal") or "Practice block",
+            "goal": item.get("goal") or item.get("practice_goal") or item.get("practiceGoal"),
+            "duration_minutes": _coerce_int(duration, default=0),
+            "style": item.get("style") or item.get("suggested_style") or item.get("suggestedStyle"),
+            "tempo": _coerce_int(item.get("tempo") or item.get("suggested_tempo") or item.get("suggestedTempo"), default=0),
+            "tune_title": item.get("tune_title") or item.get("tuneTitle") or item.get("tune"),
+            "source": "today_practice_guidance_output_validation",
+        }
+        blocks.append({k: v for k, v in block.items() if v not in (None, "", 0)})
+    return blocks
+
+
+def _normalize_guidance_routine_candidates(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    candidates: list[dict[str, Any]] = []
+    for index, item in enumerate(value[:6]):
+        if not isinstance(item, dict):
+            continue
+        duration = item.get("duration_minutes") or item.get("durationMinutes") or item.get("suggested_duration_minutes") or item.get("suggestedDurationMinutes")
+        candidate = {
+            "candidate_id": item.get("candidate_id") or item.get("candidateId") or f"routine_candidate_{index + 1}",
+            "routine_name": item.get("routine_name") or item.get("routineName") or item.get("title") or item.get("name") or "Today practice routine candidate",
+            "practice_goal": item.get("practice_goal") or item.get("practiceGoal") or item.get("goal"),
+            "duration_minutes": _coerce_int(duration, default=0),
+            "style": item.get("style") or item.get("suggested_style") or item.get("suggestedStyle"),
+            "tempo": _coerce_int(item.get("tempo") or item.get("suggested_tempo") or item.get("suggestedTempo"), default=0),
+            "tune_title": item.get("tune_title") or item.get("tuneTitle") or item.get("tune"),
+            "loop_enabled": bool(item.get("loop_enabled") if "loop_enabled" in item else item.get("loopEnabled", True)),
+            "output_format": item.get("output_format") or item.get("outputFormat") or "midi_base64",
+            "editable": True,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+            "requires_user_confirmation_before_start": True,
+            "source": "today_practice_guidance_output_validation",
+        }
+        candidates.append({k: v for k, v in candidate.items() if v not in (None, "", 0)})
+    return candidates
+
+
+def _today_guidance_forbidden_action_hits(output: dict[str, Any]) -> list[str]:
+    forbidden_actions = {
+        "start_routine",
+        "startRoutine",
+        "start_playback",
+        "startPlayback",
+        "call_accompaniment_generate",
+        "callAccompanimentGenerate",
+        "generate_midi",
+        "generateMidi",
+        "execute_tool",
+        "executeTool",
+        "dispatch_workflow",
+        "dispatchWorkflow",
+        "invoke_engine_adapter",
+        "invokeEngineAdapter",
+    }
+    hits: list[str] = []
+    for key in ("next_client_actions", "nextClientActions", "actions", "client_actions", "clientActions"):
+        value = output.get(key)
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, str) and item in forbidden_actions:
+                    hits.append(f"{key}:{item}")
+                if isinstance(item, dict):
+                    action_type = item.get("action_type") or item.get("actionType") or item.get("type")
+                    if action_type in forbidden_actions:
+                        hits.append(f"{key}:{action_type}")
+    for key in forbidden_actions:
+        value = output.get(key)
+        if value is True:
+            hits.append(key)
+    return hits
+
+
+def build_today_practice_guidance_output_validation_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_output_validation",
+) -> TodayPracticeGuidanceOutputValidationPayload:
+    """Validate a future LLM TodayPracticeGuidanceOutput without executing anything."""
+
+    args = dict(arguments or {})
+    raw_output_original = _today_guidance_candidate_output(args)
+    raw_output = _redact_today_guidance_forbidden_fields(_redact_sensitive_values(raw_output_original))
+    guidance_mode = raw_output.get("guidance_mode") or raw_output.get("guidanceMode") or ""
+    summary = raw_output.get("summary") or raw_output.get("message") or raw_output.get("answer") or ""
+    recommended_focus = raw_output.get("recommended_focus") or raw_output.get("recommendedFocus") or raw_output.get("focus") or ""
+    recommended_blocks = _normalize_guidance_blocks(raw_output.get("recommended_blocks") or raw_output.get("recommendedBlocks") or [])
+    routine_candidates = _normalize_guidance_routine_candidates(raw_output.get("routine_candidates") or raw_output.get("routineCandidates") or [])
+    next_actions_raw = raw_output.get("next_client_actions") or raw_output.get("nextClientActions") or []
+    if not isinstance(next_actions_raw, list):
+        next_actions_raw = []
+    allowed_next_actions = {"show_guidance", "present_routine_candidate", "ask_follow_up", "dismiss"}
+    next_client_actions = [item for item in next_actions_raw if isinstance(item, str) and item in allowed_next_actions]
+    if not next_client_actions:
+        next_client_actions = ["show_guidance"]
+        if routine_candidates:
+            next_client_actions.append("present_routine_candidate")
+    user_confirmation_required = raw_output.get("user_confirmation_required")
+    if user_confirmation_required is None:
+        user_confirmation_required = raw_output.get("userConfirmationRequired")
+    if user_confirmation_required is None:
+        user_confirmation_required = True
+
+    normalized = {
+        "schema_name": "TodayPracticeGuidanceOutput",
+        "schema_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+        "guidance_mode": guidance_mode,
+        "summary": str(summary)[:1200] if summary is not None else "",
+        "recommended_focus": str(recommended_focus)[:300] if recommended_focus is not None else "",
+        "recommended_blocks": recommended_blocks,
+        "routine_candidates": routine_candidates,
+        "adjustment_reason": raw_output.get("adjustment_reason") or raw_output.get("adjustmentReason"),
+        "user_confirmation_required": bool(user_confirmation_required),
+        "next_client_actions": next_client_actions,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "routine_start_allowed_now": False,
+        "accompaniment_generate_allowed_now": False,
+        "playback_start_allowed_now": False,
+        "trace_id": trace_id or args.get("trace_id") or args.get("traceId") or raw_output.get("trace_id") or raw_output.get("traceId"),
+    }
+
+    allowed_modes = {"continue_original_plan", "adjust_based_on_history", "fallback_without_plan", "ask_clarifying_question"}
+    blocked_reasons: list[str] = []
+    warnings: list[str] = []
+    if guidance_mode not in allowed_modes:
+        blocked_reasons.append("invalid_or_missing_guidance_mode")
+    if not summary:
+        blocked_reasons.append("summary_required")
+    if not recommended_focus and guidance_mode != "ask_clarifying_question":
+        warnings.append("recommended_focus_missing")
+    if bool(user_confirmation_required) is not True:
+        blocked_reasons.append("user_confirmation_required_must_be_true")
+    forbidden_field_hits = _contains_forbidden_today_guidance_field(raw_output_original)
+    if forbidden_field_hits:
+        blocked_reasons.append("forbidden_fields_present")
+    forbidden_action_hits = _today_guidance_forbidden_action_hits(raw_output_original)
+    if forbidden_action_hits:
+        blocked_reasons.append("forbidden_direct_action_requested")
+    if not recommended_blocks and not routine_candidates and guidance_mode != "ask_clarifying_question":
+        warnings.append("no_blocks_or_candidates_supplied")
+
+    is_valid = not blocked_reasons
+    validation = {
+        "status": "accepted_candidate_guidance" if is_valid else "blocked_unsafe_or_invalid_guidance",
+        "is_valid": is_valid,
+        "blocked_reason_count": len(blocked_reasons),
+        "warning_count": len(warnings),
+        "forbidden_field_hits": forbidden_field_hits,
+        "forbidden_action_hits": forbidden_action_hits,
+        "has_recommended_blocks": bool(recommended_blocks),
+        "has_routine_candidates": bool(routine_candidates),
+        "user_confirmation_required": bool(user_confirmation_required),
+        "llm_called_by_validator": False,
+        "tool_executed_by_validator": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "contains_midi_base64": bool(forbidden_field_hits),
+        "contains_local_midi_path": any("local" in hit.lower() for hit in forbidden_field_hits),
+        "contains_api_key": any("api" in hit.lower() for hit in forbidden_field_hits),
+    }
+    validation_policy = {
+        "policy_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+        "input_schema": "TodayPracticeGuidanceOutput",
+        "mode": "validate_and_normalize_only_no_execution",
+        "allowed_guidance_modes": sorted(allowed_modes),
+        "allowed_next_client_actions": sorted(allowed_next_actions),
+        "requires_user_confirmation_before_any_routine_start": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "forbidden_fields": ["midi_base64", "local_midi_path", "api_key", "raw_tool_execution_result", "hidden_chain_of_thought"],
+        "forbidden_direct_actions": sorted({"start_routine", "start_playback", "call_accompaniment_generate", "generate_midi", "execute_tool", "dispatch_workflow", "invoke_engine_adapter"}),
+    }
+    return TodayPracticeGuidanceOutputValidationPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+        source=source,
+        raw_guidance_output_preview=raw_output,
+        normalized_guidance_output=normalized,
+        validation_policy=validation_policy,
+        validation=validation,
+        blocked_reasons=tuple(blocked_reasons),
+        warnings=tuple(warnings),
+        trace_id=normalized.get("trace_id"),
+    )
+
+
+def build_today_practice_guidance_output_validation_summary(
+    *,
+    payload: TodayPracticeGuidanceOutputValidationPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    normalized = data.get("normalized_guidance_output") if isinstance(data.get("normalized_guidance_output"), dict) else {}
+    return {
+        "today_practice_guidance_output_validation_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "is_valid": validation.get("is_valid", False),
+        "guidance_mode": normalized.get("guidance_mode"),
+        "recommended_block_count": len(normalized.get("recommended_blocks") or []),
+        "routine_candidate_count": len(normalized.get("routine_candidates") or []),
+        "blocked_reasons": list(data.get("blocked_reasons") or []),
+        "warnings": list(data.get("warnings") or []),
+        "user_confirmation_required": normalized.get("user_confirmation_required", True),
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def today_practice_guidance_output_validation_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+        "today_practice_guidance_output_validation_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/output-validation/spec",
+        "validate_route": "POST /agent/context/today-practice-guidance/output-validation/validate",
+        "terminal_command": "/today-practice-guidance-validate",
+        "surface": "Validation and safety gate for future LLM TodayPracticeGuidanceOutput",
+        "mode": "validate_normalize_only_no_execution",
+        "execution_status": {
+            "output_validation_enabled": True,
+            "normalization_enabled": True,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "guidance_response_created_by_validator": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "raw_guidance_output_preview": "Redacted input object returned by a future LLM provider call.",
+            "normalized_guidance_output": "Safe UI-flow-neutral guidance and Routine candidates for client display.",
+            "validation_policy": "Allowed modes/actions and forbidden direct execution fields.",
+            "validation": "Accepted/blocked status with field/action hits.",
+            "blocked_reasons": "Machine-readable reasons when unsafe or invalid output is rejected.",
+        },
+        "rules": [
+            "Valid output may answer and provide Routine candidates, but must not start Routine or generate accompaniment.",
+            "user_confirmation_required must be true before any Routine start or accompaniment generation.",
+            "Forbidden direct actions and sensitive fields block the payload rather than being silently executed.",
+            "HarmonyOS decides presentation; no setup page, bottom sheet, queue, or one-tap flow is hard-coded.",
+        ],
+        "guards": {
+            "validator_calls_llm": False,
+            "validator_executes_tool": False,
+            "validator_calls_accompaniment_generate": False,
+            "validator_calls_engine_adapter": False,
+            "validator_creates_midi_asset": False,
+            "validator_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "today_practice_guidance_prompt_contract": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+            "user_capability_map_and_intent_taxonomy": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        },
+    }
+
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceProviderBoundaryE2EPayload:
+    """v2_7_7 provider-boundary E2E for user-initiated today-practice guidance.
+
+    This payload stitches together the v2_7_4 prompt contract and v2_7_6
+    output validator. It may call an injected/provider-boundary LLM only when a
+    caller explicitly requests it. Regardless of provider output, it never
+    starts Routine, calls /accompaniment/generate, invokes engine adapters, or
+    creates MIDI assets.
+    """
+
+    payload_contract_version: str
+    source: str
+    prompt_payload: dict[str, Any]
+    provider_boundary: dict[str, Any]
+    provider_result_preview: dict[str, Any]
+    parsed_guidance_output_preview: dict[str, Any]
+    output_validation_payload: dict[str, Any]
+    e2e_summary: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    routine_start_enabled: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "prompt_payload": _redact_sensitive_values(self.prompt_payload),
+            "provider_boundary": _redact_sensitive_values(self.provider_boundary),
+            "provider_result_preview": _redact_sensitive_values(self.provider_result_preview),
+            "parsed_guidance_output_preview": _redact_sensitive_values(self.parsed_guidance_output_preview),
+            "output_validation_payload": _redact_sensitive_values(self.output_validation_payload),
+            "e2e_summary": _redact_sensitive_values(self.e2e_summary),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "routine_start_enabled": self.routine_start_enabled,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+        }
+
+
+def build_today_practice_guidance_provider_boundary_e2e_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_provider_boundary_e2e",
+    provider: Any | None = None,
+) -> TodayPracticeGuidanceProviderBoundaryE2EPayload:
+    """Run today-practice prompt -> provider boundary -> output validator.
+
+    By default this function does not call a network provider. Tests, terminal
+    tooling, or future API layers may pass `providerResult`/`llmOutput` to model
+    a provider response, or pass an injected provider plus `callProvider=true`.
+    In both cases the result is validated as candidate-only guidance.
+    """
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    prompt_payload = build_today_practice_guidance_prompt_contract_payload(
+        args,
+        trace_id=trace,
+        source="today_practice_guidance_provider_boundary_prompt",
+    )
+    prompt_data = prompt_payload.to_dict()
+    provider_boundary = _today_practice_provider_boundary_status(provider=provider, call_requested=_coerce_bool(args.get("callProvider") or args.get("call_provider") or args.get("llmCallEnabled")))
+    provider_result = _provided_today_practice_provider_result(args)
+    llm_called = False
+    parsed_output: dict[str, Any] = {}
+    provider_result_preview: dict[str, Any]
+    provider_result_source = "provided_result_fixture" if provider_result else "not_called"
+
+    if provider_result is None and _coerce_bool(args.get("callProvider") or args.get("call_provider") or args.get("llmCallEnabled")):
+        llm_result = _call_today_practice_guidance_provider(prompt_payload=prompt_payload, provider=provider)
+        llm_called = bool(llm_result.get("llm_called"))
+        provider_result = llm_result.get("provider_result") if isinstance(llm_result.get("provider_result"), dict) else {}
+        provider_result_source = llm_result.get("provider_result_source") or "provider_boundary_call"
+        provider_boundary = {**provider_boundary, **dict(llm_result.get("provider_boundary") or {})}
+
+    if provider_result:
+        provider_result_preview = _safe_provider_result_preview(provider_result)
+        parsed_output = _parse_today_practice_provider_output(provider_result)
+    else:
+        provider_result_preview = {
+            "ok": False,
+            "provider_result_source": provider_result_source,
+            "content_present": False,
+            "message": "No provider result supplied and provider call was not requested.",
+        }
+
+    if parsed_output:
+        validation_input = {"todayPracticeGuidanceOutput": parsed_output, "traceId": trace}
+    else:
+        validation_input = {"todayPracticeGuidanceOutput": {}, "traceId": trace}
+    validation_payload = build_today_practice_guidance_output_validation_payload(
+        validation_input,
+        trace_id=trace,
+        source="today_practice_guidance_provider_boundary_output_validation",
+    )
+    validation_data = validation_payload.to_dict()
+    validation_summary = build_today_practice_guidance_output_validation_summary(payload=validation_payload, source="provider_boundary_e2e")
+    prompt_summary = build_today_practice_guidance_prompt_contract_summary(payload=prompt_payload, source="provider_boundary_e2e")
+    output_valid = bool((validation_data.get("validation") or {}).get("is_valid"))
+    validation = {
+        "status": "provider_output_validated_candidate_only" if output_valid else "provider_output_missing_or_blocked",
+        "prompt_ready": bool((prompt_data.get("validation") or {}).get("ready_for_future_llm_provider_call")),
+        "provider_result_source": provider_result_source,
+        "provider_result_present": bool(provider_result),
+        "provider_content_parsed": bool(parsed_output),
+        "output_validation_is_valid": output_valid,
+        "blocked_reasons": list(validation_data.get("blocked_reasons") or []),
+        "warnings": list(validation_data.get("warnings") or []),
+        "tool_executed": False,
+        "routine_start_enabled": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    e2e_summary = {
+        "today_practice_guidance_provider_boundary_e2e_version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+        "source": source,
+        "prompt_summary": prompt_summary,
+        "provider_result_source": provider_result_source,
+        "provider_call_requested": bool(provider_boundary.get("provider_call_requested")),
+        "llm_called": llm_called,
+        "provider_result_present": bool(provider_result),
+        "provider_content_parsed": bool(parsed_output),
+        "output_validation_summary": validation_summary,
+        "normalized_guidance_output": validation_data.get("normalized_guidance_output") if output_valid else {},
+        "candidate_only_guidance_ready": output_valid,
+        "requires_user_confirmation_before_routine_start": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "tool_executed": False,
+        "routine_start_enabled": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    return TodayPracticeGuidanceProviderBoundaryE2EPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+        source=source,
+        prompt_payload=prompt_data,
+        provider_boundary=provider_boundary,
+        provider_result_preview=provider_result_preview,
+        parsed_guidance_output_preview=parsed_output,
+        output_validation_payload=validation_data,
+        e2e_summary=e2e_summary,
+        validation=validation,
+        trace_id=trace,
+        llm_called=llm_called,
+    )
+
+
+def build_today_practice_guidance_provider_boundary_e2e_summary(
+    *,
+    payload: TodayPracticeGuidanceProviderBoundaryE2EPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    e2e = data.get("e2e_summary") if isinstance(data.get("e2e_summary"), dict) else {}
+    normalized = e2e.get("normalized_guidance_output") if isinstance(e2e.get("normalized_guidance_output"), dict) else {}
+    return {
+        "today_practice_guidance_provider_boundary_e2e_version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "provider_result_source": validation.get("provider_result_source"),
+        "provider_result_present": validation.get("provider_result_present", False),
+        "provider_content_parsed": validation.get("provider_content_parsed", False),
+        "output_validation_is_valid": validation.get("output_validation_is_valid", False),
+        "guidance_mode": normalized.get("guidance_mode"),
+        "routine_candidate_count": len(normalized.get("routine_candidates") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+        "warnings": list(validation.get("warnings") or []),
+        "llm_called": data.get("llm_called", False),
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def today_practice_guidance_provider_boundary_e2e_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+        "today_practice_guidance_provider_boundary_e2e_version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/provider-boundary/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/provider-boundary/e2e-preview",
+        "terminal_command": "/today-practice-guidance-e2e",
+        "surface": "Provider-boundary E2E for user-initiated today-practice guidance",
+        "mode": "prompt_to_provider_result_to_validation_candidate_only_no_execution",
+        "execution_status": {
+            "prompt_contract_enabled": True,
+            "provider_boundary_enabled": True,
+            "output_validation_enabled": True,
+            "llm_call_default_enabled": False,
+            "llm_call_may_be_requested_explicitly": True,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "prompt_payload": "v2_7_4 TodayPracticeGuidance prompt contract payload.",
+            "provider_boundary": "Safe provider status and explicit-call gate; no secrets.",
+            "provider_result_preview": "Redacted provider result or supplied providerResult fixture.",
+            "parsed_guidance_output_preview": "Parsed JSON object before validation, redacted.",
+            "output_validation_payload": "v2_7_6 validation payload.",
+            "e2e_summary": "Candidate-only guidance readiness summary.",
+        },
+        "rules": [
+            "Default behavior does not call an LLM; callers may pass providerResult for deterministic E2E validation.",
+            "If a provider call is explicitly requested, the result still must pass v2_7_6 output validation.",
+            "Valid output may only become guidance and editable Routine candidates for client display.",
+            "No provider output may directly start Routine, call /accompaniment/generate, create MIDI assets, or bypass user confirmation.",
+        ],
+        "guards": {
+            "default_calls_llm": False,
+            "executes_tool": False,
+            "calls_accompaniment_generate": False,
+            "calls_engine_adapter": False,
+            "creates_midi_asset": False,
+            "starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "today_practice_guidance_prompt_contract": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+            "today_practice_guidance_output_validation": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+            "user_capability_map_and_intent_taxonomy": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        },
+    }
+
+
+def _today_practice_provider_boundary_status(*, provider: Any | None = None, call_requested: bool = False) -> dict[str, Any]:
+    safe_status: dict[str, Any]
+    try:
+        chosen_provider = provider or build_llm_provider_from_env()
+        raw_status = chosen_provider.status() if hasattr(chosen_provider, "status") else {}
+        safe_status = _redact_sensitive_values(dict(raw_status or {}))
+    except Exception as exc:  # pragma: no cover - defensive only.
+        safe_status = {"provider_status_error": str(exc)}
+    return {
+        "provider_boundary_version": "v2_7_7",
+        "provider_status": safe_status,
+        "provider_call_requested": bool(call_requested),
+        "provider_call_default_enabled": False,
+        "autonomous_tool_execution_enabled": False,
+        "tool_execution_enabled": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+    }
+
+
+def _provided_today_practice_provider_result(args: dict[str, Any]) -> dict[str, Any] | None:
+    for key in ("provider_result", "providerResult", "llm_provider_result", "llmProviderResult"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            result = dict(value)
+            result.setdefault("provider_result_source", "provided_result_fixture")
+            return result
+    for key in ("llm_output", "llmOutput", "content", "provider_content", "providerContent"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return {"ok": True, "content": json.dumps(value, ensure_ascii=False), "provider_result_source": key}
+        if isinstance(value, str) and value.strip():
+            return {"ok": True, "content": value.strip(), "provider_result_source": key}
+    for key in ("today_practice_guidance_output", "todayPracticeGuidanceOutput", "guidance_output", "guidanceOutput"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return {"ok": True, "content": json.dumps(value, ensure_ascii=False), "provider_result_source": key}
+    return None
+
+
+def _call_today_practice_guidance_provider(*, prompt_payload: TodayPracticeGuidancePromptContractPayload, provider: Any | None = None) -> dict[str, Any]:
+    chosen_provider = provider or build_llm_provider_from_env()
+    boundary = _today_practice_provider_boundary_status(provider=chosen_provider, call_requested=True)
+    messages = _provider_messages_from_today_practice_prompt(prompt_payload)
+    envelope = LLMRequestEnvelope(
+        context_packet={"task_type": "today_practice_guidance", "prompt_payload": prompt_payload.to_dict()},
+        allowed_tools=(),
+        output_contract=prompt_payload.output_schema,
+        runtime_policy={
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+        },
+        messages=tuple(messages),
+    )
+    result = chosen_provider.generate(envelope) if hasattr(chosen_provider, "generate") else None
+    result_dict = result.to_dict() if hasattr(result, "to_dict") else dict(result or {})
+    return {
+        "llm_called": bool(result_dict),
+        "provider_result": _redact_sensitive_values(result_dict),
+        "provider_boundary": boundary,
+        "provider_result_source": "provider_boundary_call",
+    }
+
+
+def _provider_messages_from_today_practice_prompt(prompt_payload: TodayPracticeGuidancePromptContractPayload) -> list[dict[str, str]]:
+    messages: list[dict[str, str]] = []
+    for message in prompt_payload.prompt_messages:
+        role = str(message.get("role") or "user")
+        if role not in {"system", "developer", "user", "assistant"}:
+            role = "developer"
+        content = message.get("content")
+        if content is None and "content_json" in message:
+            content = json.dumps(message.get("content_json"), ensure_ascii=False)
+        messages.append({"role": role, "content": str(content or "")})
+    return messages
+
+
+
+def _safe_provider_result_preview(provider_result: dict[str, Any]) -> dict[str, Any]:
+    content = provider_result.get("content")
+    return _redact_sensitive_values({
+        "ok": bool(provider_result.get("ok")),
+        "provider_name": provider_result.get("provider_name"),
+        "model": provider_result.get("model"),
+        "error_code": provider_result.get("error_code"),
+        "message": provider_result.get("message"),
+        "provider_result_source": provider_result.get("provider_result_source"),
+        "content_present": isinstance(content, str) and bool(content.strip()),
+        "content_char_count": len(content) if isinstance(content, str) else 0,
+        "raw_usage": provider_result.get("raw_usage") if isinstance(provider_result.get("raw_usage"), dict) else {},
+    })
+
+def _parse_today_practice_provider_output(provider_result: dict[str, Any]) -> dict[str, Any]:
+    content = provider_result.get("content") or provider_result.get("message") or provider_result.get("output")
+    if isinstance(content, dict):
+        return _redact_sensitive_values(dict(content))
+    if not isinstance(content, str):
+        return {}
+    text = content.strip()
+    if not text:
+        return {}
+    parsed = _parse_json_object_from_text(text)
+    return _redact_today_guidance_forbidden_fields(_redact_sensitive_values(parsed)) if parsed else {}
+
+
+def _parse_json_object_from_text(text: str) -> dict[str, Any]:
+    try:
+        value = json.loads(text)
+        return dict(value) if isinstance(value, dict) else {}
+    except Exception:
+        pass
+    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    if match:
+        try:
+            value = json.loads(match.group(0))
+            return dict(value) if isinstance(value, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+def context_engineering_skeleton_contract() -> dict[str, Any]:
+    return {
+        "version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+        "context_engineering_skeleton_version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+        "surface": "Agent practice context engineering skeleton foundation",
+        "included_boundaries": {
+            "active_practice_plan_context_intake": active_practice_plan_context_intake_contract(),
+            "routine_history_context_intake": routine_history_context_intake_contract(),
+            "practice_context_assembly_policy": practice_context_assembly_policy_contract(),
+            "today_practice_context_e2e": today_practice_context_e2e_contract(),
+            "today_practice_guidance_prompt_contract": today_practice_guidance_prompt_contract(),
+            "user_capability_map_and_intent_taxonomy": user_capability_map_and_intent_taxonomy_contract(),
+            "today_practice_guidance_output_validation": today_practice_guidance_output_validation_contract(),
+            "today_practice_guidance_provider_boundary_e2e": today_practice_guidance_provider_boundary_e2e_contract(),
+        },
+        "completion_scope": [
+            "active PracticePlan can enter ContextPacket",
+            "RoutineHistory can enter ContextPacket",
+            "plan + history + availability can be assembled into decision inputs",
+            "today-practice user turn has context-only E2E preview",
+            "today-practice guidance prompt/output contract is available without calling the LLM",
+            "user-facing LLM capability map and intent taxonomy is available without calling the LLM",
+            "today-practice LLM output can be validated and normalized without executing tools",
+            "today-practice provider-boundary E2E can turn provider output into validated candidate-only guidance",
+        ],
+        "non_goals": [
+            "No automatic post-session recommendation card",
+            "No LLM call in the context assembly or prompt-preview routes",
+            "No final today-practice recommendation is generated in v2_7_4",
+            "No playback, MIDI generation, /accompaniment/generate, or engine adapter call",
+            "No frontend UI flow assumption",
+            "No unvalidated today-practice LLM output may trigger Routine start or accompaniment generation",
+            "No provider-boundary guidance output may bypass validation, user confirmation, or client presentation control",
+        ],
+        "guards": {
+            "llm_called": False,
+            "guidance_response_created": False,
+            "guidance_output_validated_only": True,
+            "provider_boundary_e2e_enabled": True,
+            "recommendation_created": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+        },
+    }
+
+
+def _extract_active_practice_plan(args: dict[str, Any]) -> dict[str, Any]:
+    for key in ("active_practice_plan", "activePracticePlan", "practice_plan", "practicePlan", "plan"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return dict(value)
+    payload = args.get("routine_practice_plan_payload") or args.get("routinePracticePlanPayload")
+    if isinstance(payload, dict):
+        plan = payload.get("plan") or payload.get("practice_plan") or payload.get("practicePlan")
+        if isinstance(plan, dict):
+            return dict(plan)
+    return {}
+
+
+def _normalize_active_practice_plan(plan: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]], list[str]]:
+    warnings: list[str] = []
+    if not isinstance(plan, dict) or not plan:
+        return {
+            "plan_id": None,
+            "title": None,
+            "status": "missing",
+        }, [], ["no_active_practice_plan_available"]
+    plan_id = _first_present(plan, "plan_id", "planId", "id") or "active_plan"
+    title = _first_present(plan, "title", "name") or "Active Practice Plan"
+    status = _first_present(plan, "status", "state") or "active"
+    goal = _first_present(plan, "goal", "practice_goal", "practiceGoal", "description")
+    blocks = _extract_plan_blocks(plan)
+    context_items: list[dict[str, Any]] = []
+    for index, block in enumerate(blocks):
+        if not isinstance(block, dict):
+            warnings.append(f"plan_block_{index}_ignored_not_object")
+            continue
+        context_items.append(_normalize_active_plan_block(block, index=index, plan_id=str(plan_id)))
+    normalized = {
+        "plan_id": str(plan_id),
+        "title": str(title),
+        "status": str(status),
+        "goal": str(goal) if goal is not None else None,
+        "created_at": _first_present(plan, "created_at", "createdAt"),
+        "updated_at": _first_present(plan, "updated_at", "updatedAt"),
+        "current_week": _first_present(plan, "current_week", "currentWeek"),
+        "current_day": _first_present(plan, "current_day", "currentDay"),
+        "total_block_count": len(context_items),
+    }
+    if not context_items:
+        warnings.append("active_practice_plan_has_no_blocks")
+    return normalized, context_items, warnings
+
+
+def _extract_plan_blocks(plan: dict[str, Any]) -> list[Any]:
+    for key in ("plan_blocks", "planBlocks", "blocks", "routine_blocks", "routineBlocks", "items"):
+        value = plan.get(key)
+        if isinstance(value, list):
+            return list(value)
+    weeks = plan.get("weeks")
+    if isinstance(weeks, list):
+        blocks: list[Any] = []
+        for week in weeks:
+            if isinstance(week, dict):
+                for key in ("days", "blocks", "items"):
+                    value = week.get(key)
+                    if isinstance(value, list):
+                        blocks.extend(value)
+        return blocks
+    return []
+
+
+def _normalize_active_plan_block(block: dict[str, Any], *, index: int, plan_id: str) -> dict[str, Any]:
+    block_id = _first_present(block, "block_id", "blockId", "id") or f"{plan_id}_block_{index + 1}"
+    title = _first_present(block, "title", "name", "goal", "practice_goal", "practiceGoal") or f"Practice Block {index + 1}"
+    goal = _first_present(block, "goal", "practice_goal", "practiceGoal", "description") or title
+    duration = _number_or_none(_first_present(block, "duration_minutes", "durationMinutes", "suggested_duration_minutes", "suggestedDurationMinutes", "minutes"))
+    completed = _bool_or_default(_first_present(block, "completed", "isCompleted", "done"), default=False)
+    tune = _first_present(block, "tune_title", "tuneTitle", "tune", "song")
+    style = _first_present(block, "style", "suggested_style", "suggestedStyle", "style_id", "styleId")
+    tempo = _number_or_none(_first_present(block, "tempo", "bpm", "suggested_tempo", "suggestedTempo"))
+    return {
+        "block_id": str(block_id),
+        "plan_id": plan_id,
+        "block_index": int(_number_or_none(_first_present(block, "block_index", "blockIndex", "index")) or index),
+        "title": str(title),
+        "goal": str(goal) if goal is not None else None,
+        "suggested_duration_minutes": int(duration) if duration is not None else None,
+        "tune_title": str(tune) if tune is not None else None,
+        "style": str(style) if style is not None else None,
+        "tempo": int(tempo) if tempo is not None else None,
+        "completed": bool(completed),
+        "priority": _first_present(block, "priority", "weight") or "normal",
+        "context_weight": "pending_plan_block" if not completed else "completed_plan_block",
+    }
+
+
+def _summarize_active_plan_context_items(items: list[dict[str, Any]]) -> dict[str, Any]:
+    pending = [item for item in items if not item.get("completed")]
+    completed = [item for item in items if item.get("completed")]
+    styles: list[str] = []
+    tunes: list[str] = []
+    total_pending_minutes = 0
+    for item in pending:
+        if item.get("style") and item["style"] not in styles:
+            styles.append(str(item["style"]))
+        if item.get("tune_title") and item["tune_title"] not in tunes:
+            tunes.append(str(item["tune_title"]))
+        if item.get("suggested_duration_minutes") is not None:
+            total_pending_minutes += int(item["suggested_duration_minutes"])
+    return {
+        "plan_block_count": len(items),
+        "pending_block_count": len(pending),
+        "completed_block_count": len(completed),
+        "total_pending_minutes": total_pending_minutes,
+        "pending_styles": styles[:8],
+        "pending_tunes": tunes[:8],
+        "next_candidate_block": pending[0] if pending else {},
+    }
+
+
+def _extract_active_practice_plan_context_section(args: dict[str, Any]) -> dict[str, Any]:
+    for key in ("active_practice_plan_context", "activePracticePlanContext"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            if isinstance(value.get("context_packet_section"), dict):
+                return dict(value["context_packet_section"])
+            return dict(value)
+    payload = args.get("active_practice_plan_context_payload") or args.get("activePracticePlanContextPayload")
+    if isinstance(payload, dict):
+        section = payload.get("context_packet_section") or payload.get("contextPacketSection")
+        if isinstance(section, dict):
+            return dict(section)
+    return {}
+
+
+def _extract_routine_history_context_section(args: dict[str, Any]) -> dict[str, Any]:
+    for key in ("routine_history_context", "routineHistoryContext", "practice_history_context", "practiceHistoryContext"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            if isinstance(value.get("context_packet_section"), dict):
+                return dict(value["context_packet_section"])
+            return dict(value)
+    payload = args.get("routine_history_context_payload") or args.get("routineHistoryContextPayload")
+    if isinstance(payload, dict):
+        section = payload.get("context_packet_section") or payload.get("contextPacketSection")
+        if isinstance(section, dict):
+            return dict(section)
+    return {}
+
+
+def _normalize_today_constraints(args: dict[str, Any]) -> dict[str, Any]:
+    available = _number_or_none(_first_present(args, "available_minutes", "availableMinutes", "duration_minutes", "durationMinutes"))
+    user_input = _first_present(args, "user_input", "userInput", "question", "text")
+    return {
+        "available_minutes": int(available) if available is not None else None,
+        "user_input": str(user_input) if user_input is not None else None,
+        "instrument": _first_present(args, "instrument") or "piano",
+        "client_local_time": _first_present(args, "client_local_time", "clientLocalTime", "local_time", "localTime"),
+        "harmonyos_local_timer_owns_practice_duration": True,
+    }
+
+
+def _active_plan_blocks_from_section(section: dict[str, Any]) -> list[dict[str, Any]]:
+    blocks = section.get("plan_blocks") or section.get("active_plan_context_items") or section.get("blocks") or []
+    return [dict(block) for block in blocks if isinstance(block, dict)]
+
+
+def _history_items_from_section(section: dict[str, Any]) -> list[dict[str, Any]]:
+    items = section.get("recent_practice_history") or section.get("practice_history_context_items") or section.get("items") or []
+    return [dict(item) for item in items if isinstance(item, dict)]
+
+
+def _derive_context_gap_blocks(active_blocks: list[dict[str, Any]], history_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    recent_styles = {str(item.get("style")) for item in history_items[-5:] if item.get("style")}
+    recent_tunes = {str(item.get("tune_title")) for item in history_items[-5:] if item.get("tune_title")}
+    gaps: list[dict[str, Any]] = []
+    for block in active_blocks:
+        if block.get("completed"):
+            continue
+        style_gap = block.get("style") and str(block.get("style")) not in recent_styles
+        tune_gap = block.get("tune_title") and str(block.get("tune_title")) not in recent_tunes
+        if style_gap or tune_gap:
+            gap = dict(block)
+            gap["gap_reason"] = "not_seen_in_recent_history"
+            gaps.append(gap)
+    return gaps
+
+def _extract_routine_history_records(args: dict[str, Any]) -> list[Any]:
+    for key in (
+        "routine_history_records",
+        "routineHistoryRecords",
+        "history_records",
+        "historyRecords",
+        "practice_history",
+        "practiceHistory",
+        "records",
+    ):
+        value = args.get(key)
+        if isinstance(value, list):
+            return list(value)
+    single = args.get("routine_history_record") or args.get("routineHistoryRecord") or args.get("record")
+    if isinstance(single, dict):
+        return [single]
+    return []
+
+
+def _normalize_routine_history_record(record: dict[str, Any], *, index: int) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    dropped_keys = {
+        "local_midi_path", "localMidiPath", "midi_base64", "midiBase64", "current_position_ms", "currentPositionMs",
+        "remaining_seconds", "remainingSeconds", "playback_stats", "playbackStats", "raw_asset", "rawAsset",
+        "asset", "debug_summary", "debugSummary",
+    }
+    dropped = [key for key in record.keys() if str(key) in dropped_keys]
+    session_id = _first_present(record, "session_id", "sessionId", "routine_id", "routineId") or f"routine_history_{index}"
+    routine_id = _first_present(record, "routine_id", "routineId", "session_id", "sessionId") or session_id
+    planned_minutes = _number_or_none(_first_present(record, "planned_duration_minutes", "plannedDurationMinutes", "duration_minutes", "durationMinutes"))
+    actual_seconds = _number_or_none(_first_present(record, "actual_seconds", "actualSeconds", "elapsed_seconds", "elapsedSeconds"))
+    actual_minutes = _number_or_none(_first_present(record, "actual_minutes", "actualMinutes"))
+    if actual_minutes is None and actual_seconds is not None:
+        actual_minutes = round(float(actual_seconds) / 60.0, 2)
+    if actual_minutes is None:
+        actual_minutes = planned_minutes
+    completed = _bool_or_default(_first_present(record, "completed", "isCompleted"), default=True)
+    tune_title = _first_present(record, "tune_title", "tuneTitle", "tune", "song", "title")
+    title = _first_present(record, "title", "routine_name", "routineName") or tune_title or "Routine Practice"
+    style = _first_present(record, "style", "style_id", "styleId")
+    tempo = _number_or_none(_first_present(record, "tempo", "bpm"))
+    finished_at = _first_present(record, "finished_at", "finishedAt", "ended_at", "endedAt", "created_at", "createdAt")
+    started_at = _first_present(record, "started_at", "startedAt")
+    practice_goal = _first_present(record, "practice_goal", "practiceGoal", "goal", "intent")
+    plan_id = _first_present(record, "plan_id", "planId")
+    plan_block_id = _first_present(record, "plan_block_id", "planBlockId", "block_id", "blockId")
+    agent_trace_id = _first_present(record, "agent_trace_id", "agentTraceId", "trace_id", "traceId")
+    normalized = {
+        "session_id": str(session_id),
+        "routine_id": str(routine_id),
+        "title": str(title),
+        "tune_title": str(tune_title) if tune_title is not None else None,
+        "style": str(style) if style is not None else None,
+        "tempo": int(tempo) if tempo is not None else None,
+        "planned_duration_minutes": int(planned_minutes) if planned_minutes is not None else None,
+        "actual_minutes": actual_minutes,
+        "completed": bool(completed),
+        "practice_goal": str(practice_goal) if practice_goal is not None else None,
+        "plan_id": str(plan_id) if plan_id is not None else None,
+        "plan_block_id": str(plan_block_id) if plan_block_id is not None else None,
+        "started_at": str(started_at) if started_at is not None else None,
+        "finished_at": str(finished_at) if finished_at is not None else None,
+        "agent_trace_id": str(agent_trace_id) if agent_trace_id is not None else None,
+    }
+    context_item = {
+        "history_item_id": normalized["session_id"],
+        "routine_id": normalized["routine_id"],
+        "title": normalized["title"],
+        "tune_title": normalized["tune_title"],
+        "style": normalized["style"],
+        "tempo": normalized["tempo"],
+        "duration_minutes": normalized["actual_minutes"],
+        "planned_duration_minutes": normalized["planned_duration_minutes"],
+        "completed": normalized["completed"],
+        "practice_goal": normalized["practice_goal"],
+        "plan_id": normalized["plan_id"],
+        "plan_block_id": normalized["plan_block_id"],
+        "finished_at": normalized["finished_at"],
+        "agent_trace_id": normalized["agent_trace_id"],
+        "context_weight": "recent_completed" if normalized["completed"] else "recent_incomplete",
+    }
+    return normalized, context_item, dropped
+
+
+def _summarize_practice_history_context_items(items: list[dict[str, Any]]) -> dict[str, Any]:
+    total_minutes = 0.0
+    completed_count = 0
+    styles: list[str] = []
+    tunes: list[str] = []
+    incomplete: list[str] = []
+    plan_block_ids: list[str] = []
+    latest_finished_at = None
+    for item in items:
+        minutes = _number_or_none(item.get("duration_minutes")) or 0
+        total_minutes += float(minutes)
+        if item.get("completed"):
+            completed_count += 1
+        else:
+            incomplete.append(str(item.get("history_item_id")))
+        style = item.get("style")
+        tune = item.get("tune_title")
+        plan_block_id = item.get("plan_block_id")
+        if style and str(style) not in styles:
+            styles.append(str(style))
+        if tune and str(tune) not in tunes:
+            tunes.append(str(tune))
+        if plan_block_id and str(plan_block_id) not in plan_block_ids:
+            plan_block_ids.append(str(plan_block_id))
+        finished = item.get("finished_at")
+        if finished and (latest_finished_at is None or str(finished) > str(latest_finished_at)):
+            latest_finished_at = str(finished)
+    return {
+        "context_item_count": len(items),
+        "completed_count": completed_count,
+        "incomplete_count": len(items) - completed_count,
+        "total_practice_minutes": round(total_minutes, 2),
+        "recent_styles": styles[:8],
+        "recent_tunes": tunes[:8],
+        "recent_plan_block_ids": plan_block_ids[:12],
+        "incomplete_history_item_ids": incomplete[:12],
+        "latest_finished_at": latest_finished_at,
+        "llm_usage_hint": "Use with active PracticePlan only when the user initiates a next-practice conversation.",
+    }
+
+
+def _first_present(record: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key in record and record[key] is not None:
+            return record[key]
+    return None
+
+
+def _number_or_none(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _bool_or_default(value: Any, *, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "completed", "done"}
+    return bool(value)
+
+
+def _extract_routine_practice_plan_payload(
+    args: dict[str, Any],
+    *,
+    action_card: HarmonyOSAgentActionCard | None = None,
+    controlled_result: ControlledWorkflowExecutionResult | None = None,
+    trace_id: str | None = None,
+) -> dict[str, Any]:
+    for key in (
+        "routine_practice_plan_payload",
+        "routinePracticePlanPayload",
+        "practice_plan_payload",
+        "practicePlanPayload",
+    ):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return dict(value)
+    card = args.get("action_card") or args.get("actionCard")
+    if isinstance(card, dict):
+        preview = card.get("result_preview") or card.get("resultPreview") or {}
+        value = preview.get("routine_practice_plan_payload") if isinstance(preview, dict) else None
+        if isinstance(value, dict):
+            return dict(value)
+    if action_card is not None:
+        preview = action_card.result_preview if isinstance(action_card.result_preview, dict) else {}
+        value = preview.get("routine_practice_plan_payload")
+        if isinstance(value, dict):
+            return dict(value)
+    if controlled_result is not None:
+        return build_routine_practice_plan_action_payload(controlled_result, trace_id=trace_id).to_dict()
+    return {}
+
+
+def _select_routine_candidate_block(
+    routine_blocks: list[Any],
+    *,
+    block_id: Any = None,
+    block_index: Any = None,
+) -> dict[str, Any]:
+    normalized_blocks = [dict(block) for block in routine_blocks if isinstance(block, dict)]
+    if block_id is not None:
+        for block in normalized_blocks:
+            if str(block.get("block_id")) == str(block_id):
+                return block
+    if block_index is not None:
+        try:
+            idx = int(block_index)
+            for block in normalized_blocks:
+                if int(block.get("block_index", -1)) == idx:
+                    return block
+            if 0 <= idx < len(normalized_blocks):
+                return normalized_blocks[idx]
+        except (TypeError, ValueError):
+            pass
+    for block in normalized_blocks:
+        if block.get("requires_accompaniment_asset"):
+            return block
+    return normalized_blocks[0] if normalized_blocks else {}
+
+
+def _coerce_int_with_bounds(value: Any, *, default: int, minimum: int, maximum: int) -> tuple[int, str | None]:
+    warning = None
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        return default, f"invalid_integer_defaulted_to_{default}"
+    if result < minimum:
+        warning = f"value_clamped_to_min_{minimum}"
+        result = minimum
+    if result > maximum:
+        warning = f"value_clamped_to_max_{maximum}"
+        result = maximum
+    return result, warning
+
+
+def _infer_tune_from_text(text: str) -> str | None:
+    lowered = (text or "").lower()
+    if "blue bossa" in lowered:
+        return "Blue Bossa"
+    if "misty" in lowered:
+        return "Misty"
+    if "autumn leaves" in lowered:
+        return "Autumn Leaves"
+    if "all the things" in lowered:
+        return "All The Things You Are"
+    return None
+
+
+def _infer_style_from_text(args: dict[str, Any]) -> str | None:
+    text = " ".join(str(args.get(key) or "") for key in ("user_input", "userInput", "text", "prompt", "tune", "song")).lower()
+    if "bossa" in text or "blue bossa" in text:
+        return "bossa_nova"
+    if "ballad" in text or "misty" in text:
+        return "jazz_ballad"
+    if "swing" in text or "autumn leaves" in text:
+        return "medium_swing"
+    return None
+
 def _derive_action_execution_status(
     *,
     confirmation: ToolExecutionConfirmationEnvelope | None,
@@ -2009,13 +5472,27 @@ def _build_action_result_preview(
         return preview
     if workflow_dispatch_result is not None:
         descriptor = workflow_dispatch_result.workflow_descriptor
-        return {
+        preview = {
             "ok": workflow_dispatch_result.ok,
             "status": workflow_dispatch_result.status,
             "workflow_name": descriptor.workflow_name if descriptor else None,
             "descriptor_only": True,
             "workflow_invoked": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
         }
+        if workflow_dispatch_result.ok and workflow_dispatch_result.execution_result.request.tool_name == "agent_playback_prepare":
+            preview["playback_prepare_guarded_payload"] = build_playback_prepare_guarded_action_payload(workflow_dispatch_result).to_dict()
+            preview["playback_prepare_guarded_design_version"] = PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION
+        if workflow_dispatch_result.ok and workflow_dispatch_result.execution_result.request.tool_name == "agent_routine_config_prepare":
+            preview["routine_config_prepare_payload"] = build_routine_config_prepare_action_payload(
+                workflow_dispatch_result.execution_result.request.arguments_preview,
+                tool_name="agent_routine_config_prepare",
+                source="agent_routine_config_prepare_descriptor_state",
+            ).to_dict()
+            preview["routine_config_prepare_contract_version"] = ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION
+        return preview
     if execution_result is not None:
         return {
             "ok": execution_result.ok,
@@ -2038,6 +5515,10 @@ def _action_available_client_actions(
             return ("open_routine_setup", "save_practice_plan", "edit_plan", "dismiss", "view_trace")
         return ("dismiss", "view_trace")
     if workflow_dispatch_result is not None and workflow_dispatch_result.ok:
+        if workflow_dispatch_result.execution_result.request.tool_name == "agent_playback_prepare":
+            return ("review_playback_request", "open_routine_setup", "edit_request", "dismiss", "view_trace")
+        if workflow_dispatch_result.execution_result.request.tool_name == "agent_routine_config_prepare":
+            return ("open_routine_setup", "edit_routine_config", "save_routine_draft", "dismiss", "view_trace")
         return ("execute_controlled", "dismiss", "view_trace")
     if execution_result is not None and execution_result.ok:
         return ("dispatch_dry_run", "dismiss", "view_trace")
@@ -2093,6 +5574,9 @@ def preview_tool_invocation(
     validation["side_effect_level"] = descriptor.side_effect_level
     validation["route"] = descriptor.route
     allowed_by_context = proposal.tool_name in set(str(tool) for tool in allowed_tools)
+    if not allowed_by_context and proposal.tool_name == "agent_routine_config_prepare" and descriptor.category == "routine_setup":
+        allowed_by_context = True
+        warnings.append("agent_routine_config_prepare_allowed_by_explicit_routine_config_surface")
 
     if not allowed_by_context:
         blocking_reasons.append("tool_not_allowed_by_context_packet")

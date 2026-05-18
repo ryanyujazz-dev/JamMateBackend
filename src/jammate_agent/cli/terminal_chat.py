@@ -29,6 +29,18 @@ from jammate_agent.core.tool_invocation import (
     HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
     AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
     PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+    PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+    ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+    PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+    ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+    CONTEXT_ENGINEERING_SKELETON_VERSION,
+    ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+    PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+    TODAY_PRACTICE_CONTEXT_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+    USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+    TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
     ToolWorkflowDispatchResult,
@@ -40,6 +52,28 @@ from jammate_agent.core.tool_invocation import (
     agent_runtime_skeleton_contract,
     build_harmonyos_agent_action_summary,
     build_practice_plan_action_card_e2e_summary,
+    build_playback_prepare_guarded_design_summary,
+    build_routine_config_prepare_action_payload,
+    build_routine_config_prepare_summary,
+    build_practice_plan_to_routine_candidate_bridge_payload,
+    build_practice_plan_to_routine_candidate_bridge_summary,
+    build_routine_history_context_intake_payload,
+    build_routine_history_context_intake_summary,
+    build_active_practice_plan_context_intake_payload,
+    build_active_practice_plan_context_intake_summary,
+    build_practice_context_assembly_policy_payload,
+    build_practice_context_assembly_policy_summary,
+    build_today_practice_context_e2e_payload,
+    build_today_practice_context_e2e_summary,
+    build_today_practice_guidance_prompt_contract_payload,
+    build_today_practice_guidance_prompt_contract_summary,
+    build_user_capability_map_and_intent_taxonomy_payload,
+    build_user_capability_map_and_intent_taxonomy_summary,
+    build_today_practice_guidance_output_validation_payload,
+    build_today_practice_guidance_output_validation_summary,
+    build_today_practice_guidance_provider_boundary_e2e_payload,
+    build_today_practice_guidance_provider_boundary_e2e_summary,
+    context_engineering_skeleton_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -91,6 +125,30 @@ class TerminalChatSession:
 
     v2_6_7 adds a read-only runtime skeleton status command so developers can
     inspect the full Agent lifecycle before starting concrete Agent features.
+
+    v2_6_9 adds a guarded design payload for agent_playback_prepare. It can
+    render a Routine setup candidate, but still does not call /accompaniment/generate,
+    engine adapters, MIDI asset creation, or playback.
+
+    v2_7_0 adds RoutineConfig prepare: an editable Routine setup draft derived
+    from user intent, a practice plan, or a practice block. It does not call
+    /accompaniment/generate, create MIDI assets, or start playback.
+
+    v2_7_1 adds a practice-plan to Routine candidate bridge. It returns
+    UI-flow-agnostic candidate data; HarmonyOS decides whether to use setup,
+    bottom sheet, current form, queue, template, or any future presentation.
+
+    v2_7_3 completes the basic context-engineering skeleton: active plan intake,
+    routine history intake, assembly policy, and today-practice context preview.
+
+    v2_7_4 adds a prompt/output contract preview for the future user-initiated
+    today-practice guidance LLM turn. It builds messages and schema only; it
+    does not call the provider or create a recommendation.
+
+    v2_7_6 adds output validation for a future TodayPracticeGuidanceOutput.
+    It normalizes safe guidance/candidate data and blocks attempts to start
+    Routine, call /accompaniment/generate, create MIDI assets, or bypass
+    confirmation.
     """
 
     task_type: str = "coach_qa"
@@ -710,6 +768,509 @@ class TerminalChatSession:
             "trace_path": self.last_trace_path,
         }
 
+    def practice_plan_routine_candidate_bridge(self, *, block_id: str | None = None, block_index: int | None = None) -> dict[str, Any]:
+        """Build a UI-flow-agnostic Routine candidate from the latest practice plan."""
+
+        if self.last_harmonyos_agent_action_card is None and self.last_controlled_workflow_execution_result is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/practice-plan-routine-candidate",
+                "error_code": "NO_PRACTICE_PLAN_PAYLOAD_AVAILABLE",
+                "message": "No practice-plan ActionCard or controlled practice-plan result is available. Use /tool-preview agent_practice_plan, /confirm, /execute-dry-run, /dispatch-dry-run, /execute-controlled, and /practice-plan-action-card first.",
+                "practice_plan_to_routine_candidate_bridge_version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            }
+        trace = self._start_trace("terminal_practice_plan_routine_candidate_bridge", "/practice-plan-routine-candidate")
+        arguments: dict[str, Any] = {}
+        if block_id is not None:
+            arguments["block_id"] = block_id
+        if block_index is not None:
+            arguments["block_index"] = block_index
+        payload = build_practice_plan_to_routine_candidate_bridge_payload(
+            arguments,
+            action_card=self.last_harmonyos_agent_action_card,
+            controlled_result=self.last_controlled_workflow_execution_result,
+            trace_id=self.last_trace_id,
+            source="terminal_practice_plan_to_routine_candidate_bridge",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_practice_plan_routine_candidate_payload_built", payload_dict)
+        summary = build_practice_plan_to_routine_candidate_bridge_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_practice_plan_routine_candidate_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "practice_plan_routine_candidate_payload_built",
+            {
+                "ok": True,
+                "command": "/practice-plan-routine-candidate",
+                "practice_plan_to_routine_candidate_bridge_version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+                "practice_plan_to_routine_candidate_bridge_summary": summary,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/practice-plan-routine-candidate",
+            "practice_plan_to_routine_candidate_bridge_version": PRACTICE_PLAN_TO_ROUTINE_CANDIDATE_BRIDGE_VERSION,
+            "routine_candidate_bridge_payload": payload_dict,
+            "practice_plan_to_routine_candidate_bridge_summary": summary,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def routine_history_context_intake(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Build Agent-readable PracticeHistoryContext from Routine history records."""
+
+        trace = self._start_trace("terminal_routine_history_context_intake", "/routine-history-context")
+        payload = build_routine_history_context_intake_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_routine_history_context_intake",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_routine_history_context_payload_built", payload_dict)
+        summary = build_routine_history_context_intake_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_routine_history_context_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "routine_history_context_payload_built",
+            {
+                "ok": True,
+                "command": "/routine-history-context",
+                "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+                "routine_history_context_intake_summary": summary,
+                "recommendation_card_created": False,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/routine-history-context",
+            "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+            "routine_history_context_payload": payload_dict,
+            "routine_history_context_intake_summary": summary,
+            "recommendation_card_created": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def active_practice_plan_context_intake(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_active_practice_plan_context_intake", "/active-practice-plan-context")
+        payload = build_active_practice_plan_context_intake_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_active_practice_plan_context_intake",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_active_practice_plan_context_payload_built", payload_dict)
+        summary = build_active_practice_plan_context_intake_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_active_practice_plan_context_summary_recorded", summary)
+        self._finish_trace(trace, "active_practice_plan_context_payload_built", {"ok": True, "command": "/active-practice-plan-context", "summary": summary, "recommendation_created": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/active-practice-plan-context",
+            "active_practice_plan_context_intake_version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+            "active_practice_plan_context_payload": payload_dict,
+            "active_practice_plan_context_intake_summary": summary,
+            "recommendation_created": False,
+            "llm_called": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def practice_context_assembly(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_practice_context_assembly", "/practice-context-assembly")
+        payload = build_practice_context_assembly_policy_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_practice_context_assembly",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_practice_context_assembly_payload_built", payload_dict)
+        summary = build_practice_context_assembly_policy_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_practice_context_assembly_summary_recorded", summary)
+        self._finish_trace(trace, "practice_context_assembly_payload_built", {"ok": True, "command": "/practice-context-assembly", "summary": summary, "recommendation_created": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/practice-context-assembly",
+            "practice_context_assembly_policy_version": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+            "practice_context_assembly_payload": payload_dict,
+            "practice_context_assembly_summary": summary,
+            "recommendation_created": False,
+            "llm_called": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def today_practice_context(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_today_practice_context", "/today-practice-context")
+        payload = build_today_practice_context_e2e_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_today_practice_context",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_context_payload_built", payload_dict)
+        summary = build_today_practice_context_e2e_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_context_summary_recorded", summary)
+        self._finish_trace(trace, "today_practice_context_payload_built", {"ok": True, "command": "/today-practice-context", "summary": summary, "recommendation_created": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/today-practice-context",
+            "today_practice_context_e2e_version": TODAY_PRACTICE_CONTEXT_E2E_VERSION,
+            "today_practice_context_payload": payload_dict,
+            "today_practice_context_summary": summary,
+            "recommendation_created": False,
+            "llm_called": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def today_practice_guidance_prompt(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_today_practice_guidance_prompt", "/today-practice-guidance-prompt")
+        payload = build_today_practice_guidance_prompt_contract_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_today_practice_guidance_prompt",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_guidance_prompt_payload_built", payload_dict)
+        summary = build_today_practice_guidance_prompt_contract_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_guidance_prompt_summary_recorded", summary)
+        self._finish_trace(trace, "today_practice_guidance_prompt_payload_built", {"ok": True, "command": "/today-practice-guidance-prompt", "summary": summary, "guidance_response_created": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/today-practice-guidance-prompt",
+            "today_practice_guidance_prompt_contract_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+            "today_practice_guidance_prompt_payload": payload_dict,
+            "today_practice_guidance_prompt_summary": summary,
+            "guidance_response_created": False,
+            "recommendation_created": False,
+            "llm_called": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def today_practice_guidance_validate(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_today_practice_guidance_output_validation", "/today-practice-guidance-validate")
+        payload = build_today_practice_guidance_output_validation_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_today_practice_guidance_output_validation",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_guidance_output_validation_payload_built", payload_dict)
+        summary = build_today_practice_guidance_output_validation_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_guidance_output_validation_summary_recorded", summary)
+        self._finish_trace(trace, "today_practice_guidance_output_validated", {"ok": True, "command": "/today-practice-guidance-validate", "summary": summary, "tool_executed": False, "routine_start_enabled": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/today-practice-guidance-validate",
+            "today_practice_guidance_output_validation_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+            "today_practice_guidance_output_validation_payload": payload_dict,
+            "today_practice_guidance_output_validation_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def today_practice_guidance_e2e(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_today_practice_guidance_provider_boundary_e2e", "/today-practice-guidance-e2e")
+        payload = build_today_practice_guidance_provider_boundary_e2e_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_today_practice_guidance_provider_boundary_e2e",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_guidance_provider_boundary_e2e_payload_built", payload_dict)
+        summary = build_today_practice_guidance_provider_boundary_e2e_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_guidance_provider_boundary_e2e_summary_recorded", summary)
+        self._finish_trace(trace, "today_practice_guidance_provider_boundary_e2e_completed", {"ok": True, "command": "/today-practice-guidance-e2e", "summary": summary, "tool_executed": False, "routine_start_enabled": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/today-practice-guidance-e2e",
+            "today_practice_guidance_provider_boundary_e2e_version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+            "today_practice_guidance_provider_boundary_e2e_payload": payload_dict,
+            "today_practice_guidance_provider_boundary_e2e_summary": summary,
+            "llm_called": payload.llm_called,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def user_capability_map(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_user_capability_map", "/user-capability-map")
+        payload = build_user_capability_map_and_intent_taxonomy_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_user_capability_map",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_user_capability_map_payload_built", payload_dict)
+        summary = build_user_capability_map_and_intent_taxonomy_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_user_capability_map_summary_recorded", summary)
+        self._finish_trace(trace, "user_capability_map_payload_built", {"ok": True, "command": "/user-capability-map", "summary": summary, "llm_called": False, "tool_executed": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/user-capability-map",
+            "user_capability_map_and_intent_taxonomy_version": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+            "user_capability_map_payload": payload_dict,
+            "user_capability_map_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_engineering_skeleton(self) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-engineering",
+            "context_engineering_skeleton_version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+            "context_engineering_skeleton": context_engineering_skeleton_contract(),
+            "recommendation_created": False,
+            "llm_called": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+        }
+
+    def playback_prepare_guarded_design(self) -> dict[str, Any]:
+        """Build the Routine-facing guarded playback-prepare design payload."""
+
+        if self.last_workflow_dispatch_result is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/playback-prepare-guarded",
+                "error_code": "NO_WORKFLOW_DISPATCH_DESCRIPTOR_AVAILABLE",
+                "message": "No playback workflow descriptor is available. Use /tool-preview agent_playback_prepare, /confirm, /execute-dry-run, and /dispatch-dry-run first.",
+                "playback_prepare_guarded_design_version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            }
+        if self.last_workflow_dispatch_result.execution_result.request.tool_name != "agent_playback_prepare":
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/playback-prepare-guarded",
+                "error_code": "PLAYBACK_PREPARE_GUARDED_ONLY_SUPPORTS_AGENT_PLAYBACK_PREPARE",
+                "message": f"v2_6_9 guarded design only supports agent_playback_prepare, got {self.last_workflow_dispatch_result.execution_result.request.tool_name}.",
+                "playback_prepare_guarded_design_version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            }
+        trace = self._start_trace("terminal_playback_prepare_guarded_design", "/playback-prepare-guarded")
+        card = build_harmonyos_agent_action_card(
+            confirmation=self.pending_confirmation,
+            execution_result=self.last_execution_result,
+            workflow_dispatch_result=self.last_workflow_dispatch_result,
+            controlled_result=None,
+            trace_id=self.last_trace_id,
+        )
+        self.last_harmonyos_agent_action_card = card
+        payload = card.to_dict()
+        self._add_trace_step(trace, "terminal_playback_prepare_guarded_payload_built", payload)
+        summary = build_playback_prepare_guarded_design_summary(action_card=card, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_playback_prepare_guarded_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "playback_prepare_guarded_payload_built",
+            {
+                "ok": True,
+                "command": "/playback-prepare-guarded",
+                "playback_prepare_guarded_design_version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+                "playback_prepare_guarded_design_summary": summary,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/playback-prepare-guarded",
+            "playback_prepare_guarded_design_version": PLAYBACK_PREPARE_GUARDED_DESIGN_VERSION,
+            "action_card": payload,
+            "playback_prepare_guarded_design_summary": summary,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def routine_config_prepare(self) -> dict[str, Any]:
+        """Build a Routine-facing editable RoutineConfig candidate payload."""
+
+        if self.last_workflow_dispatch_result is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/routine-config-prepare",
+                "error_code": "NO_WORKFLOW_DISPATCH_DESCRIPTOR_AVAILABLE",
+                "message": "No routine-config workflow descriptor is available. Use /tool-preview agent_routine_config_prepare, /confirm, /execute-dry-run, and /dispatch-dry-run first.",
+                "routine_config_prepare_contract_version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            }
+        if self.last_workflow_dispatch_result.execution_result.request.tool_name != "agent_routine_config_prepare":
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/routine-config-prepare",
+                "error_code": "ROUTINE_CONFIG_PREPARE_ONLY_SUPPORTS_AGENT_ROUTINE_CONFIG_PREPARE",
+                "message": f"v2_7_0 RoutineConfig prepare only supports agent_routine_config_prepare, got {self.last_workflow_dispatch_result.execution_result.request.tool_name}.",
+                "routine_config_prepare_contract_version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            }
+        trace = self._start_trace("terminal_routine_config_prepare", "/routine-config-prepare")
+        card = build_harmonyos_agent_action_card(
+            confirmation=self.pending_confirmation,
+            execution_result=self.last_execution_result,
+            workflow_dispatch_result=self.last_workflow_dispatch_result,
+            controlled_result=None,
+            trace_id=self.last_trace_id,
+        )
+        payload = build_routine_config_prepare_action_payload(
+            self.last_workflow_dispatch_result.execution_result.request.arguments_preview,
+            tool_name="agent_routine_config_prepare",
+            trace_id=self.last_trace_id,
+            source="terminal_routine_config_prepare",
+        )
+        self.last_harmonyos_agent_action_card = card
+        card_payload = card.to_dict()
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_routine_config_prepare_payload_built", payload_dict)
+        summary = build_routine_config_prepare_summary(action_card=card, payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_routine_config_prepare_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "routine_config_prepare_payload_built",
+            {
+                "ok": True,
+                "command": "/routine-config-prepare",
+                "routine_config_prepare_contract_version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+                "routine_config_prepare_summary": summary,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/routine-config-prepare",
+            "routine_config_prepare_contract_version": ROUTINE_CONFIG_PREPARE_CONTRACT_VERSION,
+            "action_card": card_payload,
+            "routine_config_prepare_payload": payload_dict,
+            "routine_config_prepare_summary": summary,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
     def agent_runtime_skeleton_status(self) -> dict[str, Any]:
         trace = self._start_trace("terminal_agent_runtime_skeleton", "/runtime-skeleton")
         snapshot = agent_runtime_skeleton_contract()
@@ -1186,6 +1747,80 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
     if user_input == "/practice-plan-action-card":
         _print_practice_plan_action_card(session.practice_plan_action_card_e2e(), stdout)
         return True
+    if user_input == "/playback-prepare-guarded":
+        _print_playback_prepare_guarded(session.playback_prepare_guarded_design(), stdout)
+        return True
+    if user_input.startswith("/practice-plan-routine-candidate"):
+        parsed = _parse_optional_block_selector(user_input, "/practice-plan-routine-candidate")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_practice_plan_routine_candidate(session.practice_plan_routine_candidate_bridge(block_id=parsed.get("block_id"), block_index=parsed.get("block_index")), stdout)
+        return True
+    if user_input.startswith("/routine-history-context"):
+        parsed = _parse_json_payload_command(user_input, "/routine-history-context")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_routine_history_context(session.routine_history_context_intake(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/active-practice-plan-context"):
+        parsed = _parse_json_payload_command(user_input, "/active-practice-plan-context")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_active_practice_plan_context(session.active_practice_plan_context_intake(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/practice-context-assembly"):
+        parsed = _parse_json_payload_command(user_input, "/practice-context-assembly")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_practice_context_assembly(session.practice_context_assembly(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/today-practice-context"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-context")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_today_practice_context(session.today_practice_context(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/today-practice-guidance-prompt"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-prompt")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_today_practice_guidance_prompt(session.today_practice_guidance_prompt(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/today-practice-guidance-e2e"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-e2e")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_today_practice_guidance_provider_boundary_e2e(session.today_practice_guidance_e2e(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/today-practice-guidance-validate"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-validate")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_today_practice_guidance_output_validation(session.today_practice_guidance_validate(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/user-capability-map"):
+        parsed = _parse_json_payload_command(user_input, "/user-capability-map")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_user_capability_map(session.user_capability_map(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input == "/context-engineering":
+        _print_context_engineering_skeleton(session.context_engineering_skeleton(), stdout)
+        return True
+    if user_input == "/routine-config-prepare":
+        _print_routine_config_prepare(session.routine_config_prepare(), stdout)
+        return True
     if user_input.startswith("/tool-preview"):
         result = _parse_tool_preview_command(user_input)
         if not result["ok"]:
@@ -1196,6 +1831,27 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         return True
     print(f"Unknown command: {user_input}. Type /help for available commands.", file=stdout)
     return True
+
+
+def _parse_json_payload_command(command: str, prefix: str) -> dict[str, Any]:
+    rest = command[len(prefix) :].strip()
+    if not rest:
+        return {"ok": True, "arguments": {}}
+    try:
+        parsed = json.loads(rest)
+    except json.JSONDecodeError as exc:
+        return {
+            "ok": False,
+            "error_code": "COMMAND_INVALID_JSON",
+            "message": f"Arguments must be a JSON object: {exc.msg}",
+        }
+    if not isinstance(parsed, dict):
+        return {
+            "ok": False,
+            "error_code": "COMMAND_ARGUMENTS_NOT_OBJECT",
+            "message": "Arguments must be a JSON object.",
+        }
+    return {"ok": True, "arguments": parsed}
 
 
 def _parse_tool_preview_command(command: str) -> dict[str, Any]:
@@ -1427,6 +2083,235 @@ def _print_practice_plan_action_card(response: dict[str, Any], stdout: TextIO) -
     print("  engine_adapter_called: False", file=stdout)
     print("  midi_asset_created: False", file=stdout)
 
+
+def _print_playback_prepare_guarded(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    card = response.get("action_card") or {}
+    payload = ((card.get("result_preview") or {}).get("playback_prepare_guarded_payload") or {})
+    candidate = payload.get("playback_request_candidate") or {}
+    print(f"PlaybackPrepareGuardedActionCard> {card.get('tool_name')}: {card.get('execution_status')}", file=stdout)
+    print(f"  workflow_name: {card.get('workflow_name')}", file=stdout)
+    print(f"  style: {candidate.get('style')}", file=stdout)
+    print(f"  tempo: {candidate.get('tempo')}", file=stdout)
+    print(f"  duration_minutes: {candidate.get('duration_minutes')}", file=stdout)
+    print(f"  next_client_actions: {', '.join(payload.get('next_client_actions') or [])}", file=stdout)
+    print("  accompaniment_generate_call_enabled: False", file=stdout)
+    print("  agent_playback_prepare_execution_enabled: False", file=stdout)
+    print("  playback_started: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  midi_asset_created: False", file=stdout)
+
+
+
+def _parse_optional_block_selector(command: str, prefix: str) -> dict[str, Any]:
+    rest = command[len(prefix):].strip()
+    if not rest:
+        return {"ok": True}
+    try:
+        payload = json.loads(rest)
+    except json.JSONDecodeError:
+        return {
+            "ok": False,
+            "error_code": "BLOCK_SELECTOR_USAGE",
+            "message": f"Usage: {prefix} [{{\"blockId\":\"...\"}} or {{\"blockIndex\":1}}]",
+        }
+    if not isinstance(payload, dict):
+        return {"ok": False, "error_code": "BLOCK_SELECTOR_MUST_BE_OBJECT", "message": "Block selector must be a JSON object."}
+    result = {"ok": True}
+    if "blockId" in payload:
+        result["block_id"] = str(payload.get("blockId"))
+    if "block_id" in payload:
+        result["block_id"] = str(payload.get("block_id"))
+    if "blockIndex" in payload:
+        result["block_index"] = payload.get("blockIndex")
+    if "block_index" in payload:
+        result["block_index"] = payload.get("block_index")
+    return result
+
+
+def _print_practice_plan_routine_candidate(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    payload = response.get("routine_candidate_bridge_payload") or {}
+    candidate = payload.get("routine_candidate") or {}
+    flow = payload.get("frontend_flow_contract") or {}
+    print(f"PracticePlanRoutineCandidate> {candidate.get('candidate_id')}: {payload.get('candidate_scope')}", file=stdout)
+    print(f"  style: {candidate.get('style')}", file=stdout)
+    print(f"  tempo: {candidate.get('tempo')}", file=stdout)
+    print(f"  duration_minutes: {candidate.get('duration_minutes')}", file=stdout)
+    print(f"  client_decides_presentation: {flow.get('client_decides_presentation')}", file=stdout)
+    print(f"  available_client_actions: {', '.join(payload.get('available_client_actions') or [])}", file=stdout)
+    print("  accompaniment_generate_call_enabled: False", file=stdout)
+    print("  routine_start_enabled: False", file=stdout)
+    print("  playback_started: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  midi_asset_created: False", file=stdout)
+
+
+def _print_routine_history_context(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    payload = response.get("routine_history_context_payload") or {}
+    summary = response.get("routine_history_context_intake_summary") or {}
+    aggregate = payload.get("aggregate_summary") if isinstance(payload, dict) else {}
+    print("RoutineHistoryContext>", file=stdout)
+    print(f"  version: {response.get('routine_history_context_intake_version')}", file=stdout)
+    print(f"  context_item_count: {summary.get('context_item_count')}", file=stdout)
+    print(f"  completed_count: {summary.get('completed_count')}", file=stdout)
+    print(f"  total_practice_minutes: {summary.get('total_practice_minutes')}", file=stdout)
+    print(f"  recent_tunes: {aggregate.get('recent_tunes', [])}", file=stdout)
+    print(f"  recommendation_card_created: {response.get('recommendation_card_created')}", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
+
+def _print_active_practice_plan_context(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    payload = response.get("active_practice_plan_context_payload") or {}
+    summary = response.get("active_practice_plan_context_intake_summary") or {}
+    aggregate = payload.get("aggregate_summary") if isinstance(payload, dict) else {}
+    print("ActivePracticePlanContext>", file=stdout)
+    print(f"  version: {response.get('active_practice_plan_context_intake_version')}", file=stdout)
+    print(f"  plan_block_count: {summary.get('plan_block_count')}", file=stdout)
+    print(f"  pending_block_count: {summary.get('pending_block_count')}", file=stdout)
+    print(f"  next_candidate_block_id: {summary.get('next_candidate_block_id')}", file=stdout)
+    print(f"  pending_styles: {aggregate.get('pending_styles', [])}", file=stdout)
+    print("  recommendation_created: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
+def _print_practice_context_assembly(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("practice_context_assembly_summary") or {}
+    print("PracticeContextAssembly>", file=stdout)
+    print(f"  version: {response.get('practice_context_assembly_policy_version')}", file=stdout)
+    print(f"  has_active_practice_plan_context: {summary.get('has_active_practice_plan_context')}", file=stdout)
+    print(f"  has_routine_history_context: {summary.get('has_routine_history_context')}", file=stdout)
+    print(f"  pending_block_count: {summary.get('pending_block_count')}", file=stdout)
+    print(f"  next_candidate_block_id: {summary.get('next_candidate_block_id')}", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  recommendation_created: false", file=stdout)
+
+
+def _print_today_practice_context(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("today_practice_context_summary") or {}
+    print("TodayPracticeContext>", file=stdout)
+    print(f"  version: {response.get('today_practice_context_e2e_version')}", file=stdout)
+    print(f"  ready_for_future_llm_turn: {summary.get('ready_for_future_llm_turn')}", file=stdout)
+    print(f"  next_candidate_block_id: {summary.get('next_candidate_block_id')}", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  recommendation_created: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
+
+def _print_today_practice_guidance_prompt(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("today_practice_guidance_prompt_summary") or {}
+    print("TodayPracticeGuidancePrompt>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_prompt_contract_version')}", file=stdout)
+    print(f"  ready_for_future_llm_provider_call: {summary.get('ready_for_future_llm_provider_call')}", file=stdout)
+    print(f"  output_schema_name: {summary.get('output_schema_name')}", file=stdout)
+    print(f"  next_candidate_block_id: {summary.get('next_candidate_block_id')}", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  guidance_response_created: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
+def _print_today_practice_guidance_output_validation(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("today_practice_guidance_output_validation_summary") or {}
+    print("TodayPracticeGuidanceOutputValidation>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_output_validation_version')}", file=stdout)
+    print(f"  is_valid: {summary.get('is_valid')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  guidance_mode: {summary.get('guidance_mode')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print(f"  blocked_reasons: {', '.join(summary.get('blocked_reasons') or [])}", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  accompaniment_generate_call_enabled: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
+def _print_today_practice_guidance_provider_boundary_e2e(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("today_practice_guidance_provider_boundary_e2e_summary") or {}
+    print("TodayPracticeGuidanceProviderBoundaryE2E>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_provider_boundary_e2e_version')}", file=stdout)
+    print(f"  provider_result_source: {summary.get('provider_result_source')}", file=stdout)
+    print(f"  provider_content_parsed: {summary.get('provider_content_parsed')}", file=stdout)
+    print(f"  output_validation_is_valid: {summary.get('output_validation_is_valid')}", file=stdout)
+    print(f"  guidance_mode: {summary.get('guidance_mode')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print(f"  blocked_reasons: {', '.join(summary.get('blocked_reasons') or [])}", file=stdout)
+    print(f"  llm_called: {str(summary.get('llm_called')).lower()}", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  accompaniment_generate_call_enabled: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+def _print_user_capability_map(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("user_capability_map_summary") or {}
+    print("UserCapabilityMap>", file=stdout)
+    print(f"  version: {response.get('user_capability_map_and_intent_taxonomy_version')}", file=stdout)
+    print(f"  capability_layers: {summary.get('capability_layer_count')}", file=stdout)
+    print(f"  intent_types: {summary.get('intent_type_count')}", file=stdout)
+    print(f"  has_today_practice_guidance_intent: {summary.get('has_today_practice_guidance_intent')}", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
+def _print_context_engineering_skeleton(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    skeleton = response.get("context_engineering_skeleton") or {}
+    print("ContextEngineeringSkeleton>", file=stdout)
+    print(f"  version: {response.get('context_engineering_skeleton_version')}", file=stdout)
+    print(f"  included_boundaries: {', '.join((skeleton.get('included_boundaries') or {}).keys())}", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  recommendation_created: false", file=stdout)
+
+def _print_routine_config_prepare(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    payload = response.get("routine_config_prepare_payload") or {}
+    candidate = payload.get("routine_config_candidate") or {}
+    print(f"RoutineConfigPrepareActionCard> {candidate.get('routine_name')}: draft", file=stdout)
+    print(f"  style: {candidate.get('style')}", file=stdout)
+    print(f"  tempo: {candidate.get('tempo')}", file=stdout)
+    print(f"  duration_minutes: {candidate.get('duration_minutes')}", file=stdout)
+    print(f"  tune_title: {candidate.get('tune_title')}", file=stdout)
+    print(f"  next_client_actions: {', '.join(payload.get('next_client_actions') or [])}", file=stdout)
+    print("  open_routine_setup_enabled: True", file=stdout)
+    print("  accompaniment_generate_call_enabled: False", file=stdout)
+    print("  routine_start_enabled: False", file=stdout)
+    print("  playback_started: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  midi_asset_created: False", file=stdout)
+
+
 def _print_agent_runtime_skeleton(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok") and response.get("error_code"):
         _print_command_error(response, stdout)
@@ -1575,6 +2460,17 @@ def _print_help(stdout: TextIO) -> None:
     print("  /execute-controlled", file=stdout)
     print("  /action-card", file=stdout)
     print("  /practice-plan-action-card", file=stdout)
+    print("  /practice-plan-routine-candidate [json_block_selector]", file=stdout)
+    print("  /playback-prepare-guarded", file=stdout)
+    print("  /routine-config-prepare", file=stdout)
+    print('  /routine-history-context [json_payload]', file=stdout)
+    print('  /active-practice-plan-context [json_payload]', file=stdout)
+    print('  /practice-context-assembly [json_payload]', file=stdout)
+    print('  /today-practice-context [json_payload]', file=stdout)
+    print('  /today-practice-guidance-prompt [json_payload]', file=stdout)
+    print('  /user-capability-map [json_payload]', file=stdout)
+    print('  /today-practice-guidance-validate [json_payload]', file=stdout)
+    print("  /context-engineering", file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
@@ -1590,6 +2486,16 @@ def _print_help(stdout: TextIO) -> None:
     print("Controlled execution is limited to agent_practice_plan in v2_6_5; it never calls routes, engine adapters, or MIDI generation.", file=stdout)
     print("/action-card builds a HarmonyOS Routine-facing AgentActionCard from the latest terminal action state.", file=stdout)
     print("/practice-plan-action-card builds the Routine-facing practice-plan ActionCard payload after controlled agent_practice_plan execution.", file=stdout)
+    print("/practice-plan-routine-candidate builds a UI-flow-agnostic Routine candidate from a practice-plan block.", file=stdout)
+    print("/playback-prepare-guarded builds a guarded Routine playback-prepare ActionCard payload without generation or playback.", file=stdout)
+    print("/routine-config-prepare builds an editable RoutineConfig draft without generation or playback.", file=stdout)
+    print("/routine-history-context converts Routine completion records into Agent context; it does not create post-session recommendations.", file=stdout)
+    print("/active-practice-plan-context converts the active PracticePlan into Agent context; it does not recommend or execute.", file=stdout)
+    print("/practice-context-assembly combines active plan, Routine history, and today constraints into decision inputs only.", file=stdout)
+    print("/today-practice-context previews the context for a future user-initiated '今天该练什么' turn; it does not call the LLM.", file=stdout)
+    print("/today-practice-guidance-prompt builds the future LLM prompt/output schema for today-practice guidance; it does not call the LLM.", file=stdout)
+    print("/today-practice-guidance-validate validates a future TodayPracticeGuidanceOutput and blocks unsafe direct actions.", file=stdout)
+    print("/context-engineering shows the consolidated context-engineering skeleton status.", file=stdout)
     print("/runtime-skeleton shows the consolidated read-only Agent lifecycle and guard status.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 

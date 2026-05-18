@@ -29,6 +29,18 @@ from jammate_agent.core.contracts import (
     controlled_workflow_execution_contract,
     harmonyos_agent_action_contract,
     practice_plan_action_card_e2e_contract,
+    playback_prepare_guarded_design_contract,
+    routine_config_prepare_contract,
+    practice_plan_to_routine_candidate_bridge_contract,
+    routine_history_context_intake_contract,
+    active_practice_plan_context_intake_contract,
+    practice_context_assembly_policy_contract,
+    today_practice_context_e2e_contract,
+    today_practice_guidance_prompt_contract,
+    user_capability_map_and_intent_taxonomy_contract,
+    today_practice_guidance_output_validation_contract,
+    today_practice_guidance_provider_boundary_e2e_contract,
+    context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
     tool_invocation_preview_contract,
@@ -42,12 +54,33 @@ from jammate_agent.core.tool_invocation import (
     build_harmonyos_agent_action_card,
     build_harmonyos_agent_action_summary,
     build_practice_plan_action_card_e2e_summary,
+    build_playback_prepare_guarded_design_summary,
+    build_routine_config_prepare_summary,
+    build_practice_plan_to_routine_candidate_bridge_summary,
+    build_routine_history_context_intake_payload,
+    build_routine_history_context_intake_summary,
+    build_active_practice_plan_context_intake_payload,
+    build_active_practice_plan_context_intake_summary,
+    build_practice_context_assembly_policy_payload,
+    build_practice_context_assembly_policy_summary,
+    build_today_practice_context_e2e_payload,
+    build_today_practice_context_e2e_summary,
+    build_today_practice_guidance_prompt_contract_payload,
+    build_today_practice_guidance_prompt_contract_summary,
+    build_user_capability_map_and_intent_taxonomy_payload,
+    build_user_capability_map_and_intent_taxonomy_summary,
+    build_today_practice_guidance_output_validation_payload,
+    build_today_practice_guidance_output_validation_summary,
+    build_today_practice_guidance_provider_boundary_e2e_payload,
+    build_today_practice_guidance_provider_boundary_e2e_summary,
     build_confirmation_envelope,
     build_tool_executor_summary,
     build_tool_workflow_dispatcher_summary,
     confirm_tool_invocation,
     dispatch_deterministic_workflow_dry_run,
     execute_controlled_workflow,
+    build_routine_config_prepare_action_payload,
+    build_practice_plan_to_routine_candidate_bridge_payload,
     execute_tool_dry_run,
     preview_tool_invocation,
 )
@@ -129,6 +162,311 @@ def preview_context_runtime(request: AgentContextRuntimePreviewRequest) -> dict:
 @router.get("/llm/provider/spec")
 def get_llm_provider_boundary_spec() -> dict:
     return {"ok": True, "spec": llm_provider_boundary_contract()}
+
+
+@router.get("/capabilities/user-intents/spec")
+def get_user_capability_map_and_intent_taxonomy_spec() -> dict:
+    return {"ok": True, "spec": user_capability_map_and_intent_taxonomy_contract()}
+
+
+@router.post("/capabilities/user-intents/preview")
+def preview_user_capability_map_and_intent_taxonomy_request(request: dict) -> dict:
+    """Return the user-facing LLM capability map and intent taxonomy.
+
+    This route is a planning/contract surface only. It does not call the LLM,
+    execute tools, start Routine, call /accompaniment/generate, call engine
+    adapters, or create MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_user_capability_map_and_intent_taxonomy_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_user_capability_map_and_intent_taxonomy",
+    )
+    summary = build_user_capability_map_and_intent_taxonomy_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "user_capability_map_and_intent_taxonomy_version": user_capability_map_and_intent_taxonomy_contract()["version"],
+        "user_capability_map_payload": payload.to_dict(),
+        "user_capability_map_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/routine-history/spec")
+def get_routine_history_context_intake_spec() -> dict:
+    return {"ok": True, "spec": routine_history_context_intake_contract()}
+
+
+@router.post("/context/routine-history/intake")
+def intake_routine_history_context_request(request: dict) -> dict:
+    """Normalize HarmonyOS Routine history summaries for future Agent ContextPackets.
+
+    This route is context intake only. It does not create a post-session
+    recommendation card, does not call /accompaniment/generate, does not call
+    engine adapters, and does not create MIDI assets or playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_routine_history_context_intake_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_routine_history_context_intake",
+    )
+    summary = build_routine_history_context_intake_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "routine_history_context_intake_version": routine_history_context_intake_contract()["version"],
+        "routine_history_context_payload": payload.to_dict(),
+        "routine_history_context_intake_summary": summary,
+        "recommendation_card_created": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/active-practice-plan/spec")
+def get_active_practice_plan_context_intake_spec() -> dict:
+    return {"ok": True, "spec": active_practice_plan_context_intake_contract()}
+
+
+@router.post("/context/active-practice-plan/intake")
+def intake_active_practice_plan_context_request(request: dict) -> dict:
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_active_practice_plan_context_intake_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_active_practice_plan_context_intake",
+    )
+    summary = build_active_practice_plan_context_intake_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "active_practice_plan_context_intake_version": active_practice_plan_context_intake_contract()["version"],
+        "active_practice_plan_context_payload": payload.to_dict(),
+        "active_practice_plan_context_intake_summary": summary,
+        "recommendation_created": False,
+        "llm_called": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/practice-assembly/spec")
+def get_practice_context_assembly_policy_spec() -> dict:
+    return {"ok": True, "spec": practice_context_assembly_policy_contract()}
+
+
+@router.post("/context/practice-assembly/build")
+def build_practice_context_assembly_request(request: dict) -> dict:
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_practice_context_assembly_policy_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_practice_context_assembly",
+    )
+    summary = build_practice_context_assembly_policy_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "practice_context_assembly_policy_version": practice_context_assembly_policy_contract()["version"],
+        "practice_context_assembly_payload": payload.to_dict(),
+        "practice_context_assembly_summary": summary,
+        "recommendation_created": False,
+        "llm_called": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice/spec")
+def get_today_practice_context_e2e_spec() -> dict:
+    return {"ok": True, "spec": today_practice_context_e2e_contract()}
+
+
+@router.post("/context/today-practice/preview")
+def preview_today_practice_context_request(request: dict) -> dict:
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_context_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_context_e2e",
+    )
+    summary = build_today_practice_context_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_context_e2e_version": today_practice_context_e2e_contract()["version"],
+        "today_practice_context_payload": payload.to_dict(),
+        "today_practice_context_summary": summary,
+        "recommendation_created": False,
+        "llm_called": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/spec")
+def get_today_practice_guidance_prompt_contract_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_prompt_contract()}
+
+
+@router.post("/context/today-practice-guidance/prompt-preview")
+def preview_today_practice_guidance_prompt_contract_request(request: dict) -> dict:
+    """Build the prompt/output contract for future LLM today-practice guidance.
+
+    This route does not call the LLM and does not create a final guidance answer.
+    It only exposes the provider-boundary-ready prompt, output schema, and guard
+    policy for the next user-initiated "今天该练什么" turn.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_prompt_contract_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_prompt_contract",
+    )
+    summary = build_today_practice_guidance_prompt_contract_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_prompt_contract_version": today_practice_guidance_prompt_contract()["version"],
+        "today_practice_guidance_prompt_payload": payload.to_dict(),
+        "today_practice_guidance_prompt_summary": summary,
+        "llm_called": False,
+        "guidance_response_created": False,
+        "recommendation_created": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/output-validation/spec")
+def get_today_practice_guidance_output_validation_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_output_validation_contract()}
+
+
+@router.post("/context/today-practice-guidance/output-validation/validate")
+def validate_today_practice_guidance_output_request(request: dict) -> dict:
+    """Validate a future LLM TodayPracticeGuidanceOutput without executing anything.
+
+    The validator accepts only guidance/candidate data for client display. It
+    blocks attempts to start Routine, call /accompaniment/generate, invoke
+    engine adapters, create MIDI assets, or bypass user confirmation.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_output_validation_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_output_validation",
+    )
+    summary = build_today_practice_guidance_output_validation_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_output_validation_version": today_practice_guidance_output_validation_contract()["version"],
+        "today_practice_guidance_output_validation_payload": payload.to_dict(),
+        "today_practice_guidance_output_validation_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/provider-boundary/spec")
+def get_today_practice_guidance_provider_boundary_e2e_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_provider_boundary_e2e_contract()}
+
+
+@router.post("/context/today-practice-guidance/provider-boundary/e2e-preview")
+def preview_today_practice_guidance_provider_boundary_e2e_request(request: dict) -> dict:
+    """Run prompt contract + provider-result preview + output validation.
+
+    This route accepts either context inputs plus a supplied providerResult / llmOutput
+    fixture, or an explicitly gated provider call in a configured environment. It
+    never starts Routine, calls /accompaniment/generate, invokes engine adapters,
+    or creates MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_provider_boundary_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_provider_boundary_e2e",
+    )
+    summary = build_today_practice_guidance_provider_boundary_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_provider_boundary_e2e_version": today_practice_guidance_provider_boundary_e2e_contract()["version"],
+        "today_practice_guidance_provider_boundary_e2e_payload": payload.to_dict(),
+        "today_practice_guidance_provider_boundary_e2e_summary": summary,
+        "llm_called": payload.llm_called,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/engineering-skeleton")
+def get_context_engineering_skeleton_spec() -> dict:
+    return {"ok": True, "context_engineering_skeleton": context_engineering_skeleton_contract()}
 
 
 @router.get("/tools/registry")
@@ -610,6 +948,213 @@ def execute_practice_plan_action_card_e2e_request(request: dict) -> dict:
         "engine_adapter_called": False,
         "midi_asset_created": False,
         "playback_started": False,
+    }
+
+
+@router.get("/actions/playback-prepare/spec")
+def get_playback_prepare_guarded_design_spec() -> dict:
+    return {"ok": True, "spec": playback_prepare_guarded_design_contract()}
+
+
+@router.post("/actions/playback-prepare/guarded-preview")
+def preview_playback_prepare_guarded_design_request(request: dict) -> dict:
+    """Guarded Routine-facing design payload for agent_playback_prepare.
+
+    This route runs only preview -> confirmation -> executor dry-run -> workflow
+    descriptor resolution. It never calls /accompaniment/generate, never calls
+    engine adapters, never creates MIDI assets, and never starts playback.
+    """
+
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "immediate_practice_playback"
+    tool_name = request.get("tool_name") or request.get("toolName") or "agent_playback_prepare"
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput") or arguments.get("user_input") or arguments.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    trace_id = request.get("trace_id") or request.get("traceId")
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"Playback prepare guarded design: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    workflow_dispatch_result = dispatch_deterministic_workflow_dry_run(execution_result)
+    action_card = build_harmonyos_agent_action_card(
+        preview=preview,
+        confirmation=confirmation,
+        confirmation_result=confirmation_result,
+        execution_result=execution_result,
+        workflow_dispatch_result=workflow_dispatch_result,
+        controlled_result=None,
+        trace_id=trace_id,
+    )
+    action_summary = build_harmonyos_agent_action_summary(action_card=action_card, source="agent_api")
+    guarded_summary = build_playback_prepare_guarded_design_summary(action_card=action_card, source="agent_api")
+    return {
+        "ok": bool(workflow_dispatch_result.ok and tool_name == "agent_playback_prepare"),
+        "playback_prepare_guarded_design_version": playback_prepare_guarded_design_contract()["version"],
+        "harmonyos_agent_action_contract_version": action_card.action_contract_version,
+        "action_card": action_card.to_dict(),
+        "harmonyos_agent_action_summary": action_summary,
+        "playback_prepare_guarded_design_summary": guarded_summary,
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "workflow_dispatch_result": workflow_dispatch_result.to_dict(),
+        "context_packet_summary": context.summary(),
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+
+
+@router.get("/actions/practice-plan/routine-candidate/spec")
+def get_practice_plan_to_routine_candidate_bridge_spec() -> dict:
+    return {"ok": True, "spec": practice_plan_to_routine_candidate_bridge_contract()}
+
+
+@router.post("/actions/practice-plan/routine-candidate/prepare")
+def prepare_practice_plan_to_routine_candidate_bridge_request(request: dict) -> dict:
+    """UI-flow-agnostic Routine candidate from a practice-plan block.
+
+    The route accepts an existing routine_practice_plan_payload/action_card/raw
+    practice plan/block and returns candidate data only. HarmonyOS decides
+    whether to render a setup page, bottom sheet, current-form fill, queue item,
+    template, or any future client flow. No playback or accompaniment generation
+    is started here.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or {}
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    if "block_id" in request and "block_id" not in arguments:
+        arguments["block_id"] = request.get("block_id")
+    if "blockId" in request and "blockId" not in arguments:
+        arguments["blockId"] = request.get("blockId")
+    if "block_index" in request and "block_index" not in arguments:
+        arguments["block_index"] = request.get("block_index")
+    if "blockIndex" in request and "blockIndex" not in arguments:
+        arguments["blockIndex"] = request.get("blockIndex")
+    payload = build_practice_plan_to_routine_candidate_bridge_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_practice_plan_to_routine_candidate_bridge",
+    )
+    summary = build_practice_plan_to_routine_candidate_bridge_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "practice_plan_to_routine_candidate_bridge_version": practice_plan_to_routine_candidate_bridge_contract()["version"],
+        "routine_candidate_bridge_payload": payload.to_dict(),
+        "practice_plan_to_routine_candidate_bridge_summary": summary,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/actions/routine-config/spec")
+def get_routine_config_prepare_spec() -> dict:
+    return {"ok": True, "spec": routine_config_prepare_contract()}
+
+
+@router.post("/actions/routine-config/prepare")
+def prepare_routine_config_action_request(request: dict) -> dict:
+    """Routine-facing editable RoutineConfig candidate.
+
+    This route runs preview -> confirmation -> executor dry-run -> workflow
+    descriptor resolution for agent_routine_config_prepare, then shapes an
+    editable RoutineConfig draft. It never calls /accompaniment/generate, never
+    calls engine adapters, never creates MIDI assets, and never starts playback.
+    """
+
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "coach_qa"
+    tool_name = request.get("tool_name") or request.get("toolName") or "agent_routine_config_prepare"
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput") or arguments.get("user_input") or arguments.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    trace_id = request.get("trace_id") or request.get("traceId")
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"RoutineConfig prepare: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    workflow_dispatch_result = dispatch_deterministic_workflow_dry_run(execution_result)
+    action_card = build_harmonyos_agent_action_card(
+        preview=preview,
+        confirmation=confirmation,
+        confirmation_result=confirmation_result,
+        execution_result=execution_result,
+        workflow_dispatch_result=workflow_dispatch_result,
+        controlled_result=None,
+        trace_id=trace_id,
+    )
+    payload = build_routine_config_prepare_action_payload(
+        arguments,
+        tool_name=tool_name,
+        trace_id=trace_id,
+        source="agent_api_routine_config_prepare",
+    )
+    action_summary = build_harmonyos_agent_action_summary(action_card=action_card, source="agent_api")
+    routine_config_summary = build_routine_config_prepare_summary(action_card=action_card, payload=payload, source="agent_api")
+    return {
+        "ok": bool(workflow_dispatch_result.ok and tool_name == "agent_routine_config_prepare"),
+        "routine_config_prepare_contract_version": routine_config_prepare_contract()["version"],
+        "harmonyos_agent_action_contract_version": action_card.action_contract_version,
+        "action_card": action_card.to_dict(),
+        "routine_config_prepare_payload": payload.to_dict(),
+        "harmonyos_agent_action_summary": action_summary,
+        "routine_config_prepare_summary": routine_config_summary,
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "workflow_dispatch_result": workflow_dispatch_result.to_dict(),
+        "context_packet_summary": context.summary(),
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
     }
 
 

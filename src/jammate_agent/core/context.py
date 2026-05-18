@@ -4,7 +4,20 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from jammate_agent.core.llm_provider import LLMProviderConfig
-from jammate_agent.core.tool_invocation import TOOL_INVOCATION_PREVIEW_VERSION, DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY
+from jammate_agent.core.tool_invocation import (
+    TOOL_INVOCATION_PREVIEW_VERSION,
+    DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY,
+    ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+    CONTEXT_ENGINEERING_SKELETON_VERSION,
+    ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+    PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+    TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+    build_routine_history_context_intake_payload,
+    build_active_practice_plan_context_intake_payload,
+    build_practice_context_assembly_policy_payload,
+)
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, summarize_tools_for_names, validate_allowed_tools
 
 CONTEXT_RUNTIME_VERSION = "v2_4_13"
@@ -22,6 +35,12 @@ class CapabilityManifest:
     supports_llm_provider_boundary: bool = True
     supports_tool_registry_boundary: bool = True
     supports_tool_invocation_preview: bool = True
+    supports_routine_history_context_intake: bool = True
+    supports_active_practice_plan_context_intake: bool = True
+    supports_practice_context_assembly_policy: bool = True
+    supports_today_practice_context_e2e: bool = True
+    supports_today_practice_guidance_prompt_contract: bool = True
+    supports_today_practice_guidance_provider_boundary_e2e: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,6 +55,12 @@ class CapabilityManifest:
             "supports_llm_provider_boundary": self.supports_llm_provider_boundary,
             "supports_tool_registry_boundary": self.supports_tool_registry_boundary,
             "supports_tool_invocation_preview": self.supports_tool_invocation_preview,
+            "supports_routine_history_context_intake": self.supports_routine_history_context_intake,
+            "supports_active_practice_plan_context_intake": self.supports_active_practice_plan_context_intake,
+            "supports_practice_context_assembly_policy": self.supports_practice_context_assembly_policy,
+            "supports_today_practice_context_e2e": self.supports_today_practice_context_e2e,
+            "supports_today_practice_guidance_prompt_contract": self.supports_today_practice_guidance_prompt_contract,
+            "supports_today_practice_guidance_provider_boundary_e2e": self.supports_today_practice_guidance_provider_boundary_e2e,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -67,7 +92,7 @@ CONTEXT_PROFILES: dict[str, ContextProfile] = {
     "practice_plan_generation": ContextProfile(
         task_type="practice_plan_generation",
         required_context_layers=("system_product_context", "capability_manifest", "user_request", "client_context"),
-        optional_context_layers=("learner_summary", "active_goal", "relevant_history", "routine_templates"),
+        optional_context_layers=("learner_summary", "active_goal", "active_practice_plan_context", "relevant_history", "routine_history_context", "assembled_practice_context", "routine_templates"),
         allowed_tools=("agent_practice_plan",),
         output_schema="PracticePlan",
         llm_required=False,
@@ -91,10 +116,19 @@ CONTEXT_PROFILES: dict[str, ContextProfile] = {
         llm_required=False,
         deterministic_fallback="ReviewEngine.recommend_next_step",
     ),
+    "today_practice_guidance": ContextProfile(
+        task_type="today_practice_guidance",
+        required_context_layers=("system_product_context", "capability_manifest", "user_question", "client_context"),
+        optional_context_layers=("active_practice_plan_context", "routine_history_context", "assembled_practice_context", "learner_summary", "active_goal"),
+        allowed_tools=("agent_practice_plan",),
+        output_schema="TodayPracticeGuidanceOutput",
+        llm_required=True,
+        deterministic_fallback=None,
+    ),
     "coach_qa": ContextProfile(
         task_type="coach_qa",
         required_context_layers=("system_product_context", "capability_manifest", "user_question", "client_context"),
-        optional_context_layers=("music_concept_context", "relevant_history", "current_screen_or_session"),
+        optional_context_layers=("music_concept_context", "active_practice_plan_context", "relevant_history", "routine_history_context", "assembled_practice_context", "current_screen_or_session"),
         allowed_tools=("agent_practice_plan", "agent_playback_prepare"),
         output_schema="CoachResponse",
         llm_required=True,
@@ -171,17 +205,34 @@ class ContextBuilder:
         constraints = self._build_constraints(kwargs, client_context)
         allowed_tools = list(profile.allowed_tools)
         tool_descriptors = summarize_tools_for_names(allowed_tools)
+        routine_history_context = self._routine_history_context(kwargs, client_context)
+        active_practice_plan_context = self._active_practice_plan_context(kwargs, client_context)
+        assembled_practice_context = self._assembled_practice_context(kwargs, client_context, routine_history_context, active_practice_plan_context)
+        learner_context = self._clean_dict(kwargs.get("learner_context") or {"recent_focus": [], "recent_weak_points": [], "note": "P0 placeholder; replace with LearnerModel summary."})
+        selected_layers = [*profile.required_context_layers, *profile.optional_context_layers]
+        if active_practice_plan_context:
+            learner_context["active_practice_plan_context"] = active_practice_plan_context
+            if "active_practice_plan_context" not in selected_layers:
+                selected_layers.append("active_practice_plan_context")
+        if routine_history_context:
+            learner_context["routine_history_context"] = routine_history_context
+            if "routine_history_context" not in selected_layers:
+                selected_layers.append("routine_history_context")
+        if assembled_practice_context:
+            learner_context["assembled_practice_context"] = assembled_practice_context
+            if "assembled_practice_context" not in selected_layers:
+                selected_layers.append("assembled_practice_context")
         context = ContextPacket(
             task_type=profile.task_type,
             user_request={"text": user_input, **self._request_metadata(kwargs)},
             client_context=client_context,
             user_profile={"instrument": kwargs.get("instrument", "piano"), "level": "unknown"},
-            learner_context=self._clean_dict(kwargs.get("learner_context") or {"recent_focus": [], "recent_weak_points": [], "note": "P0 placeholder; replace with LearnerModel summary."}),
+            learner_context=learner_context,
             active_context=self._clean_dict(kwargs.get("active_context") or {}),
             material_context=self._clean_dict(kwargs.get("material_context") or {}),
             constraints=constraints,
             system_product_context=self._system_product_context(),
-            selected_context_layers=[*profile.required_context_layers, *profile.optional_context_layers],
+            selected_context_layers=selected_layers,
             allowed_tools=allowed_tools,
             tool_descriptors=tool_descriptors,
             output_contract={"schema": profile.output_schema, "response_case": "snake_case", "client_domain_case": "camelCase"},
@@ -189,6 +240,16 @@ class ContextBuilder:
             routing_hints={
                 "direct_client_callable": profile.task_type in {"practice_plan_generation", "immediate_practice_playback", "session_review"},
                 "preferred_route": self._preferred_route(profile.task_type),
+                "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+                "active_practice_plan_context_intake_version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION,
+                "practice_context_assembly_policy_version": PRACTICE_CONTEXT_ASSEMBLY_POLICY_VERSION,
+                "context_engineering_skeleton_version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+                "today_practice_guidance_prompt_contract_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+                "today_practice_guidance_output_validation_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+                "today_practice_guidance_provider_boundary_e2e_version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+                "routine_history_context_present": bool(routine_history_context),
+                "active_practice_plan_context_present": bool(active_practice_plan_context),
+                "assembled_practice_context_present": bool(assembled_practice_context),
                 "engine_boundary": "Agent may use engine only through jammate_agent.adapters.",
             },
         )
@@ -225,7 +286,68 @@ class ContextBuilder:
                 metadata[key] = kwargs[key]
         if kwargs.get("local_unsynced_summary"):
             metadata["local_unsynced_summary"] = kwargs["local_unsynced_summary"]
+        if kwargs.get("routine_history_context") or kwargs.get("practice_history_context"):
+            metadata["routine_history_context_supplied"] = True
+        if kwargs.get("active_practice_plan_context") or kwargs.get("active_practice_plan") or kwargs.get("practice_plan"):
+            metadata["active_practice_plan_context_supplied"] = True
+        if kwargs.get("assembled_practice_context") or kwargs.get("practice_context_assembly"):
+            metadata["assembled_practice_context_supplied"] = True
         return metadata
+
+    def _routine_history_context(self, kwargs: dict[str, Any], client_context: dict[str, Any]) -> dict[str, Any]:
+        direct = kwargs.get("routine_history_context") or kwargs.get("practice_history_context")
+        if isinstance(direct, dict):
+            if direct.get("context_packet_section"):
+                return self._clean_dict(direct.get("context_packet_section") or {})
+            return self._clean_dict(direct)
+        client_direct = client_context.get("routine_history_context") or client_context.get("practice_history_context")
+        if isinstance(client_direct, dict):
+            if client_direct.get("context_packet_section"):
+                return self._clean_dict(client_direct.get("context_packet_section") or {})
+            return self._clean_dict(client_direct)
+        records = kwargs.get("routine_history_records") or kwargs.get("routineHistoryRecords") or client_context.get("routine_history_records") or client_context.get("routineHistoryRecords")
+        if isinstance(records, list):
+            return build_routine_history_context_intake_payload({"routineHistoryRecords": records}, source="context_builder").context_packet_section
+        return {}
+
+    def _active_practice_plan_context(self, kwargs: dict[str, Any], client_context: dict[str, Any]) -> dict[str, Any]:
+        direct = kwargs.get("active_practice_plan_context") or kwargs.get("activePracticePlanContext")
+        if isinstance(direct, dict):
+            if direct.get("context_packet_section"):
+                return self._clean_dict(direct.get("context_packet_section") or {})
+            return self._clean_dict(direct)
+        client_direct = client_context.get("active_practice_plan_context") or client_context.get("activePracticePlanContext")
+        if isinstance(client_direct, dict):
+            if client_direct.get("context_packet_section"):
+                return self._clean_dict(client_direct.get("context_packet_section") or {})
+            return self._clean_dict(client_direct)
+        plan = kwargs.get("active_practice_plan") or kwargs.get("activePracticePlan") or kwargs.get("practice_plan") or kwargs.get("practicePlan") or client_context.get("active_practice_plan") or client_context.get("activePracticePlan") or client_context.get("practice_plan") or client_context.get("practicePlan")
+        if isinstance(plan, dict):
+            return build_active_practice_plan_context_intake_payload({"active_practice_plan": plan}, source="context_builder").context_packet_section
+        return {}
+
+    def _assembled_practice_context(self, kwargs: dict[str, Any], client_context: dict[str, Any], routine_history_context: dict[str, Any], active_practice_plan_context: dict[str, Any]) -> dict[str, Any]:
+        direct = kwargs.get("assembled_practice_context") or kwargs.get("practice_context_assembly") or kwargs.get("practiceContextAssembly")
+        if isinstance(direct, dict):
+            if direct.get("assembled_context"):
+                return self._clean_dict(direct.get("assembled_context") or {})
+            return self._clean_dict(direct)
+        client_direct = client_context.get("assembled_practice_context") or client_context.get("practice_context_assembly") or client_context.get("practiceContextAssembly")
+        if isinstance(client_direct, dict):
+            if client_direct.get("assembled_context"):
+                return self._clean_dict(client_direct.get("assembled_context") or {})
+            return self._clean_dict(client_direct)
+        if active_practice_plan_context or routine_history_context:
+            args: dict[str, Any] = {
+                "active_practice_plan_context": active_practice_plan_context,
+                "routine_history_context": routine_history_context,
+            }
+            if kwargs.get("available_minutes") is not None:
+                args["available_minutes"] = kwargs.get("available_minutes")
+            if kwargs.get("user_input") is not None:
+                args["user_input"] = kwargs.get("user_input")
+            return build_practice_context_assembly_policy_payload(args, source="context_builder").assembled_context
+        return {}
 
     def _build_constraints(self, kwargs: dict[str, Any], client_context: dict[str, Any]) -> dict[str, Any]:
         available = kwargs.get("available_minutes") or client_context.get("available_minutes")
@@ -246,6 +368,7 @@ class ContextBuilder:
                 "LLM/Agent is an enhancement path, not required for direct accompaniment.",
                 "HarmonyOS local practice workspace must run without LLM.",
                 "Context packets are task-scoped and should not include unnecessary history.",
+                "Routine history is used on the next user-initiated Agent planning turn, not as an automatic post-session card.",
             ],
             "package_boundaries": {
                 "jammate_engine": "independent accompaniment generation kernel",
