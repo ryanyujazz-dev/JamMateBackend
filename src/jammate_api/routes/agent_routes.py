@@ -43,6 +43,10 @@ from jammate_agent.core.contracts import (
     today_practice_guidance_action_card_contract,
     today_practice_guidance_terminal_chat_e2e_contract,
     context_and_guidance_skeleton_cleanup_contract,
+    user_practice_profile_context_intake_contract,
+    practice_context_storage_boundary_contract,
+    today_practice_guidance_profile_aware_e2e_contract,
+    practice_plan_persistence_candidate_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -64,6 +68,14 @@ from jammate_agent.core.tool_invocation import (
     build_routine_history_context_intake_summary,
     build_active_practice_plan_context_intake_payload,
     build_active_practice_plan_context_intake_summary,
+    build_user_practice_profile_context_intake_payload,
+    build_user_practice_profile_context_intake_summary,
+    build_practice_context_storage_boundary_payload,
+    build_practice_context_storage_boundary_summary,
+    build_today_practice_guidance_profile_aware_e2e_payload,
+    build_today_practice_guidance_profile_aware_e2e_summary,
+    build_practice_plan_persistence_candidate_payload,
+    build_practice_plan_persistence_candidate_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -276,6 +288,91 @@ def intake_active_practice_plan_context_request(request: dict) -> dict:
         "active_practice_plan_context_intake_summary": summary,
         "recommendation_created": False,
         "llm_called": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/user-practice-profile/spec")
+def get_user_practice_profile_context_intake_spec() -> dict:
+    return {"ok": True, "spec": user_practice_profile_context_intake_contract()}
+
+
+@router.post("/context/user-practice-profile/intake")
+def intake_user_practice_profile_context_request(request: dict) -> dict:
+    """Normalize durable user practice preferences for future Agent ContextPackets.
+
+    This route is context intake only. It does not call the LLM, execute tools,
+    write storage, start Routine, call /accompaniment/generate, call engine
+    adapters, or create MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_user_practice_profile_context_intake_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_user_practice_profile_context_intake",
+    )
+    summary = build_user_practice_profile_context_intake_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "user_practice_profile_context_intake_version": user_practice_profile_context_intake_contract()["version"],
+        "user_practice_profile_context_payload": payload.to_dict(),
+        "user_practice_profile_context_intake_summary": summary,
+        "recommendation_created": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/storage-boundary/spec")
+def get_practice_context_storage_boundary_spec() -> dict:
+    return {"ok": True, "spec": practice_context_storage_boundary_contract()}
+
+
+@router.post("/context/storage-boundary/preview")
+def preview_practice_context_storage_boundary_request(request: dict) -> dict:
+    """Preview practice-context storage ownership without writing storage.
+
+    This route classifies local/backend/request/trace context boundaries only.
+    It does not call the LLM, execute tools, write storage, start Routine, call
+    /accompaniment/generate, call engine adapters, or create MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_practice_context_storage_boundary_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_practice_context_storage_boundary",
+    )
+    summary = build_practice_context_storage_boundary_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "practice_context_storage_boundary_version": practice_context_storage_boundary_contract()["version"],
+        "practice_context_storage_boundary_payload": payload.to_dict(),
+        "practice_context_storage_boundary_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
         "route_called": False,
         "engine_adapter_called": False,
         "midi_asset_created": False,
@@ -544,6 +641,93 @@ def preview_today_practice_guidance_terminal_chat_e2e_request(request: dict) -> 
         "today_practice_guidance_terminal_chat_e2e_version": today_practice_guidance_terminal_chat_e2e_contract()["version"],
         "today_practice_guidance_terminal_chat_e2e_payload": payload.to_dict(),
         "today_practice_guidance_terminal_chat_e2e_summary": summary,
+        "llm_called": payload.llm_called,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+
+
+@router.get("/practice-plan/persistence-candidate/spec")
+def get_practice_plan_persistence_candidate_spec() -> dict:
+    return {"ok": True, "spec": practice_plan_persistence_candidate_contract()}
+
+
+@router.post("/practice-plan/persistence-candidate/preview")
+def preview_practice_plan_persistence_candidate_request(request: dict) -> dict:
+    """Preview a save/update PracticePlan candidate without writing storage.
+
+    This route is a persistence-candidate contract only. It does not call the
+    LLM, execute tools, write backend storage, write local device state, start
+    Routine, call /accompaniment/generate, call engine adapters, or create MIDI
+    assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_practice_plan_persistence_candidate_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_practice_plan_persistence_candidate",
+    )
+    summary = build_practice_plan_persistence_candidate_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "practice_plan_persistence_candidate_contract_version": practice_plan_persistence_candidate_contract()["version"],
+        "practice_plan_persistence_candidate_payload": payload.to_dict(),
+        "practice_plan_persistence_candidate_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/profile-aware/spec")
+def get_today_practice_guidance_profile_aware_e2e_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_profile_aware_e2e_contract()}
+
+
+@router.post("/context/today-practice-guidance/profile-aware/e2e-preview")
+def preview_today_practice_guidance_profile_aware_e2e_request(request: dict) -> dict:
+    """Preview profile-aware today-practice guidance without side effects.
+
+    This route injects UserPracticeProfileContext into the existing guarded
+    today-practice guidance chain. It may use a supplied providerResult fixture
+    or an explicitly gated provider boundary call, but it still returns only a
+    display ActionCard and candidate data.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_profile_aware_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_profile_aware_e2e",
+    )
+    summary = build_today_practice_guidance_profile_aware_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_profile_aware_e2e_version": today_practice_guidance_profile_aware_e2e_contract()["version"],
+        "today_practice_guidance_profile_aware_e2e_payload": payload.to_dict(),
+        "today_practice_guidance_profile_aware_e2e_summary": summary,
         "llm_called": payload.llm_called,
         "tool_executed": False,
         "route_called": False,

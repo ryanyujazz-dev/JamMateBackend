@@ -1,6 +1,18 @@
 # Agent Track Development Task Plan V2
 
-Current baseline: `v2_7_1_agent_practice_plan_to_routine_candidate_bridge`.
+## v2_8_5_agent_terminal_guidance_json_contract_hotfix
+
+- Fixed terminal today-practice guidance UX when a configured LLM returns plain text or partial JSON instead of strict `TodayPracticeGuidanceOutput`.
+- Strengthened JSON-only prompt instructions while preserving the existing 4-message prompt contract.
+- Added safe display-only provider-output coercion: successful plain text becomes `fallback_without_plan` guidance with `show_guidance` only.
+- Partial JSON receives safe defaults for `guidance_mode`, `recommended_focus`, `user_confirmation_required`, and `next_client_actions`.
+- Preserved no-side-effect guarantees: no Routine start, no tools, no Engine adapter, no `/accompaniment/generate`, no MIDI, no playback.
+- Added `tests/test_v2_8_5_agent_terminal_guidance_json_contract_hotfix.py`.
+
+Next recommended task: `v2_8_6_agent_practice_plan_persistence_candidate_contract`.
+
+
+Current baseline: `v2_8_1_agent_user_profile_context_intake`.
 
 This file is the rolling plan for `feature/agent-workflow`. It owns Agent / LLM orchestration, terminal chat, tool-preview, traces, provider boundaries, controlled low-risk Agent workflows, and HarmonyOS Routine Agent action surfaces.
 
@@ -100,7 +112,7 @@ v2_7_1_agent_practice_plan_to_routine_candidate_bridge
 ## Current Agent Task
 
 ```text
-v2_7_1_agent_practice_plan_to_routine_candidate_bridge
+v2_8_1_agent_user_profile_context_intake
 ```
 
 Scope:
@@ -377,3 +389,190 @@ v2_8_1_agent_user_profile_context_intake
 ```
 
 Suggested focus: define how durable user practice preferences, current goals, comfortable tempo ranges, and focus areas enter ContextPacket without turning them into execution actions.
+
+
+## v2_8_1_agent_user_profile_context_intake
+
+Status: completed in Agent track.
+
+Goal:
+
+```text
+UserPracticeProfile
+→ UserPracticeProfileContext intake
+→ ContextPacket learner_context.user_practice_profile_context
+→ assembled_practice_context profile_summary / decision input
+```
+
+Added surfaces:
+
+```text
+GET  /agent/context/user-practice-profile/spec
+POST /agent/context/user-practice-profile/intake
+/user-practice-profile-context [json_payload]
+```
+
+Scope completed:
+
+- Added `UserPracticeProfileContextIntakePayload`, summary builder, and spec contract.
+- Normalizes durable practice-profile fields: current goal, preferred styles, focus areas, skill focus, common tunes, comfort tempo ranges, preferred session minutes, avoid list, saved routine preferences, practice-mode preference, and updated timestamp.
+- Supports camelCase and snake_case payloads from HarmonyOS/backend/client callers.
+- Normalizes tempo ranges to `min/max`; reversed ranges become swapped warnings, invalid ranges are skipped with warnings.
+- Drops sensitive or client-only fields before Agent context: API keys, tokens, passwords, local MIDI paths, MIDI base64, precise location, payment info, playback internals, and hidden chain-of-thought.
+- Injects profile context into `ContextBuilder` and `learner_context.user_practice_profile_context`.
+- Extends practice context assembly so `assembled_practice_context` can carry `user_practice_profile_context`, `profile_summary`, and `llm_decision_inputs.user_practice_profile_input_available`.
+- Preserves the v2_8_1 boundary: context intake only; no LLM call, no tool execution, no storage write, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
+
+Design judgment:
+
+```text
+UserPracticeProfile is not a recommendation rule engine.
+It is durable user context for later profile-aware guidance.
+```
+
+Recommended next Agent task:
+
+```text
+v2_8_2_agent_practice_context_storage_boundary_contract
+```
+
+Goal: define which practice-context objects are owned by HarmonyOS local storage, backend long-term storage, Agent trace, and temporary request payloads, without implementing a full database yet.
+
+## v2_8_2_agent_practice_context_storage_boundary_contract
+
+Status: completed in Agent track.
+
+Scope:
+
+```text
+Practice context storage/source-of-truth boundary contract only.
+No database implementation.
+No backend write.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No engine adapter.
+No MIDI asset.
+No playback.
+```
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/storage-boundary/spec
+POST /agent/context/storage-boundary/preview
+/practice-context-storage-boundary [json_payload]
+docs/AGENT_PRACTICE_CONTEXT_STORAGE_BOUNDARY_V2_8_2.md
+```
+
+Boundary categories:
+
+```text
+harmonyos_local_only
+backend_long_term_context
+request_ephemeral_context
+agent_trace_context
+never_store_or_contextualize
+```
+
+Key judgment:
+
+```text
+ContextBuilder can assemble normalized context sections, but it must not become a storage layer.
+HarmonyOS owns live Routine/playback/UI state.
+Backend should eventually own durable compact practice-context summaries.
+This version only defines the contract and writes nothing.
+```
+
+Recommended next task:
+
+```text
+v2_8_3_agent_today_practice_guidance_profile_aware_e2e
+```
+
+
+## v2_8_3_agent_today_practice_guidance_profile_aware_e2e
+
+Status: completed in Agent track.
+
+Scope:
+
+```text
+Profile-aware TodayPracticeGuidance E2E only.
+UserPracticeProfileContext is soft personalization context.
+No recommendation rule engine.
+No database write.
+No LLM call by default.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No engine adapter.
+No MIDI asset.
+No playback.
+```
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/today-practice-guidance/profile-aware/spec
+POST /agent/context/today-practice-guidance/profile-aware/e2e-preview
+/today-practice-guidance-profile-aware [json_payload]
+docs/AGENT_TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_V2_8_3.md
+```
+
+Key judgment:
+
+```text
+UserPracticeProfileContext can affect focus/style/tempo/avoid/practice-mode wording as soft context,
+but active PracticePlan and recent RoutineHistory remain primary decision inputs.
+```
+
+Recommended next task:
+
+```text
+v2_8_4_agent_practice_plan_persistence_candidate_contract
+```
+
+Goal: design save/update PracticePlan as a previewable, user-confirmed candidate action, still without implementing full database persistence unless explicitly requested.
+
+## v2_8_4_agent_terminal_llm_provider_compatibility_hotfix
+
+Status: completed in Agent track.
+
+Reason:
+
+```text
+Real terminal LLM testing exposed two usability/compatibility bugs:
+1. python -m terminal_chat setup/doctor ignored argv because main() did not forward sys.argv[1:].
+2. Some OpenAI-compatible providers rejected role="developer" in Chat Completions payloads.
+```
+
+Implemented:
+
+```text
+src/jammate_agent/cli/terminal_chat.py
+src/jammate_agent/core/llm_provider.py
+tests/test_v2_8_4_agent_terminal_llm_provider_compatibility_hotfix.py
+docs/AGENT_TERMINAL_LLM_PROVIDER_COMPATIBILITY_HOTFIX_V2_8_4.md
+```
+
+Boundary:
+
+```text
+Terminal hotfix only.
+No recommendation logic expansion.
+No storage implementation.
+No Engine music-generation changes.
+No pattern / voicing / expression / pedal changes.
+No demo MIDI changes.
+```
+
+Recommended next task:
+
+```text
+v2_8_5_agent_practice_plan_persistence_candidate_contract
+```
+
+Goal: design save/update PracticePlan as a previewable, user-confirmed candidate action, still without implementing full database persistence unless explicitly requested.

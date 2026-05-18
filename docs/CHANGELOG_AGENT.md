@@ -1,10 +1,34 @@
 # Agent Track Changelog
 
-Current baseline: `v2_7_1_agent_practice_plan_to_routine_candidate_bridge`.
+## v2_8_5_agent_terminal_guidance_json_contract_hotfix
+
+- Fixed terminal today-practice guidance UX when a configured LLM returns plain text or partial JSON instead of strict `TodayPracticeGuidanceOutput`.
+- Strengthened JSON-only prompt instructions while preserving the existing 4-message prompt contract.
+- Added safe display-only provider-output coercion: successful plain text becomes `fallback_without_plan` guidance with `show_guidance` only.
+- Partial JSON receives safe defaults for `guidance_mode`, `recommended_focus`, `user_confirmation_required`, and `next_client_actions`.
+- Preserved no-side-effect guarantees: no Routine start, no tools, no Engine adapter, no `/accompaniment/generate`, no MIDI, no playback.
+- Added `tests/test_v2_8_5_agent_terminal_guidance_json_contract_hotfix.py`.
+
+Next recommended task: `v2_8_6_agent_practice_plan_persistence_candidate_contract`.
+
+
+Current baseline: `v2_8_1_agent_user_profile_context_intake`.
 
 This file records Agent-track changes to reduce conflicts in the global `docs/CHANGELOG.md`.
 
 ---
+
+
+## v2_8_1_agent_user_profile_context_intake
+
+- Added UserPracticeProfile context intake contract for durable learner goals/preferences.
+- Added `UserPracticeProfileContextIntakePayload`, summary builder, and `user_practice_profile_context_intake_contract()`.
+- Added API routes: `GET /agent/context/user-practice-profile/spec` and `POST /agent/context/user-practice-profile/intake`.
+- Added terminal command `/user-practice-profile-context [json_payload]`.
+- Integrated `user_practice_profile_context` into `ContextBuilder`, `learner_context`, practice context assembly, context/runtime manifests, and today-practice decision inputs.
+- Normalizes camelCase/snake_case fields, comfort tempo ranges, preferred session minutes, and LLM-facing profile summary.
+- Drops sensitive/client-only fields such as API keys, tokens, passwords, local MIDI paths, MIDI base64, precise location, payment info, playback internals, and hidden chain-of-thought.
+- Preserved all guards: no LLM call, no tool execution, no storage write, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
 
 ## v2_7_1 — Agent PracticePlan to Routine Candidate Bridge
 
@@ -196,3 +220,58 @@ This file records Agent-track changes to reduce conflicts in the global `docs/CH
 - Added terminal command `/context-guidance-skeleton [json_payload]`.
 - Centralized the ordered stage registry, canonical route map, terminal commands, no-side-effect guard flags, and next-task hint.
 - Preserved all guards: no Routine end recommendation card, no LLM call from cleanup, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no frontend UI-flow assumption.
+
+## v2_8_2_agent_practice_context_storage_boundary_contract
+
+- Added practice-context storage/source-of-truth boundary contract.
+- Added `PracticeContextStorageBoundaryPayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/storage-boundary/spec`
+  - `POST /agent/context/storage-boundary/preview`
+- Added terminal command `/practice-context-storage-boundary [json_payload]`.
+- Classified practice context into HarmonyOS local-only, backend long-term, request-ephemeral, Agent trace, and never-store categories.
+- Clarified that HarmonyOS owns live RoutineSession/timer/playback/local MIDI/UI draft state.
+- Clarified that backend should eventually own durable compact summaries such as UserPracticeProfile, ActivePracticePlan, RoutineHistory summary, saved leadsheets/templates, and sanitized trace metadata.
+- Added ContextPacket boundary guidance: normalized plan/history/profile/assembled/today-constraints may enter context; local MIDI paths, MIDI base64, secrets, precise location, payment info, playback internals, and hidden chain-of-thought must not.
+- Preserved all guards: no database write, no local-device write, no LLM call, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
+
+Recommended next Agent task:
+
+```text
+v2_8_3_agent_today_practice_guidance_profile_aware_e2e
+```
+
+
+## v2_8_3_agent_today_practice_guidance_profile_aware_e2e
+
+- Added profile-aware today-practice guidance E2E contract.
+- Added `TodayPracticeGuidanceProfileAwareE2EPayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/today-practice-guidance/profile-aware/spec`
+  - `POST /agent/context/today-practice-guidance/profile-aware/e2e-preview`
+- Added terminal command `/today-practice-guidance-profile-aware [json_payload]`.
+- Extended the TodayPracticeGuidance prompt policy with `profile_aware_policy`, including current goal, preferred styles, focus areas, comfort tempo ranges, avoid list, and practice-mode preference as soft context.
+- Extended normalized guidance output/display sections with optional `profile_considerations`.
+- Added profile-alignment preview counters for preferred-style and comfort-tempo matches; mismatches are warnings only and do not block safe candidate guidance.
+- Preserved all guards: no storage write, no LLM call by default, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no frontend-flow assumption.
+
+Recommended next Agent task:
+
+```text
+v2_8_4_agent_practice_plan_persistence_candidate_contract
+```
+
+## v2_8_4_agent_terminal_llm_provider_compatibility_hotfix
+
+- Fixed terminal module entrypoint argument forwarding so `python -m jammate_agent.cli.terminal_chat setup/doctor/config-path` reaches `run_interactive_chat(sys.argv[1:])`.
+- Added OpenAI-compatible Chat Completions message normalization before network calls.
+- Merged internal `system` / `developer` / `context` prompt sections into one outgoing `system` message.
+- Preserved `user` / `assistant` history turns and converted unknown/tool preview roles into user-visible context instead of sending provider-rejected roles.
+- Added regression coverage for role normalization, provider payload compatibility, and `python -m` setup command behavior.
+- Preserved all Agent guards: no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no Engine music-generation change.
+
+Recommended next Agent task:
+
+```text
+v2_8_5_agent_practice_plan_persistence_candidate_contract
+```
