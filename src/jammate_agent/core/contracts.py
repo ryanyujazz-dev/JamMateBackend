@@ -8,11 +8,14 @@ from jammate_agent.core.llm_provider import LLM_PROVIDER_BOUNDARY_VERSION, build
 from jammate_agent.core.runloop import BoundedAgentRunLoop, RUNLOOP_CONTRACT_VERSION
 from jammate_agent.core.tool_invocation import (
     TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+    CONTROLLED_WORKFLOW_EXECUTION_VERSION,
     TOOL_INVOCATION_PREVIEW_VERSION,
+    controlled_workflow_execution_contract,
     tool_call_preview_trace_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
     tool_invocation_preview_contract,
+    tool_workflow_dispatcher_contract,
 )
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, tool_registry_manifest
 from jammate_agent.core.trace import trace_api_contract
@@ -95,6 +98,8 @@ def context_profile_manifest() -> dict[str, Any]:
         "tool_invocation_preview_spec_route": "GET /agent/tools/invocation/spec",
         "tool_execution_confirmation_spec_route": "GET /agent/tools/confirmation/spec",
         "tool_executor_spec_route": "GET /agent/tools/executor/spec",
+        "tool_workflow_dispatcher_spec_route": "GET /agent/tools/workflows/spec",
+        "controlled_workflow_execution_spec_route": "GET /agent/tools/workflows/controlled-execution/spec",
         "trace_api_spec_route": "GET /agent/traces/spec",
         "trace_list_route": "GET /agent/traces",
         "trace_detail_route": "GET /agent/traces/{trace_id}",
@@ -119,6 +124,10 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             "tool_execution_confirmation_preview": "POST /agent/tools/confirmation/preview",
             "tool_executor_spec": "GET /agent/tools/executor/spec",
             "tool_executor_dry_run": "POST /agent/tools/executor/dry-run",
+            "tool_workflow_dispatcher_spec": "GET /agent/tools/workflows/spec",
+            "tool_workflow_dispatcher_dry_run": "POST /agent/tools/workflows/dispatch-dry-run",
+            "controlled_workflow_execution_spec": "GET /agent/tools/workflows/controlled-execution/spec",
+            "controlled_workflow_execution": "POST /agent/tools/workflows/execute-controlled",
             "trace_spec": "GET /agent/traces/spec",
             "trace_list": "GET /agent/traces",
             "trace_detail": "GET /agent/traces/{trace_id}",
@@ -155,6 +164,8 @@ def llm_context_runtime_contract() -> dict[str, Any]:
         "tool_invocation_preview_boundary": tool_invocation_preview_contract(),
         "tool_execution_confirmation_boundary": tool_execution_confirmation_contract(),
         "tool_executor_boundary": tool_executor_boundary_contract(),
+        "tool_workflow_dispatcher_boundary": tool_workflow_dispatcher_contract(),
+        "controlled_workflow_execution_boundary": controlled_workflow_execution_contract(),
         "terminal_tool_call_candidate_extraction": {
             "version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
             "surface": "terminal_chat_only",
@@ -175,6 +186,8 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             "No runloop-driven tool execution in v2_4_13; tools are descriptor-only and invocation preview is validation-only.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
             "ToolExecutor boundary in v2_6_3 is dry-run/no-op only and does not dispatch workflows or call engine adapters.",
+            "Workflow dispatcher boundary in v2_6_4 resolves deterministic workflow descriptors only and does not invoke workflows, routes, or engine adapters.",
+            "Controlled workflow execution in v2_6_5 is limited to agent_practice_plan / PracticePlanner.build_plan and must not call routes, engine adapters, accompaniment generation, or MIDI asset creation.",
             "Trace API and terminal trace viewer only shape/read trace list/detail/spec responses; tool-call preview trace contract only shapes terminal candidate/preview summaries; they do not execute tools, call LLM providers, dispatch workflows, or call the engine adapter.",
         ],
     }

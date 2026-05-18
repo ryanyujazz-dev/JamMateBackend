@@ -7,7 +7,9 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, TextIO
 
+from jammate_agent.capabilities.practice.planner import PracticePlanner
 from jammate_agent.core.context import CONTEXT_PROFILES, ContextBuilder
+from jammate_agent.core.guardrails import PracticePlanGuardrails
 from jammate_agent.core.llm_provider import (
     LLM_CONFIG_FILE_ENV_VAR,
     LLMProvider,
@@ -22,13 +24,22 @@ from jammate_agent.core.tool_invocation import (
     TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION,
     TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
     TOOL_EXECUTOR_BOUNDARY_VERSION,
+    TOOL_WORKFLOW_DISPATCHER_VERSION,
+    CONTROLLED_WORKFLOW_EXECUTION_VERSION,
     ToolExecutionConfirmationEnvelope,
+    ToolExecutionResult,
+    ToolWorkflowDispatchResult,
+    ControlledWorkflowExecutionResult,
     ToolInvocationProposal,
     build_confirmation_envelope,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
+    build_controlled_workflow_execution_summary,
+    build_tool_workflow_dispatcher_summary,
     confirm_tool_invocation,
+    dispatch_deterministic_workflow_dry_run,
+    execute_controlled_workflow,
     execute_tool_dry_run,
     extract_tool_call_candidates,
     preview_tool_invocation,
@@ -65,6 +76,10 @@ class TerminalChatSession:
     v2_6_3 adds a dry-run/no-op ToolExecutor boundary after explicit user
     confirmation. The dry-run proves execution request/result shape only and
     still never dispatches workflows, routes, or engine adapters.
+
+    v2_6_4 adds deterministic workflow descriptor resolution after executor
+    dry-run. It maps a tool to its workflow descriptor only and still never
+    invokes workflows, routes, or engine adapters.
     """
 
     task_type: str = "coach_qa"
@@ -76,6 +91,11 @@ class TerminalChatSession:
     last_trace_id: str | None = None
     last_trace_path: str | None = None
     pending_confirmation: ToolExecutionConfirmationEnvelope | None = None
+    last_execution_result: ToolExecutionResult | None = None
+    last_workflow_dispatch_result: ToolWorkflowDispatchResult | None = None
+    last_controlled_workflow_execution_result: ControlledWorkflowExecutionResult | None = None
+    practice_planner: PracticePlanner = field(default_factory=PracticePlanner)
+    practice_plan_guardrails: PracticePlanGuardrails = field(default_factory=PracticePlanGuardrails)
 
     def provider_status(self) -> dict:
         return self.provider.status()
@@ -363,6 +383,9 @@ class TerminalChatSession:
             },
         )
         result = execute_tool_dry_run(self.pending_confirmation)
+        self.last_execution_result = result
+        self.last_workflow_dispatch_result = None
+        self.last_controlled_workflow_execution_result = None
         result_payload = result.to_dict()
         step_name = "terminal_tool_executor_dry_run_completed" if result.ok else "terminal_tool_executor_dry_run_blocked"
         self._add_trace_step(trace, step_name, result_payload)
@@ -395,6 +418,175 @@ class TerminalChatSession:
             "engine_adapter_called": False,
             "trace_id": self.last_trace_id,
             "trace_path": self.last_trace_path,
+        }
+
+    def dispatch_confirmed_tool_workflow_dry_run(self) -> dict[str, Any]:
+        if self.last_execution_result is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/dispatch-dry-run",
+                "error_code": "NO_EXECUTOR_DRY_RUN_AVAILABLE",
+                "message": "No ToolExecutor dry-run result is available. Use /tool-preview, /confirm, and /execute-dry-run first.",
+                "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+                "deterministic_workflow_dispatched": False,
+                "engine_adapter_called": False,
+            }
+        trace = self._start_trace("terminal_tool_workflow_dispatch_dry_run", "/dispatch-dry-run")
+        self._add_trace_step(
+            trace,
+            "terminal_tool_workflow_dispatch_dry_run_requested",
+            {
+                "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+                "tool_name": self.last_execution_result.request.tool_name,
+                "execution_id": self.last_execution_result.request.execution_id,
+                "proposal_id": self.last_execution_result.request.proposal_id,
+                "executor_status": self.last_execution_result.status,
+                "dry_run": True,
+                "descriptor_only": True,
+            },
+        )
+        result = dispatch_deterministic_workflow_dry_run(self.last_execution_result)
+        self.last_workflow_dispatch_result = result
+        result_payload = result.to_dict()
+        step_name = "terminal_tool_workflow_descriptor_resolved" if result.ok else "terminal_tool_workflow_dispatch_dry_run_blocked"
+        self._add_trace_step(trace, step_name, result_payload)
+        summary = build_tool_workflow_dispatcher_summary(dispatch_result=result, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_tool_workflow_dispatcher_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "workflow_descriptor_resolved" if result.ok else "workflow_dispatch_dry_run_blocked",
+            {
+                "ok": result.ok,
+                "command": "/dispatch-dry-run",
+                "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+                "tool_workflow_dispatcher_summary": summary,
+                "deterministic_workflow_dispatched": False,
+                "workflow_invoked": False,
+                "route_called": False,
+                "engine_adapter_called": False,
+            },
+        )
+        return {
+            "ok": result.ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/dispatch-dry-run",
+            "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+            "workflow_dispatch_result": result_payload,
+            "tool_workflow_dispatcher_summary": summary,
+            "dry_run": True,
+            "descriptor_only": True,
+            "deterministic_workflow_dispatched": False,
+            "workflow_invoked": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def execute_controlled_workflow(self) -> dict[str, Any]:
+        if self.last_workflow_dispatch_result is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/execute-controlled",
+                "error_code": "NO_WORKFLOW_DISPATCH_DESCRIPTOR_AVAILABLE",
+                "message": "No workflow descriptor is available. Use /tool-preview, /confirm, /execute-dry-run, and /dispatch-dry-run first.",
+                "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+                "workflow_invoked": False,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+            }
+        trace = self._start_trace("terminal_controlled_workflow_execution", "/execute-controlled")
+        descriptor = self.last_workflow_dispatch_result.workflow_descriptor
+        self._add_trace_step(
+            trace,
+            "terminal_controlled_workflow_execution_requested",
+            {
+                "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+                "tool_name": descriptor.tool_name if descriptor else None,
+                "workflow_name": descriptor.workflow_name if descriptor else None,
+                "dispatch_status": self.last_workflow_dispatch_result.status,
+                "route_call_enabled": False,
+                "engine_adapter_dispatch_enabled": False,
+                "midi_asset_creation_enabled": False,
+            },
+        )
+        result = execute_controlled_workflow(
+            self.last_workflow_dispatch_result,
+            workflow_runner=self._run_controlled_agent_workflow,
+        )
+        self.last_controlled_workflow_execution_result = result
+        result_payload = result.to_dict()
+        step_name = "terminal_controlled_workflow_execution_completed" if result.ok else "terminal_controlled_workflow_execution_blocked"
+        self._add_trace_step(trace, step_name, result_payload)
+        summary = build_controlled_workflow_execution_summary(execution_result=result, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_controlled_workflow_execution_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "controlled_workflow_completed" if result.ok else "controlled_workflow_blocked",
+            {
+                "ok": result.ok,
+                "command": "/execute-controlled",
+                "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+                "controlled_workflow_execution_summary": summary,
+                "workflow_invoked": result.workflow_invoked,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+            },
+        )
+        return {
+            "ok": result.ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/execute-controlled",
+            "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+            "controlled_workflow_execution_result": result_payload,
+            "controlled_workflow_execution_summary": summary,
+            "workflow_invoked": result.workflow_invoked,
+            "deterministic_workflow_dispatched": result.deterministic_workflow_dispatched,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "side_effects_created": False,
+            "midi_asset_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def _run_controlled_agent_workflow(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        if tool_name != "agent_practice_plan":
+            return {
+                "ok": False,
+                "error_code": "CONTROLLED_TOOL_NOT_SUPPORTED",
+                "message": f"v2_6_5 controlled execution only supports agent_practice_plan, got {tool_name}.",
+            }
+        user_input = str(arguments.get("user_input") or arguments.get("userInput") or arguments.get("text") or "Build a balanced JamMate practice plan.")
+        raw_minutes = arguments.get("available_minutes", arguments.get("availableMinutes", arguments.get("durationMinutes", 45)))
+        try:
+            available_minutes = int(raw_minutes)
+        except (TypeError, ValueError):
+            available_minutes = 45
+        instrument = str(arguments.get("instrument") or self.instrument or "piano")
+        plan = self.practice_planner.build_plan(user_input, available_minutes=available_minutes, instrument=instrument)
+        self.practice_plan_guardrails.normalize(plan)
+        errors = self.practice_plan_guardrails.validate(plan)
+        if errors:
+            return {
+                "ok": False,
+                "error_code": "PLAN_VALIDATION_FAILED",
+                "message": "PracticePlan validation failed.",
+                "validation_errors": list(errors),
+            }
+        return {
+            "ok": True,
+            "intent_type": "practice_plan_generation",
+            "plan": plan.to_dict(),
+            "explanation": plan.explanation,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
         }
 
     def allowed_tool_names(self) -> list[str]:
@@ -497,6 +689,9 @@ class TerminalChatSession:
         had_pending_confirmation = self.pending_confirmation is not None
         self.history.clear()
         self.pending_confirmation = None
+        self.last_execution_result = None
+        self.last_workflow_dispatch_result = None
+        self.last_controlled_workflow_execution_result = None
         return {
             "ok": True,
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
@@ -505,6 +700,9 @@ class TerminalChatSession:
             "task_type": self.task_type,
             "instrument": self.instrument,
             "pending_confirmation_cleared": had_pending_confirmation,
+            "last_execution_result_cleared": True,
+            "last_workflow_dispatch_result_cleared": True,
+            "last_controlled_workflow_execution_result_cleared": True,
             "tool_execution_enabled": False,
         }
 
@@ -522,6 +720,12 @@ class TerminalChatSession:
             "pending_tool_name": self.pending_confirmation.tool_name if self.pending_confirmation else None,
             "tool_execution_enabled": False,
             "autonomous_tool_execution_enabled": False,
+            "has_last_execution_result": self.last_execution_result is not None,
+            "last_execution_status": self.last_execution_result.status if self.last_execution_result else None,
+            "has_last_workflow_dispatch_result": self.last_workflow_dispatch_result is not None,
+            "last_workflow_dispatch_status": self.last_workflow_dispatch_result.status if self.last_workflow_dispatch_result else None,
+            "has_last_controlled_workflow_execution_result": self.last_controlled_workflow_execution_result is not None,
+            "last_controlled_workflow_execution_status": self.last_controlled_workflow_execution_result.status if self.last_controlled_workflow_execution_result else None,
         }
 
     def trace_export_enabled(self) -> bool:
@@ -806,6 +1010,12 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
     if user_input == "/execute-dry-run":
         _print_execution_dry_run(session.execute_confirmed_tool_dry_run(), stdout)
         return True
+    if user_input == "/dispatch-dry-run":
+        _print_workflow_dispatch_dry_run(session.dispatch_confirmed_tool_workflow_dry_run(), stdout)
+        return True
+    if user_input == "/execute-controlled":
+        _print_controlled_workflow_execution(session.execute_controlled_workflow(), stdout)
+        return True
     if user_input.startswith("/tool-preview"):
         result = _parse_tool_preview_command(user_input)
         if not result["ok"]:
@@ -974,6 +1184,43 @@ def _print_execution_dry_run(response: dict[str, Any], stdout: TextIO) -> None:
     print("  next_stage_required: DeterministicWorkflowDispatcher", file=stdout)
 
 
+
+def _print_workflow_dispatch_dry_run(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    result = response.get("workflow_dispatch_result") or {}
+    descriptor = result.get("workflow_descriptor") or {}
+    print(f"WorkflowDispatchDryRun> {result.get('tool_name')}: {result.get('status')}", file=stdout)
+    print(f"  workflow_name: {descriptor.get('workflow_name')}", file=stdout)
+    print(f"  route: {descriptor.get('route')}", file=stdout)
+    print(f"  descriptor_only: {result.get('descriptor_only')}", file=stdout)
+    print("  deterministic_workflow_dispatched: False", file=stdout)
+    print("  workflow_invoked: False", file=stdout)
+    print("  route_called: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  next_stage_required: ControlledWorkflowExecution", file=stdout)
+
+
+def _print_controlled_workflow_execution(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    result = response.get("controlled_workflow_execution_result") or {}
+    output = result.get("workflow_output") or {}
+    plan = output.get("plan") or {}
+    print(f"ControlledWorkflowExecution> {result.get('tool_name')}: {result.get('status')}", file=stdout)
+    print(f"  workflow_name: {result.get('workflow_name')}", file=stdout)
+    print(f"  workflow_invoked: {result.get('workflow_invoked')}", file=stdout)
+    if plan:
+        print(f"  plan_title: {plan.get('title')}", file=stdout)
+        print(f"  duration_minutes: {plan.get('duration_minutes')}", file=stdout)
+        print(f"  blocks: {len(plan.get('blocks') or [])}", file=stdout)
+    print("  route_called: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  midi_asset_created: False", file=stdout)
+    print("  next_stage_required: HarmonyOSAgentActionContract", file=stdout)
+
 def _print_session_summary(summary: dict[str, Any], stdout: TextIO) -> None:
     print("Session>", file=stdout)
     print(f"  task_type: {summary.get('task_type')}", file=stdout)
@@ -1102,6 +1349,8 @@ def _print_help(stdout: TextIO) -> None:
     print("  /confirm", file=stdout)
     print("  /reject", file=stdout)
     print("  /execute-dry-run", file=stdout)
+    print("  /dispatch-dry-run", file=stdout)
+    print("  /execute-controlled", file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
@@ -1113,6 +1362,8 @@ def _print_help(stdout: TextIO) -> None:
     print("Tool preview validates only; it never executes tools or engine workflows.", file=stdout)
     print("Tool confirmation records /confirm or /reject only; it still never executes tools.", file=stdout)
     print("Tool executor dry-run proves request/result shape only; it never dispatches workflows or engine adapters.", file=stdout)
+    print("Workflow dispatch dry-run resolves the workflow descriptor only; it never invokes workflows, routes, or engine adapters.", file=stdout)
+    print("Controlled execution is limited to agent_practice_plan in v2_6_5; it never calls routes, engine adapters, or MIDI generation.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 
 

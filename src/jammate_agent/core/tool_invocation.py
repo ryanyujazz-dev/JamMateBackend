@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from uuid import uuid4
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, get_tool_descriptor, validate_allowed_tools
 
@@ -14,6 +14,8 @@ TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_13"
 TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION = "v2_4_13"
 TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION = "v2_6_2"
 TOOL_EXECUTOR_BOUNDARY_VERSION = "v2_6_3"
+TOOL_WORKFLOW_DISPATCHER_VERSION = "v2_6_4"
+CONTROLLED_WORKFLOW_EXECUTION_VERSION = "v2_6_5"
 
 
 @dataclass(frozen=True)
@@ -754,6 +756,588 @@ def tool_executor_boundary_contract() -> dict[str, Any]:
         },
     }
 
+
+
+@dataclass(frozen=True)
+class ToolWorkflowDispatcherPolicy:
+    """v2_6_4 deterministic workflow dispatcher boundary policy.
+
+    The dispatcher maps an approved dry-run executor result to a deterministic
+    workflow descriptor. It deliberately does not invoke the workflow, call API
+    routes, call adapters, import engine internals, or create side effects.
+    """
+
+    mode: str = "workflow_descriptor_resolution_only"
+    requires_tool_executor_result: bool = True
+    requires_executor_dry_run_completed: bool = True
+    workflow_descriptor_resolution_enabled: bool = True
+    real_workflow_dispatch_enabled: bool = False
+    route_call_enabled: bool = False
+    engine_adapter_dispatch_enabled: bool = False
+    side_effects_enabled: bool = False
+    required_guards: tuple[str, ...] = (
+        "requires_successful_tool_executor_dry_run",
+        "descriptor_resolution_only",
+        "no_workflow_invocation",
+        "no_route_call",
+        "no_engine_adapter_call",
+        "no_midi_asset_creation",
+    )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+            "mode": self.mode,
+            "requires_tool_executor_result": self.requires_tool_executor_result,
+            "requires_executor_dry_run_completed": self.requires_executor_dry_run_completed,
+            "workflow_descriptor_resolution_enabled": self.workflow_descriptor_resolution_enabled,
+            "real_workflow_dispatch_enabled": self.real_workflow_dispatch_enabled,
+            "route_call_enabled": self.route_call_enabled,
+            "engine_adapter_dispatch_enabled": self.engine_adapter_dispatch_enabled,
+            "side_effects_enabled": self.side_effects_enabled,
+            "required_guards": list(self.required_guards),
+        }
+
+
+DEFAULT_TOOL_WORKFLOW_DISPATCHER_POLICY = ToolWorkflowDispatcherPolicy()
+
+
+@dataclass(frozen=True)
+class DeterministicWorkflowDescriptor:
+    tool_workflow_dispatcher_version: str
+    dispatch_id: str
+    execution_id: str
+    proposal_id: str
+    tool_name: str
+    workflow_name: str
+    route: str | None = None
+    adapter_boundary: str | None = None
+    category: str | None = None
+    input_contract_preview: dict[str, Any] = field(default_factory=dict)
+    output_contract_preview: dict[str, Any] = field(default_factory=dict)
+    side_effect_level: str = "unknown"
+    dispatch_status: str = "descriptor_resolved"
+    workflow_descriptor_resolved: bool = True
+    deterministic_workflow_dispatched: bool = False
+    workflow_invoked: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    side_effects_created: bool = False
+    next_stage_required: str = "ControlledWorkflowExecution"
+    policy: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tool_workflow_dispatcher_version": self.tool_workflow_dispatcher_version,
+            "dispatch_id": self.dispatch_id,
+            "execution_id": self.execution_id,
+            "proposal_id": self.proposal_id,
+            "tool_name": self.tool_name,
+            "workflow_name": self.workflow_name,
+            "route": self.route,
+            "adapter_boundary": self.adapter_boundary,
+            "category": self.category,
+            "input_contract_preview": dict(self.input_contract_preview),
+            "output_contract_preview": dict(self.output_contract_preview),
+            "side_effect_level": self.side_effect_level,
+            "dispatch_status": self.dispatch_status,
+            "workflow_descriptor_resolved": self.workflow_descriptor_resolved,
+            "deterministic_workflow_dispatched": self.deterministic_workflow_dispatched,
+            "workflow_invoked": self.workflow_invoked,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "side_effects_created": self.side_effects_created,
+            "next_stage_required": self.next_stage_required,
+            "policy": dict(self.policy),
+        }
+
+
+@dataclass(frozen=True)
+class ToolWorkflowDispatchResult:
+    ok: bool
+    status: str
+    execution_result: ToolExecutionResult
+    workflow_descriptor: DeterministicWorkflowDescriptor | None = None
+    blocking_reasons: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    dry_run: bool = True
+    descriptor_only: bool = True
+    workflow_descriptor_resolved: bool = False
+    deterministic_workflow_dispatched: bool = False
+    workflow_invoked: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    side_effects_created: bool = False
+    next_stage_required: str = "ControlledWorkflowExecution"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+            "ok": self.ok,
+            "status": self.status,
+            "execution_result": self.execution_result.to_dict(),
+            "execution_id": self.execution_result.request.execution_id,
+            "proposal_id": self.execution_result.request.proposal_id,
+            "tool_name": self.execution_result.request.tool_name,
+            "workflow_descriptor": self.workflow_descriptor.to_dict() if self.workflow_descriptor else None,
+            "blocking_reasons": list(self.blocking_reasons),
+            "warnings": list(self.warnings),
+            "dry_run": self.dry_run,
+            "descriptor_only": self.descriptor_only,
+            "workflow_descriptor_resolved": self.workflow_descriptor_resolved,
+            "deterministic_workflow_dispatched": self.deterministic_workflow_dispatched,
+            "workflow_invoked": self.workflow_invoked,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "side_effects_created": self.side_effects_created,
+            "next_stage_required": self.next_stage_required,
+        }
+
+
+def build_deterministic_workflow_descriptor(
+    execution_result: ToolExecutionResult,
+    *,
+    dispatch_id: str | None = None,
+    policy: ToolWorkflowDispatcherPolicy | None = None,
+) -> DeterministicWorkflowDescriptor:
+    descriptor = get_tool_descriptor(execution_result.request.tool_name)
+    if descriptor is None or not descriptor.deterministic_workflow:
+        raise ValueError("known tool with deterministic_workflow is required")
+    active_policy = policy or DEFAULT_TOOL_WORKFLOW_DISPATCHER_POLICY
+    return DeterministicWorkflowDescriptor(
+        tool_workflow_dispatcher_version=TOOL_WORKFLOW_DISPATCHER_VERSION,
+        dispatch_id=dispatch_id or f"dispatch_{uuid4().hex[:12]}",
+        execution_id=execution_result.request.execution_id,
+        proposal_id=execution_result.request.proposal_id,
+        tool_name=descriptor.name,
+        workflow_name=descriptor.deterministic_workflow,
+        route=descriptor.route,
+        adapter_boundary=descriptor.adapter_boundary,
+        category=descriptor.category,
+        input_contract_preview=_redact_sensitive_values(descriptor.input_contract),
+        output_contract_preview=_redact_sensitive_values(descriptor.output_contract),
+        side_effect_level=descriptor.side_effect_level,
+        policy=active_policy.to_dict(),
+    )
+
+
+def dispatch_deterministic_workflow_dry_run(
+    execution_result: ToolExecutionResult,
+    *,
+    policy: ToolWorkflowDispatcherPolicy | None = None,
+) -> ToolWorkflowDispatchResult:
+    """Resolve the deterministic workflow descriptor without invoking it.
+
+    v2_6_4 is the dispatcher boundary only. A successful result means the Agent
+    can identify which deterministic workflow would be used after confirmation
+    and executor validation. It does not run that workflow.
+    """
+
+    blocking_reasons: list[str] = []
+    warnings: list[str] = []
+    if not execution_result.ok or execution_result.status != "dry_run_noop_completed":
+        blocking_reasons.append("successful_tool_executor_dry_run_required_before_workflow_descriptor_resolution")
+        return ToolWorkflowDispatchResult(
+            ok=False,
+            status="blocked_requires_successful_executor_dry_run",
+            execution_result=execution_result,
+            blocking_reasons=blocking_reasons,
+            warnings=warnings,
+        )
+
+    descriptor = get_tool_descriptor(execution_result.request.tool_name)
+    if descriptor is None:
+        blocking_reasons.append("unknown_tool")
+        return ToolWorkflowDispatchResult(
+            ok=False,
+            status="blocked_unknown_tool",
+            execution_result=execution_result,
+            blocking_reasons=blocking_reasons,
+            warnings=warnings,
+        )
+    if not descriptor.deterministic_workflow:
+        blocking_reasons.append("tool_has_no_deterministic_workflow_descriptor")
+        return ToolWorkflowDispatchResult(
+            ok=False,
+            status="blocked_missing_workflow_descriptor",
+            execution_result=execution_result,
+            blocking_reasons=blocking_reasons,
+            warnings=warnings,
+        )
+
+    workflow_descriptor = build_deterministic_workflow_descriptor(execution_result, policy=policy)
+    warnings.append("workflow_descriptor_resolution_only_no_workflow_invocation")
+    if descriptor.side_effect_level != "none":
+        warnings.append(f"future_controlled_execution_may_have_side_effect_level_{descriptor.side_effect_level}")
+    return ToolWorkflowDispatchResult(
+        ok=True,
+        status="workflow_descriptor_resolved",
+        execution_result=execution_result,
+        workflow_descriptor=workflow_descriptor,
+        warnings=warnings,
+        workflow_descriptor_resolved=True,
+    )
+
+
+def build_tool_workflow_dispatcher_summary(
+    *,
+    dispatch_result: ToolWorkflowDispatchResult | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    return {
+        "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+        "source": source,
+        "has_dispatch_result": dispatch_result is not None,
+        "dispatch_status": dispatch_result.status if dispatch_result else "none",
+        "dispatched_tool_name": dispatch_result.execution_result.request.tool_name if dispatch_result else None,
+        "dispatch_id": dispatch_result.workflow_descriptor.dispatch_id if dispatch_result and dispatch_result.workflow_descriptor else None,
+        "workflow_name": dispatch_result.workflow_descriptor.workflow_name if dispatch_result and dispatch_result.workflow_descriptor else None,
+        "workflow_descriptor_resolution_enabled": True,
+        "workflow_descriptor_resolved": bool(dispatch_result and dispatch_result.workflow_descriptor_resolved),
+        "deterministic_workflow_dispatch_enabled": False,
+        "deterministic_workflow_dispatched": False,
+        "workflow_invoked": False,
+        "route_called": False,
+        "engine_adapter_dispatch_enabled": False,
+        "engine_adapter_called": False,
+        "side_effects_created": False,
+        "requires_controlled_workflow_execution": True,
+    }
+
+
+def tool_workflow_dispatcher_contract() -> dict[str, Any]:
+    policy = DEFAULT_TOOL_WORKFLOW_DISPATCHER_POLICY.to_dict()
+    return {
+        "version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+        "tool_workflow_dispatcher_version": TOOL_WORKFLOW_DISPATCHER_VERSION,
+        "spec_route": "GET /agent/tools/workflows/spec",
+        "dispatch_dry_run_route": "POST /agent/tools/workflows/dispatch-dry-run",
+        "mode": policy["mode"],
+        "execution_status": {
+            "workflow_descriptor_resolution_enabled": True,
+            "real_workflow_dispatch_enabled": False,
+            "route_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "side_effects_enabled": False,
+        },
+        "request_schema": {
+            "request_id": "string | null",
+            "user_input": "string | null",
+            "task_type": "practice_plan_generation | immediate_practice_playback | session_review | coach_qa",
+            "tool_name": "string",
+            "arguments": "Record<string, unknown>",
+            "user_approved": "boolean",
+            "client_context": "ClientContext",
+        },
+        "response_schema": {
+            "ok": "boolean",
+            "preview": "ToolInvocationPreviewResult",
+            "confirmation": "ToolExecutionConfirmationEnvelope",
+            "confirmation_result": "ToolExecutionConfirmationResult | null",
+            "execution_result": "ToolExecutionResult",
+            "workflow_dispatch_result": "ToolWorkflowDispatchResult",
+            "tool_workflow_dispatcher_summary": "Record<string, unknown>",
+            "context_packet_summary": "Record<string, unknown>",
+        },
+        "terminal_commands": ["/dispatch-dry-run"],
+        "trace_step_names": [
+            "terminal_tool_workflow_dispatch_dry_run_requested",
+            "terminal_tool_workflow_descriptor_resolved",
+            "terminal_tool_workflow_dispatch_dry_run_blocked",
+        ],
+        "summary_field": "tool_workflow_dispatcher_summary",
+        "policy": policy,
+        "rules": [
+            "Only a successful dry-run ToolExecutor result can enter workflow descriptor resolution.",
+            "v2_6_4 maps tool names to deterministic workflow descriptors only.",
+            "v2_6_4 must not invoke deterministic workflows, call routes, call engine adapters, or create MIDI assets.",
+            "The next stage after this boundary is controlled workflow execution.",
+        ],
+        "guards": {
+            "dispatcher_calls_llm_provider": False,
+            "dispatcher_invokes_workflow": False,
+            "dispatcher_calls_route": False,
+            "dispatcher_calls_engine_adapter": False,
+            "dispatcher_creates_midi_asset": False,
+            "raw_api_key_allowed_in_dispatch": False,
+        },
+    }
+
+
+@dataclass(frozen=True)
+class ControlledWorkflowExecutionPolicy:
+    """v2_6_5 first controlled workflow execution policy.
+
+    Only explicitly allow-listed, side-effect-free Agent workflows may run. The
+    initial allow-list is intentionally limited to `agent_practice_plan`, which
+    calls the deterministic PracticePlanner and returns a structured plan. It
+    must not call routes, engine adapters, accompaniment generation, or create
+    MIDI assets.
+    """
+
+    mode: str = "first_controlled_agent_workflow_execution"
+    controlled_execution_enabled: bool = True
+    autonomous_execution_enabled: bool = False
+    requires_workflow_descriptor: bool = True
+    requires_user_approval: bool = True
+    allowed_tool_names: tuple[str, ...] = ("agent_practice_plan",)
+    allowed_workflow_names: tuple[str, ...] = ("PracticePlanner.build_plan",)
+    route_call_enabled: bool = False
+    engine_adapter_dispatch_enabled: bool = False
+    midi_asset_creation_enabled: bool = False
+    side_effects_enabled: bool = False
+    required_guards: tuple[str, ...] = (
+        "requires_successful_workflow_descriptor_resolution",
+        "requires_approved_user_confirmation",
+        "only_side_effect_free_agent_workflow_allow_list",
+        "no_route_call",
+        "no_engine_adapter_call",
+        "no_accompaniment_generation",
+        "no_midi_asset_creation",
+    )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+            "mode": self.mode,
+            "controlled_execution_enabled": self.controlled_execution_enabled,
+            "autonomous_execution_enabled": self.autonomous_execution_enabled,
+            "requires_workflow_descriptor": self.requires_workflow_descriptor,
+            "requires_user_approval": self.requires_user_approval,
+            "allowed_tool_names": list(self.allowed_tool_names),
+            "allowed_workflow_names": list(self.allowed_workflow_names),
+            "route_call_enabled": self.route_call_enabled,
+            "engine_adapter_dispatch_enabled": self.engine_adapter_dispatch_enabled,
+            "midi_asset_creation_enabled": self.midi_asset_creation_enabled,
+            "side_effects_enabled": self.side_effects_enabled,
+            "required_guards": list(self.required_guards),
+        }
+
+
+DEFAULT_CONTROLLED_WORKFLOW_EXECUTION_POLICY = ControlledWorkflowExecutionPolicy()
+
+
+@dataclass(frozen=True)
+class ControlledWorkflowExecutionResult:
+    ok: bool
+    status: str
+    workflow_dispatch_result: ToolWorkflowDispatchResult
+    workflow_output: dict[str, Any] | None = None
+    blocking_reasons: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    controlled_execution: bool = True
+    workflow_invoked: bool = False
+    deterministic_workflow_dispatched: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    side_effects_created: bool = False
+    midi_asset_created: bool = False
+    next_stage_required: str = "HarmonyOSAgentActionContract"
+    policy: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        descriptor = self.workflow_dispatch_result.workflow_descriptor
+        return {
+            "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+            "ok": self.ok,
+            "status": self.status,
+            "workflow_dispatch_result": self.workflow_dispatch_result.to_dict(),
+            "dispatch_id": descriptor.dispatch_id if descriptor else None,
+            "execution_id": self.workflow_dispatch_result.execution_result.request.execution_id,
+            "proposal_id": self.workflow_dispatch_result.execution_result.request.proposal_id,
+            "tool_name": self.workflow_dispatch_result.execution_result.request.tool_name,
+            "workflow_name": descriptor.workflow_name if descriptor else None,
+            "workflow_output": _redact_sensitive_values(self.workflow_output or {}),
+            "blocking_reasons": list(self.blocking_reasons),
+            "warnings": list(self.warnings),
+            "controlled_execution": self.controlled_execution,
+            "workflow_invoked": self.workflow_invoked,
+            "deterministic_workflow_dispatched": self.deterministic_workflow_dispatched,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "side_effects_created": self.side_effects_created,
+            "midi_asset_created": self.midi_asset_created,
+            "next_stage_required": self.next_stage_required,
+            "policy": dict(self.policy),
+        }
+
+
+def execute_controlled_workflow(
+    dispatch_result: ToolWorkflowDispatchResult,
+    *,
+    workflow_runner: Callable[[str, dict[str, Any]], dict[str, Any]],
+    policy: ControlledWorkflowExecutionPolicy | None = None,
+) -> ControlledWorkflowExecutionResult:
+    """Run the first allow-listed deterministic Agent workflow under guard.
+
+    v2_6_5 intentionally supports only side-effect-free Agent workflows. The
+    initial runner is expected to handle `agent_practice_plan` by calling
+    PracticePlanner.build_plan. This function does not call HTTP routes or engine
+    adapters; callers inject the workflow runner from the Agent layer.
+    """
+
+    active_policy = policy or DEFAULT_CONTROLLED_WORKFLOW_EXECUTION_POLICY
+    policy_payload = active_policy.to_dict()
+    blocking_reasons: list[str] = []
+    warnings: list[str] = []
+
+    if not dispatch_result.ok or not dispatch_result.workflow_descriptor_resolved or dispatch_result.workflow_descriptor is None:
+        blocking_reasons.append("successful_workflow_descriptor_resolution_required_before_controlled_execution")
+        return ControlledWorkflowExecutionResult(
+            ok=False,
+            status="blocked_requires_workflow_descriptor",
+            workflow_dispatch_result=dispatch_result,
+            blocking_reasons=blocking_reasons,
+            policy=policy_payload,
+        )
+
+    descriptor = dispatch_result.workflow_descriptor
+    execution_request = dispatch_result.execution_result.request
+    if descriptor.tool_name not in set(active_policy.allowed_tool_names):
+        blocking_reasons.append("tool_not_enabled_for_first_controlled_execution")
+    if descriptor.workflow_name not in set(active_policy.allowed_workflow_names):
+        blocking_reasons.append("workflow_not_enabled_for_first_controlled_execution")
+    if descriptor.side_effect_level not in {"none", "trace_only"}:
+        blocking_reasons.append("side_effectful_workflow_not_allowed_in_v2_6_5")
+    if not execution_request.user_approved or execution_request.confirmation_status != "approved":
+        blocking_reasons.append("approved_user_confirmation_required")
+
+    if blocking_reasons:
+        return ControlledWorkflowExecutionResult(
+            ok=False,
+            status="blocked_by_controlled_execution_policy",
+            workflow_dispatch_result=dispatch_result,
+            blocking_reasons=blocking_reasons,
+            policy=policy_payload,
+        )
+
+    try:
+        workflow_output = workflow_runner(descriptor.tool_name, dict(execution_request.arguments_preview))
+    except Exception as exc:  # pragma: no cover - defensive boundary for injected runners.
+        return ControlledWorkflowExecutionResult(
+            ok=False,
+            status="controlled_workflow_runner_failed",
+            workflow_dispatch_result=dispatch_result,
+            blocking_reasons=[f"workflow_runner_exception:{exc.__class__.__name__}"],
+            warnings=warnings,
+            policy=policy_payload,
+        )
+
+    output_ok = bool(workflow_output.get("ok", True)) if isinstance(workflow_output, dict) else False
+    if not output_ok:
+        warnings.append("controlled_workflow_returned_not_ok")
+        return ControlledWorkflowExecutionResult(
+            ok=False,
+            status="controlled_workflow_completed_not_ok",
+            workflow_dispatch_result=dispatch_result,
+            workflow_output=workflow_output if isinstance(workflow_output, dict) else {"raw_output_preview": _preview_text(workflow_output)},
+            warnings=warnings,
+            workflow_invoked=True,
+            deterministic_workflow_dispatched=True,
+            policy=policy_payload,
+        )
+
+    warnings.append("first_controlled_execution_completed_agent_practice_plan_only")
+    return ControlledWorkflowExecutionResult(
+        ok=True,
+        status="controlled_workflow_completed",
+        workflow_dispatch_result=dispatch_result,
+        workflow_output=workflow_output,
+        warnings=warnings,
+        workflow_invoked=True,
+        deterministic_workflow_dispatched=True,
+        route_called=False,
+        engine_adapter_called=False,
+        side_effects_created=False,
+        midi_asset_created=False,
+        policy=policy_payload,
+    )
+
+
+def build_controlled_workflow_execution_summary(
+    *,
+    execution_result: ControlledWorkflowExecutionResult | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    descriptor = execution_result.workflow_dispatch_result.workflow_descriptor if execution_result else None
+    return {
+        "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+        "source": source,
+        "has_controlled_execution_result": execution_result is not None,
+        "execution_status": execution_result.status if execution_result else "none",
+        "tool_name": descriptor.tool_name if descriptor else None,
+        "workflow_name": descriptor.workflow_name if descriptor else None,
+        "controlled_execution_enabled": True,
+        "workflow_invoked": bool(execution_result and execution_result.workflow_invoked),
+        "deterministic_workflow_dispatched": bool(execution_result and execution_result.deterministic_workflow_dispatched),
+        "route_called": False,
+        "engine_adapter_called": False,
+        "side_effects_created": False,
+        "midi_asset_created": False,
+        "requires_harmonyos_agent_action_contract": True,
+    }
+
+
+def controlled_workflow_execution_contract() -> dict[str, Any]:
+    policy = DEFAULT_CONTROLLED_WORKFLOW_EXECUTION_POLICY.to_dict()
+    return {
+        "version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+        "controlled_workflow_execution_version": CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+        "spec_route": "GET /agent/tools/workflows/controlled-execution/spec",
+        "execute_route": "POST /agent/tools/workflows/execute-controlled",
+        "mode": policy["mode"],
+        "execution_status": {
+            "controlled_execution_enabled": True,
+            "autonomous_execution_enabled": False,
+            "allowed_tool_names": list(policy["allowed_tool_names"]),
+            "allowed_workflow_names": list(policy["allowed_workflow_names"]),
+            "route_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "side_effects_enabled": False,
+        },
+        "request_schema": {
+            "request_id": "string | null",
+            "user_input": "string | null",
+            "task_type": "practice_plan_generation | coach_qa",
+            "tool_name": "agent_practice_plan",
+            "arguments": "{ userInput?: string, availableMinutes?: number, instrument?: string }",
+            "user_approved": "boolean",
+            "client_context": "ClientContext",
+        },
+        "response_schema": {
+            "ok": "boolean",
+            "preview": "ToolInvocationPreviewResult",
+            "confirmation": "ToolExecutionConfirmationEnvelope",
+            "confirmation_result": "ToolExecutionConfirmationResult | null",
+            "execution_result": "ToolExecutionResult",
+            "workflow_dispatch_result": "ToolWorkflowDispatchResult",
+            "controlled_workflow_execution_result": "ControlledWorkflowExecutionResult",
+            "controlled_workflow_execution_summary": "Record<string, unknown>",
+            "context_packet_summary": "Record<string, unknown>",
+        },
+        "terminal_commands": ["/execute-controlled"],
+        "trace_step_names": [
+            "terminal_controlled_workflow_execution_requested",
+            "terminal_controlled_workflow_execution_completed",
+            "terminal_controlled_workflow_execution_blocked",
+        ],
+        "summary_field": "controlled_workflow_execution_summary",
+        "policy": policy,
+        "rules": [
+            "Only agent_practice_plan / PracticePlanner.build_plan is executable in v2_6_5.",
+            "The tool must first pass preview, user confirmation, ToolExecutor dry-run, and workflow descriptor resolution.",
+            "v2_6_5 may invoke the deterministic PracticePlanner but must not call routes, engine adapters, accompaniment generation, or MIDI asset creation.",
+            "Execution remains non-autonomous and requires explicit user approval.",
+        ],
+        "guards": {
+            "controlled_execution_calls_llm_provider": False,
+            "controlled_execution_calls_route": False,
+            "controlled_execution_calls_engine_adapter": False,
+            "controlled_execution_creates_midi_asset": False,
+            "raw_api_key_allowed_in_output": False,
+        },
+    }
 
 def preview_tool_invocation(
     proposal: ToolInvocationProposal,

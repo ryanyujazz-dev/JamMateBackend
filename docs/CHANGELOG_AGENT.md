@@ -1,10 +1,27 @@
 # Agent Track Changelog
 
-Current baseline: `v2_6_3_agent_tool_executor_boundary`.
+Current baseline: `v2_6_5_agent_first_controlled_tool_execution_e2e`.
 
 This file records Agent-track changes to reduce conflicts in the global `docs/CHANGELOG.md`.
 
 ---
+
+## v2_6_5 — Agent First Controlled Tool Execution E2E
+
+- Added first guarded controlled workflow execution path.
+- Enabled only `agent_practice_plan` / `PracticePlanner.build_plan` for real controlled execution.
+- Added `ControlledWorkflowExecutionPolicy` and `ControlledWorkflowExecutionResult` shapes.
+- Added terminal `/execute-controlled` command after preview, confirmation, executor dry-run, and workflow descriptor resolution.
+- Added Agent controlled execution spec/API route.
+- Controlled execution remains low-risk: no route call, no engine adapter call, no accompaniment generation, and no MIDI asset creation.
+
+## v2_6_4 — Agent Deterministic Workflow Dispatcher
+
+- Added descriptor-only deterministic workflow dispatcher boundary.
+- Added `ToolWorkflowDispatcherPolicy`, `DeterministicWorkflowDescriptor`, and `ToolWorkflowDispatchResult` shapes.
+- Added terminal `/dispatch-dry-run` command after ToolExecutor dry-run.
+- Added Agent workflow dispatcher spec/dry-run API routes.
+- Dispatch remains descriptor-only: no workflow invocation, no route call, no engine adapter call, no MIDI asset creation.
 
 ## v2_6_3 — Agent Tool Executor Boundary
 

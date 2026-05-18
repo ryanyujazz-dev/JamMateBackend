@@ -25,17 +25,23 @@ from jammate_agent.core.contracts import (
     llm_context_runtime_contract,
     llm_provider_boundary_contract,
     response_case_policy_manifest,
+    controlled_workflow_execution_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
     tool_invocation_preview_contract,
+    tool_workflow_dispatcher_contract,
     tool_registry_contract,
 )
 from jammate_agent.core.jammate_agent import JamMateAgent
 from jammate_agent.core.tool_invocation import (
     ToolInvocationProposal,
+    build_controlled_workflow_execution_summary,
     build_confirmation_envelope,
     build_tool_executor_summary,
+    build_tool_workflow_dispatcher_summary,
     confirm_tool_invocation,
+    dispatch_deterministic_workflow_dry_run,
+    execute_controlled_workflow,
     execute_tool_dry_run,
     preview_tool_invocation,
 )
@@ -217,6 +223,135 @@ def dry_run_tool_executor_request(request: dict) -> dict:
         "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
         "execution_result": execution_result.to_dict(),
         "tool_executor_summary": summary,
+        "context_packet_summary": context.summary(),
+    }
+
+
+@router.get("/tools/workflows/spec")
+def get_tool_workflow_dispatcher_spec() -> dict:
+    return {"ok": True, "spec": tool_workflow_dispatcher_contract()}
+
+
+@router.post("/tools/workflows/dispatch-dry-run")
+def dry_run_tool_workflow_dispatch_request(request: dict) -> dict:
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "coach_qa"
+    tool_name = request.get("tool_name") or request.get("toolName") or ""
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"Dry-run workflow dispatcher: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    workflow_dispatch_result = dispatch_deterministic_workflow_dry_run(execution_result)
+    summary = build_tool_workflow_dispatcher_summary(dispatch_result=workflow_dispatch_result, source="agent_api")
+    return {
+        "ok": workflow_dispatch_result.ok,
+        "tool_workflow_dispatcher_version": workflow_dispatch_result.to_dict()["tool_workflow_dispatcher_version"],
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "workflow_dispatch_result": workflow_dispatch_result.to_dict(),
+        "tool_workflow_dispatcher_summary": summary,
+        "context_packet_summary": context.summary(),
+    }
+
+
+@router.get("/tools/workflows/controlled-execution/spec")
+def get_controlled_workflow_execution_spec() -> dict:
+    return {"ok": True, "spec": controlled_workflow_execution_contract()}
+
+
+@router.post("/tools/workflows/execute-controlled")
+def execute_controlled_workflow_request(request: dict) -> dict:
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "practice_plan_generation"
+    tool_name = request.get("tool_name") or request.get("toolName") or ""
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput") or arguments.get("user_input") or arguments.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"Controlled workflow execution: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    workflow_dispatch_result = dispatch_deterministic_workflow_dry_run(execution_result)
+
+    def _runner(tool_name_: str, args_: dict) -> dict:
+        if tool_name_ != "agent_practice_plan":
+            return {
+                "ok": False,
+                "error_code": "CONTROLLED_TOOL_NOT_SUPPORTED",
+                "message": f"v2_6_5 controlled execution only supports agent_practice_plan, got {tool_name_}.",
+            }
+        planned_input = str(args_.get("user_input") or args_.get("userInput") or user_input or "Build a balanced JamMate practice plan.")
+        raw_minutes = args_.get("available_minutes", args_.get("availableMinutes", args_.get("durationMinutes", request.get("availableMinutes", 45))))
+        try:
+            available_minutes = int(raw_minutes)
+        except (TypeError, ValueError):
+            available_minutes = 45
+        instrument = str(args_.get("instrument") or request.get("instrument") or "piano")
+        result = agent.generate_practice_plan(planned_input, available_minutes=available_minutes, instrument=instrument, request_id=request_id)
+        return {
+            "ok": result.ok,
+            "intent_type": result.intent_type,
+            "plan": result.plan,
+            "explanation": result.explanation,
+            "error_code": result.error_code,
+            "message": result.message,
+            "trace_id": result.trace_id,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+        }
+
+    controlled_result = execute_controlled_workflow(workflow_dispatch_result, workflow_runner=_runner)
+    summary = build_controlled_workflow_execution_summary(execution_result=controlled_result, source="agent_api")
+    return {
+        "ok": controlled_result.ok,
+        "controlled_workflow_execution_version": controlled_result.to_dict()["controlled_workflow_execution_version"],
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "workflow_dispatch_result": workflow_dispatch_result.to_dict(),
+        "controlled_workflow_execution_result": controlled_result.to_dict(),
+        "controlled_workflow_execution_summary": summary,
         "context_packet_summary": context.summary(),
     }
 
