@@ -1,0 +1,33 @@
+{
+  "contract_version": "v2_5_0",
+  "scope": "v2_5_0_engine_deepening_audit_and_next_music_pass",
+  "style": "jazz_ballad",
+  "title": "Misty",
+  "seed": 22703,
+  "choruses": 3,
+  "ok": true,
+  "note_events_by_track": {
+    "piano": 748,
+    "bass": 150
+  },
+  "piano_expression_events": 187,
+  "piano_patterns": {
+    "ballad_piano_soft_downbeat_sustain": 24,
+    "ballad_piano_two_beat_soft_anchor": 89,
+    "ballad_piano_downbeat_3and_answer": 8,
+    "ballad_piano_two_beat_light_retouch": 38,
+    "ballad_piano_downbeat_1and_whisper": 8,
+    "ballad_piano_downbeat_midbar_retouch": 20
+  },
+  "piano_expression_profiles": {
+    "soft_sustain": 150,
+    "soft_answer": 4,
+    "soft_retouch": 29,
+    "soft_whisper": 4
+  },
+  "acceptance": {
+    "old_anchor_preserved": true,
+    "new_light_retouch_present": true,
+    "agent_llm_logic_changed": false
+  }
+}

@@ -25,11 +25,13 @@ class ExpressionResolver:
         self,
         events: list[PatternEvent],
         style_policy: ExpressionPolicyBundle | Mapping | None = None,
+        *,
+        timing_policy: Mapping | None = None,
     ) -> ExpressionPlan:
         policy = self._coerce_policy(style_policy)
         resolved: dict[str, EventExpression] = {}
         active_events = [event for event in events if event.status == "active"]
-        next_same_track_starts = self._next_same_track_starts(active_events)
+        next_same_track_starts = self._next_same_track_starts(active_events, timing_policy=timing_policy)
         for event in events:
             if event.status != "active":
                 continue
@@ -314,7 +316,12 @@ class ExpressionResolver:
             "duration_clamped_beats": clamped,
         }
 
-    def _next_same_track_starts(self, events: list[PatternEvent]) -> dict[str, float | None]:
+    def _next_same_track_starts(
+        self,
+        events: list[PatternEvent],
+        *,
+        timing_policy: Mapping | None = None,
+    ) -> dict[str, float | None]:
         grouped: dict[str, list[PatternEvent]] = {}
         for event in events:
             grouped.setdefault(event.track, []).append(event)
@@ -323,10 +330,25 @@ class ExpressionResolver:
             ordered = sorted(track_events, key=lambda event: (event.onset_beat, event.region_id, event.event_id))
             for index, event in enumerate(ordered):
                 next_start = None
+                current_performed = _performed_onset_for_duration(event, timing_policy)
                 for later in ordered[index + 1 :]:
-                    if later.onset_beat > event.onset_beat + 1e-6:
-                        next_start = float(later.onset_beat)
-                        break
+                    if later.onset_beat <= event.onset_beat + 1e-6:
+                        continue
+                    if _is_non_interrupting_partial_reattack(later):
+                        # A V2 Ballad inner-movement gesture is not a new full
+                        # harmonic attack.  It should not force the previous
+                        # warm foundation to release; HarmonicRealizer will trim
+                        # only the reattacked motion voices at the gesture onset.
+                        continue
+                    later_performed = _performed_onset_for_duration(later, timing_policy)
+                    performed_gap = max(0.0, later_performed - current_performed)
+                    # Keep the rest of the expression resolver in the event's
+                    # local coordinate space while making the clamp duration
+                    # match the actual rendered timing.  This prevents a logical
+                    # 0.5 swing-upbeat event from creating a gap before its
+                    # performed 2/3 placement.
+                    next_start = float(event.onset_beat) + performed_gap
+                    break
                 result[event.event_id] = next_start
         return result
 
@@ -335,6 +357,55 @@ class ExpressionResolver:
             return style_policy
         return ExpressionPolicyBundle.from_legacy_dict(style_policy)
 
+
+
+def _performed_onset_for_duration(event: PatternEvent, timing_policy: Mapping | None = None) -> float:
+    """Return the timing-grid onset used for duration adjacency.
+
+    Expression still does not choose timing positions.  It only consumes the
+    already-declared event timing intent so a duration clamped to the next
+    same-track event reaches the event as it will actually be performed.
+    This is especially important for Ballad logical `1&` events marked
+    `swing_upbeat`: the musical grid stores 0.5, but the renderer performs
+    the attack at 2/3.
+    """
+
+    intent = str((event.metadata or {}).get("timing_intent") or "auto")
+    beat = float(event.onset_beat)
+    if intent in {"straight_even", "literal"}:
+        return beat
+    feel = str((timing_policy or {}).get("feel", "straight")).strip().lower()
+    if intent == "swing_upbeat" or (intent == "auto" and feel == "swing"):
+        ratio = float((timing_policy or {}).get("swing_ratio", 2.0 / 3.0))
+        half_grid = float((timing_policy or {}).get("half_beat_grid", 0.5))
+        whole = int(beat)
+        frac = beat - whole
+        if abs(frac - half_grid) < 1e-6:
+            return whole + ratio
+    return beat
+
+
+def _is_non_interrupting_partial_reattack(event: PatternEvent) -> bool:
+    gesture_type = str(getattr(event, "gesture_type", "") or "").strip().lower()
+    if gesture_type != "inner_movement":
+        return False
+    gesture_metadata = dict(getattr(getattr(event, "gesture", None), "metadata", {}) or {})
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    held_policy = str(
+        gesture_metadata.get("held_voice_policy")
+        or event_metadata.get("held_voice_policy")
+        or ""
+    ).strip().lower()
+    scope = str(
+        gesture_metadata.get("rearticulation_scope")
+        or event_metadata.get("rearticulation_scope")
+        or ""
+    ).strip().lower()
+    return (
+        held_policy in {"hold_foundation_common_tones", "hold_common_tones", "tie_foundation"}
+        or "inner" in scope
+        or "color" in scope
+    )
 
 def _micro_tuned_anticipated_duration(
     duration: float,

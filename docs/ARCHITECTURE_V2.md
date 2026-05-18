@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Architecture
 
-Current baseline: `v2_4_13`.
+Current baseline: `v2_6_1`.
 
 This document records the canonical architecture. Version-specific delivery notes belong in separate `docs/*V2_x_x*.md` files.
 
@@ -64,6 +64,7 @@ LeadSheet / Score Input
   -> Style pattern policy
   -> Pitchless event timeline
   -> Anticipation resolver
+  -> Gesture requests / projection intent
   -> Expression policy
   -> Voicing policy / selector
   -> Realization
@@ -75,6 +76,7 @@ Responsibilities:
 ```text
 Pattern       = horizontal pitchless rhythm / event layout
 Anticipation  = pitchless event movement across chord-region boundaries
+Gesture       = pitchless projection / inner movement / rolled onset / partial reattack intent
 Expression    = duration, release, velocity, articulation, pedal intent
 Voicing       = vertical pitch realization
 MIDI          = final note / CC materialization
@@ -111,50 +113,9 @@ jammate_agent/adapters/
 The Agent is currently workflow/rule based. Full LLM integration is a future enhancement and should preserve deterministic tool/workflow boundaries.
 
 
-### LLM Context Runtime Foundation
+### Agent Trace Viewer CLI
 
-`v2_4_13` keeps the existing Agent context/trace/contract owners as a previewable LLM runtime envelope and adds a provider-neutral boundary without enabling real LLM calls:
-
-```text
-ContextBuilder
-  -> ContextPacket
-  -> BoundedAgentRunLoop.preview()
-  -> AgentContextRuntimePreviewResponse
-  -> TraceLogger
-```
-
-Rules:
-
-- Context packets are task-scoped and should include only current request, client context, relevant learner/session/material summaries, capability manifest, constraints, allowed tools, output contract, and routing hints.
-- `BoundedAgentRunLoop` is preview-only in `v2_4_13`: no API-runloop LLM call and no autonomous tool execution.
-- `LLMProviderConfig`, `DisabledLLMProvider`, and the small stdlib OpenAI-compatible chat provider live in `jammate_agent/core/llm_provider.py`.
-- `python -m jammate_agent.cli.terminal_chat` may call a configured provider for terminal debugging only; it still does not execute tools.
-- Future LLM providers must obey the task-specific allowed tool list, request envelope, and bounded step policy.
-- This layer belongs to `jammate_agent/core/` and must not import engine internals.
-- Engine access remains adapter-only through `jammate_agent/adapters/`.
-
-### LLM Provider Boundary
-
-`v2_4_13` introduces a thin provider boundary instead of wiring a provider SDK directly into the runloop:
-
-```text
-jammate-agent-chat setup / doctor
-  -> local .env-style config file
-  -> LLMProviderConfig.from_env()
-  -> DisabledLLMProvider or OpenAICompatibleChatProvider
-  -> build_request_envelope(ContextPacket)
-  -> BoundedAgentRunLoop.preview() or terminal_chat CLI
-```
-
-Rules:
-
-- `JAMMATE_LLM_PROVIDER`, `JAMMATE_LLM_MODEL`, `JAMMATE_LLM_API_KEY_ENV_VAR`, `JAMMATE_LLM_BASE_URL`, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS` remain the highest-precedence provider/config guard surface.
-- API runloop preview never executes a provider call.
-- Terminal chat may call a provider only when provider, model, API key, and network gate are explicitly configured through env vars or a local config file.
-- Local config loading checks `JAMMATE_AGENT_LLM_CONFIG_FILE`, repo-local `.jammate_agent.env`, then `~/.jammate/agent_config.env`.
-- API key values must never appear in status, trace, setup/doctor output, docs, git, or zip packages.
-- Provider boundary code must not import provider SDKs or `jammate_engine`.
-- Concrete providers must implement `LLMProvider.status()` and `LLMProvider.generate(LLMRequestEnvelope)`.
+The Agent trace viewer is a read-only developer/HarmonyOS debugging surface. It reads `JsonTraceStore` output through `jammate_agent.cli.trace_viewer` / `jammate-agent-traces` and must not call the LLM provider, execute tools, dispatch deterministic workflows, or invoke the accompaniment engine.
 
 ---
 
@@ -173,8 +134,6 @@ jammate_api/
 
 API contracts:
 
-- HarmonyOS direct accompaniment uses `POST /accompaniment/generate`, not legacy `/v1/generate-midi-base64`.
-- Direct accompaniment should prefer inline `jammate_leadsheet_v2` using `sections + written_form`; `tune` is fallback only.
 - Requests accept snake_case and camelCase where useful.
 - Backend responses are canonical snake_case.
 - HarmonyOS frontend types are camelCase and should use generated `CaseAdapter.ets` for mapping.
@@ -207,98 +166,61 @@ Python backend should own:
 
 Every package handoff must remove transient caches and keep project entry docs clean. See `docs/DEVELOPMENT_HARNESS_V2.md` and `docs/PROJECT_CLEANUP_AND_README_CONSOLIDATION_V2_3_16.md`.
 
-### Agent Terminal Chat Config, Context Controls, and Candidate Extraction CLI
 
-`v2_4_13` keeps the validation-only tool invocation preview contract, explicit local trace export, local context/profile/session controls, and JSON-only tool-call candidate extraction inside terminal chat, then adds local setup/doctor/config-path support:
+## V1 Rule Absorption Boundary
 
-```text
-terminal_chat.py
-  -> setup / doctor / config-path
-  -> --config-file <path> / --trace-dir <dir>
-  -> normal chat, /context, /profile, /task-type, /instrument, /reset, or /tool-preview <tool_name> [json_args]
-  -> ContextBuilder.build(task_type, ...)
-  -> provider.generate(...) when explicitly configured
-  -> extract_tool_call_candidates(assistant_text)
-  -> ContextPacket.allowed_tools
-  -> ToolInvocationProposal
-  -> preview_tool_invocation(...)
-  -> ToolInvocationPreviewResult
-```
-
-The API preview path remains available and shares the same core owner:
-
-```text
-POST /agent/tools/invocation/preview
-  -> ContextBuilder.build(task_type, ...)
-  -> ToolInvocationProposal
-  -> preview_tool_invocation(...)
-```
-
-Rules:
-
-- The registry is descriptor-only in `v2_4_13`; it does not execute tools.
-- `tool_execution_enabled=false` and `autonomous_tool_execution_enabled=false` remain hard runtime guards.
-- A future LLM provider may only see tools from the task-specific `ContextPacket.allowed_tools` allow-list.
-- Registry and invocation-preview code belong in `jammate_agent/core/` and must not import `jammate_engine` or provider SDKs.
-- `terminal_chat.py` may import Agent core context/provider/preview utilities, but must not import `jammate_engine` or provider SDKs.
-- Actual engine access remains direct API or Agent adapter workflow, never arbitrary runloop or terminal command execution.
-- Terminal `/context`, `/profiles`, `/profile`, `/task-type`, `/instrument`, `/session`, and `/reset` are local CLI controls only; they never call the provider, execute tools, dispatch routes, or call engine workflows.
-- Terminal `/tool-preview`, extracted terminal tool-call candidates, and API `POST /agent/tools/invocation/preview` validate proposed tool calls against `ContextPacket.allowed_tools` and argument shape only; they never dispatch routes, adapters, or engine workflows.
-- Terminal trace export is explicit through `--trace-dir`; it reuses `TraceLogger` / `JsonTraceStore` / `AgentTrace` and must not create a second tracing subsystem.
-
-### Agent Trace API Contract Hardening
-
-`v2_4_13` keeps the existing `TraceLogger` / `JsonTraceStore` / `AgentTrace` tracing owner and hardens its API-facing contract:
-
-```text
-GET /agent/traces/spec
-GET /agent/traces?limit=20
-GET /agent/traces/{trace_id}
-```
-
-Architecture rules:
-
-- Trace APIs are inspection-only and must not execute tools.
-- Trace APIs must not call the LLM provider.
-- Trace APIs must not dispatch deterministic workflows, routes, adapters, or engine code.
-- List responses return versioned summary objects, not raw trace JSON.
-- Detail responses return versioned detail objects with stable `TRACE_NOT_FOUND` failure shape.
-- Terminal `--trace-dir` exports remain compatible with `JsonTraceStore` and the API detail/list contract.
-- HarmonyOS contract/codegen owns camelCase client-domain types; backend responses remain canonical snake_case.
+V1 source may be reviewed for musical facts, but V2 implementation must remain native to this architecture. In particular, inner movement, rolled comping, cadence roll, and partial reattack are Gesture/Expression/Voicing cooperation points. They must not be reintroduced as V1-style pattern+voicing+MIDI bundles.
 
 
-### Agent Trace Viewer CLI
+## v2_5_2 Jazz Ballad Gesture Contract Boundary
 
-`v2_4_13` adds a read-only terminal viewer on top of the same `TraceLogger` / `JsonTraceStore` / `AgentTrace` owner:
+Jazz Ballad may now request `inner_movement` and `rolled_onset` through its style `gesture_policy.py`, but these requests remain pitchless projection/motion contracts. Gesture metadata may describe abstract motion shape, attack scope, held-foundation policy, and functional projection refs. It must not carry concrete MIDI notes, final expression values, pedal decisions, voicing texture names, source-degree choices, or V1 slot-slicing assumptions.
 
-```text
-python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list
-python -m jammate_agent.cli.trace_viewer --trace-dir <dir> show <trace_id>
-python -m jammate_agent.cli.trace_viewer spec
-```
-
-Architecture rules:
-
-- The viewer is read-only and may only load local AgentTrace JSON through `JsonTraceStore`.
-- The viewer must not execute tools, dispatch workflows, call the LLM provider, or call engine adapters.
-- The viewer belongs under `jammate_agent/cli/` and must not import `jammate_engine` or provider SDKs.
-- The viewer shares the `v2_4_13` Trace API/list/detail field contract so terminal debugging and HarmonyOS debugging stay aligned.
+Default audible comping is intentionally unchanged in this pass. Phrase intent and partial-reattack realization remain later stages in the engine-deepening roadmap.
 
 
-### v2_4_13 Candidate Extraction Boundary
+## v2_5_3 Jazz Ballad Phrase Intent Boundary
 
-`extract_tool_call_candidates()` lives in `jammate_agent.core.tool_invocation` because extracted candidates are still tool invocation proposals. It accepts explicit JSON-only shapes from assistant text and ignores natural language. Terminal chat may preview extracted candidates, but execution remains disabled. No engine imports are allowed in this path.
+Jazz Ballad phrase intent is now expressed inside the existing style comping vocabulary, not through a migrated V1 phrase engine. `styles/jazz_ballad/comping_patterns.py` may label pitchless candidates with `phrase_family`, `phrase_function`, `phrase_slot`, `context_gate`, and approved `gesture_intent`, and may request approved pitchless `GestureRequest` values through `gesture_policy.py`.
 
-### v2_4_13 Tool-Call Preview Trace Contract Boundary
+Phrase candidates must not choose concrete notes, source degrees, voicing textures, final duration/velocity/touch/pedal, or MIDI repair behavior. Inner movement remains a Gesture request; held-foundation partial reattack is deferred to the realization/expression pass.
 
-`v2_4_13` keeps candidate extraction and validation-only preview in `jammate_agent.core.tool_invocation`, then adds a trace summary contract for terminal debugging:
 
-```text
-LLM response
--> terminal_tool_call_candidates_extracted
--> terminal_tool_call_candidates_previewed
--> terminal_tool_call_preview_trace_summary_recorded
--> final_response_summary.tool_call_preview_trace_summary
-```
+## v2_5_4 Held Foundation Partial Reattack Boundary
 
-This boundary is trace-only. It reuses `TraceLogger` / `JsonTraceStore` / `AgentTrace`; it does not execute tools, dispatch deterministic workflows, call API routes, call adapters, or import/call `jammate_engine`.
+Jazz Ballad partial reattack is realized at the boundary between `core/gestures`, `core/expression`, `core/voicing`, and `realization`. Pattern candidates may request `INNER_MOVEMENT`, but they remain pitchless. `GestureRealizer` projects only requested motion voices from the `VoicingPlan`; `ExpressionResolver` does not cut a warm anchor merely because a later inner movement occurs; `HarmonicRealizer` trims only the re-struck motion voices so foundation/common tones continue ringing.
+
+
+## v2_5_6 Jazz Ballad Swing 1& Timing Intent Patch Boundary
+
+
+## v2_5_9 V1 instrument-rule absorption boundary
+
+`v2_5_9` formalizes how V1 style/instrument rules may influence V2: V1 source can be used only as musical-rule evidence, not as code structure to migrate. The concrete mapping is maintained in `docs/V1_INSTRUMENT_RULES_DEEP_AUDIT_AND_V2_NATIVE_MAPPING_V2_5_9.md`.
+
+Important architectural consequences:
+
+- Ballad `inner movement` remains a V2 gesture/projection concern, not a comping pattern cell.
+- Ballad brush/drums must be modeled as semantic percussion policy dimensions before adding audible loops.
+- Ballad bass should evolve through an anchor-path policy before walking or generic ornaments.
+- Swing and Bossa style work must preserve each style's own instrument grammar rather than sharing generic MIDI patterns.
+
+Jazz Ballad upbeats keep the V2 timing contract: the pattern layer stores written upbeats as logical `.5`, and the render timing stage owns performed placement. As of v2_5_8 the Jazz Ballad timing profile defaults to `feel=swing`, so ordinary `.5` events with `timing_intent=auto` and explicit `timing_intent=swing_upbeat` events both perform at the swing/triplet upbeat (`2/3`). Ballad anticipation likewise keeps the pitchless logical `4&` target but carries `timing_intent=swing_upbeat` and `timing_grid=swing_triplet_upbeat`; expression tie duration uses the performed lead-in (`1/3`) rather than a straight half-beat.
+
+This remains a timing-intent correction only. It does not move the event to literal `0.666...` in the pattern, does not change notes, voicing texture, expression duration/velocity, pedal behavior, gesture semantics, or Agent/LLM logic.
+
+## v2_5_5 Jazz Ballad Two-Beat 1& Pattern Patch Boundary
+
+Jazz Ballad two-beat piano soft-mark candidates now use local beats `0.0, 0.5`, corresponding to beat 1 plus beat 1&. This remains a pitchless pattern-layer timing correction only. Gesture, expression, voicing, pedal, and Agent/LLM boundaries are unchanged.
+
+
+## v2_5_10 Integrated Two-Track Boundary
+
+The integrated package keeps the engine and Agent as separate architectural tracks. `jammate_engine` remains the accompaniment generation owner; it must not import `jammate_agent`. `jammate_agent` may call engine behavior only through explicit adapters. Agent/LLM context, terminal chat, tool-preview, and traces are high-level workflow surfaces and must not choose pattern notes, voicing textures, expression values, or MIDI repair behavior.
+
+
+## v2_6_1 Branch / Track Ownership Hardening
+
+Parallel development now uses explicit Engine / Agent / Integration ownership. Engine work owns musical runtime behavior under `jammate_engine`; Agent work owns orchestration under `jammate_agent`; Integration work owns shared version surfaces, public docs, API reconciliation, and frontend fixtures. See `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`.
+
+This is a governance/architecture boundary change only. It does not change accompaniment generation behavior, Agent tool execution behavior, or HarmonyOS response shapes.

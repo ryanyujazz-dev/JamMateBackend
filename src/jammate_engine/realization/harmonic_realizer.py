@@ -8,6 +8,7 @@ from jammate_engine.core.harmony.chord_parser import parse_chord
 from jammate_engine.core.roles import EnsembleContext
 from jammate_engine.core.expression.expression_plan import EventExpression, ExpressionPlan
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
+from jammate_engine.core.gestures.gesture import GestureKind
 from jammate_engine.realization.gesture_realizer import GestureRealizer
 from jammate_engine.realization.note_event_builder import NoteEvent
 from jammate_engine.core.voicing import VoicingPolicy, VoicingRequest, VoicingResolver, VoicingPlan, ColorPolicyMode
@@ -32,6 +33,7 @@ class HarmonicRealizer:
         else:
             policy = VoicingPolicy.from_legacy_dict(style_voicing_policy or {})
         out: list[NoteEvent] = []
+        event_by_id = {event.event_id: event for event in events}
         # Default harmonic-comping contract: one vertical voicing decision per
         # chord region. Multiple piano hits inside the same region should reuse
         # that selected source/order/register unless a future explicit gesture
@@ -67,8 +69,16 @@ class HarmonicRealizer:
             else:
                 voicing = _reuse_region_voicing(cached, event.event_id)
             realized = self.gesture_realizer.realize_harmonic_event(event, voicing, expr)
+            if _event_is_partial_reattack(event):
+                out = _release_reattacked_motion_voices(
+                    existing_notes=out,
+                    current_event=event,
+                    current_notes=realized,
+                    event_by_id=event_by_id,
+                )
             out.extend(realized)
             self.last_piano_audit_events.append(_piano_audit_event(event, expr, voicing, realized))
+        self.last_piano_audit_events = _sync_piano_audit_realized_notes(self.last_piano_audit_events, out)
         return out
 
 
@@ -713,6 +723,93 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
         return value.strip().lower() in {"1", "true", "yes", "on", "enabled"}
     return default
 
+
+
+def _event_is_partial_reattack(event: PatternEvent) -> bool:
+    gesture = getattr(event, "gesture", None)
+    gesture_kind = getattr(gesture, "kind", None)
+    gesture_type = str(getattr(event, "gesture_type", "") or getattr(gesture, "gesture_type", "") or "").strip().lower()
+    if gesture_kind == GestureKind.INNER_MOVEMENT or gesture_type == GestureKind.INNER_MOVEMENT.value:
+        metadata = dict(getattr(gesture, "metadata", {}) or {})
+        held_policy = str(metadata.get("held_voice_policy") or "").strip().lower()
+        scope = str(metadata.get("rearticulation_scope") or "").strip().lower()
+        return held_policy in {"hold_foundation_common_tones", "hold_common_tones", "tie_foundation"} or "inner" in scope or "color" in scope
+    return False
+
+
+def _release_reattacked_motion_voices(
+    *,
+    existing_notes: list[NoteEvent],
+    current_event: PatternEvent,
+    current_notes: list[NoteEvent],
+    event_by_id: dict[str, PatternEvent],
+) -> list[NoteEvent]:
+    """Trim only voices reattacked by an INNER_MOVEMENT gesture.
+
+    The previous expression pass intentionally lets the full anchor ring through
+    a partial reattack.  This realization-layer adjustment releases just the
+    motion voices that are re-struck, leaving foundation/common tones held.  It
+    consumes already-selected voicing projection metadata and never chooses new
+    pitch content.
+    """
+
+    if not current_notes:
+        return existing_notes
+    current_start = min(float(note.start_beat) for note in current_notes)
+    selected_keys = {_voice_identity_key(note) for note in current_notes}
+    selected_pitches = {int(note.note) for note in current_notes}
+    out: list[NoteEvent] = []
+    for note in existing_notes:
+        prior_event = event_by_id.get(str(note.expression_event_id or ""))
+        if prior_event is None or prior_event.region_id != current_event.region_id or prior_event.track != current_event.track:
+            out.append(note)
+            continue
+        if float(note.start_beat) >= current_start - 1e-9:
+            out.append(note)
+            continue
+        note_end = float(note.start_beat) + float(note.duration_beats)
+        if note_end <= current_start + 1e-9:
+            out.append(note)
+            continue
+        if _voice_identity_key(note) not in selected_keys and int(note.note) not in selected_pitches:
+            out.append(note)
+            continue
+        new_duration = max(0.05, current_start - float(note.start_beat))
+        if new_duration >= float(note.duration_beats) - 1e-9:
+            out.append(note)
+            continue
+        pedal_debug = dict(note.pedal_debug or {})
+        pedal_debug.update(
+            {
+                "partial_reattack_release_version": "v2_5_4",
+                "partial_reattack_release_applied": True,
+                "partial_reattack_release_reason": "inner_movement_restruck_motion_voice_foundation_held",
+                "partial_reattack_source_event_id": current_event.event_id,
+                "partial_reattack_original_duration_beats": round(float(note.duration_beats), 6),
+                "partial_reattack_trimmed_duration_beats": round(float(new_duration), 6),
+            }
+        )
+        out.append(replace(note, duration_beats=new_duration, pedal_debug=pedal_debug))
+    return out
+
+
+def _voice_identity_key(note: NoteEvent) -> tuple[str | None, str | None, str | None]:
+    return (note.voice_role, note.group_id, note.projection_ref)
+
+
+def _sync_piano_audit_realized_notes(audit_events: list[dict[str, Any]], final_notes: list[NoteEvent]) -> list[dict[str, Any]]:
+    notes_by_expression_event: dict[str, list[NoteEvent]] = {}
+    for note in final_notes:
+        if note.expression_event_id:
+            notes_by_expression_event.setdefault(str(note.expression_event_id), []).append(note)
+    synced: list[dict[str, Any]] = []
+    for row in audit_events:
+        event_id = str(row.get("event_id") or "")
+        if event_id in notes_by_expression_event:
+            row = dict(row)
+            row["realized_notes"] = [_note_event_debug(note) for note in notes_by_expression_event[event_id]]
+        synced.append(row)
+    return synced
 
 def _piano_audit_event(
     event: PatternEvent,

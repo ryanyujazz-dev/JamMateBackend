@@ -1,0 +1,80 @@
+{
+  "version": "v2_5_7",
+  "task": "ballad_1and_sustain_continuity_bugfix",
+  "rule": "Beat-1 anchor duration clamp consumes declared event timing intent, so logical .5 swing-upbeat soft marks connect at performed 2/3.",
+  "soft_whisper_articulation": "sustain",
+  "misty_measure_15_evidence": [
+    {
+      "performance_bar_index_zero_based": 14,
+      "human_measure_number": 15,
+      "event_id": "c0_b14_ch0_ballad_piano_downbeat_1and_whisper_0",
+      "logical_start_beat": 56.0,
+      "timing_intent": "auto",
+      "performed_start_beat": 56.0,
+      "duration_beats": 0.6666666666666643,
+      "articulation": "sustain",
+      "pattern_id": "ballad_piano_downbeat_1and_whisper"
+    },
+    {
+      "performance_bar_index_zero_based": 14,
+      "human_measure_number": 15,
+      "event_id": "c0_b14_ch0_ballad_piano_downbeat_1and_whisper_1",
+      "logical_start_beat": 56.5,
+      "timing_intent": "swing_upbeat",
+      "performed_start_beat": 56.666666666666664,
+      "duration_beats": 1.0,
+      "articulation": "sustain",
+      "pattern_id": "ballad_piano_downbeat_1and_whisper"
+    }
+  ],
+  "all_downbeat_1and_whisper_events": [
+    {
+      "performance_bar_index_zero_based": 14,
+      "human_measure_number": 15,
+      "event_id": "c0_b14_ch0_ballad_piano_downbeat_1and_whisper_0",
+      "logical_start_beat": 56.0,
+      "timing_intent": "auto",
+      "performed_start_beat": 56.0,
+      "duration_beats": 0.6666666666666643,
+      "articulation": "sustain",
+      "pattern_id": "ballad_piano_downbeat_1and_whisper"
+    },
+    {
+      "performance_bar_index_zero_based": 14,
+      "human_measure_number": 15,
+      "event_id": "c0_b14_ch0_ballad_piano_downbeat_1and_whisper_1",
+      "logical_start_beat": 56.5,
+      "timing_intent": "swing_upbeat",
+      "performed_start_beat": 56.666666666666664,
+      "duration_beats": 1.0,
+      "articulation": "sustain",
+      "pattern_id": "ballad_piano_downbeat_1and_whisper"
+    },
+    {
+      "performance_bar_index_zero_based": 86,
+      "human_measure_number": 87,
+      "event_id": "c2_b22_ch0_ballad_piano_downbeat_1and_whisper_0",
+      "logical_start_beat": 344.0,
+      "timing_intent": "auto",
+      "performed_start_beat": 344.0,
+      "duration_beats": 0.6666666666666856,
+      "articulation": "sustain",
+      "pattern_id": "ballad_piano_downbeat_1and_whisper"
+    },
+    {
+      "performance_bar_index_zero_based": 86,
+      "human_measure_number": 87,
+      "event_id": "c2_b22_ch0_ballad_piano_downbeat_1and_whisper_1",
+      "logical_start_beat": 344.5,
+      "timing_intent": "swing_upbeat",
+      "performed_start_beat": 344.6666666666667,
+      "duration_beats": 1.0,
+      "articulation": "sustain",
+      "pattern_id": "ballad_piano_downbeat_1and_whisper"
+    }
+  ],
+  "checks": {
+    "measure_15_anchor_reaches_2over3": true,
+    "measure_15_second_event_performs_at_2over3": true
+  }
+}

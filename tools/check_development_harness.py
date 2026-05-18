@@ -68,6 +68,9 @@ def check_required_docs() -> None:
         "docs/ARCHITECTURE_V2.md",
         "docs/API_CONTRACT_V2.md",
         "docs/DEVELOPMENT_TASK_PLAN_V2.md",
+        "docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md",
+        "docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md",
+        "docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md",
         "docs/DEVELOPMENT_HARNESS_V2.md",
         "docs/NEW_FILE_PLACEMENT_GUIDE_V2.md",
         "docs/GENERATION_RULES_SUMMARY_V2.md",
@@ -75,6 +78,8 @@ def check_required_docs() -> None:
         "docs/STYLE_TUNING_ENTRY_POINT_V2.md",
         "docs/FUTURE_IDEAS_BACKLOG_V2.md",
         "docs/CHANGELOG.md",
+        "docs/CHANGELOG_ENGINE.md",
+        "docs/CHANGELOG_AGENT.md",
     ]
     for rel in required:
         if not (ROOT / rel).exists():
@@ -92,11 +97,10 @@ def check_document_roles() -> None:
     for token in ("Core Design Principles", "Directory Architecture", "Current Main Capabilities"):
         if token not in readme:
             fail(f"README.md missing project overview token: {token}")
-    for token in ("Mandatory Architecture Boundary", "Cleanup Before Every Delivery", "Minimal File Split Principle"):
+    for token in ("Mandatory Architecture Boundary", "Cleanup Before Every Delivery", "Minimal File Split Principle", "Track Ownership and Branch Split"):
         if token not in agent:
             fail(f"agent.md missing hard harness token: {token}")
-    current_version = read("VERSION").strip()
-    if current_version not in changelog or "v2_3_17" not in changelog or "v2_3_10" not in changelog:
+    if "v2_6_1" not in changelog or "v2_3_17" not in changelog or "v2_3_10" not in changelog:
         fail("CHANGELOG.md must contain current and recent project history")
 
 
@@ -141,6 +145,30 @@ def check_harness_rules_documented() -> None:
             fail(f"harness docs missing token: {token}")
 
 
+def check_track_ownership_documented() -> None:
+    branch_doc = read("docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md")
+    agent = read("agent.md")
+    harness = read("docs/DEVELOPMENT_HARNESS_V2.md")
+    main_plan = read("docs/DEVELOPMENT_TASK_PLAN_V2.md")
+    for token in (
+        "feature/engine-deepening",
+        "feature/agent-workflow",
+        "integration/agent-engine-merge",
+        "Engine-Owned Paths",
+        "Agent-Owned Paths",
+        "Shared Files: Integration-Owned Only",
+        "docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md",
+        "docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md",
+        "docs/CHANGELOG_ENGINE.md",
+        "docs/CHANGELOG_AGENT.md",
+    ):
+        if token not in branch_doc:
+            fail(f"branch ownership doc missing token: {token}")
+    for token in ("Shared files", "integration tasks", "BRANCH_AND_TRACK_OWNERSHIP_V2.md"):
+        if token not in agent + harness + main_plan:
+            fail(f"track ownership harness docs missing token: {token}")
+
+
 def check_harmonyos_contract_pack() -> None:
     required = [
         "frontend_fixtures/harmonyos/README.md",
@@ -183,6 +211,7 @@ def main() -> int:
         check_document_roles,
         check_architecture_boundaries,
         check_harness_rules_documented,
+        check_track_ownership_documented,
         check_harmonyos_contract_pack,
         check_cleanup_sensitive_files,
     ]

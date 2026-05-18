@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_4_13`.
+Current package version: `v2_6_1`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -59,6 +59,10 @@ MIDI          = final note / CC materialization
 
 Patterns live in styles. Voicing and expression are core-level shared systems.
 
+### 6. Branch / track ownership
+
+Parallel development is split into Engine, Agent, and Integration tracks. Engine work owns musical generation behavior. Agent work owns orchestration, terminal chat, tool-preview, traces, and LLM/provider boundaries. Integration work owns shared version surfaces, public docs, frontend fixture refresh, and cross-track API reconciliation. See `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`.
+
 ---
 
 ## Current Main Capabilities
@@ -79,13 +83,6 @@ Patterns live in styles. Voicing and expression are core-level shared systems.
 - Provides rule/workflow-based Agent routes before full LLM integration.
 - Prepares immediate practice playback from natural-language-like user input.
 - Creates practice plan and session review responses.
-- Builds task-scoped LLM context runtime preview packets without calling a real LLM provider.
-- Exposes a provider-neutral LLM config/status boundary without provider SDK imports or network calls.
-- Exposes a descriptor-only Agent tool registry for future bounded LLM tool planning.
-- Exposes a terminal chat CLI for optional provider-backed LLM conversation during backend debugging.
-- Provides terminal LLM setup/doctor/config-path helpers so local provider settings can be reused without repeated shell exports.
-- Scans successful terminal LLM replies for explicit JSON tool-call candidates and previews them without execution.
-- Exposes a bounded runloop preview contract for future tool workflows.
 - Maintains trace logging for Agent steps.
 - Exposes capability and contract manifests for HarmonyOS integration.
 
@@ -161,25 +158,11 @@ POST /accompaniment/generate
 
 Use this when the client already knows the tune/style/tempo/chorus settings.
 
-Typical HarmonyOS request prefers inline `jammate_leadsheet_v2` and keeps `tune` only as a fallback hint:
+Typical request:
 
 ```json
 {
-  "leadsheet": {
-    "schema_version": "jammate_leadsheet_v2",
-    "title": "User Custom Chart",
-    "key": "C",
-    "sections": {
-      "A": {
-        "label": "A",
-        "bars": [
-          { "chords": [{ "beat": 1.0, "symbol": "Cmaj7" }] }
-        ]
-      }
-    },
-    "written_form": ["A"]
-  },
-  "tune": "optional fallback only",
+  "tune": "Blue Bossa",
   "style": "bossa_nova",
   "tempo": 120,
   "choruses": 1,
@@ -204,10 +187,6 @@ POST /agent/practice/plan
 POST /agent/session/review
 GET  /agent/capabilities
 GET  /agent/context/profiles
-GET  /agent/context/runtime/spec
-POST /agent/context/runtime/preview
-GET  /agent/llm/provider/spec
-GET  /agent/tools/registry
 GET  /agent/contracts/arkts
 GET  /agent/contracts/arkts/files
 GET  /agent/contracts/frontend-pack
@@ -215,6 +194,28 @@ GET  /agent/contracts/smoke-pack
 GET  /agent/traces
 GET  /agent/traces/{trace_id}
 ```
+
+
+### Agent terminal tooling
+
+Terminal Agent chat:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat
+jammate-agent-chat
+```
+
+Agent Trace Viewer CLI:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir demos/agent_traces list
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir demos/agent_traces show <trace_id>
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer spec
+jammate-agent-traces --trace-dir demos/agent_traces list
+jammate-agent-traces --trace-dir demos/agent_traces show <trace_id>
+```
+
+The trace viewer is read-only. It does not call the LLM provider, execute tools, dispatch workflows, or invoke the accompaniment engine.
 
 ---
 
@@ -265,8 +266,9 @@ Current recommended Git branches:
 
 ```text
 main                       # Stable only; do not commit directly
-feature/agent-workflow      # Agent / API / HarmonyOS / LLM workflow development
 feature/engine-deepening    # Engine / voicing / pattern / expression / style tuning
+feature/agent-workflow      # Agent / API / HarmonyOS / LLM workflow development
+integration/agent-engine-merge # Shared files, versions, API/docs reconciliation
 ```
 
 Each ChatGPT engineering delivery should be treated as a full project package. Before packaging and handing off, remove cache/temp artifacts, keep README focused on project identity and architecture, and keep version surfaces aligned.
@@ -275,76 +277,52 @@ See:
 
 ```text
 docs/DEVELOPMENT_HARNESS_V2.md
+docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md
+docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md
+docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md
 docs/ARCHITECTURE_V2.md
 docs/API_CONTRACT_V2.md
 docs/STYLE_TUNING_ENTRY_POINT_V2.md
 docs/GENERATION_RULES_SUMMARY_V2.md
+docs/AGENT_TOOL_CALL_PREVIEW_TRACE_CONTRACT_V2_4_13.md
+docs/V1_MUSICAL_RULES_TO_V2_NATIVE_MAPPING_V2_5_1.md
+docs/JAZZ_BALLAD_GESTURE_CONTRACT_FOUNDATION_V2_5_2.md
+docs/JAZZ_BALLAD_PHRASE_INTENT_FOUNDATION_V2_5_3.md
+docs/JAZZ_BALLAD_HELD_FOUNDATION_PARTIAL_REATTACK_V2_5_4.md
+docs/JAZZ_BALLAD_TWO_BEAT_1AND_PATTERN_PATCH_V2_5_5.md
 ```
 
 ---
 
-## Terminal Agent Chat
-
-The terminal-first LLM chat entry point remains available for backend debugging:
-
-```bash
-PYTHONPATH=src python -m jammate_agent.cli.terminal_chat
-```
-
-The CLI no longer requires manual shell exports every time. You can create a local provider config once:
-
-```bash
-jammate-agent-chat setup
-jammate-agent-chat doctor
-```
-
-Then start chat directly, or point at a specific config file:
-
-```bash
-jammate-agent-chat --config-file ~/.jammate/agent_config.env
-```
-
-Config precedence is explicit env vars, `JAMMATE_AGENT_LLM_CONFIG_FILE`, repo-local `.jammate_agent.env`, then `~/.jammate/agent_config.env`. API key values are masked from setup/doctor/status/trace output. The CLI can call a configured provider for terminal debugging only; it does not execute Agent tools. The API runloop preview remains preview-only.
-
-Terminal tool-call validation is also available without execution:
-
-```bash
-PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --task-type immediate_practice_playback --once '/tool-preview agent_playback_prepare {"durationMinutes":20}'
-```
-
-Interactive commands:
-
-```text
-/help
-/session
-/context [full|--full|json|--json]
-/profiles
-/profile [task_type]
-/task-type [task_type]
-/instrument [instrument]
-/reset
-/tools
-/tool-preview <tool_name> [json_object_arguments]
-/trace
-/traces
-/exit
-```
-
-Read-only trace viewing is available separately from chat:
-
-```bash
-PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir tmp/terminal_traces list
-PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir tmp/terminal_traces show <trace_id>
-PYTHONPATH=src python -m jammate_agent.cli.trace_viewer spec
-```
-
-The trace viewer never executes tools, calls an LLM provider, dispatches workflows, or imports the engine. Terminal context controls rebuild ContextPacket previews only; they do not call the provider or execute tools.
-
 ## Current Development Status
 
-`v2_4_13` is the Agent tool-call preview trace contract baseline for `feature/agent-workflow`. It preserves terminal chat, optional provider-backed conversation, local `setup` / `doctor` config, validation-only `/tool-preview`, explicit `--trace-dir` export, read-only trace viewer, context/profile/session controls, and JSON-only tool-call candidate extraction, then adds a stable trace summary for the chain from LLM response to preview validation and execution guard. Extracted candidates are previewed against the current ContextPacket allow-list and never executed. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch remain disabled. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
+### v2_6_1 branch / track ownership status
+
+`v2_6_1` is a governance hardening pass on top of the integrated `v2_5_10` package. It adds explicit Engine / Agent / Integration track ownership, splits rolling task plans and changelogs to reduce merge conflicts, and hardens the harness so shared files are integration-owned by default. No engine music-generation logic, Agent execution behavior, or API response shape changed.
+
+### v2_5_10 integration merge status
+
+`v2_5_10` merges the latest Agent workflow line (`v2_4_13`) into the official engine-deepening baseline (`v2_5_9`). Engine runtime behavior, Jazz Ballad swing-8 timing, gesture/expression/voicing boundaries, and V1-instrument-rule planning remain from the engine branch. Agent terminal chat, provider-boundary, trace-viewer, validation-only tool-preview, and HarmonyOS contract fixture work remain from the Agent branch. See `docs/AGENT_ENGINE_INTEGRATION_MERGE_V2_5_10.md`.
+
+### v2_5_9 engine-deepening audit status
+
+`v2_5_9` is a documentation-only engine planning pass based on the `v2_5_8` listening baseline. It rejects the earlier experimental Ballad brush-drums shortcut and records a deeper V1 instrument-rule audit for Jazz Ballad, Medium Swing, and Bossa Nova. The new formal reference is `docs/V1_INSTRUMENT_RULES_DEEP_AUDIT_AND_V2_NATIVE_MAPPING_V2_5_9.md`. No generation code, Agent/LLM logic, API behavior, voicing realization, or MIDI output behavior changed in this pass.
+
+`v2_5_8` corrects Jazz Ballad timing-feel ownership. Ballad now defaults to swing-8 timing, so written `.5` upbeats perform at the triplet/swing `2/3` point by default. Ballad anticipation also keeps the pitchless logical `4&` location while carrying `timing_intent=swing_upbeat`, so anticipated chords perform on the swing `4&` rather than a straight eighth. Pattern remains pitchless; voicing, expression, pedal, and Agent/LLM behavior are otherwise unchanged.
+
+`v2_5_5` is a narrow Jazz Ballad listening patch. Two-beat piano soft-mark candidates now use `beat 1 + beat 1&` (`0.0, 0.5`) instead of `beat 1 + beat 2` (`0.0, 1.0`). Pattern remains pitchless; voicing still chooses concrete notes; expression still owns duration, velocity, touch, and pedal. Agent/LLM behavior remains unchanged:
 
 ```text
-Current active window -> feature/agent-workflow
-Engine-deepening work -> not touched in this delivery
+Agent window  -> feature/agent-workflow
+Engine window -> feature/engine-deepening
 ```
+
+
+---
+
+## Development Track Governance
+
+- `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`: owner paths, shared-file rules, and merge conflict policy.
+- `docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md`: Engine-track rolling plan.
+- `docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md`: Agent-track rolling plan.
+- `docs/CHANGELOG_ENGINE.md` / `docs/CHANGELOG_AGENT.md`: track-specific history to reduce conflicts in the global changelog.

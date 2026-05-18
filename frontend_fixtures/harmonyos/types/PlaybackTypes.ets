@@ -1,4 +1,4 @@
-// JamMate Playback / Accompaniment Types v2_4_13
+// JamMate Playback / Accompaniment Types v2_6_1
 // Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets
 // Client-domain types are camelCase. Duration is a practice-timer concern.
 

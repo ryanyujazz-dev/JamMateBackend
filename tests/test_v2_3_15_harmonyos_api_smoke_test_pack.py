@@ -15,7 +15,7 @@ def test_smoke_pack_endpoint_exposes_minimum_harmonyos_sequence() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_4_13"
+    assert payload["version"] == "v2_6_1"
     steps = payload["minimum_smoke_sequence"]
     assert [step["path"] for step in steps] == ["/health", "/accompaniment/generate", "/agent/playback/prepare"]
     direct_request = payload["requests"]["directAccompanimentBlueBossa"]
@@ -32,7 +32,7 @@ def test_smoke_pack_files_endpoint_exposes_copyable_json_and_curl_script() -> No
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_4_13"
+    assert payload["version"] == "v2_6_1"
     files = {item["relative_path"]: item for item in payload["files"]}
     assert "README.md" in files
     assert "curl_smoke.sh" in files
@@ -63,7 +63,7 @@ def test_repository_harmonyos_smoke_files_are_present() -> None:
     assert (smoke_root / "README.md").exists()
     assert (smoke_root / "curl_smoke.sh").exists()
     assert (smoke_root / "smoke_pack.json").exists()
-    assert "v2_4_13" in (smoke_root / "README.md").read_text(encoding="utf-8")
+    assert "v2_6_1" in (smoke_root / "README.md").read_text(encoding="utf-8")
     assert "Blue Bossa" in (smoke_root / "smoke_direct_accompaniment_blue_bossa.json").read_text(encoding="utf-8")
 
 

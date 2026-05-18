@@ -1,0 +1,36 @@
+{
+  "version": "v2_5_6",
+  "task": "ballad_swing_1and_timing_patch",
+  "style": "jazz_ballad",
+  "global_ballad_timing_feel": "straight",
+  "rule": "Pattern stores logical .5; event metadata timing_intent=swing_upbeat makes renderer perform at 2/3.",
+  "events": [
+    {
+      "candidate": "ballad_phrase_two_chord_soft_marks",
+      "region_duration_beats_sample": 2.0,
+      "logical_local_beat": 0.5,
+      "timing_intent": "swing_upbeat",
+      "performed_local_beat": 0.6666666666666666,
+      "straight_auto_performed_local_beat": 0.5,
+      "timing_boundary": "logical_half_beat_upbeat_rendered_by_timing_policy_not_pattern_math"
+    },
+    {
+      "candidate": "ballad_piano_two_beat_light_retouch",
+      "region_duration_beats_sample": 2.0,
+      "logical_local_beat": 0.5,
+      "timing_intent": "swing_upbeat",
+      "performed_local_beat": 0.6666666666666666,
+      "straight_auto_performed_local_beat": 0.5,
+      "timing_boundary": "logical_half_beat_upbeat_rendered_by_timing_policy_not_pattern_math"
+    },
+    {
+      "candidate": "ballad_piano_downbeat_1and_whisper",
+      "region_duration_beats_sample": 4.0,
+      "logical_local_beat": 0.5,
+      "timing_intent": "swing_upbeat",
+      "performed_local_beat": 0.6666666666666666,
+      "straight_auto_performed_local_beat": 0.5,
+      "timing_boundary": "logical_half_beat_upbeat_rendered_by_timing_policy_not_pattern_math"
+    }
+  ]
+}

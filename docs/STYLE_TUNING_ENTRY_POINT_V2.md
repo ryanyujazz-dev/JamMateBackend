@@ -1,6 +1,6 @@
 # Style Tuning Entry Point V2 — Compact
 
-Current version: `v2_2_63`.
+Current version: `v2_5_3`.
 
 Before tuning a style:
 1. Identify the style-domain owner file: `comping_patterns.py`, `bass_foundation_patterns.py`, `percussion_patterns.py`, `voicing_policy.py`, `expression_policy.py`, or `anticipation_policy.py`.
@@ -9,6 +9,11 @@ Before tuning a style:
 
 Required reference phrases: Medium Swing Piano Baseline; Bossa Nova Piano Baseline; Jazz Ballad Piano Baseline; piano musical audit; expression audit; `v2_1_0 — Medium Swing Piano Musicality Tuning Pass 1`.
 
+
+
+## v2_5_0 Ballad music-pass tuning note
+
+This engine-deepening pass used the standard-tune listening demo audit as the tuning entry point. The selected scope was Jazz Ballad piano comping motion because the pre-pass Misty demo exposed only `ballad_piano_soft_downbeat_sustain` across piano events. Future Ballad tuning should continue from the same owner files before adding new modules: `styles/jazz_ballad/comping_patterns.py` for pitchless vocabulary and `styles/jazz_ballad/expression_policy.py` for semantic touch intent.
 
 ## Compact shipped-contract alias index
 
@@ -38,3 +43,13 @@ Compact package organization token: BassFoundation 规则包; generation/bass_fo
 - Explicit SPREAD pilot candidates remain secondary pilot candidates rather than a default replacement for the existing non-SPREAD pool. The fallback pool must be retained, SPREAD raw-score margin and candidate share are audited, and dominance risk is reported instead of silently retuning selection.
 - This pass remains audit-only: `style_runtime_default_enabled=false`, `default_style_runtime_unchanged=true`, `runtime_enabled=false`, no expression/pedal/touch retune, and Medium Swing and Bossa remain unaffected.
 
+
+
+## v2_5_3 Ballad phrase-intent tuning note
+
+Jazz Ballad tuning should now inspect phrase-family distribution before adding more rhythm cells. The first phrase families are `warm_pad`, `breath_answer`, `two_chord_soft_marks`, and context-gated `major_251_stable_cadence`. Do not add more v2_5_0-style retouch cells as the main solution; make inner movement audible through the v2_5_4 held-foundation partial-reattack pass.
+
+
+## v2_5_10 Integration Note
+
+Future style tuning should resume from the engine `v2_5_9` rule mapping and should not use Agent-workflow changes as musical-rule sources.

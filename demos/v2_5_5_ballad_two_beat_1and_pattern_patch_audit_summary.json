@@ -1,0 +1,57 @@
+{
+  "version": "v2_5_5",
+  "task": "ballad_two_beat_1and_pattern_patch",
+  "scope": "Jazz Ballad piano two-beat pitchless timing only",
+  "changed_candidates": {
+    "ballad_phrase_two_chord_soft_marks": {
+      "rhythm_beats": [
+        0.0,
+        0.5
+      ],
+      "rhythmic_cell": "region_start_1and",
+      "events": [
+        {
+          "local_beat": 0.0,
+          "role": "harmonic",
+          "expression_hint": "soft_sustain",
+          "phrase_slot": "anchor"
+        },
+        {
+          "local_beat": 0.5,
+          "role": "harmonic_mark",
+          "expression_hint": "soft_retouch",
+          "phrase_slot": "soft_mark"
+        }
+      ]
+    },
+    "ballad_piano_two_beat_light_retouch": {
+      "rhythm_beats": [
+        0.0,
+        0.5
+      ],
+      "rhythmic_cell": "region_start_1and",
+      "events": [
+        {
+          "local_beat": 0.0,
+          "role": "harmonic",
+          "expression_hint": "soft_sustain",
+          "phrase_slot": "anchor"
+        },
+        {
+          "local_beat": 0.5,
+          "role": "harmonic",
+          "expression_hint": "soft_retouch",
+          "phrase_slot": "fallback_retouch"
+        }
+      ]
+    }
+  },
+  "not_changed": [
+    "V1 code migration",
+    "Agent/LLM",
+    "voicing texture",
+    "concrete notes",
+    "expression duration/velocity/pedal",
+    "pedal policy"
+  ]
+}

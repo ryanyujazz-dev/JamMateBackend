@@ -97,7 +97,7 @@ class JamMateEngine:
             region_plans=region_plans,
         )
 
-        expression_plan = ExpressionResolver().resolve(pattern_events, style.expression_policy)
+        expression_plan = ExpressionResolver().resolve(pattern_events, style.expression_policy, timing_policy=style.timing_policy)
         expression_audit = build_expression_foundation_audit(pattern_events, expression_plan, style_id=request.style)
 
         # Harmonic realization now routes through the core gesture projection

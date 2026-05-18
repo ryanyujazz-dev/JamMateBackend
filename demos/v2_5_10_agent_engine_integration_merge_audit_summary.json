@@ -1,0 +1,32 @@
+{
+  "version": "v2_5_10",
+  "name": "agent_engine_integration_merge",
+  "baseline_engine": "v2_5_9_v1_instrument_rules_deep_audit_and_v2_native_mapping",
+  "baseline_agent": "v2_4_13_agent_tool_call_preview_trace_contract",
+  "merge_policy": [
+    "engine runtime/style/gesture/expression/voicing behavior kept from engine baseline",
+    "Agent terminal/provider/tool-preview/trace/HarmonyOS fixture behavior kept from Agent baseline",
+    "shared docs/API contract surfaces manually reconciled",
+    "discarded experimental v2_5_9_jazz_ballad_brush_drums_foundation not used as baseline"
+  ],
+  "code_changes": [
+    "copied Agent-owned src/jammate_agent package from v2_4_13",
+    "copied Agent/API assembly layer from v2_4_13 where it owns Agent routes and HarmonyOS contracts",
+    "kept jammate_engine generation runtime from v2_5_9",
+    "updated package/version surfaces to v2_5_10",
+    "regenerated HarmonyOS fixture/smoke files with v2_5_10 package contract version"
+  ],
+  "validation": {
+    "compileall": "passed",
+    "harness": "HARNESS OK",
+    "targeted_pytest": "109 passed",
+    "standard_tune_demo": "ok"
+  },
+  "generated_outputs": [
+    "demos/v2_5_10_autumn_leaves_medium_swing_demo.mid",
+    "demos/v2_5_10_blue_bossa_bossa_nova_demo.mid",
+    "demos/v2_5_10_misty_jazz_ballad_demo.mid",
+    "demos/v2_5_10_standard_tune_v2_examples_summary.json"
+  ],
+  "recommended_next": "v2_5_11_jazz_ballad_bass_anchor_path_policy"
+}

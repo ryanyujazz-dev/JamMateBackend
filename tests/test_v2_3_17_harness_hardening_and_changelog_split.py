@@ -14,11 +14,11 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_v2_4_13_version_surfaces_are_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_4_13"
-    assert _read("VERSION").strip() == "v2_4_13"
-    assert 'version = "2.4.13"' in _read("pyproject.toml")
-    assert 'CONTRACT_VERSION = "v2_4_13"' in _read("src/jammate_agent/core/contract_codegen.py")
+def test_v2_6_1_version_surfaces_are_current() -> None:
+    assert ENGINE_VERSION_TAG == "v2_6_1"
+    assert _read("VERSION").strip() == "v2_6_1"
+    assert 'version = "2.6.1"' in _read("pyproject.toml")
+    assert 'CONTRACT_VERSION = "v2_6_1"' in _read("src/jammate_agent/core/contract_codegen.py")
 
 
 def test_agent_md_is_compact_hard_harness_not_changelog() -> None:

@@ -1,0 +1,40 @@
+{
+  "contract_version": "v2_5_2",
+  "milestone": "v2_2_27 — Standard Tune V2 LeadSheet Examples Pass",
+  "scope": "Generate three-chorus standard-tune demos from V2 sections + written_form examples.",
+  "outputs": [
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "style": "medium_swing",
+      "midi_path": "demos/v2_5_2_autumn_leaves_medium_swing_demo.mid",
+      "written_bars": 32,
+      "performance_choruses": 3,
+      "performance_bars": 96,
+      "regions": 162
+    },
+    {
+      "ok": true,
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "midi_path": "demos/v2_5_2_blue_bossa_bossa_nova_demo.mid",
+      "written_bars": 16,
+      "performance_choruses": 3,
+      "performance_bars": 48,
+      "regions": 51
+    },
+    {
+      "ok": true,
+      "title": "Misty",
+      "style": "jazz_ballad",
+      "midi_path": "demos/v2_5_2_misty_jazz_ballad_demo.mid",
+      "written_bars": 32,
+      "performance_choruses": 3,
+      "performance_bars": 96,
+      "regions": 150
+    }
+  ],
+  "acceptance": {
+    "passed": true
+  }
+}

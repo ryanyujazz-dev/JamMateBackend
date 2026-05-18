@@ -1,0 +1,79 @@
+{
+  "version": "v2_5_2",
+  "milestone": "v2_5_2_jazz_ballad_gesture_contract_foundation",
+  "scope": "V2-native Jazz Ballad gesture contract foundation; no V1 code migration; no default audible runtime change.",
+  "policy": {
+    "style_id": "jazz_ballad",
+    "version": "v2_5_2",
+    "default_onset_mode": "simultaneous_onset",
+    "allowed_gesture_kinds": [
+      "simultaneous_onset",
+      "inner_movement",
+      "rolled_onset"
+    ],
+    "allowed_projection_refs": [
+      "all_voices",
+      "lowest",
+      "inner",
+      "inner_1",
+      "inner_2",
+      "top",
+      "support_group",
+      "foundation_group",
+      "projection_group",
+      "color_group",
+      "motion_group"
+    ],
+    "allowed_metadata_keys": [
+      "gesture_family",
+      "phrase_function",
+      "ballad_role",
+      "motion_shape",
+      "movement_level",
+      "target_voice_class",
+      "attack_scope",
+      "held_voice_policy",
+      "rearticulation_scope",
+      "roll_shape",
+      "boundary"
+    ],
+    "forbidden_metadata_keys": [
+      "midi_note",
+      "midi_notes",
+      "note",
+      "notes",
+      "pitch",
+      "pitches",
+      "frequency",
+      "frequencies",
+      "velocity",
+      "duration",
+      "duration_beats",
+      "pedal",
+      "voicing",
+      "voicing_texture",
+      "voicing_texture_id",
+      "compatible_textures",
+      "texture_weights",
+      "rootless_texture",
+      "source_degrees",
+      "midi_repair"
+    ],
+    "boundary": "gesture_policy_is_pitchless_projection_and_motion_intent_only",
+    "v2_5_2_contract": {
+      "inner_movement_owner": "core.gestures + jazz_ballad.gesture_policy",
+      "pattern_boundary": "patterns_may_request_gesture_slots_but_must_not_choose_notes",
+      "voicing_boundary": "voicing_remains_the_only_vertical_pitch_selector",
+      "expression_boundary": "duration_velocity_pedal_remain_expression_policy_responsibilities",
+      "v1_absorption_rule": "learn_musical_behavior_not_v1_code_or_texture_bundles"
+    }
+  },
+  "default_runtime_changed": false,
+  "agent_llm_changed": false,
+  "code_owners_changed": [
+    "src/jammate_engine/styles/jazz_ballad/gesture_policy.py",
+    "tests/test_v2_5_2_jazz_ballad_gesture_contract_foundation.py"
+  ],
+  "focused_doc": "docs/JAZZ_BALLAD_GESTURE_CONTRACT_FOUNDATION_V2_5_2.md",
+  "next_recommended_task": "v2_5_3_jazz_ballad_phrase_intent_foundation"
+}
