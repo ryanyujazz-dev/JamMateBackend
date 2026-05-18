@@ -1,0 +1,44 @@
+{
+  "version": "v2_5_8",
+  "scope": "Jazz Ballad default swing-8 and anticipation timing patch",
+  "timing_policy": {
+    "version": "v2_0_43",
+    "feel": "swing",
+    "humanization": {
+      "enabled": false,
+      "profile_name": "jazz_ballad_swing8_disabled_default"
+    },
+    "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
+    "metadata": {
+      "style": "jazz_ballad",
+      "stage": "v2_5_8_ballad_default_swing8_timing"
+    }
+  },
+  "anticipation_policy": {
+    "enabled": true,
+    "probability": 0.12,
+    "target_offset_beats": -0.5,
+    "timing_grid": "swing_triplet_upbeat",
+    "target_timing_intent": "swing_upbeat",
+    "performed_lead_in_beats": 0.3333333333333333,
+    "expected_upbeat_fraction": 0.6666666666666666,
+    "debug_name": "ballad_swing8_4and_anticipation",
+    "metadata": {
+      "style": "jazz_ballad",
+      "purpose": "occasional_soft_swing8_approach"
+    }
+  },
+  "timing_checks": {
+    "logical_1and_auto_performed": 0.6666666666666666,
+    "logical_4and_auto_performed": 3.6666666666666665,
+    "logical_4and_swing_upbeat_performed": 3.6666666666666665,
+    "should_equal_4_plus_swing_upbeat": 3.6666666666666665
+  },
+  "boundaries": [
+    "Pattern keeps logical .5 grid; no literal 0.666 pattern beats.",
+    "Anticipation owns pitchless movement and metadata timing intent.",
+    "Timing policy owns performed swing placement.",
+    "Expression consumes performed lead-in for tied duration.",
+    "No V1 code migration and no Agent/LLM behavior change."
+  ]
+}

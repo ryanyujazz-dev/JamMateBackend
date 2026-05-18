@@ -1,6 +1,6 @@
 # Style Rule Baseline V2 — Compact
 
-Current version: `v2_3_9`.
+Current version: `v2_5_9`.
 
 ## Medium Swing Piano Baseline
 
@@ -12,7 +12,22 @@ Bossa Nova uses pitchless comping cells, style-specific anticipation policy, and
 
 ## Jazz Ballad Piano Baseline
 
-Ballad should not become empty by default; space means fewer/lighter/softer touches, not full-bar silence unless explicitly requested. Ballad SPREAD remains a future focused task, not part of this pass.
+Ballad should not become empty by default; space means fewer/lighter/softer touches, not full-bar silence unless explicitly requested. As of `v2_5_0`, the default Ballad comping vocabulary keeps the old downbeat sustain as the highest-weight anchor while adding low-weight anchored re-touch cells on beat 3, beat 3&, and beat 1&. As of `v2_5_1`, those retouch cells are explicitly treated as temporary fallback; the main forward path is V2-native phrase/gesture semantics, especially held foundation + inner movement. As of `v2_5_2`, Jazz Ballad gesture policy opens pitchless `inner_movement` and `rolled_onset` contract helpers without changing default audible pattern selection. As of `v2_5_3`, Ballad comping candidates begin carrying V2-native phrase intent (`warm_pad`, `breath_answer`, `two_chord_soft_marks`, `major_251_stable_cadence`) and may request approved pitchless gestures; held-foundation partial reattack remains the next focused task. As of `v2_5_7`, Ballad logical `1&` soft marks tagged `timing_intent=swing_upbeat` must connect from beat 1 to the performed `2/3` upbeat; `soft_whisper` is sustained/light rather than short. As of `v2_5_8`, Jazz Ballad defaults to swing-8 timing and Ballad anticipation `4&` also performs at the swing/triplet upbeat rather than the straight eighth. Ballad SPREAD remains a future focused task, not part of this pass.
+
+
+## v2_5_1 V1 rule absorption baseline
+
+V1 is only a musical-rule reference. Future style work must preserve V2 boundaries:
+
+- Ballad inner movement is a gesture request, not a pattern cell.
+- Ballad rolled onset is also a gesture request over an already-selected voicing, not a voicing texture or MIDI repair path.
+- Ballad piano phrase families should carry musical function before rhythm variation.
+- Ballad bass should use anchor-path logic before ornaments or walking.
+- Medium Swing piano should restore phrase feel without uncontrolled offbeat clutter.
+- Bossa should protect core batida identity and independent anticipation.
+- Pattern libraries must not bind concrete voicing textures or MIDI details.
+
+See `docs/V1_MUSICAL_RULES_TO_V2_NATIVE_MAPPING_V2_5_1.md`.
 
 ## Shared style rules
 
@@ -62,3 +77,37 @@ Medium Swing piano voicing texture is OPEN-family and section-scoped. Normal OPE
 - Medium Swing: dry by default; push anticipations remain clear and unpedaled.
 - Bossa Nova: dry by default; core batida uses articulation, not CC64 pedal.
 - Jazz Ballad: balanced pedal is allowed; every harmony change should re-pedal rather than hold through chord changes.
+
+
+## v2_5_4 Jazz Ballad partial reattack baseline
+
+As of `v2_5_4`, Jazz Ballad inner movement is realized by projecting only the requested inner/color voice group and trimming only re-struck voices from the prior anchor. Foundation/common tones may continue ringing, preserving Ballad sustain while avoiding full-chord reattacks.
+
+
+
+## v2_5_9 V1 instrument-rule absorption baseline
+
+The formal baseline after this pass is:
+
+- The earlier experimental `v2_5_9_jazz_ballad_brush_drums_foundation` is not part of the official listening baseline.
+- Current audible baseline remains `v2_5_8` plus version/documentation metadata.
+- Before adding a style/instrument feature, use `docs/V1_INSTRUMENT_RULES_DEEP_AUDIT_AND_V2_NATIVE_MAPPING_V2_5_9.md` to identify the V1 musical rule, its V2 owner, and forbidden legacy form.
+- Immediate Ballad priority is bass anchor-path policy, not brush drums.
+- Brush drums should return only after the Ballad brush semantic dimensions are implemented as V2 percussion policy.
+
+## v2_5_8 Jazz Ballad default swing-8 timing baseline
+
+Jazz Ballad should default to swing-8 timing. Pattern candidates keep written upbeats as logical `.5`; render timing performs them at `2/3` through the style timing policy. Anticipation uses the same contract: the pitchless timeline places the moved next-chord beat-1 event at logical previous `4&`, but its metadata must request `timing_intent=swing_upbeat` with a `1/3` performed lead-in. Do not encode literal `0.666...` in patterns.
+
+## v2_5_6 Jazz Ballad swing-upbeat 1& ownership
+
+Jazz Ballad `1&` piano soft-mark events should remain logical `0.5` in pattern candidates, but the event metadata must request `timing_intent=swing_upbeat` when the musical intent is the swung/triplet `1&`. This preserves V2 ownership: pattern says “written upbeat”; MIDI timing policy performs the swing placement.
+
+## v2_5_5 Jazz Ballad two-beat soft-mark timing
+
+Two-beat Jazz Ballad piano soft-mark candidates use `beat 1 + beat 1&` (`0.0, 0.5`) rather than `beat 1 + beat 2` (`0.0, 1.0`). This is a pattern timing rule only; expression, voicing, and pedal ownership remain unchanged.
+
+
+## v2_5_10 Integration Note
+
+Style baselines remain engine-owned. Agent workflow additions must not change style pattern, gesture, expression, voicing, bass, or percussion behavior.

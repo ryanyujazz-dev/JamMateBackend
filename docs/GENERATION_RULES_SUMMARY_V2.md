@@ -1,8 +1,77 @@
 # v2_3_9 Pedal / Expression Rule Update
 Pedal is an expression-layer contract. Patterns expose facts such as tail availability, density, anticipation eligibility, and harmonic rhythm; Expression chooses `none/light/sustain/lush`; MIDI realizer only materializes approved CC64 with re-pedal offset. Bossa/Swing stay dry by default; Ballad may use balanced pedal with chord-change re-pedal.
 # Generation Rules Summary V2 — Compact
-Current version: `v2_3_9`.
+Current version: `v2_5_9`.
 Generation Rule Documentation Principle: every code-level generation rule change must update this file. 生成规则 includes style vocabulary, role/domain generation, anticipation, expression, voicing choice, BassFoundation, percussion, and MIDI timing interpretation.
+
+
+
+## v2_5_9 V1 instrument-rule deep audit mapping
+
+This documentation-only pass does not alter runtime generation. It establishes the formal rule that V1 is a musical-behavior reference only. Future style improvements must map V1 facts into V2 owners:
+
+- Jazz Ballad piano: phrase intent + gesture + expression + voicing intent, not V1 phrase-engine migration.
+- Jazz Ballad bass: anchor-path policy first; ornaments second; no walking by default.
+- Jazz Ballad drums: semantic brush policy dimensions first; no generic fixed brush loop.
+- Medium Swing piano: conversation/statement-answer and 4& rarity; no mechanical offbeat habit.
+- Medium Swing bass: three-beat skeleton + beat-4 connector + rare scene-gated classic fill branch.
+- Bossa piano: core batida identity anchor, Class A/B ratio, anticipation separated from rhythm cells.
+- Bossa bass/percussion: root-fifth two-feel and shaker/cross-stick/kick groove identity.
+
+Focused doc: `docs/V1_INSTRUMENT_RULES_DEEP_AUDIT_AND_V2_NATIVE_MAPPING_V2_5_9.md`.
+
+## v2_5_8 Jazz Ballad default swing-8 and anticipation timing
+
+- Jazz Ballad timing policy now defaults to `feel=swing`; written `.5` upbeats remain logical pattern-grid positions but render at the triplet/swing `2/3` point by default.
+- Ballad anticipation keeps the pitchless logical `4&` placement (`target_offset_beats=-0.5`) but sets `timing_intent=swing_upbeat`, `timing_grid=swing_triplet_upbeat`, `performed_lead_in_beats=1/3`, and `expected_upbeat_fraction=2/3`.
+- Pattern still must not write literal `0.666...`; Timing owns performed placement, Anticipation owns pitchless movement, and Expression consumes the performed lead-in for tied anticipated duration.
+- This supersedes the v2_5_6 temporary scoped `1&` patch: Ballad swing-8 is now the default feel, not a one-pattern exception.
+- Focused doc: `docs/JAZZ_BALLAD_DEFAULT_SWING8_ANTICIPATION_TIMING_PATCH_V2_5_8.md`.
+
+## v2_5_7 Jazz Ballad 1& sustain continuity
+
+- Ballad pattern candidates still write logical `0.5` for written `1&`; event metadata may request `timing_intent=swing_upbeat` so rendering performs it at `2/3`.
+- Expression duration clamping now respects this declared timing intent when measuring the next same-track gap, so a beat-1 anchor sustains into the performed swing `1&` instead of releasing at the logical `0.5` grid point.
+- `soft_whisper` is sustained/light, not short/staccato. Ballad near-downbeat touch should connect, not sound clipped.
+- Ownership remains V2-native: Pattern stores grid and timing intent; Timing owns performed placement; Expression owns duration/articulation; MIDI does not repair the gap after the fact.
+- Focused doc: `docs/JAZZ_BALLAD_1AND_SUSTAIN_CONTINUITY_BUGFIX_V2_5_7.md`.
+
+## v2_5_3 Jazz Ballad phrase-intent foundation
+
+- Jazz Ballad piano comping now exposes phrase-intent metadata inside the existing style-owned pattern library: `phrase_family`, `phrase_function`, `phrase_slot`, `context_gate`, and `gesture_intent`.
+- Initial phrase families are `warm_pad`, `breath_answer`, `two_chord_soft_marks`, and context-gated `major_251_stable_cadence`. The prior v2_5_0 retouch cells remain available only as `temporary_low_level_fallback`.
+- `breath_answer` and `major_251_stable_cadence` may request approved pitchless `inner_movement` gestures. These requests do not select notes, source degrees, voicing texture, duration, velocity, pedal, or MIDI repair behavior.
+- `major_251_stable_cadence` is gated by the existing `core/harmony/harmonic_context.py` classifier for a conservative current-dominant `major_ii_v_i` window such as `Dm7 -> G7 -> Cmaj7`; no new progression recognizer was added.
+- Default deterministic no-rng Ballad comping still selects the warm-pad anchor. Inner movement realization is available from `v2_5_4`; `v2_5_5` adds a narrow two-beat soft-mark timing correction.
+- Focused doc: `docs/JAZZ_BALLAD_PHRASE_INTENT_FOUNDATION_V2_5_3.md`.
+
+## v2_5_2 Jazz Ballad gesture contract foundation
+
+- Jazz Ballad `gesture_policy.py` now explicitly allows only three gesture kinds for the style contract: `simultaneous_onset`, `inner_movement`, and `rolled_onset`. `arpeggiated_onset` / broken-chord behavior is still not opened for Ballad by default.
+- `inner_movement` is a pitchless GestureRequest carrying abstract motion/projection intent such as `motion_shape`, `target_voice_class`, `attack_scope`, `held_voice_policy`, and `rearticulation_scope`. It must not contain MIDI notes, final duration/velocity/pedal, or voicing texture/source decisions.
+- `rolled_onset` is opened only as a projection gesture over an already-selected voicing. It may specify abstract projection refs and offset shape, but it must not choose cadence color, voicing texture, or concrete notes.
+- Default Jazz Ballad comping/runtime selection is intentionally unchanged in this pass; v2_5_0 retouch cells remain temporary fallback until phrase-intent and partial-reattack realization are implemented.
+- Focused doc: `docs/JAZZ_BALLAD_GESTURE_CONTRACT_FOUNDATION_V2_5_2.md`.
+
+## v2_5_1 V1 musical-rule absorption / V2-native mapping
+
+- No runtime generation behavior changes in this pass. The purpose is to prevent the next music pass from becoming V1 code migration or more low-level onset-cell accumulation.
+- V1 may be studied as a musical-rule source only. Useful rules must be translated into V2 owners: Pattern = pitchless timing/roles; Gesture = inner movement, rolled onset, partial reattack, fill/ornament projection; Expression = duration/velocity/touch/pedal; Voicing = concrete vertical notes and projection map; MIDI = materialization only.
+- Jazz Ballad direction changes from adding more `soft_retouch`-style cells to phrase/gesture semantics: warm pad, breath answer, two-chord soft marks, major 251 stable cadence, held foundation + inner/color movement, and later gated 251 color families.
+- Inner movement is explicitly a Gesture concern, not an ordinary pattern or voicing hack. Future Ballad pattern candidates may request `GestureKind.INNER_MOVEMENT` or `ROLLED_ONSET` through pitchless metadata, but must not choose MIDI notes, final expression, or voicing texture.
+- Ballad bass should evolve toward restrained anchor paths: beat-1 foundation/root, beat-3 fifth/third/seventh/root/hold, rare beat-4 setup and rarer 4& approach. It must not become generic walking.
+- Medium Swing should recover phrase feel through statement/answer, call-response, tail, Charleston/reverse-Charleston, and dominant-resolution semantics while keeping 4& push rare.
+- Bossa should preserve identity anchors: core batida `1, 2, 3&`, Class A dominance, independent anticipation, distance-aware articulation, and root-fifth bass behavior.
+- Focused doc: `docs/V1_MUSICAL_RULES_TO_V2_NATIVE_MAPPING_V2_5_1.md`.
+
+## v2_5_0 Jazz Ballad comping motion update
+
+- Jazz Ballad piano no longer uses only a single full-bar downbeat sustain candidate. The highest-weight anchor remains `ballad_piano_soft_downbeat_sustain`, but the style library now also exposes pitchless light-retouch candidates for downbeat + beat 3, downbeat + beat 3&, and downbeat + beat 1&.
+- Two-beat chord regions use local Ballad candidates only: a soft anchor or downbeat + beat-2 retouch inside the region. This prevents multi-chord bars from inheriting four-beat retouch events that would cross the harmonic boundary.
+- All Ballad comping candidates remain pitchless style vocabulary. Core voicing still owns note choice, and core expression still owns duration, velocity, articulation, release, and pedal realization.
+- New Ballad expression intents are `soft_retouch`, `soft_answer`, and `soft_whisper`. They are intentionally lighter than `soft_sustain`, and the expression resolver may still clamp duration before the next same-track event.
+- This pass does not change Agent/LLM workflow behavior.
+
 ## BassFoundation
 - Package owner: `generation/bass_foundation` with `generator.py`, `audit.py`, `policy.py`, `rules.py`.
 - Each chord region line is guarded by `max_region_span=12` / `max_region_span`.
@@ -217,3 +286,28 @@ Meaning: SPREAD `1+4` is now aligned with the core abstract grouping taxonomy as
 ## v2_2_82 — Ballad SPREAD Top-Voice Continuity Scoring
 
 Ballad SPREAD dry-run mix now scores full-candidate top voice continuity. The previous voicing's highest note and current candidate's highest note are compared directly, with close motion preferred and large/excessive jumps penalized. Compatible texture-family contracts may enter the same candidate pool so the selector can choose the grouping/realization whose soprano line is closest, instead of hard-selecting one grouping before voicing. This remains explicit dry-run/audit behavior and does not enable ordinary Jazz Ballad runtime by default.
+
+
+## v2_5_4 Jazz Ballad held-foundation partial reattack
+
+- Ballad `INNER_MOVEMENT` is a gesture/realization behavior, not an ordinary pattern cell.
+- The motion event projects only requested `inner`, `inner_n`, `color_group`, `projection_group`, or equivalent V2 projection refs.
+- A later inner-motion gesture is not treated as a full harmonic interruption for expression duration clamp.
+- Realization releases only voices re-struck by the motion event and lets foundation/common-tone voices hold.
+- No concrete notes, voicing textures, final expression values, or V1 legacy slots may be stored in pattern metadata.
+
+
+## v2_5_6 Jazz Ballad swing 1& timing intent correction
+
+For Jazz Ballad piano `1&` soft-mark / retouch events, write the written upbeat as logical `0.5` and set event metadata `timing_intent=swing_upbeat`. Do not encode the performed location as `0.666...` in the pattern. The render timing policy is the owner of converting logical `.5` to the swing/triplet upbeat.
+
+As of v2_5_8, this event-level `swing_upbeat` contract remains valid, but Jazz Ballad also defaults globally to swing-8 timing. Event-level tags remain useful for musical upbeats that must stay swung under future isolation/override profiles.
+
+## v2_5_5 Jazz Ballad two-beat 1& correction
+
+For two-beat Jazz Ballad regions, the soft-mark / light-retouch piano candidates should use local beats `0.0, 0.5`, i.e. beat 1 + beat 1&. Avoid the heavier `0.0, 1.0` beat 1 + beat 2 feel for this candidate.
+
+
+## v2_5_10 Integration Note
+
+Engine generation rules remain at the `v2_5_9` official engine-deepening baseline. The discarded experimental Ballad brush-drums shortcut is not part of this integrated baseline.

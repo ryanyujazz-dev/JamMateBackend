@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_4_12`.
+Current version: `v2_6_1`.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -15,9 +15,11 @@ Before any new development window changes code, read:
 3. `docs/ARCHITECTURE_V2.md`
 4. `docs/API_CONTRACT_V2.md`
 5. `docs/DEVELOPMENT_TASK_PLAN_V2.md`
-6. For engine work: `docs/PIPELINE_V2.md`, `docs/GENERATION_RULES_SUMMARY_V2.md`, `docs/STYLE_RULE_BASELINE_V2.md`, `docs/STYLE_TUNING_ENTRY_POINT_V2.md`
-7. For placement decisions: `docs/NEW_FILE_PLACEMENT_GUIDE_V2.md`
-8. For historical context only: `docs/CHANGELOG.md`
+6. `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`
+7. For engine work: `docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md`, `docs/PIPELINE_V2.md`, `docs/GENERATION_RULES_SUMMARY_V2.md`, `docs/STYLE_RULE_BASELINE_V2.md`, `docs/STYLE_TUNING_ENTRY_POINT_V2.md`
+8. For agent work: `docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md`
+9. For placement decisions: `docs/NEW_FILE_PLACEMENT_GUIDE_V2.md`
+10. For historical context only: `docs/CHANGELOG.md`
 
 ---
 
@@ -53,17 +55,15 @@ Patterns live in styles. Voicing and expression are core-level shared systems. D
 
 ---
 
-## 3. Two-Window Development Split
+## 3. Track Ownership and Branch Split
 
 ```text
-feature/agent-workflow
-  Agent / Practice Agent / LLM context / tool loop / HarmonyOS API / contracts
-
-feature/engine-deepening
-  Engine / voicing / pattern / expression / style tuning / listening demos
+feature/engine-deepening  # musical engine only
+feature/agent-workflow    # Agent / LLM / terminal / trace only
+integration/agent-engine-merge  # shared files, versions, API/docs reconciliation
 ```
 
-If a task changes both Agent/API and engine generation deeply, stop and ask whether to split the work or which branch should own it.
+Hard owner rule: Engine tasks must not edit `src/jammate_agent/`; Agent tasks must not edit `src/jammate_engine/core/`, `src/jammate_engine/styles/`, generation, MIDI, or realization logic. Shared files such as `VERSION`, `pyproject.toml`, `README.md`, `agent.md`, `docs/ARCHITECTURE_V2.md`, `docs/API_CONTRACT_V2.md`, `docs/DEVELOPMENT_TASK_PLAN_V2.md`, `docs/CHANGELOG.md`, and `frontend_fixtures/harmonyos/` belong to integration tasks unless explicitly requested. See `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`.
 
 ---
 
@@ -90,12 +90,12 @@ Do not create a new file/module/planner/recognizer before checking whether an ex
 
 - README = project identity, core design理念, directory architecture, core functionality, startup / validation commands.
 - `agent.md` = hard development harness only.
-- `docs/CHANGELOG.md` = chronological version history.
+- `docs/CHANGELOG.md` = integration-level chronological version history; track rolling history goes to `docs/CHANGELOG_ENGINE.md` and `docs/CHANGELOG_AGENT.md`.
 - Focused architecture/API/rule docs remain in `docs/`.
 - Do not put rolling version logs back into README.
 - Do not output continuation development documents unless explicitly requested.
 - Capture non-immediate ideas in the Future Ideas Backlog: `docs/FUTURE_IDEAS_BACKLOG_V2.md`.
-- If generation rules change, update `docs/GENERATION_RULES_SUMMARY_V2.md`.
+- If generation rules change, update `docs/GENERATION_RULES_SUMMARY_V2.md`. Engine/Agent rolling plans live in their split task-plan docs, not the main index.
 
 ---
 
@@ -132,4 +132,9 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_4_12_agent_terminal_llm_config_wizard` is the active `feature/agent-workflow` baseline. It keeps terminal chat, explicit `--trace-dir` JSON trace export, validation-only `/tool-preview`, versioned Trace API list/detail contracts, read-only trace viewer CLI, terminal context/profile/session controls, and JSON-only extraction of candidate tool calls from successful terminal LLM replies, then adds local LLM setup/doctor/config-path commands plus config-file loading. Extracted candidates are sent through the same preview contract and never execute tools, dispatch workflows, call adapters, or call `jammate_engine`. API keys must remain local secrets and must not appear in status, trace, docs, git, or zip packages. HarmonyOS `/accompaniment/generate` inline leadsheet behavior remains the direct playback contract. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_6_1_branch_boundary_and_track_ownership_hardening` is the active integrated governance baseline. It merges the Agent workflow line through `v2_4_13` into the official engine-deepening line through `v2_5_9`. Engine runtime/style/gesture/expression/voicing behavior stays owned by the engine track; Agent terminal/LLM context/tool-preview/trace contracts stay owned by the Agent track. Do not migrate V1 code, create V1-style runtime mirrors, bind patterns to voicing textures, or put inner movement into ordinary pattern cells. Do not let Agent code import `jammate_engine` except through adapters, and do not let engine code import `jammate_agent`. Consult `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md` before further two-track development.
+
+Agent integration note: the `v2_4_13_agent_tool_call_preview_trace_contract` remains preserved inside the integrated `v2_6_1` package.
+
+
+Agent integration note: the v2_4_13_agent_tool_call_preview_trace_contract keeps the tool-call preview trace contract preserved inside the integrated v2_6_1 package.

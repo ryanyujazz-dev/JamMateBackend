@@ -8,7 +8,7 @@ from typing import Any, TextIO
 
 from jammate_agent.core.trace import JsonTraceStore, TRACE_API_CONTRACT_VERSION, TRACE_NOT_FOUND_ERROR_CODE
 
-TRACE_VIEWER_CLI_VERSION = "v2_4_12"
+TRACE_VIEWER_CLI_VERSION = "v2_4_13"
 DEFAULT_TRACE_DIR = "demos/agent_traces"
 
 

@@ -1,0 +1,41 @@
+{
+  "version": "v2_5_9",
+  "task": "v1_instrument_rules_deep_audit_and_v2_native_mapping",
+  "baseline": "v2_5_8_ballad_default_swing8_anticipation_timing_patch",
+  "abandoned_trial": "v2_5_9_jazz_ballad_brush_drums_foundation",
+  "runtime_generation_changed": false,
+  "agent_llm_changed": false,
+  "new_primary_doc": "docs/V1_INSTRUMENT_RULES_DEEP_AUDIT_AND_V2_NATIVE_MAPPING_V2_5_9.md",
+  "v1_sources_audited": {
+    "jazz_ballad": [
+      "styles/jazz_ballad/piano_phrase_engine.py",
+      "styles/jazz_ballad/idiomatic_phrases.py",
+      "styles/jazz_ballad/bass_phrase_engine.py",
+      "styles/jazz_ballad/drum_brush_engine.py",
+      "styles/jazz_ballad/drum_patterns.py"
+    ],
+    "medium_swing": [
+      "styles/medium_swing/piano_patterns.py",
+      "styles/medium_swing/piano_pattern_policy.py",
+      "styles/medium_swing/comping_feel_policy.py",
+      "styles/medium_swing/bass_classic_fills.py",
+      "styles/medium_swing/drum_patterns.py"
+    ],
+    "bossa_nova": [
+      "styles/bossa_nova/piano_patterns.py",
+      "styles/bossa_nova/piano_pattern_policy.py",
+      "styles/bossa_nova/anticipation_policy.py",
+      "styles/bossa_nova/bass_patterns.py",
+      "styles/bossa_nova/drum_patterns.py"
+    ]
+  },
+  "v2_mapping_principles": [
+    "Pattern remains pitchless horizontal layout and phrase slots.",
+    "Inner movement is Gesture semantics, not an ordinary pattern cell.",
+    "Expression owns duration, velocity, articulation, pedal, and re-pedal behavior.",
+    "Voicing owns concrete pitch, density, functional groups, color policy, and voice leading.",
+    "Bass and percussion rules must remain style-specific policy, not generic MIDI loops.",
+    "V1 is musical evidence only; no V1 code migration or runtime mirrors."
+  ],
+  "recommended_next_task": "v2_5_10_jazz_ballad_bass_anchor_path_policy"
+}

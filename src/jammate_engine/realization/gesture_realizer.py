@@ -99,13 +99,17 @@ class GestureRealizer:
         if request.kind in {GestureKind.ARPEGGIATED_ONSET, GestureKind.BROKEN_CHORD}:
             return tuple(index * 0.25 for index in range(count))
 
-        # Inner movement and fill gestures will get richer projection rules in
-        # later versions. Until then they safely fall back to a chordal onset.
+        # Inner movement is a partial reattack gesture in v2_5_4.  Timing is
+        # simultaneous by default; the important distinction is voice selection,
+        # handled by _projected_voices without appending unselected foundation
+        # voices.
         return tuple(0.0 for _ in range(count))
 
     def _projected_voices(self, request: GestureRequest, voicing: VoicingPlan) -> list[ProjectedVoice]:
         notes = list(voicing.notes)
         if not request.projection_refs:
+            if request.kind == GestureKind.INNER_MOVEMENT:
+                return self._default_inner_movement_voices(notes)
             return [ProjectedVoice(note=note, projection_ref="all_voices") for note in notes]
 
         selected: list[ProjectedVoice] = []
@@ -130,15 +134,34 @@ class GestureRealizer:
                     used.add(idx)
                     matched = True
 
-            # Unknown projection refs are intentionally ignored.  The final
-            # append-unselected fallback below keeps existing chordal gestures
-            # backward compatible instead of failing at render time.
+            # Unknown projection refs are intentionally ignored.  For chordal
+            # gestures, the append-unselected fallback below preserves legacy
+            # all-voices behavior.  For INNER_MOVEMENT, v2_5_4 must not append
+            # foundation/common-tone voices, because that would turn a partial
+            # reattack back into a low-level full-chord hit.
             _ = matched
+
+        if request.kind == GestureKind.INNER_MOVEMENT:
+            return selected or self._default_inner_movement_voices(notes)
 
         for idx, note in enumerate(notes):
             if idx not in used:
                 selected.append(ProjectedVoice(note=note, projection_ref="all_voices"))
         return selected
+
+    def _default_inner_movement_voices(self, notes: list[VoicedNote]) -> list[ProjectedVoice]:
+        if not notes:
+            return []
+        inner = [
+            ProjectedVoice(note=note, projection_ref="inner_default")
+            for note in notes
+            if note.voice_role.lower().startswith("inner")
+        ]
+        if inner:
+            return inner[:2]
+        if len(notes) >= 2:
+            return [ProjectedVoice(note=notes[-1], projection_ref="top_default")]
+        return [ProjectedVoice(note=notes[0], projection_ref="all_voices_default")]
 
     def _ordered_notes(self, request: GestureRequest, notes: list[VoicedNote]) -> list[VoicedNote]:
         """Backward-compatible helper retained for older tests/callers.

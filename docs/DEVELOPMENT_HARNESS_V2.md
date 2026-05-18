@@ -1,6 +1,6 @@
 # Development Harness V2
 
-Current version: `v2_4_12`.
+Current version: `v2_6_1`.
 
 This document expands the root `agent.md` harness. The root file is the active short checklist; this file explains the same rules for future maintainers.
 
@@ -92,17 +92,20 @@ Patterns live in `styles/`. Voicing and expression are core-level shared systems
 
 ---
 
-## Two-Window Branch Split
+## Track Ownership and Branch Split
 
 ```text
-feature/agent-workflow
-  Agent / LLM context / tool loop / HarmonyOS API / contracts
-
 feature/engine-deepening
   Engine / voicing / pattern / expression / style tuning / demos
+
+feature/agent-workflow
+  Agent / LLM context / tool loop / terminal chat / traces / contracts
+
+integration/agent-engine-merge
+  shared files / version surfaces / API-doc reconciliation / fixture refresh
 ```
 
-If both sides must change deeply, split the task or ask which branch owns the work.
+Engine tasks must not edit Agent-owned runtime. Agent tasks must not edit engine generation/style/core runtime. Shared files are integration-owned by default. The authoritative owner-path list is `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`.
 
 ---
 
@@ -145,10 +148,15 @@ When generation behavior changes, update `docs/GENERATION_RULES_SUMMARY_V2.md` a
 
 - README is not a changelog.
 - `agent.md` is not a changelog.
-- Chronological version history belongs in `docs/CHANGELOG.md`.
+- Track rolling history belongs in `docs/CHANGELOG_ENGINE.md` and `docs/CHANGELOG_AGENT.md`.
+- Integration-level chronological version history belongs in `docs/CHANGELOG.md`.
 - Focused implementation docs can remain in `docs/` when they are still useful.
 
 ---
+
+## Split Task Plan Rule
+
+`docs/DEVELOPMENT_TASK_PLAN_V2.md` is the stable index. Engine rolling tasks go in `docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md`; Agent rolling tasks go in `docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md`. Do not update the main plan file from ordinary feature branches.
 
 ## Delivery Checklist
 
@@ -182,45 +190,11 @@ Do not claim full test success if only targeted tests were run. State exactly wh
 
 Non-immediate ideas belong in `docs/FUTURE_IDEAS_BACKLOG_V2.md`; do not expand active scope during a focused delivery.
 
-## v2_4_12 Terminal Chat Context Controls Rule
 
-Terminal chat context/profile/session controls must stay local and preview-only. `/context`, `/profiles`, `/profile`, `/task-type`, `/instrument`, `/session`, and `/reset` may rebuild ContextPacket previews and mutate terminal session state, but must not call LLM providers, execute tools, dispatch deterministic workflows, import adapters, or call `jammate_engine`.
+## v2_6_1 Track Ownership Rule
 
-## v2_4_12 Terminal LLM Config Rule
+Engine-deepening and Agent-workflow changes must be merged by owner boundary. Engine code owns `jammate_engine`, style rules, gestures, expression, voicing, and generation behavior. Agent code owns `jammate_agent`, terminal chat, provider-boundary, tool-preview, and trace contracts. Shared API, frontend fixtures, versions, and public docs require integration-task reconciliation; do not blanket overwrite shared files. See `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`.
 
-Terminal LLM config work must stay local, explicit, and secret-safe. `setup`, `doctor`, `config-path`, `--config-file`, repo-local `.jammate_agent.env`, and user-level `~/.jammate/agent_config.env` may improve terminal developer ergonomics, but must not change API runloop behavior or tool execution policy.
+## Agent Trace API / Viewer Rule
 
-Rules:
-
-- env vars remain highest precedence.
-- API key values must never be printed, traced, documented, committed, or packaged.
-- `.jammate_agent.env`, `.jammate_agent.env.*`, and `agent_config.env` must be ignored/cleaned.
-- terminal provider calls still require explicit provider/model/API-key/network-gate config.
-- setup/doctor must not call LLM providers, tools, adapters, API routes, or `jammate_engine`.
-
-## v2_4_12 Agent Trace API / Viewer Rule
-
-Agent trace work must reuse `src/jammate_agent/core/trace.py` as the tracing owner. Do not create a second trace subsystem for API, terminal, or HarmonyOS debugging.
-
-Allowed trace API work:
-
-- shape `GET /agent/traces/spec`
-- shape `GET /agent/traces`
-- shape `GET /agent/traces/{trace_id}`
-- update ArkTS/client fixtures/smoke packs
-- preserve terminal `--trace-dir` compatibility
-- add read-only terminal trace viewer commands
-
-Forbidden in trace API work:
-
-- executing tools
-- dispatching deterministic workflows
-- calling LLM providers
-- calling engine adapters
-- importing `jammate_engine` from `jammate_agent/core/trace.py`
-- importing `jammate_engine` from `jammate_agent/cli/trace_viewer.py`
-
-
-## v2_4_12 Terminal Tool-Call Candidate Extraction Rule
-
-Terminal chat may scan successful assistant replies for explicit JSON tool-call candidates, but extraction must remain in `jammate_agent.core.tool_invocation` and must be preview-only. Extracted candidates must be validated against the current `ContextPacket.allowed_tools`, must not execute tools, and must not dispatch workflows, routes, adapters, provider SDKs, or `jammate_engine`. Plain natural language must not be treated as a tool call.
+Agent trace APIs and the read-only trace viewer CLI are Agent-workflow owned debugging surfaces. They may read `JsonTraceStore` summaries/details, but must not call the LLM provider, execute tools, dispatch deterministic workflows, or invoke the accompaniment engine. Keep `jammate_agent.cli.trace_viewer` / `jammate-agent-traces` documented whenever shared README or architecture docs are consolidated during integration merges.

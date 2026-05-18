@@ -1,0 +1,43 @@
+{
+  "version": "v2_5_4",
+  "task": "v2_5_4_held_foundation_partial_reattack_realization",
+  "ok": true,
+  "midi_path": "demos/v2_5_4_misty_jazz_ballad_v254_audit_regen.mid",
+  "piano_events": 200,
+  "gesture_counts": {
+    "simultaneous_onset": 191,
+    "inner_movement": 9
+  },
+  "selected_candidate_counts": {
+    "ballad_piano_soft_downbeat_sustain": 23,
+    "ballad_piano_two_beat_soft_anchor": 77,
+    "ballad_piano_downbeat_midbar_retouch": 12,
+    "ballad_piano_two_beat_light_retouch": 20,
+    "ballad_piano_downbeat_1and_whisper": 4,
+    "ballad_phrase_breath_answer_inner_motion": 16,
+    "ballad_phrase_two_chord_soft_marks": 42,
+    "ballad_phrase_major_251_stable_cadence": 2,
+    "ballad_piano_downbeat_3and_answer": 4
+  },
+  "inner_movement_realized_note_counts": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "inner_movement_events": 9,
+  "partial_reattack_trimmed_prior_notes": 18,
+  "boundary": {
+    "pattern_pitchless": true,
+    "gesture_projects_existing_voicing": true,
+    "expression_ignores_non_interrupting_partial_reattack_for_duration_clamp": true,
+    "realizer_trims_only_reattacked_motion_voices": true,
+    "v1_code_migration": false,
+    "agent_llm_change": false
+  }
+}

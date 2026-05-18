@@ -19,7 +19,7 @@ def test_tool_registry_route_is_descriptor_only_and_contains_task_allow_lists() 
     payload = response.json()
     assert payload["ok"] is True
     registry = payload["registry"]
-    assert registry["version"] == "v2_4_12"
+    assert registry["version"] == "v2_4_13"
     assert registry["execution_status"]["tool_execution_enabled"] is False
     assert registry["execution_status"]["autonomous_tool_execution_enabled"] is False
     assert "agent_tool_registry_spec" in registry["tool_names"]
@@ -29,7 +29,7 @@ def test_tool_registry_route_is_descriptor_only_and_contains_task_allow_lists() 
 def test_context_packet_embeds_tool_descriptors_without_enabling_execution() -> None:
     packet = ContextBuilder().build("immediate_practice_playback", "帮我准备 Blue Bossa 20分钟", duration_minutes=20)
     data = packet.to_dict()
-    assert data["context_runtime_version"] == "v2_4_12"
+    assert data["context_runtime_version"] == "v2_4_13"
     assert data["allowed_tools"] == ["chart_resolve", "agent_playback_prepare"]
     descriptors = {descriptor["name"]: descriptor for descriptor in data["tool_descriptors"]}
     assert set(descriptors) == {"chart_resolve", "agent_playback_prepare"}
@@ -50,9 +50,9 @@ def test_runloop_preview_reports_tool_registry_summary_but_does_not_execute_tool
     preview = payload["runloop_preview"]
     assert preview["runtime_mode"] == "preview_only"
     assert preview["tool_execution_enabled"] is False
-    assert preview["tool_registry_summary"]["registry_version"] == "v2_4_12"
+    assert preview["tool_registry_summary"]["registry_version"] == "v2_4_13"
     assert preview["tool_registry_summary"]["all_known"] is True
-    assert preview["request_envelope_summary"]["tool_registry_version"] == "v2_4_12"
+    assert preview["request_envelope_summary"]["tool_registry_version"] == "v2_4_13"
     assert preview["request_envelope_summary"]["tool_descriptor_count"] == 1
 
 
@@ -61,7 +61,7 @@ def test_capability_manifest_reuses_registry_descriptors() -> None:
     manifest = client.get("/agent/capabilities").json()["manifest"]
     registry = tool_registry_manifest()
     manifest_names = [tool["name"] for tool in manifest["available_tools"]]
-    assert manifest["version"] == "v2_4_12"
+    assert manifest["version"] == "v2_4_13"
     assert manifest["tool_registry"]["route"] == "GET /agent/tools/registry"
     assert manifest_names == registry["tool_names"]
     tools = {tool["name"]: tool for tool in manifest["available_tools"]}
@@ -80,10 +80,10 @@ def test_tool_registry_validation_flags_unknown_allowed_tools() -> None:
 def test_context_runtime_spec_exposes_tool_registry_route_and_boundary() -> None:
     client = TestClient(app)
     spec = client.get("/agent/context/runtime/spec").json()["spec"]
-    assert spec["version"] == "v2_4_12"
+    assert spec["version"] == "v2_4_13"
     assert spec["routes"]["tool_registry"] == "GET /agent/tools/registry"
     assert spec["tool_registry_boundary"]["execution_status"]["autonomous_tool_execution_enabled"] is False
-    assert "No runloop-driven tool execution in v2_4_12; tools are descriptor-only." in spec["non_goals"]
+    assert "No runloop-driven tool execution in v2_4_13; tools are descriptor-only." in spec["non_goals"]
 
 
 def test_tool_registry_does_not_import_engine_or_provider_sdks() -> None:

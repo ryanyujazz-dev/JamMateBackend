@@ -1,0 +1,107 @@
+{
+  "version": "v2_5_3",
+  "task": "v2_5_3_jazz_ballad_phrase_intent_foundation",
+  "scope": "phrase-intent metadata and approved pitchless gesture requests only; no V1 code migration; no Agent/LLM changes",
+  "runtime_demo": {
+    "ok": true,
+    "midi_path": "demos/v2_5_3_misty_jazz_ballad_phrase_intent_audit_render.mid",
+    "title": "Misty",
+    "style": "jazz_ballad",
+    "regions": 150,
+    "pattern_events": 363,
+    "note_events_by_track": {
+      "piano": 772,
+      "bass": 150
+    }
+  },
+  "piano_audit": {
+    "piano_event_count": 193,
+    "pattern_counts": {
+      "ballad_piano_downbeat_midbar_retouch": 10,
+      "ballad_piano_two_beat_soft_anchor": 79,
+      "ballad_piano_soft_downbeat_sustain": 28,
+      "ballad_phrase_two_chord_soft_marks": 46,
+      "ballad_piano_two_beat_light_retouch": 12,
+      "ballad_piano_downbeat_1and_whisper": 8,
+      "ballad_phrase_breath_answer_inner_motion": 8,
+      "ballad_piano_downbeat_3and_answer": 2
+    },
+    "gesture_counts": {
+      "simultaneous_onset": 189,
+      "inner_movement": 4
+    },
+    "expression_counts": {
+      "soft_sustain": 150,
+      "soft_retouch": 34,
+      "soft_whisper": 4,
+      "soft_answer": 5
+    },
+    "phrase_family_counts_from_audit_metadata": {
+      "temporary_low_level_fallback": 32,
+      "warm_pad": 107,
+      "two_chord_soft_marks": 46,
+      "breath_answer": 8
+    },
+    "phrase_slot_counts_from_audit_metadata": {
+      "anchor": 150,
+      "fallback_retouch": 11,
+      "soft_mark": 23,
+      "fallback_whisper": 4,
+      "inner_motion_answer": 4,
+      "fallback_answer": 1
+    }
+  },
+  "candidate_library_generic": {
+    "version": "v2_5_3",
+    "phrase_intent_version": "v2_5_3",
+    "phrase_families": [
+      "breath_answer",
+      "temporary_low_level_fallback",
+      "warm_pad"
+    ],
+    "candidate_names": [
+      "ballad_piano_soft_downbeat_sustain",
+      "ballad_phrase_breath_answer_inner_motion",
+      "ballad_piano_downbeat_midbar_retouch",
+      "ballad_piano_downbeat_3and_answer",
+      "ballad_piano_downbeat_1and_whisper"
+    ]
+  },
+  "candidate_library_major_251_context": {
+    "functional_motion": {
+      "previous_to_current_type": "ii_v",
+      "current_to_next_type": "v_i_major",
+      "window_type": "major_ii_v_i",
+      "tags": [
+        "cycle_of_fourths",
+        "ii_v",
+        "predominant_to_dominant",
+        "dominant_resolution",
+        "dominant_to_tonic",
+        "ii_v_i",
+        "major_ii_v_i"
+      ]
+    },
+    "phrase_families": [
+      "breath_answer",
+      "major_251_stable_cadence",
+      "temporary_low_level_fallback",
+      "warm_pad"
+    ],
+    "candidate_names": [
+      "ballad_piano_soft_downbeat_sustain",
+      "ballad_phrase_breath_answer_inner_motion",
+      "ballad_piano_downbeat_midbar_retouch",
+      "ballad_piano_downbeat_3and_answer",
+      "ballad_piano_downbeat_1and_whisper",
+      "ballad_phrase_major_251_stable_cadence"
+    ]
+  },
+  "boundaries": {
+    "pattern_selects_notes": false,
+    "pattern_selects_voicing_texture": false,
+    "pattern_selects_final_expression_values": false,
+    "inner_movement_is_gesture_request": true,
+    "partial_reattack_realization_deferred_to_v2_5_4": true
+  }
+}

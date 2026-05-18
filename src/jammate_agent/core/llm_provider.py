@@ -8,8 +8,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-LLM_PROVIDER_BOUNDARY_VERSION = "v2_4_12"
-LLM_CONFIG_FILE_VERSION = "v2_4_12"
+LLM_PROVIDER_BOUNDARY_VERSION = "v2_4_13"
+LLM_CONFIG_FILE_VERSION = "v2_4_13"
 LOCAL_LLM_CONFIG_FILENAME = ".jammate_agent.env"
 USER_LLM_CONFIG_RELATIVE_PATH = (".jammate", "agent_config.env")
 LLM_CONFIG_FILE_ENV_VAR = "JAMMATE_AGENT_LLM_CONFIG_FILE"

@@ -7,15 +7,16 @@ from typing import Any
 
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, get_tool_descriptor, validate_allowed_tools
 
-TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_12"
-TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_12"
+TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_13"
+TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_13"
+TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION = "v2_4_13"
 
 
 @dataclass(frozen=True)
 class ToolInvocationProposal:
     """A future-LLM proposed tool call before any execution is allowed.
 
-    v2_4_12 only validates and previews this proposal. It does not dispatch to
+    v2_4_13 only validates and previews this proposal. It does not dispatch to
     deterministic workflows, API routes, adapters, or engine code.
     """
 
@@ -43,7 +44,7 @@ class ToolCallCandidate:
 
     The candidate is only a parsing artifact. It must still pass
     `preview_tool_invocation()` before any future execution could be considered.
-    v2_4_12 never executes extracted candidates.
+    v2_4_13 never executes extracted candidates.
     """
 
     tool_name: str
@@ -135,7 +136,7 @@ class ToolInvocationPreviewResult:
 
 @dataclass(frozen=True)
 class ToolInvocationPreviewPolicy:
-    """Hard policy for v2_4_12 tool-call previews."""
+    """Hard policy for v2_4_13 tool-call previews."""
 
     mode: str = "preview_validation_only"
     execution_enabled: bool = False
@@ -244,8 +245,8 @@ def preview_tool_invocation(
 
     blocking_reasons.extend(
         [
-            "tool_execution_disabled_in_v2_4_12",
-            "autonomous_tool_execution_disabled_in_v2_4_12",
+            "tool_execution_disabled_in_v2_4_13",
+            "autonomous_tool_execution_disabled_in_v2_4_13",
             "preview_does_not_dispatch_deterministic_workflows",
         ]
     )
@@ -381,6 +382,107 @@ def _preview_text(value: Any, max_chars: int = 400) -> str:
     return text
 
 
+def build_tool_call_preview_trace_summary(
+    *,
+    extraction: ToolCallCandidateExtractionResult,
+    candidate_previews: list[dict[str, Any]],
+    task_type: str,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    """Build a stable trace payload for assistant-text tool-call preview chains.
+
+    This is a trace/diagnostic contract only. It records the chain:
+    assistant text -> JSON candidate extraction -> allow-list preview -> execution guard.
+    It never dispatches routes, deterministic workflows, adapters, or engine code.
+    """
+
+    preview_summaries: list[dict[str, Any]] = []
+    for index, item in enumerate(candidate_previews):
+        candidate = dict(item.get("candidate") or {})
+        preview = dict(item.get("preview") or {})
+        preview_summaries.append({
+            "index": index,
+            "tool_name": candidate.get("tool_name") or preview.get("tool_name"),
+            "source_format": candidate.get("source_format"),
+            "source_index": candidate.get("source_index"),
+            "argument_keys": sorted(str(key) for key in (candidate.get("arguments") or {}).keys()),
+            "preview_status": preview.get("status"),
+            "known_tool": preview.get("known_tool"),
+            "allowed_by_context": preview.get("allowed_by_context"),
+            "would_execute": False,
+            "blocking_reasons": list(preview.get("blocking_reasons") or []),
+            "warnings": list(preview.get("warnings") or []),
+        })
+
+    return {
+        "tool_call_preview_trace_contract_version": TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION,
+        "candidate_extraction_version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+        "tool_invocation_preview_version": TOOL_INVOCATION_PREVIEW_VERSION,
+        "tool_registry_version": TOOL_REGISTRY_VERSION,
+        "source": source,
+        "task_type": task_type,
+        "candidate_count": len(extraction.candidates),
+        "rejected_candidate_count": len(extraction.rejected_candidates),
+        "preview_count": len(candidate_previews),
+        "previewed_tool_names": [item.get("tool_name") for item in preview_summaries],
+        "preview_statuses": [item.get("preview_status") for item in preview_summaries],
+        "all_previews_execution_blocked": all(item.get("would_execute") is False for item in preview_summaries),
+        "execution_enabled": False,
+        "autonomous_tool_execution_enabled": False,
+        "dispatch_enabled": False,
+        "engine_adapter_dispatch_enabled": False,
+        "preview_summaries": preview_summaries,
+        "warnings": list(extraction.warnings),
+    }
+
+
+def tool_call_preview_trace_contract() -> dict[str, Any]:
+    return {
+        "version": TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION,
+        "surface": "terminal_chat_trace_export",
+        "mode": "assistant_text_candidate_extraction_then_preview_trace_only",
+        "trace_step_names": [
+            "terminal_tool_call_candidates_extracted",
+            "terminal_tool_call_candidates_previewed",
+            "terminal_tool_call_preview_trace_summary_recorded",
+        ],
+        "summary_field": "tool_call_preview_trace_summary",
+        "final_response_summary_fields": [
+            "tool_call_preview_trace_contract_version",
+            "tool_call_candidate_count",
+            "tool_call_candidate_preview_count",
+            "tool_call_preview_trace_summary",
+        ],
+        "summary_schema": {
+            "tool_call_preview_trace_contract_version": "string",
+            "candidate_extraction_version": "string",
+            "tool_invocation_preview_version": "string",
+            "tool_registry_version": "string",
+            "source": "string",
+            "task_type": "string",
+            "candidate_count": "number",
+            "rejected_candidate_count": "number",
+            "preview_count": "number",
+            "previewed_tool_names": "string[]",
+            "preview_statuses": "string[]",
+            "all_previews_execution_blocked": "boolean",
+            "execution_enabled": "boolean",
+            "autonomous_tool_execution_enabled": "boolean",
+            "dispatch_enabled": "boolean",
+            "engine_adapter_dispatch_enabled": "boolean",
+            "preview_summaries": "ToolCallPreviewTraceItem[]",
+            "warnings": "string[]",
+        },
+        "guards": {
+            "trace_contract_executes_tools": False,
+            "trace_contract_calls_llm_provider": False,
+            "trace_contract_dispatches_workflows": False,
+            "trace_contract_calls_engine_adapter": False,
+            "raw_api_key_allowed_in_trace": False,
+        },
+    }
+
+
 def tool_invocation_preview_contract() -> dict[str, Any]:
     policy = DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY.to_dict()
     return {
@@ -426,7 +528,7 @@ def tool_invocation_preview_contract() -> dict[str, Any]:
             "Preview builds the same task-scoped ContextPacket used by the LLM runtime.",
             "A proposed tool must exist in the registry and be present in ContextPacket.allowed_tools.",
             "Arguments are normalized and shape-checked only; no route, adapter, or engine workflow is called.",
-            "Side-effectful tools can be described, but v2_4_12 always blocks execution.",
+            "Side-effectful tools can be described, but v2_4_13 always blocks execution.",
             "Terminal chat may extract explicit JSON candidates from assistant text and feed them into this same preview contract.",
         ],
     }

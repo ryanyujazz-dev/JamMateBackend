@@ -3,14 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-TOOL_REGISTRY_VERSION = "v2_4_12"
+TOOL_REGISTRY_VERSION = "v2_4_13"
 
 
 @dataclass(frozen=True)
 class AgentToolDescriptor:
     """Declarative descriptor for deterministic Agent tools/workflows.
 
-    This registry is intentionally descriptive in v2_4_12. It does not execute
+    This registry is intentionally descriptive in v2_4_13. It does not execute
     tools and does not import engine internals. Future LLM/tool-loop code should
     treat this as the source of truth for what a task may describe to a model.
     """
@@ -31,7 +31,7 @@ class AgentToolDescriptor:
     execution_enabled: bool = False
     autonomous_execution_enabled: bool = False
     guardrails: tuple[str, ...] = (
-        "descriptor_only_in_v2_4_12",
+        "descriptor_only_in_v2_4_13",
         "no_autonomous_tool_execution",
         "must_be_allowed_by_task_context",
     )
@@ -261,7 +261,7 @@ def tool_registry_manifest() -> dict[str, Any]:
         },
         "rules": [
             "Only tools listed in ContextPacket.allowed_tools may be described to a future LLM for a task.",
-            "v2_4_12 does not execute tools from the runloop; deterministic API workflows remain the only execution path.",
+            "v2_4_13 does not execute tools from the runloop; deterministic API workflows remain the only execution path.",
             "Engine access remains adapter/API-boundary only; the registry must not import jammate_engine.",
         ],
         "tools": [descriptor.to_dict() for descriptor in _TOOL_DESCRIPTORS],

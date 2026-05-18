@@ -48,11 +48,11 @@ def test_terminal_chat_session_reuses_context_packet_and_keeps_history() -> None
     session = TerminalChatSession(provider=FakeProvider())
     response = session.respond("解释一下 altered dominant")
     assert response["ok"] is True
-    assert response["terminal_chat_version"] == "v2_4_12"
+    assert response["terminal_chat_version"] == "v2_4_13"
     assert response["task_type"] == "coach_qa"
     assert response["tool_execution_enabled"] is False
     assert response["allowed_tools"] == ["agent_practice_plan", "agent_playback_prepare"]
-    assert response["context_runtime_version"] == "v2_4_12"
+    assert response["context_runtime_version"] == "v2_4_13"
     assert len(session.history) == 2
 
 
@@ -96,13 +96,13 @@ def test_request_envelope_can_include_conversation_history_without_tool_executio
 def test_provider_spec_documents_terminal_chat_but_api_runloop_remains_preview_only() -> None:
     client = TestClient(app)
     spec = client.get("/agent/llm/provider/spec").json()["spec"]
-    assert spec["version"] == "v2_4_12"
+    assert spec["version"] == "v2_4_13"
     assert spec["terminal_chat"]["entrypoint"] == "python -m jammate_agent.cli.terminal_chat"
     assert spec["terminal_chat"]["tool_execution_enabled"] is False
     assert spec["guards"]["api_runloop_llm_calls_enabled"] is False
     assert spec["guards"]["terminal_chat_llm_calls_enabled_when_configured"] is True
     runtime_spec = client.get("/agent/context/runtime/spec").json()["spec"]
-    assert "No real LLM network call from the API runloop preview in v2_4_12." in runtime_spec["non_goals"]
+    assert "No real LLM network call from the API runloop preview in v2_4_13." in runtime_spec["non_goals"]
 
 
 def test_terminal_chat_cli_has_console_script_and_no_engine_or_provider_sdk_imports() -> None:

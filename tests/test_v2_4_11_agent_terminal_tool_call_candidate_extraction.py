@@ -34,7 +34,7 @@ def test_extract_tool_call_candidates_from_fenced_json() -> None:
         '可以。\n```json\n{"tool_name":"agent_playback_prepare","arguments":{"durationMinutes":20}}\n```'
     )
     assert result.ok is True
-    assert result.to_dict()["extraction_version"] == "v2_4_12"
+    assert result.to_dict()["extraction_version"] == "v2_4_13"
     assert len(result.candidates) == 1
     candidate = result.candidates[0]
     assert candidate.tool_name == "agent_playback_prepare"
@@ -66,14 +66,14 @@ def test_terminal_chat_previews_extracted_allowed_candidate_without_execution() 
     session = TerminalChatSession(task_type="immediate_practice_playback", provider=provider)
     response = session.respond("练 Blue Bossa 20分钟")
     assert response["ok"] is True
-    assert response["terminal_chat_version"] == "v2_4_12"
+    assert response["terminal_chat_version"] == "v2_4_13"
     assert response["tool_execution_enabled"] is False
     extraction = response["tool_call_candidate_extraction"]
     assert extraction["candidate_count"] == 1
     previews = response["tool_call_candidate_previews"]
     assert len(previews) == 1
     preview = previews[0]["preview"]
-    assert preview["preview_version"] == "v2_4_12"
+    assert preview["preview_version"] == "v2_4_13"
     assert preview["tool_name"] == "agent_playback_prepare"
     assert preview["allowed_by_context"] is True
     assert preview["would_execute"] is False

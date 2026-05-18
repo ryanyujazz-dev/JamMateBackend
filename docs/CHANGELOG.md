@@ -1,5 +1,118 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_6_1 — Branch Boundary and Track Ownership Hardening
+
+- Added `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md` as the authoritative owner-path and merge-conflict policy for parallel Engine and Agent development.
+- Split rolling task plans into `docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md` and `docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md`; the main `DEVELOPMENT_TASK_PLAN_V2.md` is now an integration index.
+- Split track history into `docs/CHANGELOG_ENGINE.md` and `docs/CHANGELOG_AGENT.md`; the main changelog remains integration-level chronology.
+- Hardened `agent.md`, `docs/DEVELOPMENT_HARNESS_V2.md`, and `tools/check_development_harness.py` so shared-file edits are treated as integration-owned by default.
+- Bumped package/version surfaces and HarmonyOS contract fixtures to `v2_6_1`.
+- No engine music-generation logic, Agent execution behavior, or API response shape changed.
+
+## v2_5_10 — Agent / Engine Integration Merge
+
+- Merged Agent workflow line through `v2_4_13` into the official engine-deepening line through `v2_5_9`.
+- Preserved engine runtime behavior, Jazz Ballad swing-8 timing, V2 gesture/expression/voicing boundaries, and the V1 instrument-rule mapping baseline.
+- Preserved Agent terminal chat, provider boundary, local config wizard, validation-only tool preview, read-only trace viewer, JSON tool-call candidate extraction, and preview trace contract.
+- Kept HarmonyOS `/accompaniment/generate` direct playback contract stable.
+- Added focused integration doc: `docs/AGENT_ENGINE_INTEGRATION_MERGE_V2_5_10.md`.
+- No new music-generation feature was added in this merge pass.
+
+## v2_5_9 — V1 Instrument Rules Deep Audit and V2-Native Mapping
+
+- Documentation-only engine planning pass based on `v2_5_8`; no generation code changed.
+- Explicitly discards the prior experimental Ballad brush-drums shortcut as an abandoned trial, not an official baseline.
+- Added `docs/V1_INSTRUMENT_RULES_DEEP_AUDIT_AND_V2_NATIVE_MAPPING_V2_5_9.md`.
+- Deep-audited V1 Jazz Ballad, Medium Swing, and Bossa Nova piano/bass/drums rules and mapped them to V2-native owners.
+- Reaffirmed that V1 is a musical-rule reference only: no code migration, no V1 phrase-engine/runtime mirror, no pattern-to-texture binding, and no MIDI repair paths.
+- Recommended next engine task: `v2_5_10_jazz_ballad_bass_anchor_path_policy`.
+
+
+## v2_5_8 — Jazz Ballad Default Swing-8 Anticipation Timing Patch
+
+- Changed Jazz Ballad timing policy from a temporary straight profile with local `1&` swing tags to a default swing-8 feel (`feel=swing`). Written `.5` upbeats remain logical pattern positions and render at the triplet/swing `2/3` point.
+- Corrected Ballad anticipation to use the same swing-upbeat timing contract: logical previous `4&` stays at `.5`, but anticipated events carry `timing_intent=swing_upbeat`, `timing_grid=swing_triplet_upbeat`, `performed_lead_in_beats=1/3`, and `expected_upbeat_fraction=2/3`.
+- Kept V2 ownership boundaries: no literal `0.666...` in pattern candidates, no V1 code migration, no voicing texture binding, no Agent/LLM behavior change, and no MIDI repair path.
+
+## v2_5_7 — Jazz Ballad 1& Sustain Continuity Bugfix
+
+- Fixed the Ballad `beat 1 → swing 1&` continuity bug: the expression next-event clamp now respects event-level timing intent, so an anchor before a `timing_intent=swing_upbeat` event sustains to the performed `2/3` upbeat instead of stopping at the logical `0.5` grid point.
+- Changed `soft_whisper` from a short articulation to a light sustained articulation; Ballad near-downbeat re-touch should not sound like a clipped/stuttering hit.
+- Kept the fix inside V2 boundaries: pattern still stores logical `0.5`; timing remains owned by the timing policy/render contract; expression only uses the already-declared timing intent to choose a connected duration.
+- No V1 code migration, no Agent/LLM changes, no voicing texture binding, and no MIDI repair path were added.
+
+## v2_5_6 — Jazz Ballad Swing 1& Timing Patch
+
+- Corrected the v2_5_5 Ballad `1&` timing interpretation: logical beat `0.5` remains the pattern-layer written upbeat, but the second `1&` piano touch now carries `timing_intent=swing_upbeat`.
+- Reused the existing V2 render timing contract instead of writing literal `0.666...` into pattern candidates.
+- Kept Jazz Ballad global timing profile unchanged (`feel=straight`) and scoped the swing-upbeat intent only to the affected Ballad `1&` soft-mark / retouch events.
+- No notes, voicing texture, expression values, pedal behavior, gesture logic, API behavior, or Agent/LLM code changed.
+
+
+## v2_5_5 — Jazz Ballad Two-Beat 1& Pattern Patch
+
+- Corrected Jazz Ballad two-beat piano soft-mark candidates from region-start + beat 2 to region-start + 1&.
+- Updated both `ballad_phrase_two_chord_soft_marks` and the temporary two-beat fallback retouch so the second touch is local beat `0.5`, not `1.0`.
+- Kept the change inside the existing pitchless pattern/phrase metadata boundary: no V1 code migration, no concrete notes, no voicing texture binding, no expression/pedal ownership changes, and no Agent/LLM logic changes.
+- Added a focused regression test to guard the two-beat `1 + 1&` Ballad cell.
+
+
+## v2_5_4 — Held Foundation Partial Reattack Realization
+
+- Implemented V2-native Jazz Ballad partial reattack realization without migrating V1 code.
+- `INNER_MOVEMENT` now projects only requested inner/color voices instead of falling back to a full voicing hit.
+- Expression duration clamp treats inner movement as non-interrupting so the warm anchor can sustain through motion.
+- Harmonic realization trims only re-struck motion voices from the previous anchor; foundation/common tones remain held.
+- Added focused regression tests and docs for the boundary.
+- Agent/LLM workflow logic remains unchanged; only version/contract labels were synchronized for package consistency.
+
+## v2_5_3 — Jazz Ballad Phrase Intent Foundation
+
+- Extended existing `styles/jazz_ballad/comping_patterns.py` instead of creating or migrating a V1-style phrase engine.
+- Added V2-native Jazz Ballad phrase metadata for `warm_pad`, `breath_answer`, `two_chord_soft_marks`, and context-gated `major_251_stable_cadence`.
+- Allowed phrase candidates to request approved pitchless `inner_movement` gestures while preserving boundaries: no notes, source degrees, voicing textures, final expression values, pedal decisions, or MIDI repair behavior in the pattern layer.
+- Reused the existing `core/harmony/harmonic_context.py` classifier for the conservative `major_ii_v_i` gate.
+- Kept deterministic no-rng Ballad selection anchored on warm pad until held-foundation partial reattack is implemented.
+- Agent/LLM workflow logic remains unchanged; only version/contract labels were synchronized for package consistency.
+
+## v2_5_2 — Jazz Ballad Gesture Contract Foundation
+
+- Extended existing `styles/jazz_ballad/gesture_policy.py` instead of creating a new V1-style phrase/runtime subsystem.
+- Opened Jazz Ballad style-approved pitchless gesture kinds to `simultaneous_onset`, `inner_movement`, and `rolled_onset`.
+- Added V2-native helper constructors and validation for Ballad inner movement / rolled cadence requests. Validation rejects V1 texture metadata, concrete MIDI/pitch data, expression values, pedal decisions, and legacy slot keys.
+- Kept default Jazz Ballad audible runtime comping selection unchanged until phrase-intent and partial-reattack passes.
+- Added targeted regression tests and a focused architecture note for the gesture contract.
+- Agent/LLM workflow logic remains unchanged; only version/contract labels were synchronized for package consistency.
+
+
+## v2_5_1 — V1 Musical Rules Absorption and V2-Native Mapping
+
+- Performed a no-runtime-change engine-deepening audit of the V1 source as musical-rule reference material.
+- Added `docs/V1_MUSICAL_RULES_TO_V2_NATIVE_MAPPING_V2_5_1.md` to translate V1 Ballad/Swing/Bossa instrument behavior into V2 Pattern / Gesture / Expression / Voicing / BassFoundation ownership.
+- Clarified that V1 code, runtime mirrors, pattern-texture binding, MIDI repair paths, and sorted-note slot slicing must not be migrated.
+- Reframed Jazz Ballad next steps around gesture and phrase semantics rather than more low-level `soft_retouch` cells.
+- Updated engine development roadmap toward `v2_5_2_jazz_ballad_gesture_contract_foundation`.
+- Agent/LLM behavior remains unchanged; only version metadata/contract labels were synchronized for package consistency.
+
+## v2_5_0 — Engine Deepening Audit and Ballad Music Pass
+
+- Performed the post-split engine audit before development and kept `jammate_engine` independent from `jammate_agent`.
+- Deepened Jazz Ballad piano comping with weighted pitchless anchored light-retouch cells: downbeat + beat 3, downbeat + beat 3&, and downbeat + beat 1&.
+- Added short-region Ballad adaptation for two-beat chord regions so multi-chord bars remain anchored without spilling events across the region boundary.
+- Added `soft_retouch`, `soft_answer`, and `soft_whisper` expression profiles; final duration, velocity, touch, and pedal remain resolved by the core expression layer.
+- Added targeted regression tests and regenerated standard-tune listening demos for the engine branch.
+- Agent/LLM workflow logic is intentionally unchanged in this engine-deepening pass.
+
+## v2_4_13 — Agent Tool Call Preview Trace Contract
+
+- Added a stable terminal tool-call preview trace contract for the chain: LLM response -> explicit JSON candidate extraction -> preview validation -> execution guard.
+- Focused doc: `docs/AGENT_TOOL_CALL_PREVIEW_TRACE_CONTRACT_V2_4_13.md`.
+- Added `build_tool_call_preview_trace_summary(...)` and `tool_call_preview_trace_contract()` in `jammate_agent.core.tool_invocation`, reusing the existing tool invocation owner.
+- Terminal chat trace export now records `terminal_tool_call_preview_trace_summary_recorded` and places `tool_call_preview_trace_summary` in `final_response_summary`.
+- Trace API/runtime specs expose the tool-call preview trace boundary for HarmonyOS and terminal debugging.
+- The contract is trace-only: no tool execution, no deterministic workflow dispatch, no API route dispatch, no adapter call, and no engine call.
+- Runtime music generation behavior is unchanged.
+
 ## v2_4_12 — Agent Terminal LLM Config Wizard
 
 - Added `jammate-agent-chat setup`, `jammate-agent-chat doctor`, and `jammate-agent-chat config-path` for local terminal LLM configuration.
