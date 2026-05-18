@@ -1,3 +1,16 @@
+## v2_6_28 Completed — Engine Ballad SPREAD Top Voice / Register Micro Calibration
+
+Completed voicing-only listening calibration:
+
+- added a narrow grouped-SPREAD top-register micro bias in `selection/selector.py`;
+- enabled the bias from `styles/jazz_ballad/voicing_policy.py` metadata only;
+- kept ordinary runtime groupings as `2+3`, `2+4`, and `3+3`;
+- kept `1+4` out of ordinary runtime;
+- preserved 5-note:6-note near 6:4, zero 4-note SPREAD, zero 7-note SPREAD in the Misty seed, and zero unnotated maj7#11;
+- lowered the opening/top ceiling behavior from max top 77 to max top 74 in the Misty three-chorus audit.
+
+Next recommended voicing-only task: `v2_6_29_engine_ballad_spread_lower_foundation_register_micro_calibration`.
+
 ## v2_6_26 Voicing cleanup — realization surface final cleanup
 
 Completed `v2_6_26_engine_voicing_realization_surface_final_cleanup`.
@@ -437,3 +450,15 @@ Completed scope:
 - preserved v2_6_14/v2_6_15 Misty density/color guardrails.
 
 Next recommended voicing-only task: `v2_6_22_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup`.
+
+## v2_6_27 Completed — Engine Ballad SPREAD Listening Calibration
+
+Completed voicing-only listening calibration:
+
+- kept Ballad SPREAD focused on ordinary runtime groupings `2+3`, `2+4`, and `3+3`;
+- demoted `1+4` to an explicit upper4-color/listening-isolation lane instead of default comping body;
+- filtered zero-weight compatible contracts out of the runtime candidate pool;
+- kept the 5-note:6-note balance near 6:4 after removing 1+4 from ordinary runtime;
+- preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration`.

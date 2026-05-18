@@ -288,8 +288,10 @@ def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event:
 def _spread_extra_six_note_support_slot(event_metadata: dict[str, object]) -> bool:
     """Small deterministic lift slot used to preserve the Ballad 5:6 calibration.
 
-    This only broadens the existing grouped-SPREAD candidate pool; it does not
-    construct sources, project notes, apply expression, or write MIDI.
+    v2_6_27 keeps this slot sparse enough that removing 1+4 from ordinary
+    runtime does not push the Ballad texture into a 6-note-heavy body. This only
+    broadens the existing grouped-SPREAD candidate pool; it does not construct
+    sources, project notes, apply expression, or write MIDI.
     """
 
     try:
@@ -297,7 +299,7 @@ def _spread_extra_six_note_support_slot(event_metadata: dict[str, object]) -> bo
         chord_index = int(event_metadata.get("region_chord_index", 0) or 0)
     except (TypeError, ValueError):
         return False
-    return (bar + chord_index) % 4 == 0
+    return (bar + chord_index) % 6 == 0
 
 
 def _policy_with_spread_lower_2note_rooted_equal_cycle(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:

@@ -1,3 +1,41 @@
+## Voicing Rule Update: v2_6_28 Ballad SPREAD Top Voice / Register Micro Calibration
+
+`v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration` adds a narrow selector-side micro bias for Jazz Ballad grouped SPREAD candidates.
+
+The purpose is not to change the voicing system or density lane. The purpose is to avoid opening or isolated no-previous-state SPREAD choices that jump directly to the highest legal top register before top-line continuity has a previous voicing to compare against.
+
+Current Ballad SPREAD ordinary runtime remains:
+
+```text
+2+3  stable 5-note body
+2+4  fuller 6-note support
+3+3  fuller 6-note support / lift
+```
+
+Still disabled by default:
+
+```text
+1+4  explicit upper4 color / isolation only
+1+3  retired 4-note SPREAD
+2+2  retired 4-note SPREAD
+```
+
+Guardrails after this pass:
+
+```text
+5-note:6-note remains near 6:4
+4-note SPREAD remains 0
+1+4 ordinary runtime remains 0
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+Misty max top note is capped at 74 for the reference seed
+```
+
+Recommended next task:
+
+```text
+v2_6_29_engine_ballad_spread_lower_foundation_register_micro_calibration
+```
+
 ## v2_6_26 Voicing realization surface boundary note
 
 `harmonic_realizer.py` is now explicitly treated as a thin realization surface. It may iterate active piano `PatternEvent`s, reset the request orchestrator cache at the start of a realization pass, delegate voicing plan requests, call `GestureRealizer`, own the returned `NoteEvent` list, and attach a surface-version marker to piano audit rows.
@@ -817,3 +855,15 @@ Recommended next task:
 ```text
 v2_6_22_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup
 ```
+
+## v2_6_27 Completed — Engine Ballad SPREAD Listening Calibration
+
+Completed voicing-only listening calibration:
+
+- kept Ballad SPREAD focused on ordinary runtime groupings `2+3`, `2+4`, and `3+3`;
+- demoted `1+4` to an explicit upper4-color/listening-isolation lane instead of default comping body;
+- filtered zero-weight compatible contracts out of the runtime candidate pool;
+- kept the 5-note:6-note balance near 6:4 after removing 1+4 from ordinary runtime;
+- preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration`.

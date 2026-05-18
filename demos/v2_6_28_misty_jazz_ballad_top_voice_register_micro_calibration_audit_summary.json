@@ -1,0 +1,67 @@
+{
+  "version": "v2_6_28",
+  "task": "engine_ballad_spread_top_voice_and_register_micro_calibration",
+  "style": "jazz_ballad",
+  "tune": "Misty",
+  "tempo": 72,
+  "choruses": 3,
+  "seed": 26912,
+  "piano_audit_events": 196,
+  "density": {
+    "5": 115,
+    "6": 81
+  },
+  "grouping": {
+    "2+3": 115,
+    "2+4": 76,
+    "3+3": 5
+  },
+  "recipe_id": {
+    "spread_2plus3_contract": 115,
+    "spread_2plus4_contract": 76,
+    "spread_3plus3_contract": 5
+  },
+  "disposition": {
+    "spread": 196
+  },
+  "five_note": 115,
+  "six_note": 81,
+  "five_to_six_ratio": 0.5867,
+  "four_note": 0,
+  "seven_note": 0,
+  "one_plus_four_events": 0,
+  "top_note_max": 74,
+  "top_note_ge_75_events": 0,
+  "top_note_ge_76_events": 0,
+  "top_note_distribution": {
+    "68": 31,
+    "69": 4,
+    "70": 152,
+    "72": 6,
+    "73": 1,
+    "74": 2
+  },
+  "average_pitch_max": 61.4,
+  "low_note_min": 41,
+  "low_note_lt_43_events": 28,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "sharp11_events": 0,
+  "micro_calibration_profile_events": 196,
+  "opening_notes": [
+    51,
+    55,
+    58,
+    63,
+    67,
+    74
+  ],
+  "opening_top_note": 74,
+  "guardrails": {
+    "density_lane_unchanged": true,
+    "four_note_spread_zero": true,
+    "one_plus_four_zero": true,
+    "maj7_sharp11_zero": true,
+    "top_note_capped_at_74": true
+  }
+}

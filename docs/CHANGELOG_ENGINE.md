@@ -1,3 +1,11 @@
+## v2_6_28 Engine Ballad SPREAD — top voice/register micro calibration
+
+- Listening calibration pass: added a narrow grouped-SPREAD top-register micro bias for Jazz Ballad.
+- The bias only shapes already-legal SPREAD candidates during selector/groupwise realization collapse; it does not construct sources, change color permission, alter density lanes, project notes, or touch MIDI/expression.
+- Opening Misty Ebmaj7 now avoids selecting the highest legal top at 77; the three-chorus audit caps top voice at 74.
+- Preserved current guardrails: 4-note SPREAD remains 0, `1+4` ordinary runtime remains 0, 5-note:6-note remains near 6:4, and unnotated maj7#11 remains 0.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_TOP_VOICE_REGISTER_MICRO_CALIBRATION_V2_6_28.md` and `tests/test_v2_6_28_engine_ballad_spread_top_voice_register_micro_calibration.py`.
+
 ## v2_6_26_engine_voicing_realization_surface_final_cleanup
 
 - Cleanup pass: finalized the thin `harmonic_realizer.py` realization surface after the policy/context, note/audit, and request/cache splits.
@@ -251,3 +259,13 @@ This file records engine-track changes to reduce conflicts in the global `docs/C
 - Preserved `UPPER_STRUCTURE_SOURCE_VERSION = v2_2_88` and existing harmonic-expansion / altered-dominant source gates.
 - Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
 - Added `docs/ENGINE_VOICING_UPPER_STRUCTURE_BOUNDARY_AUDIT_V2_6_21.md` and `tests/test_v2_6_21_engine_voicing_upper_structure_boundary_audit.py`.
+
+## v2_6_27 — Engine Ballad SPREAD Listening Calibration
+
+- Voicing-only listening calibration pass; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared version changes.
+- Demoted `spread_1plus4_contract` from ordinary Jazz Ballad SPREAD runtime to an explicit upper4-color/listening-isolation lane.
+- Kept `spread_1plus4_contract` as a valid SPREAD contract; only removed it from the default compatible runtime pool when its scene weight is zero.
+- Added zero-weight compatible filtering in the Ballad grouping-mix texture state so disabled contracts cannot re-enter through voice-leading neighbor pools.
+- Tuned the deterministic extra 6-note support slot and selected-contract bias so Misty remains near 5-note:6-note = 6:4 after 1+4 is removed from ordinary runtime.
+- Preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_LISTENING_CALIBRATION_V2_6_27.md` and `tests/test_v2_6_27_engine_ballad_spread_listening_calibration.py`.

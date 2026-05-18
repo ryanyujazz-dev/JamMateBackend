@@ -446,22 +446,25 @@ BALLAD_SPREAD_GROUPING_MIX_DEFAULT_WEIGHTS: dict[str, dict[str, int]] = {
         # 4-note SPREAD, but it also should not become constantly huge.  The
         # 5-note 2+3 contract is the default grouped-spread body; 2+4/3+3 are
         # reserved for lift/climax or occasional fuller support.
-        "spread_1plus4_contract": 18,
-        "spread_2plus3_contract": 56,
+        # v2_6_27: 1+4 remains an available upper4-color contract, but it is
+        # not part of ordinary default Ballad comping.  The stable 5-note body
+        # is 2+3; 6-note support comes from 2+4/3+3.
+        "spread_1plus4_contract": 0,
+        "spread_2plus3_contract": 74,
         "spread_2plus4_contract": 22,
         "spread_3plus3_contract": 4,
         "spread_3plus4_contract": 0,
     },
     BalladSpreadGroupingMixScene.CHORUS_LIFT.value: {
-        "spread_1plus4_contract": 10,
-        "spread_2plus3_contract": 38,
+        "spread_1plus4_contract": 0,
+        "spread_2plus3_contract": 48,
         "spread_2plus4_contract": 36,
         "spread_3plus3_contract": 14,
         "spread_3plus4_contract": 2,
     },
     BalladSpreadGroupingMixScene.ENDING_CLIMAX.value: {
-        "spread_1plus4_contract": 5,
-        "spread_2plus3_contract": 12,
+        "spread_1plus4_contract": 0,
+        "spread_2plus3_contract": 17,
         "spread_2plus4_contract": 35,
         "spread_3plus3_contract": 35,
         "spread_3plus4_contract": 13,
@@ -741,11 +744,19 @@ def _ballad_spread_grouping_texture_state(
         weights[primary] = max(int(weights[primary]), int(sum(weights.values()) * 0.55) or int(weights[primary]))
     if not any(int(value) > 0 for value in weights.values()):
         weights = dict(base_weights)
+    # v2_6_27: a contract with zero weight is not part of the ordinary
+    # compatible runtime pool.  This lets 1+4 remain an available contract for
+    # explicit upper4-color/listening isolation without being selected as a
+    # default Ballad comping neighbor.
+    active_compatible = tuple(contract for contract in compatible if int(weights.get(contract, 0)) > 0)
+    if not active_compatible:
+        active_compatible = tuple(contract for contract, value in weights.items() if int(value) > 0)
+    active_primary = primary if primary in active_compatible else (active_compatible[0] if active_compatible else primary)
     return {
         "texture_state_id": scope_key,
         "texture_family": family,
-        "primary_contract_id": primary,
-        "compatible_contract_ids": tuple(compatible),
+        "primary_contract_id": active_primary,
+        "compatible_contract_ids": active_compatible,
         "weights": weights,
     }
 
