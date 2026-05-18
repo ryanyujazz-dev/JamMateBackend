@@ -263,3 +263,117 @@ Next recommended task: define the actual provider-boundary E2E for today-practic
 - Added terminal command `/today-practice-guidance-e2e`.
 - Kept all execution guards disabled: no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
 
+
+## v2_7_8_agent_today_practice_guidance_action_card
+
+Status: completed.
+
+Goal: wrap validated today-practice guidance into a HarmonyOS Routine display ActionCard that the client can render after the user asks “今天该练什么？”.
+
+Scope:
+
+```text
+TodayPracticeGuidance provider-boundary E2E payload
+→ output validation
+→ display-only ActionCard
+→ recommended blocks / Routine candidates
+→ client-decided presentation actions
+```
+
+Boundaries:
+
+```text
+No automatic post-session recommendation card.
+No direct Routine start.
+No /accompaniment/generate call.
+No engine adapter call.
+No MIDI asset creation.
+No playback start.
+No frontend UI flow assumption.
+```
+
+Recommended next task:
+
+```text
+v2_7_9_agent_today_practice_guidance_terminal_chat_e2e
+```
+
+Suggested focus: connect normal terminal user turns such as “今天该练什么？” to the context assembly + provider-boundary + validation + ActionCard flow, while still keeping all generated Routine actions as user-confirmed candidates only.
+
+## v2_7_9_agent_today_practice_guidance_terminal_chat_e2e
+
+Status: completed.
+
+Goal: connect ordinary terminal user turns such as “今天该练什么？” to the existing context assembly → provider boundary → output validation → display-only ActionCard flow.
+
+Scope:
+
+```text
+ordinary user input
+→ narrow today-practice intent detection
+→ TodayPracticeGuidance provider-boundary E2E
+→ output validation
+→ display-only Routine ActionCard
+```
+
+Boundaries:
+
+```text
+No automatic post-session recommendation card.
+No direct Routine start.
+No /accompaniment/generate call.
+No engine adapter call.
+No MIDI asset creation.
+No playback start.
+No frontend UI flow assumption.
+```
+
+Recommended next task:
+
+```text
+v2_8_0_agent_context_and_guidance_skeleton_cleanup
+```
+
+Suggested focus: after v2_7_3 through v2_7_9, do a small Agent context/guidance skeleton cleanup pass to remove naming duplication, align docs, inspect API route grouping, and prepare for concrete user-facing Agent features.
+
+## v2_8_0_agent_context_and_guidance_skeleton_cleanup
+
+Status: completed.
+
+Goal: close the first context/guidance skeleton pass after `v2_7_3` through `v2_7_9` by exposing a single read-only stage registry and guard surface.
+
+Scope:
+
+```text
+v2_7_3 context engineering skeleton
+→ v2_7_4 prompt contract
+→ v2_7_5 capability map / intent taxonomy
+→ v2_7_6 output validation
+→ v2_7_7 provider-boundary E2E
+→ v2_7_8 display-only ActionCard
+→ v2_7_9 terminal chat E2E
+→ v2_8_0 cleanup/status contract
+```
+
+Boundaries:
+
+```text
+No Routine end recommendation card.
+No LLM call from cleanup.
+No tool execution.
+No Routine start.
+No /accompaniment/generate call.
+No engine adapter call.
+No MIDI asset creation.
+No playback start.
+No frontend UI flow assumption.
+No shared-document or HarmonyOS fixture changes.
+```
+
+Recommended next task:
+
+```text
+v2_8_1_agent_user_profile_context_intake
+```
+
+Suggested focus: define how durable user practice preferences, current goals, comfortable tempo ranges, and focus areas enter ContextPacket without turning them into execution actions.

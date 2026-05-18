@@ -40,6 +40,9 @@ from jammate_agent.core.contracts import (
     user_capability_map_and_intent_taxonomy_contract,
     today_practice_guidance_output_validation_contract,
     today_practice_guidance_provider_boundary_e2e_contract,
+    today_practice_guidance_action_card_contract,
+    today_practice_guidance_terminal_chat_e2e_contract,
+    context_and_guidance_skeleton_cleanup_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -73,6 +76,12 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_output_validation_summary,
     build_today_practice_guidance_provider_boundary_e2e_payload,
     build_today_practice_guidance_provider_boundary_e2e_summary,
+    build_today_practice_guidance_action_card_payload,
+    build_today_practice_guidance_action_card_summary,
+    build_today_practice_guidance_terminal_chat_e2e_payload,
+    build_today_practice_guidance_terminal_chat_e2e_summary,
+    build_context_and_guidance_skeleton_cleanup_payload,
+    build_context_and_guidance_skeleton_cleanup_summary,
     build_confirmation_envelope,
     build_tool_executor_summary,
     build_tool_workflow_dispatcher_summary,
@@ -464,9 +473,112 @@ def preview_today_practice_guidance_provider_boundary_e2e_request(request: dict)
     }
 
 
+@router.get("/context/today-practice-guidance/action-card/spec")
+def get_today_practice_guidance_action_card_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_action_card_contract()}
+
+
+@router.post("/context/today-practice-guidance/action-card/preview")
+def preview_today_practice_guidance_action_card_request(request: dict) -> dict:
+    """Build a display-only Routine ActionCard from validated today guidance.
+
+    This route may use a supplied providerResult / llmOutput or an explicitly
+    gated provider boundary call. It only returns a display card and Routine
+    candidates; it never starts Routine, calls /accompaniment/generate, invokes
+    engine adapters, or creates MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_action_card_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_action_card",
+    )
+    summary = build_today_practice_guidance_action_card_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_action_card_version": today_practice_guidance_action_card_contract()["version"],
+        "today_practice_guidance_action_card_payload": payload.to_dict(),
+        "today_practice_guidance_action_card_summary": summary,
+        "llm_called": payload.llm_called,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/terminal-chat/spec")
+def get_today_practice_guidance_terminal_chat_e2e_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_terminal_chat_e2e_contract()}
+
+
+@router.post("/context/today-practice-guidance/terminal-chat/e2e-preview")
+def preview_today_practice_guidance_terminal_chat_e2e_request(request: dict) -> dict:
+    """Preview ordinary terminal-chat today guidance routing without side effects.
+
+    This route mirrors the terminal chat behavior for user turns such as
+    "今天该练什么？". It may use a supplied providerResult / llmOutput fixture or
+    an explicitly gated provider boundary call, but it still returns only a
+    display ActionCard and candidate data.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_terminal_chat_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_terminal_chat_e2e",
+    )
+    summary = build_today_practice_guidance_terminal_chat_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_terminal_chat_e2e_version": today_practice_guidance_terminal_chat_e2e_contract()["version"],
+        "today_practice_guidance_terminal_chat_e2e_payload": payload.to_dict(),
+        "today_practice_guidance_terminal_chat_e2e_summary": summary,
+        "llm_called": payload.llm_called,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
 @router.get("/context/engineering-skeleton")
 def get_context_engineering_skeleton_spec() -> dict:
     return {"ok": True, "context_engineering_skeleton": context_engineering_skeleton_contract()}
+
+
+@router.get("/context/guidance-skeleton-cleanup")
+def get_context_and_guidance_skeleton_cleanup_spec() -> dict:
+    payload = build_context_and_guidance_skeleton_cleanup_payload(source="agent_api_context_guidance_cleanup")
+    summary = build_context_and_guidance_skeleton_cleanup_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_and_guidance_skeleton_cleanup_version": context_and_guidance_skeleton_cleanup_contract()["version"],
+        "context_and_guidance_skeleton_cleanup_contract": context_and_guidance_skeleton_cleanup_contract(),
+        "context_and_guidance_skeleton_cleanup_payload": payload.to_dict(),
+        "context_and_guidance_skeleton_cleanup_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
 
 
 @router.get("/tools/registry")

@@ -41,6 +41,9 @@ from jammate_agent.core.tool_invocation import (
     USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
     TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
     TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+    TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+    CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
     ToolWorkflowDispatchResult,
@@ -73,7 +76,15 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_output_validation_summary,
     build_today_practice_guidance_provider_boundary_e2e_payload,
     build_today_practice_guidance_provider_boundary_e2e_summary,
+    build_today_practice_guidance_action_card_payload,
+    build_today_practice_guidance_action_card_summary,
+    build_today_practice_guidance_terminal_chat_e2e_payload,
+    build_today_practice_guidance_terminal_chat_e2e_summary,
+    build_context_and_guidance_skeleton_cleanup_payload,
+    build_context_and_guidance_skeleton_cleanup_summary,
+    detect_today_practice_guidance_intent,
     context_engineering_skeleton_contract,
+    context_and_guidance_skeleton_cleanup_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -149,6 +160,15 @@ class TerminalChatSession:
     It normalizes safe guidance/candidate data and blocks attempts to start
     Routine, call /accompaniment/generate, create MIDI assets, or bypass
     confirmation.
+
+    v2_7_9 routes ordinary terminal chat turns such as “今天该练什么？” into
+    the guarded today-practice guidance chain: context assembly, provider
+    boundary, output validation, and display-only ActionCard. It still never
+    starts Routine or generates accompaniment.
+
+    v2_8_0 adds a read-only context/guidance skeleton cleanup command that
+    lists the ordered v2_7_3→v2_7_9 stages, canonical routes, terminal
+    commands, and no-side-effect guards before adding more user features.
     """
 
     task_type: str = "coach_qa"
@@ -171,6 +191,9 @@ class TerminalChatSession:
         return self.provider.status()
 
     def respond(self, user_input: str) -> dict:
+        if self._should_route_today_practice_guidance(user_input):
+            return self.respond_today_practice_guidance(user_input)
+
         trace = self._start_trace("terminal_chat", user_input)
         packet = self.context_builder.build(
             self.task_type,
@@ -305,6 +328,71 @@ class TerminalChatSession:
         response["trace_id"] = self.last_trace_id
         response["trace_path"] = self.last_trace_path
         return response
+
+    def _should_route_today_practice_guidance(self, user_input: str) -> bool:
+        if self.task_type == "today_practice_guidance":
+            return True
+        return bool(detect_today_practice_guidance_intent(user_input).get("is_today_practice_guidance_intent"))
+
+    def respond_today_practice_guidance(self, user_input: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Route an ordinary terminal chat turn into the guarded today-practice chain."""
+
+        merged_args = dict(arguments or {})
+        merged_args.setdefault("userInput", user_input)
+        trace = self._start_trace("terminal_today_practice_guidance_chat_e2e", user_input)
+        payload = build_today_practice_guidance_terminal_chat_e2e_payload(
+            merged_args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_chat_ordinary_user_turn",
+            provider=self.provider,
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_guidance_terminal_chat_e2e_payload_built", payload_dict)
+        summary = build_today_practice_guidance_terminal_chat_e2e_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_guidance_terminal_chat_e2e_summary_recorded", summary)
+        terminal_response = payload_dict.get("terminal_response") if isinstance(payload_dict.get("terminal_response"), dict) else {}
+        content = str(terminal_response.get("content") or "Today-practice guidance is unavailable until the provider returns a valid structured response.")
+        self.history.append({"role": "user", "content": user_input})
+        self.history.append({"role": "assistant", "content": content})
+        self._finish_trace(
+            trace,
+            "today_practice_guidance_action_card_ready" if summary.get("action_card_is_valid") else "today_practice_guidance_guarded",
+            {
+                "ok": bool(summary.get("detected_today_practice_guidance_intent")),
+                "command": "ordinary_terminal_chat",
+                "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+                "today_practice_guidance_terminal_chat_e2e_summary": summary,
+                "tool_executed": False,
+                "routine_start_enabled": False,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+        )
+        return {
+            "ok": True,
+            "content": content,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "task_type": "today_practice_guidance",
+            "ordinary_terminal_chat_guidance_e2e": True,
+            "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+            "today_practice_guidance_terminal_chat_e2e_payload": payload_dict,
+            "today_practice_guidance_terminal_chat_e2e_summary": summary,
+            "today_practice_guidance_action_card_payload": payload_dict.get("action_card_payload"),
+            "today_practice_guidance_action_card_summary": payload_dict.get("action_card_summary"),
+            "llm_called": payload.llm_called,
+            "tool_execution_enabled": False,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
 
     def preview_tool_call(self, tool_name: str, arguments: dict[str, Any] | None = None, user_input: str | None = None) -> dict:
         """Preview a proposed tool call from the terminal without executing it."""
@@ -1070,6 +1158,38 @@ class TerminalChatSession:
         }
 
 
+    def today_practice_guidance_action_card(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_today_practice_guidance_action_card", "/today-practice-guidance-action-card")
+        payload = build_today_practice_guidance_action_card_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_today_practice_guidance_action_card",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_guidance_action_card_payload_built", payload_dict)
+        summary = build_today_practice_guidance_action_card_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_guidance_action_card_summary_recorded", summary)
+        self._finish_trace(trace, "today_practice_guidance_action_card_built", {"ok": True, "command": "/today-practice-guidance-action-card", "summary": summary, "tool_executed": False, "routine_start_enabled": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/today-practice-guidance-action-card",
+            "today_practice_guidance_action_card_version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+            "today_practice_guidance_action_card_payload": payload_dict,
+            "today_practice_guidance_action_card_summary": summary,
+            "llm_called": payload.llm_called,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
     def user_capability_map(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         trace = self._start_trace("terminal_user_capability_map", "/user-capability-map")
         payload = build_user_capability_map_and_intent_taxonomy_payload(
@@ -1115,6 +1235,49 @@ class TerminalChatSession:
             "engine_adapter_called": False,
             "midi_asset_created": False,
             "playback_started": False,
+        }
+
+    def context_guidance_skeleton_cleanup(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_guidance_skeleton_cleanup", "/context-guidance-skeleton")
+        payload = build_context_and_guidance_skeleton_cleanup_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_guidance_skeleton_cleanup",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_guidance_skeleton_cleanup_payload_built", payload_dict)
+        summary = build_context_and_guidance_skeleton_cleanup_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_guidance_skeleton_cleanup_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "context_guidance_skeleton_cleanup_completed",
+            {
+                "ok": True,
+                "command": "/context-guidance-skeleton",
+                "summary": summary,
+                "llm_called": False,
+                "tool_executed": False,
+                "routine_start_enabled": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-guidance-skeleton",
+            "context_and_guidance_skeleton_cleanup_version": CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
+            "context_and_guidance_skeleton_cleanup_contract": context_and_guidance_skeleton_cleanup_contract(),
+            "context_and_guidance_skeleton_cleanup_payload": payload_dict,
+            "context_and_guidance_skeleton_cleanup_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
         }
 
     def playback_prepare_guarded_design(self) -> dict[str, Any]:
@@ -1686,6 +1849,13 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
     if user_input == "/session":
         _print_session_summary(session.session_summary(), stdout)
         return True
+    if user_input.startswith("/context-guidance-skeleton"):
+        parsed = _parse_json_payload_command(user_input, "/context-guidance-skeleton")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_guidance_skeleton_cleanup(session.context_guidance_skeleton_cleanup(parsed.get("arguments") or {}), stdout)
+        return True
     if user_input.startswith("/context"):
         full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
         _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
@@ -1808,6 +1978,23 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             return True
         _print_today_practice_guidance_output_validation(session.today_practice_guidance_validate(parsed.get("arguments") or {}), stdout)
         return True
+
+    if user_input.startswith("/today-practice-guidance-action-card"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-action-card")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_today_practice_guidance_action_card(session.today_practice_guidance_action_card(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/today-practice-guidance-chat-e2e"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-chat-e2e")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        arguments = parsed.get("arguments") or {}
+        user_text = str(arguments.get("userInput") or arguments.get("user_input") or "今天该练什么？")
+        _print_response(session.respond_today_practice_guidance(user_text, arguments), stdout)
+        return True
     if user_input.startswith("/user-capability-map"):
         parsed = _parse_json_payload_command(user_input, "/user-capability-map")
         if not parsed["ok"]:
@@ -1923,6 +2110,7 @@ def _print_response(response: dict, stdout: TextIO) -> None:
     if response.get("ok"):
         print(f"JamMate> {response.get('content', '')}", file=stdout)
         _print_candidate_preview_summary(response, stdout)
+        _print_today_practice_terminal_chat_e2e_inline_summary(response, stdout)
         return
     print(f"JamMate[guarded]> {response.get('error_code')}: {response.get('message')}", file=stdout)
 
@@ -2216,6 +2404,20 @@ def _print_today_practice_context(response: dict[str, Any], stdout: TextIO) -> N
 
 
 
+def _print_today_practice_terminal_chat_e2e_inline_summary(response: dict[str, Any], stdout: TextIO) -> None:
+    summary = response.get("today_practice_guidance_terminal_chat_e2e_summary")
+    if not isinstance(summary, dict):
+        return
+    print("TodayPracticeGuidanceChatE2E>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_terminal_chat_e2e_version')}", file=stdout)
+    print(f"  detected_intent: {summary.get('detected_today_practice_guidance_intent')}", file=stdout)
+    print(f"  action_card_is_valid: {summary.get('action_card_is_valid')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print("  display_only: True", file=stdout)
+    print("  routine_start_enabled: False", file=stdout)
+    print("  accompaniment_generate_call_enabled: False", file=stdout)
+
+
 def _print_today_practice_guidance_prompt(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):
         _print_command_error(response, stdout)
@@ -2266,6 +2468,25 @@ def _print_today_practice_guidance_provider_boundary_e2e(response: dict[str, Any
     print("  accompaniment_generate_call_enabled: false", file=stdout)
     print("  playback_started: false", file=stdout)
 
+def _print_today_practice_guidance_action_card(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("today_practice_guidance_action_card_summary") or {}
+    print("TodayPracticeGuidanceActionCard>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_action_card_version')}", file=stdout)
+    print(f"  is_valid: {summary.get('is_valid')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  guidance_mode: {summary.get('guidance_mode')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print(f"  available_client_actions: {', '.join(summary.get('available_client_actions') or [])}", file=stdout)
+    print(f"  llm_called: {str(summary.get('llm_called')).lower()}", file=stdout)
+    print("  card_display_only: true", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  accompaniment_generate_call_enabled: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+
+
 def _print_user_capability_map(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):
         _print_command_error(response, stdout)
@@ -2291,6 +2512,28 @@ def _print_context_engineering_skeleton(response: dict[str, Any], stdout: TextIO
     print(f"  included_boundaries: {', '.join((skeleton.get('included_boundaries') or {}).keys())}", file=stdout)
     print("  llm_called: false", file=stdout)
     print("  recommendation_created: false", file=stdout)
+
+
+def _print_context_guidance_skeleton_cleanup(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("context_and_guidance_skeleton_cleanup_summary") or {}
+    payload = response.get("context_and_guidance_skeleton_cleanup_payload") or {}
+    print("ContextGuidanceSkeletonCleanup>", file=stdout)
+    print(f"  version: {response.get('context_and_guidance_skeleton_cleanup_version')}", file=stdout)
+    print(f"  stage_count: {summary.get('stage_count')}", file=stdout)
+    print(f"  canonical_route_count: {summary.get('canonical_route_count')}", file=stdout)
+    print(f"  terminal_command_count: {summary.get('terminal_command_count')}", file=stdout)
+    print(f"  all_stages_side_effect_free: {summary.get('all_stages_side_effect_free')}", file=stdout)
+    print(f"  client_decides_presentation: {summary.get('client_decides_presentation')}", file=stdout)
+    print(f"  routine_start_enabled: {summary.get('routine_start_enabled')}", file=stdout)
+    print(f"  accompaniment_generate_call_enabled: {summary.get('accompaniment_generate_call_enabled')}", file=stdout)
+    print(f"  next_recommended_task: {summary.get('next_recommended_task')}", file=stdout)
+    findings = payload.get("cleanup_findings") or []
+    if findings:
+        print(f"  first_finding: {findings[0]}", file=stdout)
+
 
 def _print_routine_config_prepare(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok") and response.get("error_code"):
@@ -2470,7 +2713,11 @@ def _print_help(stdout: TextIO) -> None:
     print('  /today-practice-guidance-prompt [json_payload]', file=stdout)
     print('  /user-capability-map [json_payload]', file=stdout)
     print('  /today-practice-guidance-validate [json_payload]', file=stdout)
+    print('  /today-practice-guidance-e2e [json_payload]', file=stdout)
+    print('  /today-practice-guidance-action-card [json_payload]', file=stdout)
+    print('  /today-practice-guidance-chat-e2e [json_payload]', file=stdout)
     print("  /context-engineering", file=stdout)
+    print("  /context-guidance-skeleton [json_payload]", file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
@@ -2495,7 +2742,11 @@ def _print_help(stdout: TextIO) -> None:
     print("/today-practice-context previews the context for a future user-initiated '今天该练什么' turn; it does not call the LLM.", file=stdout)
     print("/today-practice-guidance-prompt builds the future LLM prompt/output schema for today-practice guidance; it does not call the LLM.", file=stdout)
     print("/today-practice-guidance-validate validates a future TodayPracticeGuidanceOutput and blocks unsafe direct actions.", file=stdout)
+    print("/today-practice-guidance-e2e runs prompt + provider boundary + validation without executing tools.", file=stdout)
+    print("/today-practice-guidance-action-card wraps validated guidance into a display-only Routine card.", file=stdout)
+    print("Ordinary turns like ‘今天该练什么？’ now route into the guarded guidance ActionCard chain.", file=stdout)
     print("/context-engineering shows the consolidated context-engineering skeleton status.", file=stdout)
+    print("/context-guidance-skeleton shows the v2_7_3→v2_7_9 context/guidance chain registry and guards.", file=stdout)
     print("/runtime-skeleton shows the consolidated read-only Agent lifecycle and guard status.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 

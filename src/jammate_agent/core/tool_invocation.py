@@ -32,6 +32,9 @@ TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION = "v2_7_4"
 USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION = "v2_7_5"
 TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION = "v2_7_6"
 TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION = "v2_7_7"
+TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION = "v2_7_8"
+TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION = "v2_7_9"
+CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION = "v2_8_0"
 
 
 @dataclass(frozen=True)
@@ -4816,6 +4819,358 @@ def today_practice_guidance_provider_boundary_e2e_contract() -> dict[str, Any]:
     }
 
 
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceActionCardPayload:
+    """v2_7_8 HarmonyOS Routine display card for today-practice guidance.
+
+    This payload wraps validated today-practice guidance into a Routine-facing
+    presentation card. It is not a tool execution card: it only contains coach
+    guidance, reasons, optional blocks, and editable Routine candidates. The
+    client decides how to render it and must require a separate user-confirmed
+    Routine start before any playback/generation side effect.
+    """
+
+    payload_contract_version: str
+    source: str
+    action_card: dict[str, Any]
+    provider_boundary_e2e_payload: dict[str, Any]
+    normalized_guidance_output: dict[str, Any]
+    routine_candidate_cards: tuple[dict[str, Any], ...]
+    display_sections: dict[str, Any]
+    next_client_actions: tuple[str, ...]
+    client_button_semantics: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    routine_start_enabled: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "action_card": _redact_sensitive_values(self.action_card),
+            "provider_boundary_e2e_payload": _redact_sensitive_values(self.provider_boundary_e2e_payload),
+            "normalized_guidance_output": _redact_sensitive_values(self.normalized_guidance_output),
+            "routine_candidate_cards": [_redact_sensitive_values(card) for card in self.routine_candidate_cards],
+            "display_sections": _redact_sensitive_values(self.display_sections),
+            "next_client_actions": list(self.next_client_actions),
+            "client_button_semantics": _redact_sensitive_values(self.client_button_semantics),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "routine_start_enabled": self.routine_start_enabled,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def build_today_practice_guidance_action_card_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_action_card",
+    provider: Any | None = None,
+) -> TodayPracticeGuidanceActionCardPayload:
+    """Build a Routine-facing ActionCard from validated today-practice guidance.
+
+    The function delegates prompt/provider/validation handling to the existing
+    v2_7_7 boundary, then turns only accepted candidate guidance into a client
+    display card. It does not execute tools or start/generate Routine assets.
+    """
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    e2e_payload = build_today_practice_guidance_provider_boundary_e2e_payload(
+        args,
+        trace_id=trace,
+        source="today_practice_guidance_action_card_provider_boundary",
+        provider=provider,
+    )
+    e2e_data = e2e_payload.to_dict()
+    e2e_summary = e2e_data.get("e2e_summary") if isinstance(e2e_data.get("e2e_summary"), dict) else {}
+    validation_payload = e2e_data.get("output_validation_payload") if isinstance(e2e_data.get("output_validation_payload"), dict) else {}
+    validation_info = validation_payload.get("validation") if isinstance(validation_payload.get("validation"), dict) else {}
+    normalized = e2e_summary.get("normalized_guidance_output") if isinstance(e2e_summary.get("normalized_guidance_output"), dict) else {}
+    is_valid = bool(validation_info.get("is_valid")) and bool(normalized)
+    blocked_reasons = list(validation_payload.get("blocked_reasons") or []) if isinstance(validation_payload, dict) else []
+    warnings = list(validation_payload.get("warnings") or []) if isinstance(validation_payload, dict) else []
+
+    routine_candidate_cards = tuple(
+        _today_guidance_routine_candidate_card(candidate, index, trace)
+        for index, candidate in enumerate(normalized.get("routine_candidates") or [])
+        if isinstance(candidate, dict)
+    ) if is_valid else tuple()
+    display_sections = _today_guidance_display_sections(normalized if is_valid else {}, routine_candidate_cards=routine_candidate_cards)
+    default_actions = ["show_guidance", "dismiss", "view_trace"]
+    if routine_candidate_cards:
+        default_actions.insert(1, "present_routine_candidate")
+    if normalized.get("guidance_mode") == "ask_clarifying_question":
+        default_actions.insert(1, "ask_follow_up")
+    next_client_actions = tuple(dict.fromkeys(default_actions))
+    client_button_semantics = _today_guidance_action_card_button_semantics(has_candidates=bool(routine_candidate_cards))
+    status = "ready_for_client_display" if is_valid else "blocked_by_guidance_validator"
+    action_card = {
+        "action_contract_version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+        "action_id": str(args.get("action_id") or args.get("actionId") or f"today_practice_guidance_{uuid4().hex[:12]}"),
+        "proposal_id": args.get("proposal_id") or args.get("proposalId"),
+        "tool_name": "today_practice_guidance",
+        "action_type": "routine_guidance_display_card",
+        "title": _today_guidance_action_card_title(normalized if is_valid else {}),
+        "description": str((normalized.get("summary") if is_valid else "Guidance output was blocked by validation.") or "")[:240],
+        "side_effect_level": "none",
+        "risk_summary": "This card displays practice guidance and editable Routine candidates only; Routine start and accompaniment generation remain separate user-confirmed actions.",
+        "requires_user_confirmation": False,
+        "requires_user_confirmation_before_routine_start": True,
+        "confirmation_status": "not_required_for_display",
+        "preview_status": status,
+        "execution_status": "not_started",
+        "workflow_name": "TodayPracticeGuidance.display_card",
+        "display_sections": display_sections,
+        "routine_candidate_cards": [card for card in routine_candidate_cards],
+        "result_preview": {
+            "today_practice_guidance_action_card_payload_version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+            "normalized_guidance_output": normalized if is_valid else {},
+            "routine_candidate_count": len(routine_candidate_cards),
+            "blocked_reasons": blocked_reasons,
+            "warnings": warnings,
+        },
+        "trace_id": trace,
+        "available_client_actions": list(next_client_actions),
+        "client_button_semantics": client_button_semantics,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    validation = {
+        "status": status,
+        "is_valid": is_valid,
+        "source_validation_status": validation_info.get("status"),
+        "provider_content_parsed": bool((e2e_data.get("validation") or {}).get("provider_content_parsed")),
+        "guidance_mode": normalized.get("guidance_mode") if is_valid else None,
+        "routine_candidate_count": len(routine_candidate_cards),
+        "blocked_reasons": blocked_reasons,
+        "warnings": warnings,
+        "card_display_only": True,
+        "requires_separate_user_confirmation_before_routine_start": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "llm_called": bool(e2e_payload.llm_called),
+        "tool_executed": False,
+        "routine_start_enabled": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    return TodayPracticeGuidanceActionCardPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+        source=source,
+        action_card=action_card,
+        provider_boundary_e2e_payload=e2e_data,
+        normalized_guidance_output=normalized if is_valid else {},
+        routine_candidate_cards=routine_candidate_cards,
+        display_sections=display_sections,
+        next_client_actions=next_client_actions,
+        client_button_semantics=client_button_semantics,
+        validation=validation,
+        trace_id=trace,
+        llm_called=bool(e2e_payload.llm_called),
+    )
+
+
+def build_today_practice_guidance_action_card_summary(
+    *,
+    payload: TodayPracticeGuidanceActionCardPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    card = data.get("action_card") if isinstance(data.get("action_card"), dict) else {}
+    normalized = data.get("normalized_guidance_output") if isinstance(data.get("normalized_guidance_output"), dict) else {}
+    return {
+        "today_practice_guidance_action_card_version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "is_valid": validation.get("is_valid", False),
+        "action_id": card.get("action_id"),
+        "guidance_mode": normalized.get("guidance_mode"),
+        "recommended_block_count": len(normalized.get("recommended_blocks") or []),
+        "routine_candidate_count": validation.get("routine_candidate_count", 0),
+        "available_client_actions": list(card.get("available_client_actions") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+        "warnings": list(validation.get("warnings") or []),
+        "llm_called": validation.get("llm_called", False),
+        "card_display_only": True,
+        "requires_separate_user_confirmation_before_routine_start": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def today_practice_guidance_action_card_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+        "today_practice_guidance_action_card_version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/action-card/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/action-card/preview",
+        "terminal_command": "/today-practice-guidance-action-card",
+        "surface": "HarmonyOS Routine display ActionCard for validated today-practice guidance",
+        "mode": "display_card_only_no_execution",
+        "execution_status": {
+            "action_card_payload_enabled": True,
+            "provider_boundary_e2e_used": True,
+            "output_validation_required": True,
+            "routine_candidates_enabled": True,
+            "card_display_only": True,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "autonomous_execution_enabled": False,
+        },
+        "payload_schema": {
+            "payload_contract_version": "v2_7_8",
+            "action_card": "Routine-facing display card with title, summary, display_sections, routine_candidate_cards, and client actions",
+            "provider_boundary_e2e_payload": "v2_7_7 prompt/provider/validation payload used as source",
+            "normalized_guidance_output": "Accepted candidate-only TodayPracticeGuidanceOutput from v2_7_6 validator",
+            "routine_candidate_cards": "Candidate cards for frontend-selected presentation; do not start Routine",
+            "display_sections": "summary / recommended_focus / recommended_blocks / routine_candidates / adjustment_reason",
+            "next_client_actions": "show_guidance | present_routine_candidate | ask_follow_up | dismiss | view_trace",
+            "client_button_semantics": "button action metadata; primary may present a candidate, never start playback",
+        },
+        "rules": [
+            "Only validated today-practice guidance can become an ActionCard.",
+            "The card itself has no side effects and is safe to display without user confirmation.",
+            "Any Routine start, playback, or accompaniment generation remains a separate user-confirmed action outside this contract.",
+            "The client decides whether to render a page, sheet, inline card, queue item, or other UI.",
+            "Blocked LLM output produces a blocked card payload for debugging, not an executable action.",
+        ],
+        "guards": {
+            "card_calls_llm_by_default": False,
+            "card_executes_tool": False,
+            "card_calls_accompaniment_generate": False,
+            "card_calls_engine_adapter": False,
+            "card_creates_midi_asset": False,
+            "card_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+            "hidden_chain_of_thought_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "provider_boundary_e2e": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+            "output_validation": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+            "user_capability_map_and_intent_taxonomy": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        },
+    }
+
+
+def _today_guidance_action_card_title(normalized: dict[str, Any]) -> str:
+    mode = normalized.get("guidance_mode")
+    if mode == "continue_original_plan":
+        return "Continue today's planned practice"
+    if mode == "adjust_based_on_history":
+        return "Adjusted practice suggestion"
+    if mode == "ask_clarifying_question":
+        return "More practice context needed"
+    return "Today practice guidance"
+
+
+def _today_guidance_display_sections(normalized: dict[str, Any], *, routine_candidate_cards: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    blocks = normalized.get("recommended_blocks") if isinstance(normalized.get("recommended_blocks"), list) else []
+    return {
+        "summary": normalized.get("summary") or "",
+        "recommended_focus": normalized.get("recommended_focus") or "",
+        "adjustment_reason": normalized.get("adjustment_reason"),
+        "recommended_blocks": blocks,
+        "routine_candidates": [card for card in routine_candidate_cards],
+        "empty_state": not bool(normalized),
+    }
+
+
+def _today_guidance_routine_candidate_card(candidate: dict[str, Any], index: int, trace_id: str | None) -> dict[str, Any]:
+    duration = candidate.get("duration_minutes") or candidate.get("durationMinutes") or candidate.get("suggested_duration_minutes") or candidate.get("suggestedDurationMinutes")
+    style = candidate.get("style") or candidate.get("suggested_style") or candidate.get("suggestedStyle")
+    tempo = candidate.get("tempo") or candidate.get("bpm") or candidate.get("suggested_tempo") or candidate.get("suggestedTempo")
+    tune_title = candidate.get("tune_title") or candidate.get("tuneTitle") or candidate.get("tune") or candidate.get("song")
+    title_bits = [str(tune_title)] if tune_title else []
+    if style:
+        title_bits.append(str(style))
+    title = " / ".join(title_bits) or f"Routine candidate {index + 1}"
+    return {
+        "candidate_card_id": f"today_practice_candidate_{index + 1}",
+        "source_index": index,
+        "title": title,
+        "description": str(candidate.get("goal") or candidate.get("practice_goal") or candidate.get("practiceGoal") or candidate.get("description") or "")[:240],
+        "routine_config_candidate": _redact_sensitive_values(candidate),
+        "duration_minutes": duration,
+        "style": style,
+        "tempo": tempo,
+        "tune_title": tune_title,
+        "requires_user_confirmation_before_start": True,
+        "does_start_playback": False,
+        "does_call_accompaniment_generate": False,
+        "does_create_midi_asset": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "trace_id": trace_id,
+        "available_client_actions": ["present_routine_candidate", "edit_routine_candidate", "dismiss", "view_trace"],
+    }
+
+
+def _today_guidance_action_card_button_semantics(*, has_candidates: bool) -> dict[str, Any]:
+    primary_action = "present_routine_candidate" if has_candidates else "show_guidance"
+    primary_label = "Review Routine Candidate" if has_candidates else "Show Guidance"
+    return {
+        "primary": {
+            "action": primary_action,
+            "label": primary_label,
+            "side_effect_level": "none",
+            "does_start_playback": False,
+            "does_call_accompaniment_generate": False,
+            "requires_separate_start_confirmation": True,
+        },
+        "secondary": [
+            {"action": "ask_follow_up", "label": "Ask a follow-up", "side_effect_level": "none"},
+            {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+            {"action": "dismiss", "label": "Dismiss", "side_effect_level": "none"},
+        ],
+        "forbidden_current_actions": [
+            "start_routine",
+            "start_playback",
+            "call_accompaniment_generate",
+            "generate_midi",
+            "execute_tool",
+        ],
+    }
+
 def _today_practice_provider_boundary_status(*, provider: Any | None = None, call_requested: bool = False) -> dict[str, Any]:
     safe_status: dict[str, Any]
     try:
@@ -4941,6 +5296,493 @@ def _parse_json_object_from_text(text: str) -> dict[str, Any]:
             return {}
     return {}
 
+@dataclass(frozen=True)
+class TodayPracticeGuidanceTerminalChatE2EPayload:
+    """v2_7_9 terminal chat E2E surface for user-initiated today guidance.
+
+    This payload is built from an ordinary terminal message such as "今天该练什么？".
+    It routes only the detected today-practice intent into the existing
+    context/provider/validation/action-card chain. It never starts Routine,
+    calls /accompaniment/generate, invokes engine adapters, creates MIDI assets,
+    or controls playback.
+    """
+
+    payload_contract_version: str
+    source: str
+    user_input: str
+    detected_intent: dict[str, Any]
+    action_card_payload: dict[str, Any]
+    action_card_summary: dict[str, Any]
+    terminal_response: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    routine_start_enabled: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "user_input": self.user_input,
+            "detected_intent": dict(self.detected_intent),
+            "action_card_payload": _redact_sensitive_values(self.action_card_payload),
+            "action_card_summary": _redact_sensitive_values(self.action_card_summary),
+            "terminal_response": _redact_sensitive_values(self.terminal_response),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "routine_start_enabled": self.routine_start_enabled,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def detect_today_practice_guidance_intent(user_input: str | None) -> dict[str, Any]:
+    """Detect ordinary user turns asking what to practice today.
+
+    This is a narrow terminal-routing helper, not a full intent classifier. It
+    only routes high-confidence today-practice guidance requests into the
+    existing guarded guidance chain.
+    """
+
+    text = (user_input or "").strip()
+    lowered = text.lower()
+    chinese_markers = ("今天该练什么", "今天练什么", "今天要练什么", "今天应该练什么", "今天该怎么练", "今天练点什么")
+    english_markers = ("what should i practice today", "what should we practice today", "practice today", "today's practice", "todays practice")
+    matched = ""
+    language = "unknown"
+    for marker in chinese_markers:
+        if marker in text:
+            matched = marker
+            language = "zh"
+            break
+    if not matched:
+        for marker in english_markers:
+            if marker in lowered:
+                matched = marker
+                language = "en"
+                break
+    is_match = bool(matched)
+    return {
+        "is_today_practice_guidance_intent": is_match,
+        "intent_type": "today_practice_guidance" if is_match else None,
+        "matched_phrase": matched or None,
+        "language_hint": language if is_match else None,
+        "confidence": 0.93 if is_match else 0.0,
+        "ordinary_terminal_chat_routing": is_match,
+        "requires_llm_provider_boundary": is_match,
+        "tool_execution_enabled": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+
+
+def build_today_practice_guidance_terminal_chat_e2e_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_terminal_chat_e2e",
+    provider: Any | None = None,
+) -> TodayPracticeGuidanceTerminalChatE2EPayload:
+    """Route an ordinary terminal user turn to the today-guidance ActionCard chain."""
+
+    args = dict(arguments or {})
+    user_input = str(args.get("user_input") or args.get("userInput") or args.get("text") or "今天该练什么？")
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    intent = detect_today_practice_guidance_intent(user_input)
+    action_args = dict(args)
+    action_args["userInput"] = user_input
+    # Ordinary terminal chat already represents an explicit provider-boundary
+    # surface. A disabled provider remains guarded; configured/fake providers
+    # can return structured guidance that still must pass validation.
+    action_args["callProvider"] = bool(args.get("callProvider") if "callProvider" in args else args.get("call_provider") if "call_provider" in args else intent.get("is_today_practice_guidance_intent"))
+    action_payload_obj = build_today_practice_guidance_action_card_payload(
+        action_args,
+        trace_id=trace,
+        source="terminal_chat_today_practice_guidance_action_card",
+        provider=provider,
+    )
+    action_payload = action_payload_obj.to_dict()
+    action_summary = build_today_practice_guidance_action_card_summary(payload=action_payload_obj, source="terminal_chat_cli")
+    card = action_payload.get("action_card") if isinstance(action_payload.get("action_card"), dict) else {}
+    display_sections = card.get("display_sections") if isinstance(card.get("display_sections"), dict) else {}
+    terminal_response = {
+        "content": card.get("description") or display_sections.get("summary") or "Today-practice guidance is not available yet.",
+        "action_card_available": bool(action_summary.get("is_valid")),
+        "action_card_display_only": True,
+        "routine_candidate_count": action_summary.get("routine_candidate_count", 0),
+        "available_client_actions": list(action_summary.get("available_client_actions") or []),
+        "requires_separate_user_confirmation_before_routine_start": True,
+    }
+    return TodayPracticeGuidanceTerminalChatE2EPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+        source=source,
+        user_input=user_input,
+        detected_intent=intent,
+        action_card_payload=action_payload,
+        action_card_summary=action_summary,
+        terminal_response=terminal_response,
+        trace_id=trace,
+        llm_called=bool(action_payload_obj.llm_called),
+    )
+
+
+def build_today_practice_guidance_terminal_chat_e2e_summary(
+    *,
+    payload: TodayPracticeGuidanceTerminalChatE2EPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    intent = data.get("detected_intent") if isinstance(data.get("detected_intent"), dict) else {}
+    action_summary = data.get("action_card_summary") if isinstance(data.get("action_card_summary"), dict) else {}
+    return {
+        "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "detected_today_practice_guidance_intent": bool(intent.get("is_today_practice_guidance_intent")),
+        "matched_phrase": intent.get("matched_phrase"),
+        "action_card_is_valid": action_summary.get("is_valid", False),
+        "validation_status": action_summary.get("validation_status"),
+        "routine_candidate_count": action_summary.get("routine_candidate_count", 0),
+        "llm_called": data.get("llm_called", False),
+        "terminal_chat_surface": True,
+        "card_display_only": True,
+        "requires_separate_user_confirmation_before_routine_start": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+def today_practice_guidance_terminal_chat_e2e_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+        "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/terminal-chat/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/terminal-chat/e2e-preview",
+        "terminal_surface": "ordinary terminal chat message",
+        "example_user_inputs": ["今天该练什么？", "what should I practice today?"],
+        "mode": "ordinary_chat_intent_to_provider_boundary_to_validated_display_action_card",
+        "execution_status": {
+            "ordinary_chat_intent_detection_enabled": True,
+            "context_assembly_enabled": True,
+            "provider_boundary_enabled": True,
+            "output_validation_required": True,
+            "action_card_payload_enabled": True,
+            "card_display_only": True,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "detected_intent": "narrow high-confidence today-practice guidance intent detection for terminal chat",
+            "action_card_payload": "v2_7_8 TodayPracticeGuidanceActionCardPayload",
+            "terminal_response": "compact terminal-facing response plus action-card availability summary",
+            "summary": "guarded terminal E2E status",
+        },
+        "rules": [
+            "Only high-confidence today-practice guidance turns are routed away from generic coach chat.",
+            "The routed turn still goes through provider boundary and v2_7_6 output validation before display.",
+            "The terminal response may show guidance and candidate cards only; Routine start and accompaniment generation remain separate user-confirmed client actions.",
+            "No ordinary terminal message may directly execute tools, call /accompaniment/generate, create MIDI assets, or start playback.",
+        ],
+        "uses_contracts": {
+            "today_practice_guidance_action_card": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+            "today_practice_guidance_provider_boundary_e2e": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+            "today_practice_guidance_output_validation": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+            "user_capability_map_and_intent_taxonomy": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+        },
+        "guards": {
+            "executes_tool": False,
+            "starts_routine": False,
+            "calls_accompaniment_generate": False,
+            "calls_engine_adapter": False,
+            "creates_midi_asset": False,
+            "starts_playback": False,
+            "frontend_flow_assumption": False,
+        },
+    }
+
+
+
+@dataclass(frozen=True)
+class ContextAndGuidanceSkeletonCleanupPayload:
+    """v2_8_0 read-only cleanup/status payload for the context/guidance chain.
+
+    The cleanup pass does not introduce a new execution capability. It gives
+    HarmonyOS, terminal developers, and future prompt-contract work one stable
+    place to inspect the ordered v2_7_3 → v2_7_9 guidance skeleton, canonical
+    routes/commands, and no-side-effect guards before concrete user features are
+    added.
+    """
+
+    cleanup_version: str
+    source: str
+    trace_id: str | None
+    stage_registry: tuple[dict[str, Any], ...]
+    canonical_routes: dict[str, str]
+    terminal_commands: tuple[str, ...]
+    normalized_guard_flags: dict[str, bool]
+    cleanup_findings: tuple[str, ...]
+    next_recommended_task: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "cleanup_version": self.cleanup_version,
+            "source": self.source,
+            "trace_id": self.trace_id,
+            "stage_registry": [dict(stage) for stage in self.stage_registry],
+            "canonical_routes": dict(self.canonical_routes),
+            "terminal_commands": list(self.terminal_commands),
+            "normalized_guard_flags": dict(self.normalized_guard_flags),
+            "cleanup_findings": list(self.cleanup_findings),
+            "next_recommended_task": self.next_recommended_task,
+            "frontend_flow_assumption": False,
+            "client_decides_presentation": True,
+            "routine_end_recommendation_card_created": False,
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+        }
+
+
+def _context_guidance_stage_registry() -> tuple[dict[str, Any], ...]:
+    return (
+        {
+            "stage_id": "context_engineering_skeleton",
+            "version": CONTEXT_ENGINEERING_SKELETON_VERSION,
+            "purpose": "Normalize active plan, Routine history, today constraints, and assembled practice context.",
+            "spec_routes": [
+                "GET /agent/context/active-practice-plan/spec",
+                "GET /agent/context/routine-history/spec",
+                "GET /agent/context/practice-assembly/spec",
+                "GET /agent/context/today-practice/spec",
+                "GET /agent/context/engineering-skeleton",
+            ],
+            "preview_routes": [
+                "POST /agent/context/active-practice-plan/intake",
+                "POST /agent/context/routine-history/intake",
+                "POST /agent/context/practice-assembly/build",
+                "POST /agent/context/today-practice/preview",
+            ],
+            "terminal_commands": [
+                "/active-practice-plan-context",
+                "/routine-history-context",
+                "/practice-context-assembly",
+                "/today-practice-context",
+                "/context-engineering",
+            ],
+            "output_role": "context_only",
+            "side_effects_created": False,
+        },
+        {
+            "stage_id": "today_practice_guidance_prompt_contract",
+            "version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
+            "purpose": "Build future LLM prompt messages and TodayPracticeGuidanceOutput schema.",
+            "spec_routes": ["GET /agent/context/today-practice-guidance/spec"],
+            "preview_routes": ["POST /agent/context/today-practice-guidance/prompt-preview"],
+            "terminal_commands": ["/today-practice-guidance-prompt"],
+            "output_role": "prompt_contract_only",
+            "side_effects_created": False,
+        },
+        {
+            "stage_id": "user_capability_map_and_intent_taxonomy",
+            "version": USER_CAPABILITY_MAP_AND_INTENT_TAXONOMY_VERSION,
+            "purpose": "Define what users may ask the LLM to do, which intents are candidate-only, and which are forbidden direct actions.",
+            "spec_routes": ["GET /agent/capabilities/user-intents/spec"],
+            "preview_routes": ["POST /agent/capabilities/user-intents/preview"],
+            "terminal_commands": ["/user-capability-map"],
+            "output_role": "capability_boundary",
+            "side_effects_created": False,
+        },
+        {
+            "stage_id": "today_practice_guidance_output_validation",
+            "version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
+            "purpose": "Validate future LLM output and normalize it into candidate-only guidance.",
+            "spec_routes": ["GET /agent/context/today-practice-guidance/output-validation/spec"],
+            "preview_routes": ["POST /agent/context/today-practice-guidance/output-validation/validate"],
+            "terminal_commands": ["/today-practice-guidance-validate"],
+            "output_role": "safety_gate",
+            "side_effects_created": False,
+        },
+        {
+            "stage_id": "today_practice_guidance_provider_boundary_e2e",
+            "version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+            "purpose": "Stitch prompt contract, optional provider boundary, and output validation without executing tools.",
+            "spec_routes": ["GET /agent/context/today-practice-guidance/provider-boundary/spec"],
+            "preview_routes": ["POST /agent/context/today-practice-guidance/provider-boundary/e2e-preview"],
+            "terminal_commands": ["/today-practice-guidance-e2e"],
+            "output_role": "provider_boundary_preview",
+            "side_effects_created": False,
+        },
+        {
+            "stage_id": "today_practice_guidance_action_card",
+            "version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+            "purpose": "Wrap validated guidance into a display-only Routine card.",
+            "spec_routes": ["GET /agent/context/today-practice-guidance/action-card/spec"],
+            "preview_routes": ["POST /agent/context/today-practice-guidance/action-card/preview"],
+            "terminal_commands": ["/today-practice-guidance-action-card"],
+            "output_role": "display_only_action_card",
+            "side_effects_created": False,
+        },
+        {
+            "stage_id": "today_practice_guidance_terminal_chat_e2e",
+            "version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+            "purpose": "Route ordinary user turns like '今天该练什么？' into the guarded guidance chain.",
+            "spec_routes": ["GET /agent/context/today-practice-guidance/terminal-chat/spec"],
+            "preview_routes": ["POST /agent/context/today-practice-guidance/terminal-chat/e2e-preview"],
+            "terminal_commands": ["/today-practice-guidance-chat-e2e", "ordinary input: 今天该练什么？"],
+            "output_role": "terminal_chat_surface",
+            "side_effects_created": False,
+        },
+    )
+
+
+def _context_guidance_canonical_routes() -> dict[str, str]:
+    return {
+        "context_engineering_skeleton": "GET /agent/context/engineering-skeleton",
+        "context_guidance_cleanup_status": "GET /agent/context/guidance-skeleton-cleanup",
+        "active_practice_plan_intake": "POST /agent/context/active-practice-plan/intake",
+        "routine_history_intake": "POST /agent/context/routine-history/intake",
+        "practice_context_assembly": "POST /agent/context/practice-assembly/build",
+        "today_practice_context_preview": "POST /agent/context/today-practice/preview",
+        "today_practice_guidance_prompt_preview": "POST /agent/context/today-practice-guidance/prompt-preview",
+        "today_practice_guidance_output_validation": "POST /agent/context/today-practice-guidance/output-validation/validate",
+        "today_practice_guidance_provider_boundary_e2e": "POST /agent/context/today-practice-guidance/provider-boundary/e2e-preview",
+        "today_practice_guidance_action_card": "POST /agent/context/today-practice-guidance/action-card/preview",
+        "today_practice_guidance_terminal_chat_e2e": "POST /agent/context/today-practice-guidance/terminal-chat/e2e-preview",
+        "user_capability_map": "POST /agent/capabilities/user-intents/preview",
+    }
+
+
+def _context_guidance_terminal_commands() -> tuple[str, ...]:
+    commands: list[str] = ["/context-guidance-skeleton"]
+    for stage in _context_guidance_stage_registry():
+        commands.extend(str(command) for command in stage.get("terminal_commands", []))
+    deduped: list[str] = []
+    for command in commands:
+        if command not in deduped:
+            deduped.append(command)
+    return tuple(deduped)
+
+
+def _context_guidance_no_side_effect_flags() -> dict[str, bool]:
+    return {
+        "llm_called_by_cleanup": False,
+        "tool_executed": False,
+        "workflow_dispatched": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "frontend_flow_assumption": False,
+        "client_decides_presentation": True,
+    }
+
+
+def build_context_and_guidance_skeleton_cleanup_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "agent_context_guidance_skeleton_cleanup",
+) -> ContextAndGuidanceSkeletonCleanupPayload:
+    args = arguments or {}
+    requested_focus = _first_present(args, "focus", "requested_focus", "requestedFocus") or "today_practice_guidance_chain"
+    findings = [
+        "v2_7_3_to_v2_7_9_chain_has_single_guarded_path_from_context_to_display_card",
+        "context_intake_and_guidance_surfaces_are_read_only_until_user_confirms_a_future_action",
+        "routine_end_summary_remains_harmonyos_client_owned_not_agent_action_card",
+        "today_practice_guidance_outputs_must_pass_v2_7_6_validation_before display",
+        "harmonyos_client_decides_presentation_for_all_routine_candidates",
+        f"requested_focus={requested_focus}",
+    ]
+    return ContextAndGuidanceSkeletonCleanupPayload(
+        cleanup_version=CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
+        source=source,
+        trace_id=trace_id,
+        stage_registry=_context_guidance_stage_registry(),
+        canonical_routes=_context_guidance_canonical_routes(),
+        terminal_commands=_context_guidance_terminal_commands(),
+        normalized_guard_flags=_context_guidance_no_side_effect_flags(),
+        cleanup_findings=tuple(findings),
+        next_recommended_task="v2_8_1_agent_user_profile_context_intake_or_v2_8_1_agent_today_practice_guidance_persistence_boundary",
+    )
+
+
+def build_context_and_guidance_skeleton_cleanup_summary(
+    *,
+    payload: ContextAndGuidanceSkeletonCleanupPayload,
+    source: str = "agent_context_guidance_skeleton_cleanup",
+) -> dict[str, Any]:
+    stages = payload.stage_registry
+    stage_ids = [stage.get("stage_id") for stage in stages]
+    return {
+        "cleanup_version": payload.cleanup_version,
+        "source": source,
+        "stage_count": len(stages),
+        "stage_ids": stage_ids,
+        "canonical_route_count": len(payload.canonical_routes),
+        "terminal_command_count": len(payload.terminal_commands),
+        "all_stages_side_effect_free": all(not bool(stage.get("side_effects_created")) for stage in stages),
+        "client_decides_presentation": payload.normalized_guard_flags.get("client_decides_presentation") is True,
+        "post_session_recommendation_card_created": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "next_recommended_task": payload.next_recommended_task,
+    }
+
+
+def context_and_guidance_skeleton_cleanup_contract() -> dict[str, Any]:
+    payload = build_context_and_guidance_skeleton_cleanup_payload(source="contract_preview")
+    summary = build_context_and_guidance_skeleton_cleanup_summary(payload=payload, source="contract_preview")
+    return {
+        "version": CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
+        "purpose": "Read-only cleanup/status contract for the Agent context + today-practice guidance skeleton.",
+        "route": "GET /agent/context/guidance-skeleton-cleanup",
+        "terminal_command": "/context-guidance-skeleton",
+        "stage_registry": [dict(stage) for stage in payload.stage_registry],
+        "canonical_routes": dict(payload.canonical_routes),
+        "terminal_commands": list(payload.terminal_commands),
+        "summary": summary,
+        "non_goals": [
+            "No Routine end recommendation card",
+            "No LLM call from the cleanup contract",
+            "No tool execution",
+            "No Routine start",
+            "No /accompaniment/generate call",
+            "No engine adapter call",
+            "No MIDI asset creation",
+            "No playback start",
+            "No frontend UI flow assumption",
+            "No Engine music-generation rule changes",
+        ],
+    }
+
 def context_engineering_skeleton_contract() -> dict[str, Any]:
     return {
         "version": CONTEXT_ENGINEERING_SKELETON_VERSION,
@@ -4955,6 +5797,8 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "user_capability_map_and_intent_taxonomy": user_capability_map_and_intent_taxonomy_contract(),
             "today_practice_guidance_output_validation": today_practice_guidance_output_validation_contract(),
             "today_practice_guidance_provider_boundary_e2e": today_practice_guidance_provider_boundary_e2e_contract(),
+            "today_practice_guidance_action_card": today_practice_guidance_action_card_contract(),
+            "today_practice_guidance_terminal_chat_e2e": today_practice_guidance_terminal_chat_e2e_contract(),
         },
         "completion_scope": [
             "active PracticePlan can enter ContextPacket",
@@ -4965,6 +5809,8 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "user-facing LLM capability map and intent taxonomy is available without calling the LLM",
             "today-practice LLM output can be validated and normalized without executing tools",
             "today-practice provider-boundary E2E can turn provider output into validated candidate-only guidance",
+            "validated today-practice guidance can be wrapped into a Routine-facing display ActionCard",
+            "ordinary terminal chat can route '今天该练什么？' into the guarded guidance ActionCard chain",
         ],
         "non_goals": [
             "No automatic post-session recommendation card",
@@ -4974,6 +5820,8 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "No frontend UI flow assumption",
             "No unvalidated today-practice LLM output may trigger Routine start or accompaniment generation",
             "No provider-boundary guidance output may bypass validation, user confirmation, or client presentation control",
+            "No today-practice guidance ActionCard may start Routine, call /accompaniment/generate, or create MIDI assets",
+            "No terminal today-practice guidance E2E may bypass provider boundary, output validation, or client confirmation",
         ],
         "guards": {
             "llm_called": False,

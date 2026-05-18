@@ -165,3 +165,34 @@ This file records Agent-track changes to reduce conflicts in the global `docs/CH
 - Added terminal command `/today-practice-guidance-e2e`.
 - Kept all execution guards disabled: no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
 
+
+## v2_7_8_agent_today_practice_guidance_action_card
+
+- Added HarmonyOS Routine display ActionCard wrapper for validated today-practice guidance.
+- Added `TodayPracticeGuidanceActionCardPayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/today-practice-guidance/action-card/spec`
+  - `POST /agent/context/today-practice-guidance/action-card/preview`
+- Added terminal command `/today-practice-guidance-action-card`.
+- The card is display-only: it may show guidance, reasons, recommended blocks, and editable Routine candidates, but it never starts Routine, calls `/accompaniment/generate`, invokes engine adapters, creates MIDI assets, or starts playback.
+- Preserved UI-flow neutrality: HarmonyOS decides whether to render the result as a card, bottom sheet, setup page, queue item, or another Routine surface.
+
+## v2_7_9_agent_today_practice_guidance_terminal_chat_e2e
+
+- Added ordinary terminal chat routing for high-confidence “今天该练什么？” / “what should I practice today?” turns.
+- Added `TodayPracticeGuidanceTerminalChatE2EPayload`, summary builder, intent detector, and contract spec.
+- Added API routes:
+  - `GET /agent/context/today-practice-guidance/terminal-chat/spec`
+  - `POST /agent/context/today-practice-guidance/terminal-chat/e2e-preview`
+- Added optional terminal command `/today-practice-guidance-chat-e2e [json_payload]`.
+- Normal terminal responses can now include a compact display-only TodayPracticeGuidance ActionCard summary.
+- Preserved all guards: no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no frontend UI-flow assumption.
+
+## v2_8_0_agent_context_and_guidance_skeleton_cleanup
+
+- Added read-only context/guidance skeleton cleanup status for the v2_7_3 → v2_7_9 today-practice guidance chain.
+- Added `ContextAndGuidanceSkeletonCleanupPayload`, summary builder, and contract spec.
+- Added API route: `GET /agent/context/guidance-skeleton-cleanup`.
+- Added terminal command `/context-guidance-skeleton [json_payload]`.
+- Centralized the ordered stage registry, canonical route map, terminal commands, no-side-effect guard flags, and next-task hint.
+- Preserved all guards: no Routine end recommendation card, no LLM call from cleanup, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no frontend UI-flow assumption.

@@ -14,6 +14,8 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
     TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
     TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+    TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_practice_context_assembly_policy_payload,
@@ -41,6 +43,8 @@ class CapabilityManifest:
     supports_today_practice_context_e2e: bool = True
     supports_today_practice_guidance_prompt_contract: bool = True
     supports_today_practice_guidance_provider_boundary_e2e: bool = True
+    supports_today_practice_guidance_action_card: bool = True
+    supports_today_practice_guidance_terminal_chat_e2e: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -61,6 +65,8 @@ class CapabilityManifest:
             "supports_today_practice_context_e2e": self.supports_today_practice_context_e2e,
             "supports_today_practice_guidance_prompt_contract": self.supports_today_practice_guidance_prompt_contract,
             "supports_today_practice_guidance_provider_boundary_e2e": self.supports_today_practice_guidance_provider_boundary_e2e,
+            "supports_today_practice_guidance_action_card": self.supports_today_practice_guidance_action_card,
+            "supports_today_practice_guidance_terminal_chat_e2e": self.supports_today_practice_guidance_terminal_chat_e2e,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -247,6 +253,8 @@ class ContextBuilder:
                 "today_practice_guidance_prompt_contract_version": TODAY_PRACTICE_GUIDANCE_PROMPT_CONTRACT_VERSION,
                 "today_practice_guidance_output_validation_version": TODAY_PRACTICE_GUIDANCE_OUTPUT_VALIDATION_VERSION,
                 "today_practice_guidance_provider_boundary_e2e_version": TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
+                "today_practice_guidance_action_card_version": TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
+                "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),
                 "assembled_practice_context_present": bool(assembled_practice_context),
