@@ -1,5 +1,20 @@
 # Agent Track Changelog
 
+
+## v2_8_7_agent_routine_history_persistence_candidate_contract
+
+- Added RoutineHistory summary save/upload persistence candidate contract.
+- Added `RoutineHistoryPersistenceCandidatePayload`, summary builder, and `routine_history_persistence_candidate_contract()`.
+- Added API routes: `GET /agent/routine-history/persistence-candidate/spec` and `POST /agent/routine-history/persistence-candidate/preview`.
+- Added terminal command `/routine-history-persistence-candidate [json_payload]`.
+- Supports `append_new_records` and `upsert_summary_batch` as preview-only operations.
+- Reuses RoutineHistory context normalization to produce sanitized `PracticeHistoryContextItem` summaries and aggregate history summary.
+- Drops client-only playback/MIDI fields such as `midiBase64`, `localMidiPath`, playback position, timer/raw asset state, and sensitive fields.
+- Preserved candidate-only guardrails: no LLM call, no tool execution, no backend/local write, no post-session recommendation card, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
+- Added `docs/AGENT_ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_V2_8_7.md` and `tests/test_v2_8_7_agent_routine_history_persistence_candidate_contract.py`.
+
+Next recommended task: `v2_8_8_agent_context_persistence_confirmation_boundary`.
+
 ## v2_8_5_agent_terminal_guidance_json_contract_hotfix
 
 - Fixed terminal today-practice guidance UX when a configured LLM returns plain text or partial JSON instead of strict `TodayPracticeGuidanceOutput`.
@@ -12,7 +27,7 @@
 Next recommended task: `v2_8_6_agent_practice_plan_persistence_candidate_contract`.
 
 
-Current baseline: `v2_8_1_agent_user_profile_context_intake`.
+Current baseline: `v2_8_7_agent_routine_history_persistence_candidate_contract`.
 
 This file records Agent-track changes to reduce conflicts in the global `docs/CHANGELOG.md`.
 

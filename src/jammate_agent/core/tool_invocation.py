@@ -39,6 +39,7 @@ USER_PRACTICE_PROFILE_CONTEXT_INTAKE_VERSION = "v2_8_1"
 PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION = "v2_8_2"
 TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION = "v2_8_3"
 PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION = "v2_8_6"
+ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION = "v2_8_7"
 
 
 @dataclass(frozen=True)
@@ -3582,7 +3583,7 @@ def build_practice_context_storage_boundary_payload(
         "accompaniment_generate_call_enabled": False,
         "routine_start_enabled": False,
         "context_builder_becomes_storage_layer": False,
-        "raw_secret_allowed_in_payload": False,
+        "raw_api_key_allowed_in_payload": False,
         "midi_asset_payload_allowed_in_agent_context": False,
         "hidden_chain_of_thought_allowed_in_context": False,
     }
@@ -3878,7 +3879,7 @@ def build_practice_plan_persistence_candidate_payload(
         "playback_started": False,
         "routine_start_enabled": False,
         "accompaniment_generate_call_enabled": False,
-        "raw_secret_allowed_in_payload": False,
+        "raw_api_key_allowed_in_payload": False,
         "midi_asset_payload_allowed_in_plan_candidate": False,
         "hidden_chain_of_thought_allowed_in_payload": False,
     }
@@ -4000,6 +4001,381 @@ def practice_plan_persistence_candidate_contract() -> dict[str, Any]:
         },
         "next_task_hint": "v2_8_7_agent_routine_history_persistence_candidate_contract",
     }
+
+
+@dataclass(frozen=True)
+class RoutineHistoryPersistenceCandidatePayload:
+    """v2_8_7 candidate-only RoutineHistory persistence contract.
+
+    HarmonyOS remains the owner of the live Routine session and produces a
+    compact completion summary. This payload lets the Agent preview a future
+    backend save/upload candidate for sanitized RoutineHistory summaries while
+    preserving preview -> confirmation -> controlled future write boundaries.
+    It never writes storage, starts a Routine, calls the LLM, invokes tools,
+    calls /accompaniment/generate, invokes engine adapters, creates MIDI assets,
+    or starts playback.
+    """
+
+    payload_contract_version: str
+    source: str
+    operation: str
+    candidate_id: str
+    target_history_ref: dict[str, Any]
+    normalized_routine_history_records: tuple[dict[str, Any], ...]
+    practice_history_context_items: tuple[dict[str, Any], ...]
+    aggregate_summary: dict[str, Any]
+    candidate_action: dict[str, Any]
+    confirmation_policy: dict[str, Any]
+    storage_boundary: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "operation": self.operation,
+            "candidate_id": self.candidate_id,
+            "target_history_ref": _redact_sensitive_values(self.target_history_ref),
+            "normalized_routine_history_records": _redact_sensitive_values(list(self.normalized_routine_history_records)),
+            "practice_history_context_items": _redact_sensitive_values(list(self.practice_history_context_items)),
+            "aggregate_summary": _redact_sensitive_values(self.aggregate_summary),
+            "candidate_action": _redact_sensitive_values(self.candidate_action),
+            "confirmation_policy": _redact_sensitive_values(self.confirmation_policy),
+            "storage_boundary": _redact_sensitive_values(self.storage_boundary),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+        }
+
+
+def build_routine_history_persistence_candidate_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "routine_history_persistence_candidate",
+) -> RoutineHistoryPersistenceCandidatePayload:
+    """Build a RoutineHistory summary save/upload candidate without writing persistence."""
+
+    args = dict(arguments or {})
+    raw_records = _extract_routine_history_persistence_candidate_records(args)
+    max_records_raw = _first_present(args, "max_records", "maxRecords") or 50
+    warnings: list[str] = []
+    try:
+        max_records = max(1, min(100, int(max_records_raw)))
+    except (TypeError, ValueError):
+        max_records = 50
+        warnings.append("invalid_max_records_defaulted_to_50")
+
+    normalized_records: list[dict[str, Any]] = []
+    context_items: list[dict[str, Any]] = []
+    dropped_fields: dict[str, list[str]] = {}
+    for index, raw_record in enumerate(raw_records[:max_records]):
+        if not isinstance(raw_record, dict):
+            warnings.append(f"record_{index}_ignored_not_object")
+            continue
+        normalized, context_item, dropped = _normalize_routine_history_record(raw_record, index=index)
+        normalized_records.append(normalized)
+        context_items.append(context_item)
+        if dropped:
+            dropped_fields[str(normalized.get("session_id") or index)] = dropped
+
+    aggregate_summary = _summarize_practice_history_context_items(context_items)
+    operation = _normalize_routine_history_persistence_operation(args)
+    candidate_id = str(_first_present(args, "candidate_id", "candidateId", "persistence_candidate_id", "persistenceCandidateId") or f"routine_history_persist_{uuid4().hex[:12]}")
+    history_scope_id = _first_present(args, "history_scope_id", "historyScopeId", "user_id", "userId", "profile_id", "profileId")
+    blocked_reasons: list[str] = []
+    if not context_items:
+        blocked_reasons.append("routine_history_candidate_has_no_context_items")
+    if dropped_fields:
+        warnings.append("client_only_or_midi_fields_discarded")
+    status = "candidate_blocked" if blocked_reasons else ("candidate_ready_with_warnings" if warnings else "candidate_ready")
+
+    candidate_action = {
+        "action_type": "routine_history_persistence_candidate",
+        "candidate_id": candidate_id,
+        "operation": operation,
+        "history_scope_id": history_scope_id,
+        "record_count": len(normalized_records),
+        "context_item_count": len(context_items),
+        "side_effect_level": "backend_long_term_context_write_candidate",
+        "requires_user_confirmation": True,
+        "confirmation_status": "pending_user_review",
+        "would_write_if_confirmed_in_future": True,
+        "writes_now": False,
+        "editable_before_confirmation": True,
+        "creates_post_session_recommendation_card": False,
+        "next_client_actions": ["review_candidate", "edit_candidate", "confirm_sync_history", "dismiss", "view_trace"],
+        "client_button_semantics": {
+            "primary": {
+                "action": "confirm_sync_history",
+                "label": "Sync Routine History Summary",
+                "requires_explicit_user_confirmation": True,
+                "enabled_now": False,
+                "reason_disabled_now": "v2_8_7 is preview contract only; future persistence executor not implemented.",
+            },
+            "secondary": [
+                {"action": "edit_candidate", "label": "Edit Summary", "side_effect_level": "none"},
+                {"action": "dismiss", "label": "Dismiss", "side_effect_level": "none"},
+                {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+            ],
+        },
+    }
+    confirmation_policy = {
+        "requires_user_confirmation": True,
+        "requires_preview_before_confirmation": True,
+        "requires_final_write_executor_future_stage": True,
+        "autonomous_write_allowed": False,
+        "llm_may_not_write_history_directly": True,
+        "post_session_recommendation_card_allowed": False,
+        "confirmation_ladder": [
+            {"step": "preview_history_sync_candidate", "side_effects": False, "implemented_now": True},
+            {"step": "user_reviews_or_edits_summary", "side_effects": False, "implemented_now": True},
+            {"step": "user_confirms_history_sync", "side_effects": False, "implemented_now": False},
+            {"step": "future_persistence_executor_writes_backend_summary", "side_effects": True, "implemented_now": False},
+            {"step": "context_builder_can_read_history_summary_later", "side_effects": False, "implemented_now": False},
+        ],
+    }
+    storage_boundary = {
+        "boundary_version": PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
+        "candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+        "object_type": "RoutineHistorySummary",
+        "owner": "backend_long_term_context_after_user_confirmed_write",
+        "harmonyos_role": "produces_completion_summary_and_keeps_live_session_state_local",
+        "future_source_of_truth": "backend_long_term_context_for_sanitized_practice_history_summary",
+        "harmonyos_local_cache_allowed_after_success": True,
+        "context_builder_may_read_summary_later": True,
+        "writes_now": False,
+        "database_schema_required_now": False,
+        "sync_job_required_now": False,
+        "client_must_not_upload": ["midi_base64", "local_midi_path", "playback_position", "timer_state", "raw_asset"],
+    }
+    validation = {
+        "status": status,
+        "accepted": not blocked_reasons,
+        "operation": operation,
+        "has_routine_history_candidate": bool(normalized_records),
+        "input_record_count": len(raw_records),
+        "normalized_record_count": len(normalized_records),
+        "context_item_count": len(context_items),
+        "warnings": warnings,
+        "blocked_reasons": blocked_reasons,
+        "dropped_client_only_fields": dropped_fields,
+        "contains_midi_base64": False,
+        "contains_local_midi_path": False,
+        "contains_playback_position": False,
+        "preview_only": True,
+        "requires_user_confirmation": True,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    guard_summary = {
+        "candidate_only": True,
+        "preview_confirmation_noop_boundary": True,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "raw_api_key_allowed_in_payload": False,
+        "midi_asset_payload_allowed_in_history_candidate": False,
+        "local_playback_state_allowed_in_history_candidate": False,
+        "hidden_chain_of_thought_allowed_in_payload": False,
+    }
+    return RoutineHistoryPersistenceCandidatePayload(
+        payload_contract_version=ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+        source=source,
+        operation=operation,
+        candidate_id=candidate_id,
+        target_history_ref={"history_scope_id": history_scope_id, "operation": operation},
+        normalized_routine_history_records=tuple(normalized_records),
+        practice_history_context_items=tuple(context_items),
+        aggregate_summary=aggregate_summary,
+        candidate_action=candidate_action,
+        confirmation_policy=confirmation_policy,
+        storage_boundary=storage_boundary,
+        validation=validation,
+        guard_summary=guard_summary,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_routine_history_persistence_candidate_summary(
+    *,
+    payload: RoutineHistoryPersistenceCandidatePayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    aggregate = data.get("aggregate_summary") if isinstance(data.get("aggregate_summary"), dict) else {}
+    return {
+        "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "operation": data.get("operation"),
+        "candidate_id": data.get("candidate_id"),
+        "record_count": validation.get("normalized_record_count", 0),
+        "context_item_count": validation.get("context_item_count", 0),
+        "completed_count": aggregate.get("completed_count", 0),
+        "total_practice_minutes": aggregate.get("total_practice_minutes", 0),
+        "recent_styles": aggregate.get("recent_styles", []),
+        "recent_tunes": aggregate.get("recent_tunes", []),
+        "requires_user_confirmation": True,
+        "preview_only": True,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def routine_history_persistence_candidate_contract() -> dict[str, Any]:
+    return {
+        "version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+        "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+        "spec_route": "GET /agent/routine-history/persistence-candidate/spec",
+        "preview_route": "POST /agent/routine-history/persistence-candidate/preview",
+        "terminal_command": "/routine-history-persistence-candidate",
+        "surface": "RoutineHistory summary save/upload candidate contract",
+        "mode": "candidate_preview_confirmation_boundary_only_no_storage_write",
+        "execution_status": {
+            "candidate_payload_enabled": True,
+            "preview_enabled": True,
+            "confirmation_required": True,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled": False,
+            "sync_job_implemented": False,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "operations": ["append_new_records", "upsert_summary_batch"],
+        "payload_schema": {
+            "operation": "append_new_records | upsert_summary_batch",
+            "target_history_ref": "User/history scope reference; optional in v2_8_7 preview",
+            "normalized_routine_history_records": "Sanitized RoutineHistoryRecord[] without local playback or MIDI payloads",
+            "practice_history_context_items": "Agent-readable compact PracticeHistoryContextItem[] for future ContextBuilder reads",
+            "aggregate_summary": "Recent styles/tunes/minutes/completion summary",
+            "candidate_action": "User-reviewable sync/save action metadata; disabled write button in v2_8_7",
+            "confirmation_policy": "Preview -> user review/edit -> future confirmed persistence executor ladder",
+            "storage_boundary": "Backend long-term context boundary; no writes now",
+            "validation": "Candidate readiness and no-side-effect flags",
+        },
+        "rules": [
+            "HarmonyOS owns live RoutineSession state and produces the completion summary.",
+            "Agent may preview a sanitized RoutineHistory persistence candidate, but must not write storage directly.",
+            "Routine end page must not become an Agent recommendation surface.",
+            "Client must require explicit user confirmation before any future backend history write.",
+            "v2_8_7 does not implement database schema, backend writes, local writes, or sync jobs.",
+            "RoutineHistory persistence remains separate from Routine start, playback, accompaniment generation, and MIDI asset creation.",
+            "Sensitive fields, local MIDI paths, MIDI payloads, raw assets, timer/playback state, payment data, precise location, and hidden chain-of-thought must be discarded from the candidate.",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+            "midi_base64_allowed_in_history_candidate": False,
+            "local_midi_path_allowed_in_history_candidate": False,
+            "playback_position_allowed_in_history_candidate": False,
+            "hidden_chain_of_thought_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "routine_history_context_intake": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION,
+            "practice_context_storage_boundary": PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
+            "today_practice_guidance_profile_aware_e2e": TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
+        },
+        "next_task_hint": "v2_8_8_agent_context_persistence_confirmation_boundary",
+    }
+
+
+def _extract_routine_history_persistence_candidate_records(args: dict[str, Any]) -> list[Any]:
+    records = _extract_routine_history_records(args)
+    if records:
+        return records
+    for key in ("routine_history_context_payload", "routineHistoryContextPayload", "context_payload", "contextPayload"):
+        payload = args.get(key)
+        if isinstance(payload, dict):
+            nested_records = _extract_routine_history_records(payload)
+            if nested_records:
+                return nested_records
+            items = payload.get("practice_history_context_items") or payload.get("practiceHistoryContextItems")
+            if isinstance(items, list):
+                return [item for item in items if isinstance(item, dict)]
+    return []
+
+
+def _normalize_routine_history_persistence_operation(args: dict[str, Any]) -> str:
+    raw = str(_first_present(args, "operation", "action", "persistence_operation", "persistenceOperation") or "").strip().lower()
+    if raw in {"upsert", "sync", "sync_summary", "sync_summary_batch", "update", "update_existing", "replace", "save_update"}:
+        return "upsert_summary_batch"
+    if raw in {"append", "append_new", "append_new_records", "save", "create", "save_new", "upload"}:
+        return "append_new_records"
+    return "append_new_records"
 
 
 def _extract_practice_plan_persistence_candidate_input(args: dict[str, Any]) -> dict[str, Any]:
@@ -7304,6 +7680,7 @@ def _context_guidance_stage_registry() -> tuple[dict[str, Any], ...]:
             "output_role": "terminal_chat_surface",
             "side_effects_created": False,
         },
+
     )
 
 
@@ -7322,6 +7699,7 @@ def _context_guidance_canonical_routes() -> dict[str, str]:
         "today_practice_guidance_terminal_chat_e2e": "POST /agent/context/today-practice-guidance/terminal-chat/e2e-preview",
         "today_practice_guidance_profile_aware_e2e": "POST /agent/context/today-practice-guidance/profile-aware/e2e-preview",
         "practice_plan_persistence_candidate": "POST /agent/practice-plan/persistence-candidate/preview",
+        "routine_history_persistence_candidate": "POST /agent/routine-history/persistence-candidate/preview",
         "user_capability_map": "POST /agent/capabilities/user-intents/preview",
     }
 
@@ -7453,6 +7831,7 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "today_practice_guidance_terminal_chat_e2e": today_practice_guidance_terminal_chat_e2e_contract(),
             "today_practice_guidance_profile_aware_e2e": today_practice_guidance_profile_aware_e2e_contract(),
             "practice_plan_persistence_candidate": practice_plan_persistence_candidate_contract(),
+            "routine_history_persistence_candidate": routine_history_persistence_candidate_contract(),
         },
         "completion_scope": [
             "active PracticePlan can enter ContextPacket",
@@ -7467,6 +7846,7 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "ordinary terminal chat can route '今天该练什么？' into the guarded guidance ActionCard chain",
             "UserPracticeProfileContext can feed profile-aware today-practice guidance as soft context",
             "PracticePlan save/update can be represented as a candidate-only persistence action",
+            "RoutineHistory summary save/upload can be represented as a candidate-only persistence action",
         ],
         "non_goals": [
             "No automatic post-session recommendation card",
@@ -7479,6 +7859,7 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "No today-practice guidance ActionCard may start Routine, call /accompaniment/generate, or create MIDI assets",
             "No terminal today-practice guidance E2E may bypass provider boundary, output validation, or client confirmation",
             "No profile-aware guidance may turn the user profile into hard-coded execution rules",
+            "No RoutineHistory persistence candidate may create a post-session recommendation card or write storage directly",
         ],
         "guards": {
             "llm_called": False,

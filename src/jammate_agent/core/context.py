@@ -20,6 +20,7 @@ from jammate_agent.core.tool_invocation import (
     PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
     TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
     PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+    ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -54,6 +55,7 @@ class CapabilityManifest:
     supports_practice_context_storage_boundary_contract: bool = True
     supports_today_practice_guidance_profile_aware_e2e: bool = True
     supports_practice_plan_persistence_candidate_contract: bool = True
+    supports_routine_history_persistence_candidate_contract: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -80,6 +82,7 @@ class CapabilityManifest:
             "supports_practice_context_storage_boundary_contract": self.supports_practice_context_storage_boundary_contract,
             "supports_today_practice_guidance_profile_aware_e2e": self.supports_today_practice_guidance_profile_aware_e2e,
             "supports_practice_plan_persistence_candidate_contract": self.supports_practice_plan_persistence_candidate_contract,
+            "supports_routine_history_persistence_candidate_contract": self.supports_routine_history_persistence_candidate_contract,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -277,6 +280,7 @@ class ContextBuilder:
                 "practice_context_storage_boundary_version": PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
                 "today_practice_guidance_profile_aware_e2e_version": TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
                 "practice_plan_persistence_candidate_contract_version": PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+                "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),
                 "user_practice_profile_context_present": bool(user_practice_profile_context),

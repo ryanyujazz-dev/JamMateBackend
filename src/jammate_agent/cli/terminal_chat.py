@@ -48,6 +48,7 @@ from jammate_agent.core.tool_invocation import (
     PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
     TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
     PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+    ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
     ToolWorkflowDispatchResult,
@@ -92,6 +93,8 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_profile_aware_e2e_summary,
     build_practice_plan_persistence_candidate_payload,
     build_practice_plan_persistence_candidate_summary,
+    build_routine_history_persistence_candidate_payload,
+    build_routine_history_persistence_candidate_summary,
     build_context_and_guidance_skeleton_cleanup_payload,
     build_context_and_guidance_skeleton_cleanup_summary,
     detect_today_practice_guidance_intent,
@@ -101,6 +104,7 @@ from jammate_agent.core.tool_invocation import (
     practice_context_storage_boundary_contract,
     today_practice_guidance_profile_aware_e2e_contract,
     practice_plan_persistence_candidate_contract,
+    routine_history_persistence_candidate_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -1090,6 +1094,40 @@ class TerminalChatSession:
             "routine_start_enabled": False,
             "trace_id": self.last_trace_id,
             "trace_path": self.last_trace_path,
+        }
+
+
+    def routine_history_persistence_candidate(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_routine_history_persistence_candidate", "/routine-history-persistence-candidate")
+        payload = build_routine_history_persistence_candidate_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_routine_history_persistence_candidate",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_routine_history_persistence_candidate_payload_built", payload_dict)
+        summary = build_routine_history_persistence_candidate_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_routine_history_persistence_candidate_summary_recorded", summary)
+        self._finish_trace(trace, "routine_history_persistence_candidate_previewed", {"ok": True, "command": "/routine-history-persistence-candidate", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/routine-history-persistence-candidate",
+            "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+            "routine_history_persistence_candidate_payload": payload_dict,
+            "routine_history_persistence_candidate_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
         }
 
 
@@ -2131,6 +2169,13 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             return True
         _print_practice_plan_persistence_candidate(session.practice_plan_persistence_candidate(parsed.get("arguments") or {}), stdout)
         return True
+    if user_input.startswith("/routine-history-persistence-candidate"):
+        parsed = _parse_json_payload_command(user_input, "/routine-history-persistence-candidate")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_routine_history_persistence_candidate(session.routine_history_persistence_candidate(parsed.get("arguments") or {}), stdout)
+        return True
     if user_input.startswith("/today-practice-context"):
         parsed = _parse_json_payload_command(user_input, "/today-practice-context")
         if not parsed["ok"]:
@@ -2626,6 +2671,29 @@ def _print_practice_plan_persistence_candidate(response: dict[str, Any], stdout:
     print("  midi_asset_created: false", file=stdout)
 
 
+def _print_routine_history_persistence_candidate(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("routine_history_persistence_candidate_summary") or {}
+    print("RoutineHistoryPersistenceCandidate>", file=stdout)
+    print(f"  version: {response.get('routine_history_persistence_candidate_contract_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  operation: {summary.get('operation')}", file=stdout)
+    print(f"  record_count: {summary.get('record_count')}", file=stdout)
+    print(f"  context_item_count: {summary.get('context_item_count')}", file=stdout)
+    print(f"  total_practice_minutes: {summary.get('total_practice_minutes')}", file=stdout)
+    print(f"  requires_user_confirmation: {str(summary.get('requires_user_confirmation')).lower()}", file=stdout)
+    print("  preview_only: true", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  post_session_recommendation_card_created: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+
+
 def _print_practice_context_assembly(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):
         _print_command_error(response, stdout)
@@ -2980,6 +3048,7 @@ def _print_help(stdout: TextIO) -> None:
     print('  /practice-context-assembly [json_payload]', file=stdout)
     print('  /practice-context-storage-boundary [json_payload]', file=stdout)
     print('  /practice-plan-persistence-candidate [json_payload]', file=stdout)
+    print('  /routine-history-persistence-candidate [json_payload]', file=stdout)
     print('  /today-practice-context [json_payload]', file=stdout)
     print('  /today-practice-guidance-prompt [json_payload]', file=stdout)
     print('  /user-capability-map [json_payload]', file=stdout)
@@ -3014,6 +3083,7 @@ def _print_help(stdout: TextIO) -> None:
     print("/practice-context-assembly combines active plan, Routine history, user profile, and today constraints into decision inputs only.", file=stdout)
     print("/practice-context-storage-boundary previews which practice-context objects are local, backend, request-only, trace, or never-stored; it writes nothing.", file=stdout)
     print("/practice-plan-persistence-candidate previews a save/update PracticePlan candidate; it requires future confirmation and writes nothing.", file=stdout)
+    print("/routine-history-persistence-candidate previews a save/upload RoutineHistory summary candidate; it requires future confirmation and writes nothing.", file=stdout)
     print("/today-practice-context previews the context for a future user-initiated '今天该练什么' turn; it does not call the LLM.", file=stdout)
     print("/today-practice-guidance-prompt builds the future LLM prompt/output schema for today-practice guidance; it does not call the LLM.", file=stdout)
     print("/today-practice-guidance-validate validates a future TodayPracticeGuidanceOutput and blocks unsafe direct actions.", file=stdout)

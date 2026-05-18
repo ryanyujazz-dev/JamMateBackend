@@ -47,6 +47,7 @@ from jammate_agent.core.contracts import (
     practice_context_storage_boundary_contract,
     today_practice_guidance_profile_aware_e2e_contract,
     practice_plan_persistence_candidate_contract,
+    routine_history_persistence_candidate_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -76,6 +77,8 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_profile_aware_e2e_summary,
     build_practice_plan_persistence_candidate_payload,
     build_practice_plan_persistence_candidate_summary,
+    build_routine_history_persistence_candidate_payload,
+    build_routine_history_persistence_candidate_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -1499,6 +1502,51 @@ def get_response_case_policy() -> dict:
 @router.get("/playback/spec")
 def get_playback_integration_spec() -> dict:
     return {"ok": True, "spec": harmonyos_playback_contract()}
+
+@router.get("/routine-history/persistence-candidate/spec")
+def get_routine_history_persistence_candidate_spec() -> dict:
+    return {"ok": True, "spec": routine_history_persistence_candidate_contract()}
+
+
+@router.post("/routine-history/persistence-candidate/preview")
+def preview_routine_history_persistence_candidate_request(request: dict) -> dict:
+    """Preview a RoutineHistory summary save/upload candidate without writing storage.
+
+    This route is a persistence-candidate contract only. It does not call the
+    LLM, execute tools, write backend storage, write local device state, create
+    a post-session recommendation card, start Routine, call /accompaniment/generate,
+    call engine adapters, or create MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_routine_history_persistence_candidate_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_routine_history_persistence_candidate",
+    )
+    summary = build_routine_history_persistence_candidate_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "routine_history_persistence_candidate_contract_version": routine_history_persistence_candidate_contract()["version"],
+        "routine_history_persistence_candidate_payload": payload.to_dict(),
+        "routine_history_persistence_candidate_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
 
 
 @router.get("/traces/spec")
