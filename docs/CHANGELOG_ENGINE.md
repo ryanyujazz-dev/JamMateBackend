@@ -1,3 +1,13 @@
+## v2_6_22_engine_voicing_cleanup_retired_spread_pilot_logic
+
+- Cleanup pass: deleted retired Jazz Ballad SPREAD pilot / dry-run / safe-dry-run / selection-audit workflow from the active voicing surface.
+- `candidate_generator.py` now uses the current grouped SPREAD runtime candidate pool directly instead of calling `guard_ballad_spread_pilot_runtime_enablement`.
+- `spread_runtime_adapter.py` is the owner of `SpreadProjectionCandidate -> VoicingCandidate` adaptation.
+- Removed old v2_2 pilot tests whose assertions targeted the deleted workflow.
+- Preserved Ballad SPREAD density guardrails: 4-note SPREAD remains 0 in default Misty audit, and 5-note / 6-note remains near 6:4.
+- Preserved default maj7#11 safe-extension gate.
+- Added `docs/ENGINE_VOICING_CLEANUP_RETIRED_SPREAD_PILOT_LOGIC_V2_6_22.md` and `tests/test_v2_6_22_engine_voicing_cleanup_retired_spread_pilot_logic.py`.
+
 
 ## v2_6_15_engine_voicing_spread_runtime_gate_and_adapter_cleanup
 
@@ -171,3 +181,40 @@ This file records engine-track changes to reduce conflicts in the global `docs/C
 - Preserved historical `content_planner.choose_content_families(...)` imports through a thin wrapper.
 - Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
 - Added `docs/ENGINE_VOICING_CONTENT_FAMILY_ROUTER_SPLIT_V2_6_17.md` and `tests/test_v2_6_17_engine_voicing_content_family_router_split.py`.
+
+## v2_6_18 — Engine Voicing Content Source Inventory Split
+
+- Behavior-preserving voicing source boundary cleanup; no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared-version change.
+- Added `src/jammate_engine/core/voicing/sources/content_source_inventory.py` as the owner for family-to-degree source options.
+- Kept `content_planner.py` as the public compatibility facade and recipe orchestration layer.
+- Moved source inventory implementation blocks out of `content_planner.py`, including shell+color, seventh-basic, rooted-color, rootless A/B, triad-aware 3-note/4-note, altered-dominant, and explicit-symbol source construction.
+- Preserved historical public imports for `trim_content_degrees`, `source_preserves_seventh_chord_identity`, and `seventh_chord_source_integrity_notes` through `content_planner.py`.
+- Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
+- Added `docs/ENGINE_VOICING_CONTENT_SOURCE_INVENTORY_SPLIT_V2_6_18.md` and `tests/test_v2_6_18_engine_voicing_content_source_inventory_split.py`.
+## v2_6_19 — Engine Voicing Color Permission Adapter Cleanup
+
+- Behavior-preserving voicing-only boundary cleanup; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared version changes.
+- Moved color-admission adapter helpers into `src/jammate_engine/core/voicing/sources/color_permission.py`: explicit chart color extraction, rootless explicit-color extraction, ordered explicit colors, expansion-color candidate ordering, major-seventh #11 intent gate, and `build_voicing_color_permission_context`.
+- Kept `content_source_inventory.py` as the source-construction owner; it now consumes color-permission helpers instead of carrying local color-permission glue.
+- Updated `content_family_router.py` to reuse the same explicit-color helpers from `color_permission.py`, removing duplicated color parsing logic from the router.
+- Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
+- Added `docs/ENGINE_VOICING_COLOR_PERMISSION_ADAPTER_CLEANUP_V2_6_19.md` and `tests/test_v2_6_19_engine_voicing_color_permission_adapter_cleanup.py`.
+
+## v2_6_20 — Engine Voicing Source Balance Boundary Cleanup
+
+- Behavior-preserving voicing-only source-balance boundary cleanup; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared version changes.
+- Clarified `src/jammate_engine/core/voicing/sources/source_balance.py` as source-family scoring / bias only.
+- Added `SourceBalanceProfile`, `source_balance_profile(...)`, `SOURCE_BALANCE_BOUNDARY_CLEANUP_VERSION`, and explicit owned/forbidden responsibility markers.
+- Hardened 4-note source-key extraction so source balance can read current `content_recipe.validity_notes` markers when older top-level metadata aliases are absent, without moving source construction into source balance.
+- Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
+- Added `docs/ENGINE_VOICING_SOURCE_BALANCE_BOUNDARY_CLEANUP_V2_6_20.md` and `tests/test_v2_6_20_engine_voicing_source_balance_boundary_cleanup.py`.
+
+## v2_6_21 — Engine Voicing Upper Structure Boundary Audit
+
+- Behavior-preserving voicing-only boundary audit; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared version changes.
+- Clarified `src/jammate_engine/core/voicing/sources/upper_structure.py` as source-only upper-structure recipe planning.
+- Added `UpperStructureBoundaryProfile`, `upper_structure_boundary_profile(...)`, `UPPER_STRUCTURE_BOUNDARY_AUDIT_VERSION`, and explicit owned/forbidden responsibility markers.
+- Confirmed Upper Structure does not import projection, register, selector, voice-leading, runtime adapter, or MIDI owners.
+- Preserved `UPPER_STRUCTURE_SOURCE_VERSION = v2_2_88` and existing harmonic-expansion / altered-dominant source gates.
+- Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
+- Added `docs/ENGINE_VOICING_UPPER_STRUCTURE_BOUNDARY_AUDIT_V2_6_21.md` and `tests/test_v2_6_21_engine_voicing_upper_structure_boundary_audit.py`.

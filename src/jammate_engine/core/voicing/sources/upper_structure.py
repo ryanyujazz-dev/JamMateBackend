@@ -15,8 +15,63 @@ from jammate_engine.core.voicing.policy import (
 
 
 UPPER_STRUCTURE_SOURCE_VERSION = "v2_2_88"
+UPPER_STRUCTURE_BOUNDARY_AUDIT_VERSION = "v2_6_21"
+
+UPPER_STRUCTURE_OWNED_RESPONSIBILITIES: tuple[str, ...] = (
+    "source_level_upper_structure_degree_recipes",
+    "upper_structure_density_gate_3_or_4",
+    "upper_structure_policy_entry_gate",
+    "dominant_safe_and_altered_source_recipe_catalog",
+    "maj7_minor7_safe_source_recipe_catalog",
+    "source_metadata_for_downstream_projection_reuse",
+)
+
+UPPER_STRUCTURE_FORBIDDEN_RESPONSIBILITIES: tuple[str, ...] = (
+    "does_not_project_closed_or_open_or_spread_voicings",
+    "does_not_choose_register_or_octave_placement",
+    "does_not_score_or_select_candidates",
+    "does_not_rank_voice_leading",
+    "does_not_adapt_runtime_spread_candidates",
+    "does_not_write_midi_or_touch_expression",
+)
 
 _ALTERED_DEGREES = {"b9", "#9", "#11", "b13", "#5", "b5"}
+
+
+@dataclass(frozen=True)
+class UpperStructureBoundaryProfile:
+    """Auditable boundary metadata for Upper Structure source planning.
+
+    The profile is intentionally descriptive only. It must not contain concrete
+    MIDI notes, projection decisions, register placement, or selector scores.
+    """
+
+    version: str
+    owned_responsibilities: tuple[str, ...]
+    forbidden_responsibilities: tuple[str, ...]
+    source_only: bool = True
+    reuses_existing_projection_layers: bool = True
+    allowed_densities: tuple[int, ...] = (3, 4)
+
+    def to_debug_dict(self) -> dict[str, object]:
+        return {
+            "upper_structure_boundary_audit_version": self.version,
+            "owned_responsibilities": list(self.owned_responsibilities),
+            "forbidden_responsibilities": list(self.forbidden_responsibilities),
+            "source_only": bool(self.source_only),
+            "reuses_existing_projection_layers": bool(self.reuses_existing_projection_layers),
+            "allowed_densities": list(self.allowed_densities),
+        }
+
+
+def upper_structure_boundary_profile() -> UpperStructureBoundaryProfile:
+    """Return the static v2_6_21 Upper Structure responsibility profile."""
+
+    return UpperStructureBoundaryProfile(
+        version=UPPER_STRUCTURE_BOUNDARY_AUDIT_VERSION,
+        owned_responsibilities=UPPER_STRUCTURE_OWNED_RESPONSIBILITIES,
+        forbidden_responsibilities=UPPER_STRUCTURE_FORBIDDEN_RESPONSIBILITIES,
+    )
 
 
 @dataclass(frozen=True)
@@ -54,8 +109,10 @@ class UpperStructureSource:
             "structure_kind": self.structure_kind,
             "tension_profile": self.tension_profile,
             "source_notes": list(self.source_notes),
+            "upper_structure_boundary_audit_version": UPPER_STRUCTURE_BOUNDARY_AUDIT_VERSION,
             "source_only_no_projection": True,
             "reuse_existing_closed_inversion_drop_projection": True,
+            "forbidden_responsibilities": list(UPPER_STRUCTURE_FORBIDDEN_RESPONSIBILITIES),
         }
 
 
@@ -134,6 +191,7 @@ def plan_upper_structure_sources(
                 source_notes=(
                     "upper_structure_source_family",
                     "upper_structure_policy_gate_v2_2_84",
+                    f"upper_structure_boundary_audit_version_{UPPER_STRUCTURE_BOUNDARY_AUDIT_VERSION}",
                     f"upper_structure_density_{int(density)}",
                     f"upper_structure_quality_gate_{gate}",
                     f"upper_structure_source_id_{source_id}",

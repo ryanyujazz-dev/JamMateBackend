@@ -235,6 +235,174 @@ def spread_runtime_root_support_decision(policy: Any | None) -> dict[str, object
 _spread_runtime_root_support_decision = spread_runtime_root_support_decision
 
 
+
+
+def spread_projection_candidate_to_voicing_candidate_adapter(
+    candidate: Any | None,
+    policy: Any | None = None,
+    *,
+    allow_conversion: bool | None = None,
+    score: float | None = None,
+    selector_reason: str = "explicit_spread_runtime_adapter",
+) -> SpreadRuntimeAdapterResult:
+    """Adapt a legal SPREAD projection candidate into a runtime VoicingCandidate.
+
+    This is the implementation owner for the SPREAD projection -> runtime
+    candidate boundary. It copies already-projected notes and metadata only; it
+    does not choose sources, project registers, score candidates, select
+    patterns, apply expression, or write MIDI.
+    """
+
+    conversion_requested = spread_runtime_adapter_conversion_requested(policy, allow_conversion)
+    field_mappings = spread_runtime_adapter_field_mappings()
+    if candidate is None:
+        return SpreadRuntimeAdapterResult(
+            source_candidate=None,
+            adapted_candidate=None,
+            status=SpreadRuntimeAdapterStatus.INVALID_SOURCE_CANDIDATE,
+            field_mappings=field_mappings,
+            conversion_requested=conversion_requested,
+            conversion_allowed=False,
+            reason="source_candidate_missing",
+        )
+    if not bool(getattr(candidate, "is_legal", False)):
+        return SpreadRuntimeAdapterResult(
+            source_candidate=candidate,
+            adapted_candidate=None,
+            status=SpreadRuntimeAdapterStatus.INVALID_SOURCE_CANDIDATE,
+            field_mappings=field_mappings,
+            conversion_requested=conversion_requested,
+            conversion_allowed=False,
+            reason=f"source_candidate_illegal:{getattr(candidate, 'legality_reason', '')}",
+        )
+    if not conversion_requested:
+        return SpreadRuntimeAdapterResult(
+            source_candidate=candidate,
+            adapted_candidate=None,
+            status=SpreadRuntimeAdapterStatus.DEFAULT_BLOCKED,
+            field_mappings=field_mappings,
+            conversion_requested=False,
+            conversion_allowed=False,
+            reason="adapter_conversion_not_explicitly_allowed",
+        )
+
+    try:
+        from jammate_engine.core.voicing.selection.candidate import VoicingCandidate
+        from jammate_engine.core.voicing.policy import (
+            BassRelation,
+            ContentFamily,
+            Disposition,
+            FunctionalGrouping,
+            IntervalStructure,
+            RootSupportPolicy,
+        )
+        from jammate_engine.core.voicing.taxonomy.projection_map import build_projection_map, group_indices_for_projection
+        from jammate_engine.core.voicing.taxonomy.recipes import group_roles_for_grouping
+    except Exception as exc:  # pragma: no cover - defensive import boundary
+        return SpreadRuntimeAdapterResult(
+            source_candidate=candidate,
+            adapted_candidate=None,
+            status=SpreadRuntimeAdapterStatus.POLICY_BLOCKED,
+            field_mappings=field_mappings,
+            conversion_requested=True,
+            conversion_allowed=False,
+            reason=f"runtime_import_boundary_failed:{exc}",
+        )
+
+    try:
+        grouping = FunctionalGrouping(candidate.recipe_contract.grouping.value)
+    except ValueError:
+        return SpreadRuntimeAdapterResult(
+            source_candidate=candidate,
+            adapted_candidate=None,
+            status=SpreadRuntimeAdapterStatus.UNSUPPORTED_GROUPING,
+            field_mappings=field_mappings,
+            conversion_requested=True,
+            conversion_allowed=False,
+            reason=f"unsupported_runtime_functional_grouping:{candidate.recipe_contract.grouping.value}",
+        )
+
+    content_family = spread_runtime_content_family(candidate, policy, ContentFamily)
+    root_support = spread_runtime_root_support(candidate, policy, RootSupportPolicy)
+    bass_relation = spread_runtime_bass_relation(candidate, BassRelation)
+    interval_structure = spread_runtime_interval_structure(policy, IntervalStructure)
+    group_roles = group_roles_for_grouping(grouping, candidate.degrees, content_family)
+    projection_map = build_projection_map(list(candidate.notes), grouping, group_roles)
+    abstract_group_indices = group_indices_for_projection(len(candidate.notes), grouping, group_roles)
+    metadata = {
+        **dict(candidate.metadata),
+        "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
+        "spread_runtime_adapter_owner_version": SPREAD_RUNTIME_GATE_ADAPTER_CLEANUP_VERSION,
+        "source_candidate_type": "SpreadProjectionCandidate",
+        "target_candidate_type": "VoicingCandidate",
+        "converted_from_spread_projection_candidate": True,
+        "converted_now": True,
+        "candidate_conversion_allowed": True,
+        "candidate_generator_wiring_allowed": False,
+        "style_runtime_wiring_enabled": False,
+        "runtime_enabled": False,
+        "no_expression_or_pedal": True,
+        "does_not_change_default_style_runtime": True,
+        "functional_grouping": grouping.value,
+        "group_roles": [role.value for role in group_roles],
+        "projection_map": projection_map,
+        "abstract_group_indices": abstract_group_indices,
+        "source_candidate_metadata_preserved": True,
+        "source_candidate_notes_only": True,
+        "selector_reason": selector_reason,
+    }
+    adapted = VoicingCandidate(
+        notes=list(candidate.notes),
+        degrees=list(candidate.degrees),
+        score=float(score if score is not None else 0.0),
+        content_family=content_family,
+        root_support=root_support,
+        bass_relation=bass_relation,
+        disposition=Disposition.SPREAD,
+        interval_structure=interval_structure,
+        functional_grouping=grouping,
+        recipe_id=candidate.recipe_contract.recipe_id,
+        group_roles=group_roles,
+        root_support_decision=spread_runtime_root_support_decision(policy),
+        disposition_guard={
+            "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
+            "passed": bool(candidate.is_legal),
+            "family": "spread",
+            "reason": candidate.legality_reason,
+            "candidate_generator_wiring_allowed": False,
+        },
+        register_guard={
+            "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
+            "passed": bool(candidate.is_legal),
+            "group_gap_guard": dict(candidate.metadata.get("group_gap_guard") or {}),
+            "span_guard": dict(candidate.metadata.get("span_guard") or {}),
+            "register_policy": dict(candidate.metadata.get("register_policy") or {}),
+        },
+        voice_leading_profile={
+            "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
+            "source": "spread_groupwise_voice_leading_runtime_boundary",
+            "runtime_scorer_wiring_enabled": False,
+        },
+        selector_decision={
+            "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
+            "source": selector_reason,
+            "candidate_conversion_allowed": True,
+            "candidate_generator_wiring_allowed": False,
+            "style_runtime_wiring_enabled": False,
+            "runtime_enabled": False,
+        },
+        metadata=metadata,
+    )
+    return SpreadRuntimeAdapterResult(
+        source_candidate=candidate,
+        adapted_candidate=adapted,
+        status=SpreadRuntimeAdapterStatus.ADAPTED_SKELETON_ONLY,
+        field_mappings=field_mappings,
+        conversion_requested=True,
+        conversion_allowed=True,
+        reason="explicit_adapter_conversion_only_no_expression_or_midi",
+    )
+
 def spread_runtime_adapter_owner_debug(policy: Any | None = None) -> dict[str, object]:
     values = spread_runtime_adapter_values(policy)
     return {

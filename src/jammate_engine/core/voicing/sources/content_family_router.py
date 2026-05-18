@@ -3,7 +3,11 @@ from __future__ import annotations
 from jammate_engine.core.harmony.chord_parser import ParsedChord, parse_chord
 
 from .chord_tone_resolver import triad_family_for_chord
-from .color_permission import is_half_diminished_like as _is_half_diminished_like
+from .color_permission import (
+    explicit_symbol_color_degrees as _explicit_symbol_color_degrees,
+    is_half_diminished_like as _is_half_diminished_like,
+    rootless_ab_explicit_color_degrees as _rootless_ab_explicit_color_degrees,
+)
 from ..policy import (
     ContentFamily,
     RootSupportPolicy,
@@ -32,7 +36,7 @@ TRIAD_FAMILIES = {
 }
 
 
-CONTENT_FAMILY_ROUTER_VERSION = "v2_6_17"
+CONTENT_FAMILY_ROUTER_VERSION = "v2_6_19"
 
 
 def choose_content_families(symbol: str, policy: VoicingPolicy) -> list[ContentFamily]:
@@ -180,36 +184,6 @@ def family_expansion_target_allowed(family: ContentFamily, policy: VoicingPolicy
 def _is_altered_dominant_for_rooted_color(chord: ParsedChord) -> bool:
     alterations = set(chord.alterations or ())
     return bool(chord.is_dominant and ("alt" in chord.symbol.lower() or "alt" in alterations or alterations & {"b9", "#9", "#11", "b13", "#5", "b5"}))
-
-
-def _rootless_ab_explicit_color_degrees(chord: ParsedChord) -> set[str]:
-    # Preserve the historical rootless A/B routing behavior: rootless color
-    # families only treat extension/alteration/sus material as explicit color.
-    return _explicit_symbol_color_degrees(chord)
-
-
-def _explicit_symbol_color_degrees(chord: ParsedChord) -> set[str]:
-    out: set[str] = set(chord.alterations or ())
-    if "alt" in out:
-        out.discard("alt")
-        out.update({"b9", "#9", "#11", "b13"})
-    out.update(chord.extensions or ())
-    if "sus4" in chord.suspensions:
-        out.add("11")
-    if "sus2" in chord.suspensions:
-        out.add("9")
-    # Prefer altered spelling over generic extension spelling when both appear.
-    if "b9" in out or "#9" in out:
-        out.discard("9")
-    if "#11" in out:
-        out.discard("11")
-    if "b13" in out:
-        out.discard("13")
-    if _is_half_diminished_like(chord) or chord.quality == "diminished":
-        # b5 / bb7 are chord-quality identity tones here, not optional chart color.
-        out.discard("b5")
-        out.discard("bb7")
-    return out
 
 
 def _dedupe(values: list[ContentFamily] | list[str]) -> list:

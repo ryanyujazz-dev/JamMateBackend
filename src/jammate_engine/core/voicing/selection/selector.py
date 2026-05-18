@@ -396,7 +396,8 @@ def _spread_groupwise_realization_cost(
         # 4-note upper transitions can keep a smooth audible soprano line.
         return (primary, top_continuity_cost, gap_change * 0.25, whole_cost, tuple(candidate.notes))
 
-    return (_spread_whole_voicing_cost(candidate, policy), _spread_span_cost(candidate), -float(candidate.score), 0.0, tuple(candidate.notes))
+    grouping_mix_contract_intent_cost = spread_grouping_mix_contract_intent_cost(candidate, policy)
+    return (_spread_whole_voicing_cost(candidate, policy) + grouping_mix_contract_intent_cost, _spread_span_cost(candidate), -float(candidate.score), 0.0, tuple(candidate.notes))
 
 
 

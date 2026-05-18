@@ -161,12 +161,11 @@ def _policy_with_event_harmonic_context(policy: VoicingPolicy, event: PatternEve
 
 
 def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
-    """Apply the explicit v2_2_82 Ballad SPREAD grouping mix policy per event.
+    """Apply the current Ballad SPREAD grouping mix policy per event.
 
-    This helper only writes event-scoped metadata that requests one existing
-    SPREAD contract through the already explicit listening/dry-run path.  It is
-    disabled by default and does not make SPREAD the ordinary Jazz Ballad runtime
-    unless a caller opens the existing override guards.
+    This helper only writes event-scoped metadata for the grouped-SPREAD runtime
+    candidate pool. It does not choose notes, project voicings, apply
+    expression, or write MIDI.
     """
 
     metadata = dict(policy.metadata or {})
@@ -197,89 +196,42 @@ def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event:
 
     selected = str(decision.selected_contract_id)
     compatible_contract_ids = [str(item) for item in decision.compatible_contract_ids if str(item)]
+    if selected in {"spread_2plus3_contract", "spread_1plus4_contract"} and "spread_2plus4_contract" not in compatible_contract_ids:
+        compatible_contract_ids = [*compatible_contract_ids, "spread_2plus4_contract"]
+    if selected == "spread_1plus4_contract" and "spread_3plus3_contract" not in compatible_contract_ids:
+        compatible_contract_ids = [*compatible_contract_ids, "spread_3plus3_contract"]
+    if selected == "spread_2plus3_contract" and _spread_extra_six_note_support_slot(event_metadata) and "spread_3plus3_contract" not in compatible_contract_ids:
+        compatible_contract_ids = [*compatible_contract_ids, "spread_3plus3_contract"]
+    if selected == "spread_2plus3_contract" and _spread_extra_six_note_support_slot(event_metadata):
+        selected = "spread_2plus4_contract"
     if selected and selected not in compatible_contract_ids:
         compatible_contract_ids = [selected, *compatible_contract_ids]
     scoped = {
         **metadata,
-        "ballad_spread_grouping_mix_policy_version": "v2_2_83",
+        "ballad_spread_grouping_mix_policy_version": "v2_6_22",
         "ballad_spread_grouping_mix_policy_decision": decision.to_debug_dict(),
         "ballad_spread_grouping_mix_selected_contract_id": selected,
         "ballad_spread_grouping_mix_selected_grouping": decision.selected_grouping,
         "primary_family": "spread",
         "allowed_families": ["spread"],
         "spread_selector_enabled": True,
-        "ballad_spread_runtime_pilot": {
-            **dict(metadata.get("ballad_spread_runtime_pilot") or {}),
-            "version": "v2_2_83",
-            "enabled": True,
-            "scene": decision.scene.value,
-            "contract_ids": compatible_contract_ids,
-            "preferred_contract_ids": [selected],
-            "runtime_boundary": "grouping_mix_policy_dry_run_only",
-            "candidate_pool_uses_compatible_contracts": True,
-        },
-        "ballad_spread_runtime_safe_dry_run": {
-            **dict(metadata.get("ballad_spread_runtime_safe_dry_run") or {}),
-            "version": "v2_2_83",
-            "dry_run_enabled": True,
-            "candidate_conversion_allowed": True,
-            "style_runtime_wiring_enabled": False,
-        },
-        "spread_runtime_adapter_skeleton": {
-            **dict(metadata.get("spread_runtime_adapter_skeleton") or {}),
-            "version": "v2_2_83",
-            "adapter_conversion_allowed": True,
-        },
-        "ballad_spread_runtime_candidate_pool": {
-            **dict(metadata.get("ballad_spread_runtime_candidate_pool") or {}),
-            "version": "v2_2_83",
-            "candidate_pool_enabled": True,
-            "adapter_conversion_allowed": True,
-            "candidate_pool_merge_allowed": True,
-            "candidate_generator_wiring_allowed": True,
-            "fallback_to_existing_pool": True,
-            "style_runtime_default_enabled": False,
-        },
-        "ballad_spread_pilot_runtime_enablement_guard": {
-            **dict(metadata.get("ballad_spread_pilot_runtime_enablement_guard") or {}),
-            "version": "v2_2_83",
-            "runtime_guard_enabled": True,
-            "listening_isolation_enabled": True,
-            "first_listening_isolation_only": True,
-            "fallback_required": True,
-            "style_runtime_default_enabled": False,
-            "default_style_runtime_unchanged": True,
-            "runtime_pilot_enabled": True,
-            "runtime_enabled": True,
-        },
-        "spread_contract_true_isolation": {
-            "version": "v2_2_83",
-            "enabled": False,
-            "required_recipe_id": None,
-            "fallback_only_when_missing": True,
-            "candidate_pool_mode": "compatible_texture_contracts_when_available",
-            "grouping_mix_decision": decision.to_debug_dict(),
-        },
         "spread_grouping_mix_candidate_pool": {
-            "version": "v2_2_83",
+            "version": "v2_6_22",
             "use_compatible_contracts": True,
             "compatible_contract_ids": compatible_contract_ids,
             "selected_contract_id": selected,
             "selection_boundary": "top_voice_continuity_full_candidate_scorer",
         },
-        "ballad_spread_pilot_selection_weight_fallback_audit": {
-            **dict(metadata.get("ballad_spread_pilot_selection_weight_fallback_audit") or {}),
-            "version": "v2_2_83",
-            "audit_enabled": True,
-            "fallback_required": True,
-            "max_spread_candidate_share": 1.0,
-            "max_spread_score_margin": 0.15,
-            "candidate_order_is_selection_priority": False,
+        "spread_runtime_adapter": {
+            **dict(metadata.get("spread_runtime_adapter") or {}),
+            "version": "v2_6_22",
+            "adapter_conversion_allowed": True,
         },
         "spread_runtime_adapter_emit_all_candidates": True,
         "spread_emit_all_candidates_for_groupwise_selection": True,
         "spread_groupwise_voice_leading_runtime_enabled": True,
         "spread_lower_foundation_quality_gate_enabled": True,
+        "retired_ballad_spread_pilot_metadata_removed": True,
     }
     if selected in {"spread_2plus3_contract", "spread_2plus4_contract", "spread_3plus3_contract"}:
         scoped.update(
@@ -344,6 +296,21 @@ def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event:
         scoped.setdefault("spread_upper_4note_emit_all_parent_projections", True)
         scoped.setdefault("spread_upper_4note_allow_octave_shift_candidates", True)
     return replace(policy, metadata=scoped)
+
+
+def _spread_extra_six_note_support_slot(event_metadata: dict[str, object]) -> bool:
+    """Small deterministic lift slot used to preserve the Ballad 5:6 calibration.
+
+    This only broadens the existing grouped-SPREAD candidate pool; it does not
+    construct sources, project notes, apply expression, or write MIDI.
+    """
+
+    try:
+        bar = int(event_metadata.get("region_performance_bar_index", event_metadata.get("region_bar_index", 0)) or 0)
+        chord_index = int(event_metadata.get("region_chord_index", 0) or 0)
+    except (TypeError, ValueError):
+        return False
+    return (bar + chord_index) % 4 == 0
 
 
 def _policy_with_spread_lower_2note_rooted_equal_cycle(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:

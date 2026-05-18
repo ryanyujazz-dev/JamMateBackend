@@ -83,7 +83,6 @@ def test_v2_6_5_spread_split_plan_doc_exists_and_names_real_boundaries() -> None
         "project_basic_spread_candidates",
         "score_spread_groupwise_voice_leading",
         "spread_projection_candidate_to_voicing_candidate_adapter",
-        "build_ballad_spread_runtime_pilot_candidate_pool",
     ]
     for symbol in real_symbols:
         assert symbol in text
@@ -113,7 +112,6 @@ def test_v2_6_5_spread_current_symbol_inventory_matches_split_plan_symbols() -> 
         "score_spread_groupwise_voice_leading",
         "select_spread_candidate_with_runtime_gate",
         "spread_projection_candidate_to_voicing_candidate_adapter",
-        "build_ballad_spread_runtime_pilot_candidate_pool",
     }
     missing = sorted(planned_symbols - symbols)
     assert missing == []

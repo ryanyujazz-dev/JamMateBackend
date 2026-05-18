@@ -26,7 +26,8 @@ from ..disposition.models import (
     projection_spec_from_legacy_disposition,
 )
 from ..disposition.projection import project_source_to_disposition
-from ..disposition.spread import guard_ballad_spread_pilot_runtime_enablement
+from ..disposition.spread_projection_core import project_basic_spread_candidates
+from ..disposition.spread_runtime_adapter import spread_projection_candidate_to_voicing_candidate_adapter
 from ..policy import ContentFamily, Disposition, RootSupportPolicy, VoicingPolicy, harmonic_expansion_allowed
 from ..density_policy import density_disposition_decision
 from ..runtime.texture_plan import derive_voicing_texture_plan, derive_voicing_texture_state
@@ -48,32 +49,181 @@ def generate_candidates(symbol: str, policy: VoicingPolicy) -> list[VoicingCandi
     """
 
     candidates = _generate_candidates_without_runtime_rescue(symbol, policy)
-    candidates = _maybe_merge_ballad_spread_runtime_pilot_candidates(symbol, policy, candidates)
+    candidates = _maybe_use_grouped_spread_runtime_candidates(symbol, policy, candidates)
     if not _method_lock_rescue_runtime_enabled(policy.metadata):
         return candidates
     return _execute_method_lock_rescue_if_needed(symbol, policy, candidates)
 
 
-def _maybe_merge_ballad_spread_runtime_pilot_candidates(
+def _maybe_use_grouped_spread_runtime_candidates(
     symbol: str,
     policy: VoicingPolicy,
     candidates: list[VoicingCandidate],
 ) -> list[VoicingCandidate]:
-    """Optionally add explicit Ballad SPREAD pilot candidates to the pool.
+    """Use the current grouped-SPREAD runtime pool when the event policy asks for it.
 
-    The default path returns the original list unchanged.  The SPREAD pilot path
-    requires dedicated policy metadata gates and always keeps the existing pool
-    as fallback.
+    This replaces the retired Ballad SPREAD pilot/dry-run wiring.  It only
+    adapts already-legal SPREAD projection candidates into runtime candidates;
+    source choice, projection, register guards, expression, and MIDI remain
+    owned by their dedicated layers.
     """
 
-    result = guard_ballad_spread_pilot_runtime_enablement(
+    metadata = dict(policy.metadata or {})
+    spread_requested = _coerce_bool(metadata.get("spread_selector_enabled"), default=False) or _coerce_bool(
+        metadata.get("spread_groupwise_voice_leading_runtime_enabled"),
+        default=False,
+    )
+    if not spread_requested:
+        return candidates
+    if "spread" not in _metadata_family_values(metadata):
+        return candidates
+
+    contract_ids = _grouped_spread_runtime_contract_ids(metadata)
+    if not contract_ids:
+        return candidates
+
+    try:
+        max_upper_options = int(
+            metadata.get("spread_runtime_adapter_max_upper_options", metadata.get("max_upper_options", 12)) or 12
+        )
+    except (TypeError, ValueError):
+        max_upper_options = 12
+
+    projected = project_basic_spread_candidates(
         symbol,
         policy,
-        base_candidates=tuple(candidates),
+        contract_ids=contract_ids,
+        max_upper_options=max_upper_options,
     )
-    if not result.enabled_for_listening_isolation:
+    spread_candidates: list[VoicingCandidate] = []
+    for result in projected:
+        for projection_candidate in result.candidates:
+            if not bool(getattr(projection_candidate, "is_legal", False)):
+                continue
+            adapter_result = spread_projection_candidate_to_voicing_candidate_adapter(
+                projection_candidate,
+                policy,
+                allow_conversion=True,
+                selector_reason="grouped_spread_runtime_candidate_pool",
+            )
+            if not adapter_result.converted or adapter_result.adapted_candidate is None:
+                continue
+            spread_candidates.append(_annotate_grouped_spread_runtime_candidate(adapter_result.adapted_candidate, metadata))
+
+    if not spread_candidates:
         return candidates
-    return list(result.guarded_candidates)
+
+    pool_metadata = metadata.get("spread_grouping_mix_candidate_pool") or {}
+    if not isinstance(pool_metadata, dict):
+        pool_metadata = {}
+    use_compatible_only = _coerce_bool(
+        pool_metadata.get("use_compatible_contracts", metadata.get("spread_grouping_mix_candidate_pool_uses_compatible_contracts")),
+        default=True,
+    )
+    if use_compatible_only:
+        return list(spread_candidates)
+    return [*spread_candidates, *candidates]
+
+
+def _metadata_family_values(metadata: dict) -> set[str]:
+    values: set[str] = set()
+    for key in ("primary_family", "preferred_disposition", "preferred_family"):
+        value = metadata.get(key)
+        if value is not None:
+            values.add(str(getattr(value, "value", value)).strip().lower())
+    allowed = metadata.get("allowed_families") or metadata.get("effective_disposition_families") or ()
+    if isinstance(allowed, str):
+        allowed = [part.strip() for part in allowed.replace(";", ",").split(",") if part.strip()]
+    if isinstance(allowed, Iterable):
+        for item in allowed:
+            values.add(str(getattr(item, "value", item)).strip().lower())
+    return values
+
+
+def _grouped_spread_runtime_contract_ids(metadata: dict) -> tuple[str, ...]:
+    ids: list[str] = []
+
+    pool_metadata = metadata.get("spread_grouping_mix_candidate_pool") or {}
+    if not isinstance(pool_metadata, dict):
+        pool_metadata = {}
+    for source in (
+        pool_metadata.get("selected_contract_id"),
+        metadata.get("ballad_spread_grouping_mix_selected_contract_id"),
+    ):
+        if source:
+            text = str(source).strip()
+            if text and text not in ids:
+                ids.append(text)
+
+    pool_compatible_ids = _as_string_sequence(pool_metadata.get("compatible_contract_ids"))
+    if pool_compatible_ids:
+        for item in pool_compatible_ids:
+            if item and item not in ids:
+                ids.append(item)
+        return tuple(ids)
+
+    for source in (
+        metadata.get("spread_grouping_mix_candidate_contract_ids"),
+        metadata.get("spread_density_runtime_contract_ids"),
+        metadata.get("compatible_contract_ids"),
+    ):
+        for item in _as_string_sequence(source):
+            if item and item not in ids:
+                ids.append(item)
+    return tuple(ids)
+
+
+def _as_string_sequence(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return tuple(part.strip() for part in value.replace(";", ",").split(",") if part.strip())
+    if isinstance(value, Iterable):
+        return tuple(str(getattr(item, "value", item)).strip() for item in value if str(getattr(item, "value", item)).strip())
+    text = str(getattr(value, "value", value)).strip()
+    return (text,) if text else ()
+
+
+def _annotate_grouped_spread_runtime_candidate(candidate: VoicingCandidate, metadata: dict) -> VoicingCandidate:
+    candidate_metadata = dict(candidate.metadata or {})
+    selected_contract_id = metadata.get("ballad_spread_grouping_mix_selected_contract_id")
+    try:
+        six_note_bias = float(metadata.get("spread_grouping_mix_selected_6note_contract_bias", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        six_note_bias = 0.0
+    decision = dict(metadata.get("ballad_spread_grouping_mix_policy_decision") or {})
+    if selected_contract_id:
+        decision = {**decision, "selected_contract_id": selected_contract_id}
+    candidate_metadata.update(
+        {
+            "spread_grouped_runtime_candidate_pool_version": "v2_6_22",
+            "candidate_pool_source": "grouped_spread_runtime",
+            "candidate_generator_wiring_allowed": True,
+            "style_runtime_wiring_enabled": True,
+            "runtime_enabled": True,
+            "spread_groupwise_voice_leading_runtime_enabled": True,
+            "ballad_spread_grouping_mix_policy_decision": decision,
+            "ballad_spread_grouping_mix_selected_contract_id": selected_contract_id,
+            "spread_grouping_mix_policy_decision": decision,
+            "spread_grouping_mix_selected_contract_id": selected_contract_id,
+            "no_expression_or_pedal": True,
+            "no_pattern_anticipation_gesture_or_midi": True,
+        }
+    )
+    selector_decision = dict(candidate.selector_decision or {})
+    selector_decision.update(
+        {
+            "source": "grouped_spread_runtime_candidate_pool",
+            "candidate_pool_source": "grouped_spread_runtime",
+            "candidate_generator_wiring_allowed": True,
+            "style_runtime_wiring_enabled": True,
+            "runtime_enabled": True,
+        }
+    )
+    score = float(candidate.score or 0.0)
+    if six_note_bias > 0.0 and str(candidate.recipe_id) == "spread_2plus4_contract":
+        score += six_note_bias * 0.4
+    return replace(candidate, score=score, metadata=candidate_metadata, selector_decision=selector_decision)
 
 
 def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPolicy) -> list[VoicingCandidate]:

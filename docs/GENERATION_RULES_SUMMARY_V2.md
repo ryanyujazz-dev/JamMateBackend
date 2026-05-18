@@ -1,3 +1,10 @@
+## v2_6_22 Voicing cleanup — retired SPREAD pilot logic
+
+- Retired Jazz Ballad SPREAD pilot / dry-run / safe-dry-run / runtime-guard logic has been deleted from the active voicing surface.
+- Current Ballad SPREAD generation uses grouped SPREAD runtime candidate pools directly: event-level grouping-mix policy chooses compatible SPREAD contracts, projection core creates notes-only candidates, runtime adapter maps legal projection candidates to `VoicingCandidate`, and selector performs groupwise voice-leading.
+- This pass does not change Pattern, Anticipation, Expression, Gesture, Pedal, Timing, MIDI, Agent, API, or HarmonyOS behavior.
+- Default Misty Ballad audit remains: 4-note SPREAD disabled, 5-note / 6-note near 6:4, maj7#11 absent unless explicit/written/intent-enabled.
+
 
 ## v2_6_15 Voicing/SPREAD runtime-boundary rule
 
@@ -596,4 +603,139 @@ Recommended next task:
 
 ```text
 v2_6_18_engine_voicing_content_source_inventory_behavior_preserving_split
+```
+
+## Voicing Rule Update: v2_6_18 Content Source Inventory Owner
+
+Family-to-degree source inventory now has a dedicated source-boundary owner:
+
+```text
+core.voicing.sources.content_source_inventory
+```
+
+This module owns source construction for:
+
+```text
+shell+5 / shell+color
+seventh-basic 4-note sources
+rooted-color 4-note sources
+rootless A/B sources
+triad-aware 3-note and 4-note sources
+altered-dominant source inventory
+explicit-symbol color source inventory
+seventh-chord source integrity notes
+```
+
+`content_planner.py` remains the public facade and recipe orchestration layer. It should call `content_family_router.py` for valid families and `content_source_inventory.py` for source options, then attach density metadata to form `VoicingContentRecipe` objects.
+
+Boundary guardrails:
+
+```text
+content_source_inventory does not route ContentFamily values
+content_source_inventory does not score source balance
+content_source_inventory does not choose register/disposition/projection
+content_source_inventory does not touch Pattern / Anticipation / Expression / Gesture / MIDI
+```
+
+Reference Jazz Ballad voicing guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4
+4-note SPREAD remains retired from default Ballad runtime
+unnotated maj7#11 remains off by default
+```
+
+Recommended next task:
+
+```text
+v2_6_19_engine_voicing_color_permission_adapter_cleanup
+```
+## Voicing Rule Update: v2_6_19 Color Permission Adapter Owner
+
+`v2_6_19_engine_voicing_color_permission_adapter_cleanup` clarifies the color-permission boundary:
+
+```text
+color_permission.py           decides explicit / expanded color admission and audit notes
+content_source_inventory.py   constructs voicing source degree options
+content_family_router.py      routes legal ContentFamily choices
+content_planner.py            remains the facade / recipe orchestration layer
+```
+
+`color_permission.py` now owns `explicit_symbol_color_degrees`, `rootless_ab_explicit_color_degrees`, `ordered_explicit_colors`, `expansion_color_candidates`, `major_seventh_safe_extension_preference`, and `build_voicing_color_permission_context`.
+
+It does not construct voicing sources. Rooted-color, rootless A/B, altered-dominant, shell+color, triad-aware and seventh-basic source construction remains in `content_source_inventory.py`.
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+## Voicing Rule Update: v2_6_20 Source Balance Boundary Owner
+
+`v2_6_20_engine_voicing_source_balance_boundary_cleanup` clarifies the source-balance boundary:
+
+```text
+source_balance.py            source-family scoring / bias only
+content_family_router.py     ContentFamily routing / chord-quality normalization
+content_source_inventory.py  family -> degree source construction
+color_permission.py          explicit / expanded color admission
+upper_structure.py           source-only upper-structure recipes
+```
+
+`source_balance.py` may read existing candidate metadata and apply `source_family_weights`, `source_family_weights_by_gate`, and altered-dominant intensity bias. It does not construct sources, does not route ContentFamily, does not decide color permission, and does not choose disposition/projection/register.
+
+`SourceBalanceProfile` is an inspectable scoring/debug profile only; it exposes the selected source key, gate mode, lookup keys, content family, and altered-dominant source kind.
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+Recommended next task:
+
+```text
+v2_6_21_engine_voicing_upper_structure_boundary_audit
+```
+
+## Voicing Rule Update: v2_6_21 Upper Structure Boundary Owner
+
+`v2_6_21_engine_voicing_upper_structure_boundary_audit` clarifies the Upper Structure boundary:
+
+```text
+upper_structure.py           source-only upper-structure degree recipes
+content_family_router.py     ContentFamily routing / chord-quality normalization
+content_source_inventory.py  family -> degree source construction
+color_permission.py          explicit / expanded color admission
+source_balance.py            source-family scoring / bias only
+spread_*                     projection / register / runtime adapter / groupwise motion
+selection/*                  candidate scoring / selector / voice-leading
+```
+
+`upper_structure.py` may publish 3-note and 4-note Upper Structure source recipes and source metadata. It does not project closed/open/spread voicings, does not choose register or octave placement, does not score/select candidates, does not rank voice-leading, does not adapt runtime SPREAD candidates, and does not write MIDI or touch expression.
+
+Upper Structure remains a source family, not a projection system:
+
+```text
+3-note upper structures reuse existing closed / inversion placement
+4-note upper structures reuse existing closed / inversion / DROP2 / DROP3 projection paths
+```
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+Recommended next task:
+
+```text
+v2_6_22_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup
 ```

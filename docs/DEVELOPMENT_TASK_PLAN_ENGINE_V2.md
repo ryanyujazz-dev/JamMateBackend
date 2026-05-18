@@ -1,3 +1,22 @@
+## v2_6_22 Engine Voicing Cleanup — retired SPREAD pilot logic
+
+Completed cleanup scope:
+
+- removed retired Ballad SPREAD pilot / dry-run / safe-dry-run / runtime-guard / selection-audit public workflow;
+- kept current grouped SPREAD runtime candidate pool as the only Ballad SPREAD runtime route;
+- kept `spread_runtime_adapter.py` as the projection-candidate adapter owner;
+- kept `spread.py` as current compatibility facade only, not a home for old pilot code;
+- deleted stale v2_2 pilot tests that were asserting removed behavior;
+- verified Misty three-chorus density/color guardrails remain stable.
+
+Next recommended Engine/Voicing task:
+
+```text
+v2_6_23_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup
+```
+
+Goal: continue cleanup at the harmonic-realizer adapter boundary so realizer metadata remains policy/context adaptation only, not source construction, color permission, projection, selector, expression, or MIDI behavior.
+
 # Engine Track Development Task Plan V2
 
 Current baseline: `v2_6_1`; latest engine-track task completed in this package: `v2_6_8_engine_voicing_spread_register_guard_behavior_preserving_split` (shared VERSION intentionally unchanged).
@@ -288,3 +307,60 @@ Completed voicing-only source-boundary split:
 - preserved Jazz Ballad `5-note:6-note ~= 6:4`, zero default 4-note SPREAD, low-frequency 7-note, and zero unnotated maj7#11.
 
 Next recommended voicing-only task: `v2_6_18_engine_voicing_content_source_inventory_behavior_preserving_split`.
+
+## v2_6_18 Completed — Engine Voicing Content Source Inventory Behavior-Preserving Split
+
+Completed voicing-only source-boundary split:
+
+- added `content_source_inventory.py` as the owner for family-to-degree source inventory;
+- kept `content_planner.py` as public compatibility facade and recipe orchestration layer;
+- preserved historical imports for `trim_content_degrees`, `source_preserves_seventh_chord_identity`, and `seventh_chord_source_integrity_notes` through `content_planner.py`;
+- did not move content-family routing, color permission ownership, source balance, upper structure, disposition, register, projection, pattern, expression, gesture, MIDI, API, or Agent behavior;
+- preserved Jazz Ballad `5-note:6-note ~= 6:4`, zero default 4-note SPREAD, low-frequency 7-note, and zero unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_19_engine_voicing_color_permission_adapter_cleanup`.
+## v2_6_19 Completed — Engine Voicing Color Permission Adapter Cleanup
+
+Goal: clean up color-permission glue after the content source inventory split without moving voicing source construction into the color-permission layer.
+
+Completed scope:
+
+- added `docs/ENGINE_VOICING_COLOR_PERMISSION_ADAPTER_CLEANUP_V2_6_19.md`;
+- added `tests/test_v2_6_19_engine_voicing_color_permission_adapter_cleanup.py`;
+- moved explicit chart color helpers and expansion color candidate helpers into `color_permission.py`;
+- added `build_voicing_color_permission_context` as the single adapter for explicit + expansion color admission;
+- updated `content_source_inventory.py` to consume color-permission helpers while retaining source-construction ownership;
+- updated `content_family_router.py` to reuse explicit-color helpers from `color_permission.py`;
+- preserved v2_6_14/v2_6_15 Misty density/color guardrails.
+
+Next recommended voicing-only task: `v2_6_20_engine_voicing_source_balance_boundary_cleanup`.
+
+## v2_6_20 Completed — Engine Voicing Source Balance Boundary Cleanup
+
+Goal: clean up the source-balance scoring boundary after the content-family, source-inventory, and color-permission splits.
+
+Completed scope:
+
+- kept `source_balance.py` as the owner for source-family scoring / bias only;
+- added `SourceBalanceProfile` and `source_balance_profile(...)` for inspectable scoring metadata;
+- added explicit owned/forbidden responsibility constants to prevent future boundary drift;
+- preserved `SOURCE_BALANCE_CONTRACT_VERSION = v2_1_43` and altered-dominant intensity scoring `v2_2_88`;
+- hardened source-key extraction from current `content_recipe.validity_notes` metadata without moving source inventory ownership into source balance;
+- preserved v2_6_14/v2_6_15 Misty density/color guardrails.
+
+Next recommended voicing-only task: `v2_6_21_engine_voicing_upper_structure_boundary_audit`.
+
+## v2_6_21 Completed — Engine Voicing Upper Structure Boundary Audit
+
+Goal: audit the Upper Structure source boundary after the source-balance cleanup and ensure it remains source-only.
+
+Completed scope:
+
+- kept `upper_structure.py` as the owner for source-level upper-structure degree recipes only;
+- added `UpperStructureBoundaryProfile` and `upper_structure_boundary_profile(...)` for inspectable responsibility metadata;
+- added explicit owned/forbidden responsibility constants to prevent future boundary drift;
+- preserved `UPPER_STRUCTURE_SOURCE_VERSION = v2_2_88` and existing harmonic-expansion / altered-dominant policy gates;
+- confirmed Upper Structure does not import projection, register, selector, voice-leading, runtime adapter, or MIDI owners;
+- preserved v2_6_14/v2_6_15 Misty density/color guardrails.
+
+Next recommended voicing-only task: `v2_6_22_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup`.
