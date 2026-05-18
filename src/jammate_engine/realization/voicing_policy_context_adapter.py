@@ -34,7 +34,7 @@ HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_FORBIDDEN_RESPONSIBILITIES = (
 class HarmonicRealizerPolicyContextAdapterProfile:
     version: str = HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_VERSION
     implementation_owner: str = "jammate_engine.realization.voicing_policy_context_adapter"
-    consumed_by: str = "jammate_engine.realization.harmonic_realizer"
+    consumed_by: str = "jammate_engine.realization.realizer_voicing_request_orchestration"
     output_boundary: str = "VoicingPolicy with event-scoped metadata only"
     owned_responsibilities: tuple[str, ...] = HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_OWNED_RESPONSIBILITIES
     forbidden_responsibilities: tuple[str, ...] = HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_FORBIDDEN_RESPONSIBILITIES

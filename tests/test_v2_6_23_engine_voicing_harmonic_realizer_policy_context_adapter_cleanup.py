@@ -74,7 +74,9 @@ def test_v2_6_23_harmonic_realizer_no_longer_owns_event_policy_context_helpers()
     assert retired_realizer_helpers.isdisjoint(realizer_symbols)
 
     text = HARMONIC_REALIZER.read_text(encoding="utf-8")
-    assert "policy_with_event_voicing_context(policy, event)" in text
+    assert "RealizerVoicingRequestOrchestrator" in text
+    request_orchestration = (ROOT / "src" / "jammate_engine" / "realization" / "realizer_voicing_request_orchestration.py").read_text(encoding="utf-8")
+    assert "policy_with_event_voicing_context(base_policy, event)" in request_orchestration
     assert "resolve_ballad_spread_grouping_mix_policy" not in text
     assert "ColorPolicyMode" not in text
     assert "parse_chord" not in text

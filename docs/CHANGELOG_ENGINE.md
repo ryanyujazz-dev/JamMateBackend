@@ -1,3 +1,20 @@
+## v2_6_26_engine_voicing_realization_surface_final_cleanup
+
+- Cleanup pass: finalized the thin `harmonic_realizer.py` realization surface after the policy/context, note/audit, and request/cache splits.
+- Added `HarmonicRealizerSurfaceFinalCleanupProfile` and explicit owned/forbidden responsibility constants in `harmonic_realizer.py`.
+- Piano audit rows now carry `harmonic_realizer_surface_final_cleanup_version = v2_6_26` for boundary traceability.
+- Corrected `realizer_note_audit.py` and `voicing_policy_context_adapter.py` debug ownership so request/context flow points through `realizer_voicing_request_orchestration.py`, not the top-level realizer.
+- Preserved Jazz Ballad guardrails: 4-note SPREAD remains 0, 5-note / 6-note remains near 6:4, and maj7#11 remains off by default.
+- Added `docs/ENGINE_VOICING_REALIZATION_SURFACE_FINAL_CLEANUP_V2_6_26.md` and `tests/test_v2_6_26_engine_voicing_realization_surface_final_cleanup.py`.
+
+## v2_6_25_engine_voicing_request_orchestration_cache_boundary_audit
+
+- Cleanup pass: moved VoicingRequest construction, one-voicing-per-region cache reuse, and explicit fresh revoicing escape hatch out of `harmonic_realizer.py` into `src/jammate_engine/realization/realizer_voicing_request_orchestration.py`.
+- `harmonic_realizer.py` now asks `RealizerVoicingRequestOrchestrator` for a `VoicingPlan` and remains focused on PatternEvent iteration, GestureRealizer, NoteEvent list ownership, and audit delegation.
+- Added `RealizerVoicingRequestOrchestrationProfile` and explicit owned/forbidden responsibility constants.
+- Preserved Jazz Ballad guardrails: 4-note SPREAD remains 0, 5-note / 6-note remains near 6:4, and maj7#11 remains off by default.
+- Added `docs/ENGINE_VOICING_REQUEST_ORCHESTRATION_CACHE_BOUNDARY_AUDIT_V2_6_25.md` and `tests/test_v2_6_25_engine_voicing_request_orchestration_cache_boundary_audit.py`.
+
 ## v2_6_24_engine_voicing_realizer_note_audit_cleanup
 
 - Cleanup pass: moved piano NoteEvent/audit/debug helpers out of `harmonic_realizer.py` into `src/jammate_engine/realization/realizer_note_audit.py`.

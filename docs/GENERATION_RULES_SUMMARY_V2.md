@@ -1,3 +1,62 @@
+## v2_6_26 Voicing realization surface boundary note
+
+`harmonic_realizer.py` is now explicitly treated as a thin realization surface. It may iterate active piano `PatternEvent`s, reset the request orchestrator cache at the start of a realization pass, delegate voicing plan requests, call `GestureRealizer`, own the returned `NoteEvent` list, and attach a surface-version marker to piano audit rows.
+
+It must not construct degree sources, route content families, decide color permission, project closed/open/spread voicings, score/select voicing candidates directly, build `VoicingRequest` directly, own region voicing cache logic, build piano audit payloads directly, write MIDI, or apply expression.
+
+Current realization owner map:
+
+```text
+harmonic_realizer.py                         # thin realization surface
+realizer_voicing_request_orchestration.py    # VoicingRequest + region cache + resolver call
+voicing_policy_context_adapter.py            # PatternEvent metadata -> event-scoped VoicingPolicy metadata
+realizer_note_audit.py                       # piano audit rows / note debug / partial reattack trims
+gesture_realizer.py                          # selected VoicingPlan -> NoteEvent projection
+```
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+Recommended next task:
+
+```text
+v2_6_27_engine_ballad_spread_listening_calibration_pass
+```
+
+## v2_6_25 Voicing realization boundary note
+
+The request/cache owner is now `src/jammate_engine/realization/realizer_voicing_request_orchestration.py`.
+
+Rule:
+
+```text
+HarmonicRealizer does not build VoicingRequest directly.
+HarmonicRealizer does not own region voicing cache logic directly.
+HarmonicRealizer does not call policy_with_event_voicing_context directly.
+```
+
+The current cache contract remains:
+
+```text
+one_default_voicing_selection_per_chord_region_until_explicit_gesture_revoices
+```
+
+Explicit fresh revoicing is allowed only through event or gesture metadata:
+
+```text
+force_fresh_voicing
+revoice_within_region
+```
+
+This is a behavior-preserving boundary cleanup. It does not change Pattern, Anticipation, Expression, Gesture, MIDI, Agent, API, or shared docs.
+
+---
+
 ## v2_6_24 Voicing realization boundary note
 
 The harmonic realization boundary now separates voicing request orchestration from note/audit/debug payload construction:

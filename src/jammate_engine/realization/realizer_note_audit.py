@@ -36,7 +36,7 @@ class RealizerNoteAuditCleanupProfile:
     owned_responsibilities: tuple[str, ...] = REALIZER_NOTE_AUDIT_OWNED_RESPONSIBILITIES
     forbidden_responsibilities: tuple[str, ...] = REALIZER_NOTE_AUDIT_FORBIDDEN_RESPONSIBILITIES
     note_event_boundary_only: bool = True
-    voicing_request_orchestration_owner: str = "jammate_engine.realization.harmonic_realizer"
+    voicing_request_orchestration_owner: str = "jammate_engine.realization.realizer_voicing_request_orchestration"
 
     def to_debug_dict(self) -> dict[str, Any]:
         return {

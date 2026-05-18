@@ -1,3 +1,46 @@
+## v2_6_26 Voicing cleanup — realization surface final cleanup
+
+Completed `v2_6_26_engine_voicing_realization_surface_final_cleanup`.
+
+Scope completed:
+
+- kept `harmonic_realizer.py` as the final thin realization surface rather than a voicing decision owner;
+- added `HarmonicRealizerSurfaceFinalCleanupProfile` with explicit owned/forbidden responsibilities;
+- added per-audit-row `harmonic_realizer_surface_final_cleanup_version = v2_6_26`;
+- corrected `realizer_note_audit.py` and `voicing_policy_context_adapter.py` debug metadata so request/context ownership points through `realizer_voicing_request_orchestration.py`;
+- preserved Ballad/SPREAD guardrails: zero default 4-note SPREAD, 5-note:6-note near 6:4, and zero unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_27_engine_ballad_spread_listening_calibration_pass`.
+
+## v2_6_25 Voicing cleanup — request orchestration/cache boundary audit
+
+Completed `v2_6_25_engine_voicing_request_orchestration_cache_boundary_audit`.
+
+Scope:
+
+```text
+harmonic_realizer.py
+  no longer owns VoicingRequest construction
+  no longer owns one-voicing-per-region cache implementation
+  no longer owns explicit fresh revoicing escape hatch helper
+
+realizer_voicing_request_orchestration.py
+  owns request/cache orchestration only
+  delegates event policy context to voicing_policy_context_adapter.py
+  delegates musical resolution to core VoicingResolver
+  does not construct sources / choose colors / project / select / write MIDI / build audit payloads
+```
+
+Next recommended task:
+
+```text
+v2_6_26_engine_voicing_realization_surface_final_cleanup
+```
+
+Goal: audit the now-small `harmonic_realizer.py` realization surface, remove remaining misleading old comments/imports/tests, and decide whether the realizer is sufficiently thin.
+
+---
+
 ## v2_6_24 Voicing cleanup — realizer NoteEvent/audit split
 
 - NoteEvent/audit/debug helpers have moved from `harmonic_realizer.py` to `realization/realizer_note_audit.py`.

@@ -54,7 +54,7 @@ def test_v2_6_24_realizer_note_audit_contract_is_explicit() -> None:
     assert debug["realizer_note_audit_cleanup_version"] == "v2_6_24"
     assert debug["implementation_owner"] == "jammate_engine.realization.realizer_note_audit"
     assert debug["note_event_boundary_only"] is True
-    assert debug["voicing_request_orchestration_owner"] == "jammate_engine.realization.harmonic_realizer"
+    assert debug["voicing_request_orchestration_owner"] == "jammate_engine.realization.realizer_voicing_request_orchestration"
 
 
 def test_v2_6_24_harmonic_realizer_no_longer_owns_note_audit_debug_helpers() -> None:
@@ -74,8 +74,9 @@ def test_v2_6_24_harmonic_realizer_no_longer_owns_note_audit_debug_helpers() -> 
     assert "from jammate_engine.realization.realizer_note_audit import" in text
     assert "piano_audit_event(event, expr, voicing, realized)" in text
     assert "sync_piano_audit_realized_notes(self.last_piano_audit_events, out)" in text
-    assert "VoicingRequest(" in text
-    assert "policy_with_event_voicing_context(policy, event)" in text
+    assert "RealizerVoicingRequestOrchestrator" in text
+    assert "VoicingRequest(" not in text
+    assert "policy_with_event_voicing_context(" not in text
 
 
 def test_v2_6_24_note_audit_module_owns_note_debug_without_voicing_source_or_selector_imports() -> None:
