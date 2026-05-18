@@ -1,10 +1,41 @@
 # v2_3_9 Pedal / Expression Rule Update
 Pedal is an expression-layer contract. Patterns expose facts such as tail availability, density, anticipation eligibility, and harmonic rhythm; Expression chooses `none/light/sustain/lush`; MIDI realizer only materializes approved CC64 with re-pedal offset. Bossa/Swing stay dry by default; Ballad may use balanced pedal with chord-change re-pedal.
 # Generation Rules Summary V2 — Compact
-Current version: `v2_5_9`.
+Current version: `v2_6_8`.
 Generation Rule Documentation Principle: every code-level generation rule change must update this file. 生成规则 includes style vocabulary, role/domain generation, anticipation, expression, voicing choice, BassFoundation, percussion, and MIDI timing interpretation.
 
 
+
+## v2_6_8 Engine Voicing SPREAD Register Guard Split
+
+- No runtime music-generation behavior changed in this pass.
+- `spread_register_guards.py` now owns SPREAD register/gap/span legality: `SpreadProjectionRegisterPolicy`, lower/upper register windows, rooted bass anchor guard, low-register density guard, group gap guard, and overall span guard.
+- `spread.py` remains the public compatibility surface and re-exports the register guard API; existing imports from `jammate_engine.core.voicing.disposition.spread` and `jammate_engine.core.voicing.disposition` continue to work.
+- The register guard owner remains notes-only and voicing-only. It does not own Pattern, Anticipation, Expression, Gesture, MIDI writer, velocity, duration, or pedal decisions.
+- v2_6_5 frozen behavior signatures for representative SPREAD candidates are preserved.
+
+## v2_6_7 Engine Voicing SPREAD Upper Source Split
+
+- No runtime music-generation behavior changed in this pass.
+- `spread_upper_sources.py` now owns SPREAD upper source refs, options, adapter result dataclasses, source-oriented adapter policy, upper-structure source gate helpers, upper-source metadata extraction, and DROP2/DROP3-only upper 4-note method normalization.
+- `spread.py` remains the public compatibility surface and re-exports the upper-source API.
+- The upper source owner remains notes-only and source-oriented; it does not own lower placement, register legality, voice-leading, expression, gesture, or MIDI writer behavior.
+- v2_6_5 frozen behavior signatures for representative SPREAD candidates are preserved.
+
+
+## v2_6_4 Voicing taxonomy and boundary hardening
+
+- No runtime music-generation behavior changed in this pass.
+- Added the formal voicing taxonomy and boundary document: `docs/ENGINE_VOICING_TAXONOMY_AND_BOUNDARY_HARDENING_V2_6_4.md`.
+- Voicing axes are now documented as: ContentFamily, RootSupportPolicy/BassRelation, Density/FunctionalGrouping, Disposition/ProjectionMethod, ColorPolicy/AlteredDominantPolicy, RegisterGuard, and Selector/VoiceLeading.
+- Boundary baseline: only Voicing selects concrete vertical pitch content, density, grouping, disposition, register, and voice-leading. Pattern remains pitchless, Anticipation rewrites only pitchless events, Expression owns duration/velocity/articulation/touch/pedal intent, Gesture projects an already selected VoicingPlan, and MIDI writer only serializes resolved events.
+- Style pattern files must not import concrete voicing selection internals or bind content families/dispositions. Style `voicing_policy.py` files may bias VoicingPolicy only.
+
+## v2_6_3 MIDI output pipeline boundary audit
+
+- No runtime music-generation behavior changed in this pass.
+- Added the formal input/output boundary document for the current MIDI output chain: `docs/ENGINE_MIDI_OUTPUT_PIPELINE_BOUNDARY_AUDIT_V2_6_3.md`.
+- Boundary baseline: PatternEvent remains pitchless; Anticipation rewrites only the pitchless timeline; Expression owns duration/velocity/articulation/touch/pedal intent; Voicing owns concrete vertical pitch content/density/disposition/voice-leading; Gesture projection maps already-selected voicing notes into NoteEvent objects; Timing owns swing/humanization performed placement; Pedal CC64 realization materializes expression pedal intent; MIDI writer only serializes resolved note/controller events.
 
 ## v2_5_9 V1 instrument-rule deep audit mapping
 
@@ -99,6 +130,13 @@ This index preserves stable contract names for regression tests while avoiding o
 Medium Swing now attaches section/chorus texture intent metadata before voicing resolution. A normal A section remains `baseline_open_swing`; a bridge exposes `bridge_open_contrast` with slightly wider semantic `width`; the final chorus exposes `final_chorus_open_lift` with slightly higher semantic energy/density. This is debug/contract planning only: OPEN family filtering, OPEN method weights, MethodLock, and nearest-motion rescue remain the active runtime behavior.
 ## Additional compact compatibility aliases
 generation/bass_foundation/; Do not add more core infrastructure; No BassFoundation retune; 3-note; 5-note; 6-note; rootless_ab_content_type_with_5; rootless_ab_content_type_with_13; m7 + 13; m7b5; m11b5; b3 + b7 + b5; shell_plus_expanded_color; supersedes; replaces; directed minor-second; directed m2; runtime_filtering_enabled=True; HarmonicContext-backed Method Lock Scope Adapter; Seed-Then-Follow; Method Lock Rescue; Method Lock Rescue Runtime; OpenProjectionMethod.DROP2; ii-V; V-I; ii-V-I; progression_phrase_voicing_method_lock_planning_only; locked_method; open_projection_method; boundary_test_source; DROP2 Audit Fixture; open_drop2_parent_closed_degrees; docs/ARCHITECTURE_V2.md; docs/PIPELINE_V2.md; docs/SYSTEM_CONTRACTS_V2.md; docs/API_CONTRACT_V2.md; docs/GENERATION_RULES_SUMMARY_V2.md; docs/STYLE_RULE_BASELINE_V2.md; docs/STYLE_TUNING_ENTRY_POINT_V2.md; docs/DEVELOPMENT_TASK_PLAN_V2.md; docs/DEVELOPMENT_HARNESS_V2.md; docs/NEW_FILE_PLACEMENT_GUIDE_V2.md; docs/FUTURE_IDEAS_BACKLOG_V2.md; docs/VOICING_MODULE_FILE_AUDIT_V2.md; docs/PROJECT_DOCUMENTATION_AUDIT_V2.md; docs/CLOSED_3_4_NOTE_BASELINE_AND_PRE_DISPOSITION_PLAN_V2.md; docs/DISPOSITION_PROJECTION_ARCHITECTURE_V2.md; docs/VOICING_TEXTURE_STATE_ARCHITECTURE_V2.md; generate_closed_34note_baseline_smoke_listening.py; generate_3note_closed_listening_verification_demos.py; generate_4note_source_weight_listening_verification_demos.py; generate_4note_triad_closed_listening_verification_demos.py; generate_4note_triad_closed_listening_verification_demos; closed_34note_baseline_smoke_summary; 4-note triad-aware closed listening; closed register downshift; closed legality; avg_closed_4note_source_collapse_distance; closed_3note_closed_legality_then_nearest_motion; closed_3note_per_source_minimum_motion; closed_4note_per_source_minimum_motion; closed_4note_minimum_motion_events; closed_voicing_lowest_note_floor; min_closed_voicing_lowest_note; max_closed_voicing_span; max_density; min_density; preferred_density.
+
+## v2_6_7 update — SPREAD upper source adapter split
+- SPREAD upper source/orientation adaptation is now owned by `core/voicing/disposition/spread_upper_sources.py`.
+- The adapter remains notes-only and source-oriented: it reuses core content-planner/color/upper-structure source resources and DROP2/DROP3 method names, but it must not reuse final CLOSED/OPEN placements as SPREAD placements.
+- Public compatibility remains through `core.voicing.disposition.spread` and `core.voicing.disposition`.
+- This is behavior-preserving: no source weights, style policies, pattern, expression, gesture, realization, pedal, MIDI, API, Agent, or shared version files changed.
+
 ## v2_2_56 update — Ballad SPREAD 1+3 Pilot + Demo
 - SPREAD `1+3` is an explicit listening/audit candidate: lower/foundation group = root only; upper/projection group = existing 3-note content source/oriented upper stack.
 - The combined 1+3 voicing must preserve seventh-chord identity under the global v2_2_54 source-integrity gate; seventh chords cannot become triad/add shapes that drop the defining 3/7.
@@ -311,3 +349,22 @@ For two-beat Jazz Ballad regions, the soft-mark / light-retouch piano candidates
 ## v2_5_10 Integration Note
 
 Engine generation rules remain at the `v2_5_9` official engine-deepening baseline. The discarded experimental Ballad brush-drums shortcut is not part of this integrated baseline.
+
+
+## v2_6_5 Engine Voicing SPREAD Boundary Split Plan
+
+SPREAD remains a voicing disposition/projection family. It owns lower/upper functional grouping, register/gap/span/root-anchor legality, groupwise voice-leading, and adapter/gate logic for converting SPREAD candidates into ordinary voicing candidates. It does not own pattern rhythm, anticipation, expression, pedal, MIDI writing, or style pattern vocabulary.
+
+Current `core/voicing/disposition/spread.py` responsibilities are now inventoried for future behavior-preserving extraction: contracts, lower group inventory and placement, upper source adapter, register guards, basic projection, groupwise voice-leading, runtime gate, runtime adapter, Ballad pilot/isolation, and debug/audit wrappers.
+
+Before any SPREAD implementation split, preserve the v2_6_5 behavior signatures for: lower recipe ids, seven spread contract skeletons, and representative projection output for `Cmaj7`, `G7b9`, and `Bm7b5`. Future split work must keep public imports from `jammate_engine.core.voicing.disposition.spread`, `jammate_engine.core.voicing.disposition`, and `jammate_engine.core.voicing` compatible.
+
+## v2_6_6 Engine Voicing SPREAD Lower Group Split
+
+- No runtime music-generation behavior changed in this pass.
+- `spread_lower_groups.py` now owns SPREAD lower/foundation recipe ids, recipe dataclasses, inventory, chord-quality-aware instantiation, lower placement, and lower inventory debug payloads.
+- `spread_contracts.py` now owns small shared SPREAD contract constants/enums needed before a full package conversion.
+- `spread.py` remains the public compatibility surface and re-exports the lower-group API; existing imports from `jammate_engine.core.voicing.disposition.spread` and `jammate_engine.core.voicing.disposition` continue to work.
+- The lower group owner remains notes-only and does not own Pattern, Anticipation, Expression, Gesture, MIDI writer, velocity, duration, or pedal decisions.
+- v2_6_5 frozen behavior signatures for lower recipe ids and representative SPREAD candidates are preserved.
+

@@ -5,231 +5,66 @@ from enum import Enum
 from typing import Any
 
 from jammate_engine.core.harmony.chord_parser import parse_chord
-from jammate_engine.core.harmony.material import (
-    degree_to_semitone,
-    fifth_degree_for_chord,
-    seventh_degree_for_chord,
-    third_degree_for_chord,
-)
-
 from .closed import compact_closed_parent_candidates_for_projection
 from .models import OpenProjectionMethod
 from .open import named_open_projection_metadata, place_named_open_projection_from_closed_parents
 from .placement_utils import Degree, PlacedDegree, dedupe_by_note, degree_to_note, place_stack
 
 
-SPREAD_RECIPE_CONTRACT_VERSION = "v2_2_40"
+from .spread_contracts import (
+    SPREAD_RECIPE_CONTRACT_VERSION,
+    SpreadGrouping,
+    SpreadReuseStatus,
+    SpreadUpperSourceKind,
+)
+from .spread_lower_groups import (
+    LOWER_GROUP_INVENTORY_VERSION,
+    LowerGroupDegreeSpec,
+    LowerGroupPlacement,
+    LowerGroupRecipeId,
+    LowerGroupRecipeInstance,
+    LowerGroupRecipeInventoryItem,
+    lower_group_inventory_debug,
+    lower_group_recipe_by_id,
+    lower_group_recipe_inventory,
+    instantiate_lower_group_recipe,
+    place_lower_group_recipe,
+)
 
+from .spread_upper_sources import (
+    UPPER_SOURCE_ADAPTER_VERSION,
+    SpreadUpperSourceAdapterResult,
+    SpreadUpperSourceOption,
+    UpperSourceRef,
+    _is_upper_structure_source,
+    _spread_allowed_upper_4note_projection_methods,
+    _upper_structure_enabled_for_policy,
+    _upper_structure_lower_gate_enabled,
+    _upper_structure_lower_mode,
+    _upper_structure_source_id,
+    adapt_spread_upper_source_from_ref,
+)
 
-class SpreadGrouping(str, Enum):
-    """Abstract SPREAD grouping shapes, expressed as lower+upper roles.
-
-    These values mirror core voicing ``FunctionalGrouping`` strings but live in
-    the SPREAD projection module so the notes/projection contract can be audited
-    without importing higher-level policy objects and creating a circular import.
-    """
-
-    ONE_PLUS_THREE = "1+3"
-    TWO_PLUS_TWO = "2+2"
-    ONE_PLUS_FOUR = "1+4"
-    TWO_PLUS_THREE = "2+3"
-    TWO_PLUS_FOUR = "2+4"
-    THREE_PLUS_THREE = "3+3"
-    THREE_PLUS_FOUR = "3+4"
-
-
-class SpreadUpperSourceKind(str, Enum):
-    """Kind of reusable upper material referenced by a SPREAD recipe."""
-
-    TWO_NOTE_CONTENT_SOURCE = "two_note_content_source"
-    THREE_NOTE_CONTENT_SOURCE = "three_note_content_source"
-    FOUR_NOTE_CONTENT_SOURCE = "four_note_content_source"
-    DROP_FAMILY_DERIVED_PROJECTION_BLOCK = "drop_family_derived_projection_block"
-
-
-class SpreadReuseStatus(str, Enum):
-    """Audit status for source/projection reuse before new construction."""
-
-    REUSE_READY = "reuse_ready"
-    ADAPTER_REQUIRED = "adapter_required"
-    NOT_REUSABLE = "not_reusable"
-
-
-LOWER_GROUP_INVENTORY_VERSION = "v2_2_38"
-
-
-class LowerGroupRecipeId(str, Enum):
-    """Implemented lower/foundation recipe ids for SPREAD planning."""
-
-    ROOT = "lower_1note_root"
-    ROOT_SEVENTH = "lower_2note_root_7"
-    ROOT_THIRD = "lower_2note_root_3"
-    ROOT_FIFTH = "lower_2note_root_5"
-    THIRD_SEVENTH = "lower_2note_3_7"
-    ROOT_FIFTH_UPPER_ROOT = "lower_3note_root_5_upper_root"
-    ROOT_THIRD_SEVENTH = "lower_3note_root_3_7"
-    ROOT_FIFTH_SEVENTH = "lower_3note_root_5_7"
-    ROOT_SEVENTH_UPPER_THIRD = "lower_3note_root_7_upper3"
-    ROOT_FIFTH_UPPER_THIRD = "lower_3note_root_5_upper3"
-
-
-@dataclass(frozen=True)
-class LowerGroupDegreeSpec:
-    """One chord-quality-aware degree inside a lower/foundation group.
-
-    ``role`` names the functional recipe slot. ``degree`` is the resolved chord
-    degree token owned by Harmony, not a locally redefined pitch rule.  The
-    semitone is compact by default; only ``upper_root`` deliberately uses 12 so
-    duplicated root recipes can retain two distinct root notes within one octave.
-    """
-
-    role: str
-    degree: str
-    relative_semitone: int
-    source: str = "core.harmony.material"
-
-    def to_degree_pair(self) -> Degree:
-        return (self.degree, int(self.relative_semitone))
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "role": self.role,
-            "degree": self.degree,
-            "relative_semitone": self.relative_semitone,
-            "source": self.source,
-        }
-
-
-@dataclass(frozen=True)
-class LowerGroupRecipeInventoryItem:
-    """Implemented lower/foundation inventory item for future SPREAD projection."""
-
-    recipe_id: LowerGroupRecipeId
-    note_count: int
-    role_contract: tuple[str, ...]
-    group_role: str = "lower/foundation"
-    requires_within_octave: bool = True
-    max_span_semitones: int = 12
-    runtime_enabled: bool = False
-    implementation_status: str = "implemented_inventory_notes_only"
-
-    @property
-    def ref_id(self) -> str:
-        return self.recipe_id.value
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "inventory_version": LOWER_GROUP_INVENTORY_VERSION,
-            "recipe_id": self.recipe_id.value,
-            "note_count": self.note_count,
-            "role_contract": list(self.role_contract),
-            "group_role": self.group_role,
-            "requires_within_octave": self.requires_within_octave,
-            "max_span_semitones": self.max_span_semitones,
-            "runtime_enabled": self.runtime_enabled,
-            "implementation_status": self.implementation_status,
-        }
-
-
-@dataclass(frozen=True)
-class LowerGroupRecipeInstance:
-    """Chord-specific lower group degrees before register placement."""
-
-    chord_symbol: str
-    recipe: LowerGroupRecipeInventoryItem
-    degree_specs: tuple[LowerGroupDegreeSpec, ...]
-    is_available: bool = True
-    unavailable_reason: str = ""
-
-    @property
-    def degree_names(self) -> tuple[str, ...]:
-        return tuple(spec.degree for spec in self.degree_specs)
-
-    @property
-    def role_names(self) -> tuple[str, ...]:
-        return tuple(spec.role for spec in self.degree_specs)
-
-    @property
-    def relative_semitones(self) -> tuple[int, ...]:
-        return tuple(int(spec.relative_semitone) for spec in self.degree_specs)
-
-    @property
-    def span_semitones(self) -> int:
-        if not self.degree_specs:
-            return 0
-        values = self.relative_semitones
-        return int(max(values) - min(values))
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "inventory_version": LOWER_GROUP_INVENTORY_VERSION,
-            "chord_symbol": self.chord_symbol,
-            "recipe": self.recipe.to_debug_dict(),
-            "degree_specs": [spec.to_debug_dict() for spec in self.degree_specs],
-            "degree_names": list(self.degree_names),
-            "role_names": list(self.role_names),
-            "relative_semitones": list(self.relative_semitones),
-            "span_semitones": self.span_semitones,
-            "is_available": self.is_available,
-            "unavailable_reason": self.unavailable_reason,
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-        }
-
-
-@dataclass(frozen=True)
-class LowerGroupPlacement:
-    """Register-guarded lower group placement with metadata for future scorers."""
-
-    instance: LowerGroupRecipeInstance
-    placed_degrees: tuple[PlacedDegree, ...]
-    low: int
-    high: int
-    target_low: int
-    is_legal: bool
-    legality_reason: str = ""
-
-    @property
-    def notes(self) -> tuple[int, ...]:
-        return tuple(int(note) for _, note in self.placed_degrees)
-
-    @property
-    def span_semitones(self) -> int:
-        if not self.notes:
-            return 0
-        return int(max(self.notes) - min(self.notes))
-
-    @property
-    def metadata(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "inventory_version": LOWER_GROUP_INVENTORY_VERSION,
-            "lower_group_recipe_id": self.instance.recipe.recipe_id.value,
-            "lower_group_note_count": self.instance.recipe.note_count,
-            "lower_group_roles": list(self.instance.role_names),
-            "lower_group_degrees": list(self.instance.degree_names),
-            "lower_group_requires_within_octave": self.instance.recipe.requires_within_octave,
-            "lower_group_span_semitones": self.span_semitones,
-            "lower_group_max_span_semitones": self.instance.recipe.max_span_semitones,
-            "lower_group_register_low": int(self.low),
-            "lower_group_register_high": int(self.high),
-            "lower_group_target_low": int(self.target_low),
-            "is_legal": self.is_legal,
-            "legality_reason": self.legality_reason,
-            "group_role": self.instance.recipe.group_role,
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-            "runtime_enabled": False,
-        }
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            **self.metadata,
-            "chord_symbol": self.instance.chord_symbol,
-            "placed_degrees": [[degree, int(note)] for degree, note in self.placed_degrees],
-        }
+from .spread_register_guards import (
+    BASIC_SPREAD_PROJECTION_VERSION,
+    LOW_REGISTER_DENSITY_GUARD_VERSION,
+    SPREAD_REGISTER_GUARD_SPLIT_VERSION,
+    UPPER_STRUCTURE_SPREAD_PILOT_VERSION,
+    SpreadProjectionRegisterPolicy,
+    basic_spread_projection_legality as _basic_spread_projection_legality,
+    basic_spread_register_policy,
+    is_spread_1plus4_contract as _is_spread_1plus4_contract,
+    is_spread_3plus4_contract as _is_spread_3plus4_contract,
+    low_register_density_guard_passed as _low_register_density_guard_passed,
+    lower_group_register_window as _lower_group_register_window,
+    root_anchor_tail_span_guard_enabled as _root_anchor_tail_span_guard_enabled,
+    root_anchor_tail_span_guard_passed as _root_anchor_tail_span_guard_passed,
+    root_bass_note_from_lower as _root_bass_note_from_lower,
+    rooted_bass_anchor_passed as _rooted_bass_anchor_passed,
+    spread_register_guard_debug,
+    spread_register_policy_for_contract as _spread_register_policy_for_contract,
+    upper_structure_root_shell_tail_gate_passed as _upper_structure_root_shell_tail_gate_passed,
+)
 
 
 @dataclass(frozen=True)
@@ -285,39 +120,6 @@ class LowerGroupRecipeContract:
         }
 
 
-@dataclass(frozen=True)
-class UpperSourceRef:
-    """Reference to existing upper source/orientation/projection resources.
-
-    SPREAD may reuse source definitions, orientation metadata, color permission,
-    and drop-family projection resources.  It may not reuse an already-finalized
-    closed/open candidate as the SPREAD placement.
-    """
-
-    ref_id: str
-    note_count: int
-    kind: SpreadUpperSourceKind
-    reusable_owner_paths: tuple[str, ...]
-    projection_methods: tuple[str, ...] = ()
-    reusable_level: str = "source/orientation/projection_resource"
-    final_placed_result_reuse_allowed: bool = False
-    adapter_required: bool = True
-    color_policy_owner_path: str = "core.voicing.color_permission"
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "ref_id": self.ref_id,
-            "note_count": self.note_count,
-            "kind": self.kind.value,
-            "reusable_owner_paths": list(self.reusable_owner_paths),
-            "projection_methods": list(self.projection_methods),
-            "reusable_level": self.reusable_level,
-            "final_placed_result_reuse_allowed": self.final_placed_result_reuse_allowed,
-            "adapter_required": self.adapter_required,
-            "color_policy_owner_path": self.color_policy_owner_path,
-        }
-
 
 @dataclass(frozen=True)
 class SpreadRecipeContract:
@@ -350,8 +152,6 @@ class SpreadRecipeContract:
         }
 
 
-UPPER_SOURCE_ADAPTER_VERSION = "v2_2_39"
-BASIC_SPREAD_PROJECTION_VERSION = "v2_2_40"
 GROUPWISE_SPREAD_VOICE_LEADING_VERSION = "v2_2_41"
 SPREAD_SELECTOR_RUNTIME_GATE_VERSION = "v2_2_42"
 BALLAD_SPREAD_RUNTIME_ENTRY_CONTRACT_VERSION = "v2_2_43"
@@ -380,177 +180,6 @@ BALLAD_SPREAD_3PLUS4_COLOR_UPPER_VERSION = "v2_2_76"
 BALLAD_SPREAD_3PLUS4_MUSICAL_CLOSURE_VERSION = "v2_2_76"
 BALLAD_SPREAD_GROUPING_MIX_POLICY_VERSION = "v2_2_84"
 BALLAD_SPREAD_TEXTURE_STATE_MIX_VERSION = "v2_2_84"
-UPPER_STRUCTURE_SPREAD_PILOT_VERSION = "v2_2_84"
-LOW_REGISTER_DENSITY_GUARD_VERSION = "v2_2_84"
-
-
-@dataclass(frozen=True)
-class SpreadUpperSourceOption:
-    """Source/orientation-level upper material adapted for future SPREAD projection.
-
-    This object deliberately carries degrees and metadata only.  It is not a
-    closed/open placement and must not be treated as a final voicing candidate.
-    The source data comes from the existing content planner, color gate, and
-    canonical orientation metadata so SPREAD does not grow a parallel source
-    inventory.
-    """
-
-    chord_symbol: str
-    ref_id: str
-    kind: SpreadUpperSourceKind
-    source_family: str
-    degrees: tuple[tuple[str, int], ...]
-    source_metadata: tuple[str, ...]
-    functional_source_type: str
-    orientation_token: str
-    reusable_owner_paths: tuple[str, ...]
-    projection_methods: tuple[str, ...] = ()
-    adapter_owner_path: str = "core.voicing.disposition.spread"
-    final_placed_result_reuse_allowed: bool = False
-    notes_only: bool = True
-    runtime_enabled: bool = False
-
-    @property
-    def note_count(self) -> int:
-        return len(self.degrees)
-
-    @property
-    def degree_names(self) -> tuple[str, ...]:
-        return tuple(str(degree) for degree, _ in self.degrees)
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "upper_source_adapter_version": UPPER_SOURCE_ADAPTER_VERSION,
-            "chord_symbol": self.chord_symbol,
-            "ref_id": self.ref_id,
-            "kind": self.kind.value,
-            "note_count": self.note_count,
-            "degree_names": list(self.degree_names),
-            "degrees": [[degree, int(semitone)] for degree, semitone in self.degrees],
-            "source_family": self.source_family,
-            "functional_source_type": self.functional_source_type,
-            "orientation_token": self.orientation_token,
-            "source_metadata": list(self.source_metadata),
-            "reusable_owner_paths": list(self.reusable_owner_paths),
-            "projection_methods": list(self.projection_methods),
-            "adapter_owner_path": self.adapter_owner_path,
-            "source_oriented_not_placed": True,
-            "final_placed_result_reuse_allowed": self.final_placed_result_reuse_allowed,
-            "notes_only": self.notes_only,
-            "runtime_enabled": self.runtime_enabled,
-            "no_expression_or_pedal": True,
-        }
-
-
-@dataclass(frozen=True)
-class SpreadUpperSourceAdapterResult:
-    """Adapter result for one ``UpperSourceRef`` and chord symbol."""
-
-    chord_symbol: str
-    upper_source_ref: UpperSourceRef
-    options: tuple[SpreadUpperSourceOption, ...]
-    policy_metadata: dict[str, object]
-    adapter_owner_path: str = "core.voicing.disposition.spread"
-    runtime_enabled: bool = False
-
-    @property
-    def option_count(self) -> int:
-        return len(self.options)
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "upper_source_adapter_version": UPPER_SOURCE_ADAPTER_VERSION,
-            "chord_symbol": self.chord_symbol,
-            "upper_source_ref": self.upper_source_ref.to_debug_dict(),
-            "option_count": self.option_count,
-            "options": [option.to_debug_dict() for option in self.options],
-            "policy_metadata": dict(self.policy_metadata),
-            "adapter_owner_path": self.adapter_owner_path,
-            "source_oriented_not_placed": True,
-            "final_placed_result_reuse_allowed": False,
-            "notes_only": True,
-            "runtime_enabled": self.runtime_enabled,
-            "no_expression_or_pedal": True,
-        }
-
-
-
-@dataclass(frozen=True)
-class SpreadProjectionRegisterPolicy:
-    """Register/gap/span guard used by the basic SPREAD projection skeleton.
-
-    The names stay lower/upper rather than LH/RH.  Piano realization may later
-    map these bands to hands, but core voicing keeps the abstract grouping
-    contract reusable for other instruments.
-    """
-
-    lower_low: int = 36
-    lower_high: int = 60
-    lower_2note_low: int = 40  # E2
-    lower_2note_high: int = 52  # E3
-    lower_2note_target_low: int = 40  # E2
-    lower_2note_min_top: int = 40  # E2
-    lower_2note_foundation_mode: str = "rooted"
-    rooted_bass_anchor_enabled: bool = False
-    root_bass_anchor_low: int = 36  # C2
-    root_bass_anchor_high: int = 48  # C3
-    root_bass_anchor_target: int = 39  # Eb2-ish for ballad anchor demos
-    root_bass_anchor_high_tail_semitones: int = 4
-    root_bass_anchor_high_tail_max_lower_span: int = 12
-    whole_register_low: int = 36
-    whole_register_high: int = 84
-    upper_low: int = 48
-    upper_high: int = 84
-    lower_target_low: int = 36
-    lower_1note_target_low: int = 36
-    upper_target_low: int = 60
-    min_group_gap: int = 5
-    max_group_gap: int = 28
-    max_overall_span: int = 48
-    low_register_density_guard_enabled: bool = False
-    upper_structure_lower_gate_enabled: bool = False
-    low_register_density_threshold: int = 40  # E2
-    low_register_density_max_notes_below: int = 1
-    runtime_enabled: bool = False
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "basic_spread_projection_version": BASIC_SPREAD_PROJECTION_VERSION,
-            "lower_low": int(self.lower_low),
-            "lower_high": int(self.lower_high),
-            "upper_low": int(self.upper_low),
-            "upper_high": int(self.upper_high),
-            "lower_target_low": int(self.lower_target_low),
-            "lower_1note_target_low": int(self.lower_1note_target_low),
-            "lower_2note_low": int(self.lower_2note_low),
-            "lower_2note_high": int(self.lower_2note_high),
-            "lower_2note_target_low": int(self.lower_2note_target_low),
-            "lower_2note_min_top": int(self.lower_2note_min_top),
-            "lower_2note_foundation_mode": str(self.lower_2note_foundation_mode),
-            "rooted_bass_anchor_enabled": bool(self.rooted_bass_anchor_enabled),
-            "root_bass_anchor_low": int(self.root_bass_anchor_low),
-            "root_bass_anchor_high": int(self.root_bass_anchor_high),
-            "root_bass_anchor_target": int(self.root_bass_anchor_target),
-            "root_bass_anchor_high_tail_semitones": int(self.root_bass_anchor_high_tail_semitones),
-            "root_bass_anchor_high_tail_max_lower_span": int(self.root_bass_anchor_high_tail_max_lower_span),
-            "whole_register_low": int(self.whole_register_low),
-            "whole_register_high": int(self.whole_register_high),
-            "upper_target_low": int(self.upper_target_low),
-            "min_group_gap": int(self.min_group_gap),
-            "max_group_gap": int(self.max_group_gap),
-            "max_overall_span": int(self.max_overall_span),
-            "low_register_density_guard_enabled": bool(self.low_register_density_guard_enabled),
-            "upper_structure_lower_gate_enabled": bool(self.upper_structure_lower_gate_enabled),
-            "upper_structure_spread_pilot_version": UPPER_STRUCTURE_SPREAD_PILOT_VERSION if self.upper_structure_lower_gate_enabled else None,
-            "low_register_density_threshold": int(self.low_register_density_threshold),
-            "low_register_density_max_notes_below": int(self.low_register_density_max_notes_below),
-            "low_register_density_guard_version": LOW_REGISTER_DENSITY_GUARD_VERSION if self.low_register_density_guard_enabled else None,
-            "runtime_enabled": self.runtime_enabled,
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-        }
 
 
 @dataclass(frozen=True)
@@ -2287,83 +1916,10 @@ def adapt_spread_upper_source(
     upper_source_ref: UpperSourceRef | str,
     policy: Any | None = None,
 ) -> SpreadUpperSourceAdapterResult:
-    """Adapt existing voicing source/orientation resources for a SPREAD upper group.
-
-    This is the v2_2_39 upper-source boundary: it asks the existing content
-    planner for chord-quality-correct source degrees, preserves source metadata,
-    and returns unplaced upper options.  It intentionally does not call the final
-    candidate generator and does not reuse completed CLOSED/OPEN ``VoicingCandidate``
-    placements.
-    """
+    """Adapt existing voicing source/orientation resources for a SPREAD upper group."""
 
     ref = spread_upper_source_ref_by_id(upper_source_ref) if isinstance(upper_source_ref, str) else upper_source_ref
-    voicing_policy = _spread_upper_adapter_policy(ref, policy)
-    source_recipes = _plan_upper_source_content_recipes(chord_symbol, ref, voicing_policy)
-    options: list[SpreadUpperSourceOption] = []
-    seen: set[tuple[str, tuple[str, ...], tuple[str, ...]]] = set()
-    for upper_structure in _plan_upper_structure_sources_for_spread(chord_symbol, ref, voicing_policy):
-        degrees = tuple((str(degree), int(semitone)) for degree, semitone in upper_structure.degrees)
-        source_metadata = tuple(str(note) for note in upper_structure.source_notes)
-        source_family = str(upper_structure.structure_kind)
-        key = (source_family, tuple(degree for degree, _ in degrees), source_metadata)
-        if key in seen:
-            continue
-        seen.add(key)
-        options.append(
-            SpreadUpperSourceOption(
-                chord_symbol=str(upper_structure.symbol),
-                ref_id=ref.ref_id,
-                kind=ref.kind,
-                source_family=source_family,
-                degrees=degrees,
-                source_metadata=source_metadata,
-                functional_source_type=str(upper_structure.source_id),
-                orientation_token="upper_structure_source_family",
-                reusable_owner_paths=(*ref.reusable_owner_paths, "core.voicing.sources.upper_structure"),
-                projection_methods=_normalized_upper_projection_methods(ref),
-            )
-        )
-    for recipe in source_recipes:
-        degrees = tuple((str(degree), int(semitone)) for degree, semitone in getattr(recipe, "degrees", ()))
-        if len(degrees) != ref.note_count:
-            continue
-        source_metadata = tuple(str(note) for note in getattr(recipe, "validity_notes", ()) or ())
-        source_family = getattr(getattr(recipe, "family", None), "value", str(getattr(recipe, "family", "unknown")))
-        functional_type = _extract_upper_functional_source_type(source_metadata, source_family)
-        orientation_token = _extract_upper_orientation_token(source_metadata)
-        key = (source_family, tuple(degree for degree, _ in degrees), source_metadata)
-        if key in seen:
-            continue
-        seen.add(key)
-        options.append(
-            SpreadUpperSourceOption(
-                chord_symbol=str(getattr(recipe, "symbol", chord_symbol)),
-                ref_id=ref.ref_id,
-                kind=ref.kind,
-                source_family=source_family,
-                degrees=degrees,
-                source_metadata=source_metadata,
-                functional_source_type=functional_type,
-                orientation_token=orientation_token,
-                reusable_owner_paths=ref.reusable_owner_paths,
-                projection_methods=_normalized_upper_projection_methods(ref),
-            )
-        )
-    if not bool(_spread_policy_metadata(voicing_policy).get("spread_upper_structure_prefer", True)):
-        options.sort(
-            key=lambda option: (
-                1 if _is_upper_structure_source(option) else 0,
-                str(option.source_family),
-                option.degree_names,
-                option.source_metadata,
-            )
-        )
-    return SpreadUpperSourceAdapterResult(
-        chord_symbol=parse_chord(chord_symbol).symbol,
-        upper_source_ref=ref,
-        options=tuple(options),
-        policy_metadata=_spread_upper_adapter_policy_metadata(voicing_policy, ref),
-    )
+    return adapt_spread_upper_source_from_ref(chord_symbol, ref, policy)
 
 
 def adapt_spread_upper_sources_for_contracts(
@@ -2383,6 +1939,7 @@ def spread_upper_source_adapter_debug(chord_symbol: str = "Cmaj7", policy: Any |
         "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
         "upper_source_adapter_version": UPPER_SOURCE_ADAPTER_VERSION,
         "layer": "core.voicing.disposition.spread",
+        "implementation_owner": "core.voicing.disposition.spread_upper_sources",
         "purpose": "SPREAD upper source adapter using existing source/orientation/color/drop resources",
         "runtime_enabled": False,
         "notes_only": True,
@@ -2391,54 +1948,6 @@ def spread_upper_source_adapter_debug(chord_symbol: str = "Cmaj7", policy: Any |
         "final_placed_result_reuse_allowed": False,
         "results": [result.to_debug_dict() for result in results],
     }
-
-
-
-def basic_spread_register_policy(policy: Any | None = None) -> SpreadProjectionRegisterPolicy:
-    """Build the default lower/upper guard for basic SPREAD projection.
-
-    Caller policies may provide register fields, but this helper deliberately
-    converts them into a small SPREAD-specific contract rather than passing a
-    whole runtime policy through the notes/projection layer.
-    """
-
-    if isinstance(policy, SpreadProjectionRegisterPolicy):
-        return policy
-    if policy is None:
-        return SpreadProjectionRegisterPolicy()
-    try:
-        metadata = dict(getattr(policy, "metadata", None) or {})
-    except Exception:
-        metadata = {}
-    return SpreadProjectionRegisterPolicy(
-        lower_low=int(metadata.get("spread_lower_low", getattr(policy, "left_hand_low", 36))),
-        lower_high=int(metadata.get("spread_lower_high", getattr(policy, "left_hand_high", 60))),
-        lower_2note_low=int(metadata.get("spread_lower_2note_low", 40)),
-        lower_2note_high=int(metadata.get("spread_lower_2note_high", 52)),
-        lower_2note_target_low=int(metadata.get("spread_lower_2note_target_low", 40)),
-        lower_2note_min_top=int(metadata.get("spread_lower_2note_min_top", 40)),
-        lower_2note_foundation_mode=str(metadata.get("spread_lower_2note_foundation_mode", "rooted")),
-        rooted_bass_anchor_enabled=bool(metadata.get("spread_rooted_bass_anchor_enabled", False)),
-        root_bass_anchor_low=int(metadata.get("spread_root_bass_anchor_low", metadata.get("spread_whole_register_low", 36))),
-        root_bass_anchor_high=int(metadata.get("spread_root_bass_anchor_high", 48)),
-        root_bass_anchor_target=int(metadata.get("spread_root_bass_anchor_target", metadata.get("spread_root_bass_anchor_low", 36))),
-        root_bass_anchor_high_tail_semitones=int(metadata.get("spread_root_bass_anchor_high_tail_semitones", 4)),
-        root_bass_anchor_high_tail_max_lower_span=int(metadata.get("spread_root_bass_anchor_high_tail_max_lower_span", 12)),
-        whole_register_low=int(metadata.get("spread_whole_register_low", 36)),
-        whole_register_high=int(metadata.get("spread_whole_register_high", 84)),
-        upper_low=int(metadata.get("spread_upper_low", getattr(policy, "right_hand_low", 48))),
-        upper_high=int(metadata.get("spread_upper_high", getattr(policy, "right_hand_high", 84))),
-        lower_target_low=int(metadata.get("spread_lower_target_low", getattr(policy, "left_hand_low", 36))),
-        lower_1note_target_low=int(metadata.get("spread_lower_1note_target_low", metadata.get("spread_lower_target_low", getattr(policy, "left_hand_low", 36)))),
-        upper_target_low=int(metadata.get("spread_upper_target_low", getattr(policy, "right_hand_low", 60))),
-        min_group_gap=int(metadata.get("spread_min_group_gap", 5)),
-        max_group_gap=int(metadata.get("spread_max_group_gap", 28)),
-        max_overall_span=int(metadata.get("spread_max_overall_span", 48)),
-        low_register_density_guard_enabled=bool(metadata.get("spread_low_register_density_guard_enabled", False)),
-        upper_structure_lower_gate_enabled=bool(metadata.get("spread_upper_structure_lower_gate_enabled", False)),
-        low_register_density_threshold=int(metadata.get("spread_low_register_density_threshold", 40)),
-        low_register_density_max_notes_below=int(metadata.get("spread_low_register_density_max_notes_below", 1)),
-    )
 
 
 def project_basic_spread_contract(
@@ -5095,99 +4604,6 @@ def _spread_policy_metadata(policy: Any | None) -> dict[str, object]:
         return dict(policy or {}) if isinstance(policy, dict) else {}
 
 
-def _is_spread_1plus4_contract(contract: SpreadRecipeContract) -> bool:
-    return str(getattr(contract, "recipe_id", "")) == "spread_1plus4_contract"
-
-
-def _is_spread_3plus4_contract(contract: SpreadRecipeContract) -> bool:
-    return str(getattr(contract, "recipe_id", "")) == "spread_3plus4_contract"
-
-
-
-def _upper_structure_enabled_for_policy(policy: Any | None) -> bool:
-    metadata = _spread_policy_metadata(policy)
-    if metadata.get("spread_upper_structure_force_enabled") is True:
-        return True
-    if metadata.get("spread_upper_structure_enabled") is False:
-        return False
-    if metadata.get("spread_upper_structure_enabled") is True:
-        return True
-    nested = metadata.get("upper_structure")
-    if isinstance(nested, dict) and nested.get("enabled") is True:
-        return True
-    return False
-
-
-def _upper_structure_lower_gate_enabled(metadata: dict[str, object]) -> bool:
-    return bool(
-        metadata.get("spread_upper_structure_lower_gate_enabled", False)
-        or metadata.get("spread_upper_structure_enabled", False)
-        or metadata.get("spread_upper_structure_force_enabled", False)
-    )
-
-
-def _plan_upper_structure_sources_for_spread(
-    chord_symbol: str,
-    ref: UpperSourceRef,
-    policy: Any | None,
-) -> tuple[Any, ...]:
-    if int(ref.note_count) not in {3, 4}:
-        return ()
-    if not _upper_structure_enabled_for_policy(policy):
-        return ()
-    try:
-        from jammate_engine.core.voicing.sources.upper_structure import plan_upper_structure_sources
-    except Exception:  # pragma: no cover - defensive optional boundary
-        return ()
-    return tuple(plan_upper_structure_sources(chord_symbol, density=int(ref.note_count), policy=policy))
-
-
-def _is_upper_structure_source(option: SpreadUpperSourceOption) -> bool:
-    family = str(getattr(option, "source_family", ""))
-    return family in {"upper_structure_triad", "upper_structure_4note"} or any(
-        str(note) == "upper_structure_source_family" for note in getattr(option, "source_metadata", ())
-    )
-
-
-def _upper_structure_source_id(option: SpreadUpperSourceOption) -> str | None:
-    if not _is_upper_structure_source(option):
-        return None
-    prefix = "upper_structure_source_id_"
-    for note in getattr(option, "source_metadata", ()):  # source metadata is tuple[str, ...]
-        text = str(note)
-        if text.startswith(prefix):
-            return text.removeprefix(prefix)
-    return str(getattr(option, "functional_source_type", "upper_structure"))
-
-
-def _upper_structure_lower_mode(recipe_id: LowerGroupRecipeId | str) -> str:
-    try:
-        normalized = recipe_id if isinstance(recipe_id, LowerGroupRecipeId) else LowerGroupRecipeId(str(recipe_id))
-    except ValueError:
-        return "unknown"
-    if normalized == LowerGroupRecipeId.THIRD_SEVENTH:
-        return "shell"
-    if normalized in {LowerGroupRecipeId.ROOT_SEVENTH_UPPER_THIRD, LowerGroupRecipeId.ROOT_THIRD_SEVENTH}:
-        return "root_plus_shell"
-    return "not_upper_structure_lower_mode"
-
-
-def _upper_structure_root_shell_tail_gate_passed(
-    lower: LowerGroupPlacement,
-    register_policy: SpreadProjectionRegisterPolicy,
-) -> bool:
-    root_note = _root_bass_note_from_lower(lower)
-    if root_note is None:
-        return False
-    high_tail_start = int(register_policy.root_bass_anchor_high) - int(register_policy.root_bass_anchor_high_tail_semitones)
-    return int(root_note) >= int(high_tail_start)
-
-
-def _low_register_density_guard_passed(notes: list[int] | tuple[int, ...], register_policy: SpreadProjectionRegisterPolicy) -> bool:
-    if not bool(register_policy.low_register_density_guard_enabled):
-        return True
-    below = [int(note) for note in notes if int(note) < int(register_policy.low_register_density_threshold)]
-    return len(below) <= int(register_policy.low_register_density_max_notes_below)
 
 def _spread_runtime_policy_for_contract(contract: SpreadRecipeContract, policy: Any | None) -> Any | None:
     from dataclasses import replace
@@ -5231,10 +4647,9 @@ def _spread_runtime_policy_for_contract(contract: SpreadRecipeContract, policy: 
 
     if upper_structure_enabled:
         # v2_2_84: Upper Structure entry does not itself authorize harmonic
-        # expansion. It only opens the source-family door;
-        # sources.upper_structure then gates actual color by
-        # harmonic_expansion + altered_dominant policy. The low-register and
-        # lower-mode guards remain contract-local here.
+        # expansion. It only opens the source-family door; sources.upper_structure
+        # then gates actual color by harmonic_expansion + altered_dominant policy.
+        # The low-register and lower-mode guards remain contract-local here.
         metadata.update({
             "spread_upper_structure_enabled": True,
             "spread_upper_structure_pilot_version": UPPER_STRUCTURE_SPREAD_PILOT_VERSION,
@@ -5251,68 +4666,6 @@ def _spread_runtime_policy_for_contract(contract: SpreadRecipeContract, policy: 
         harmonic_expansion_enabled=bool(harmonic_expansion_enabled),
         color_policy_mode=color_policy_mode,
         metadata=metadata,
-    )
-
-
-def _spread_register_policy_for_contract(
-    contract: SpreadRecipeContract,
-    register_policy: SpreadProjectionRegisterPolicy,
-) -> SpreadProjectionRegisterPolicy:
-    if not _is_spread_3plus4_contract(contract):
-        return register_policy
-    # v2_2_76: 3+4 is a thick/climax SPREAD texture with its own whole-voicing
-    # register guard.  Keep this contract-local: other SPREAD groupings still use
-    # their existing lower/upper ranges.
-    return replace(
-        register_policy,
-        lower_low=min(int(register_policy.lower_low), 33),
-        root_bass_anchor_low=min(int(register_policy.root_bass_anchor_low), 33),
-        whole_register_low=min(int(register_policy.whole_register_low), 33),
-        upper_high=min(int(register_policy.upper_high), 79),
-        whole_register_high=min(int(register_policy.whole_register_high), 79),
-    )
-
-
-def _lower_group_register_window(
-    contract: SpreadRecipeContract,
-    register_policy: SpreadProjectionRegisterPolicy,
-) -> tuple[int, int, int, int | None]:
-    if _is_spread_1plus4_contract(contract):
-        # v2_2_82: 1+4 has only a single root in the lower/foundation group.
-        # In the Ballad SPREAD mix it should sit close enough to the upper
-        # projection block; otherwise bars such as Misty 11/15/24 leave an
-        # audible empty hole between lower and upper groups.  Keep the target
-        # policy-driven so older isolation paths can keep their original low
-        # root behavior unless they explicitly request the closer mix setting.
-        return (
-            int(register_policy.lower_low),
-            int(register_policy.lower_high),
-            int(register_policy.lower_1note_target_low),
-            None,
-        )
-    if int(contract.lower_group.note_count) in {2, 3} and bool(register_policy.rooted_bass_anchor_enabled):
-        # v2_2_68: rooted SPREAD 2+3 / 2+4 / 3+3 use a bass-anchor
-        # policy rather than hard-banding the lower group.  The root is
-        # anchored as the lowest note in a musical root-bass window, while
-        # the remaining lower notes sit above it inside the whole voicing window.
-        return (
-            int(register_policy.root_bass_anchor_low),
-            int(register_policy.whole_register_high),
-            int(register_policy.root_bass_anchor_target),
-            None,
-        )
-    if int(contract.lower_group.note_count) == 2:
-        return (
-            int(register_policy.lower_2note_low),
-            int(register_policy.lower_2note_high),
-            int(register_policy.lower_2note_target_low),
-            int(register_policy.lower_2note_min_top),
-        )
-    return (
-        int(register_policy.lower_low),
-        int(register_policy.lower_high),
-        int(register_policy.lower_target_low),
-        None,
     )
 
 
@@ -5693,96 +5046,6 @@ def _spread_candidate_source_integrity_notes(chord_symbol: str, degree_names: tu
     return tuple(seventh_chord_source_integrity_notes(chord_symbol, degree_names))
 
 
-def _root_bass_note_from_lower(lower: LowerGroupPlacement) -> int | None:
-    root_notes = [int(note) for degree, note in lower.placed_degrees if str(degree) in {"R", "1"}]
-    return min(root_notes) if root_notes else None
-
-
-def _rooted_bass_anchor_passed(
-    lower: LowerGroupPlacement,
-    upper_placed: list[PlacedDegree] | tuple[PlacedDegree, ...],
-) -> bool:
-    root_note = _root_bass_note_from_lower(lower)
-    if root_note is None:
-        return False
-    combined = [*lower.notes, *(int(note) for _, note in upper_placed)]
-    return bool(combined) and int(root_note) == min(combined)
-
-
-def _root_anchor_tail_span_guard_enabled(contract: SpreadRecipeContract) -> bool:
-    # v2_2_73: 3+4 deliberately uses a thicker lower recipe
-    # (root+7+upper3 / root+5+upper3).  When the root anchor is in the upper
-    # tail of E2-E3, these shapes naturally exceed the 12-semitone tail span
-    # guard.  Keep the guard for 2+3, 2+4, and 3+3, but disable it for 3+4.
-    return str(contract.recipe_id) != "spread_3plus4_contract"
-
-
-def _root_anchor_tail_span_guard_passed(lower: LowerGroupPlacement, register_policy: SpreadProjectionRegisterPolicy) -> bool:
-    root_note = _root_bass_note_from_lower(lower)
-    if root_note is None:
-        return False
-    high_tail_start = int(register_policy.root_bass_anchor_high) - int(register_policy.root_bass_anchor_high_tail_semitones)
-    if int(root_note) < high_tail_start:
-        return True
-    return int(lower.span_semitones) <= int(register_policy.root_bass_anchor_high_tail_max_lower_span)
-
-
-def _basic_spread_projection_legality(
-    lower: LowerGroupPlacement,
-    upper_placed: list[PlacedDegree] | tuple[PlacedDegree, ...],
-    register_policy: SpreadProjectionRegisterPolicy,
-    contract: SpreadRecipeContract,
-) -> tuple[bool, str]:
-    if not lower.is_legal:
-        return False, lower.legality_reason
-    upper_notes = [int(note) for _, note in upper_placed]
-    if len(upper_notes) != int(contract.upper_source.note_count):
-        return False, "upper_source_density_mismatch"
-    if any(note < int(register_policy.upper_low) or note > int(register_policy.upper_high) for note in upper_notes):
-        return False, "upper_group_outside_register"
-    combined_degrees = tuple((*lower.instance.degree_names, *(str(degree) for degree, _ in upper_placed)))
-    if not _spread_candidate_preserves_seventh_chord_identity(lower.instance.chord_symbol, combined_degrees):
-        return False, "spread_candidate_rejected_by_global_seventh_chord_source_integrity_gate"
-    lower_notes = list(lower.notes)
-    if not lower_notes or not upper_notes:
-        return False, "missing_lower_or_upper_group"
-    if set(lower_notes).intersection(upper_notes):
-        return False, "upper_lower_note_overlap"
-    combined_notes = [*lower_notes, *upper_notes]
-    if not _low_register_density_guard_passed(combined_notes, register_policy):
-        return False, "low_register_density_guard_failed"
-    if bool(register_policy.rooted_bass_anchor_enabled):
-        root_note = _root_bass_note_from_lower(lower)
-        shell_only_upper_structure_lower = bool(register_policy.upper_structure_lower_gate_enabled) and lower.instance.recipe.recipe_id == LowerGroupRecipeId.THIRD_SEVENTH
-        if root_note is None:
-            if not shell_only_upper_structure_lower:
-                return False, "rooted_bass_anchor_missing_root"
-        else:
-            if root_note < int(register_policy.root_bass_anchor_low) or root_note > int(register_policy.root_bass_anchor_high):
-                return False, "rooted_bass_anchor_outside_root_window"
-            if root_note != min(combined_notes):
-                return False, "rooted_bass_anchor_not_lowest_note"
-            if _root_anchor_tail_span_guard_enabled(contract) and not _root_anchor_tail_span_guard_passed(lower, register_policy):
-                return False, "root_anchor_high_tail_lower_span_too_wide"
-            if bool(register_policy.upper_structure_lower_gate_enabled) and lower.instance.recipe.recipe_id == LowerGroupRecipeId.ROOT_THIRD_SEVENTH:
-                if not _upper_structure_root_shell_tail_gate_passed(lower, register_policy):
-                    return False, "upper_structure_root_plus_shell_compact_tail_gate_failed"
-        if any(note < int(register_policy.whole_register_low) or note > int(register_policy.whole_register_high) for note in combined_notes):
-            return False, "whole_voicing_outside_register"
-    gap = min(upper_notes) - max(lower_notes)
-    if gap < int(register_policy.min_group_gap):
-        return False, "group_gap_too_small"
-    if gap > int(register_policy.max_group_gap):
-        return False, "group_gap_too_large"
-    notes = sorted({*lower_notes, *upper_notes})
-    if len(notes) != int(contract.density):
-        return False, "combined_density_mismatch_after_dedupe"
-    span = max(notes) - min(notes)
-    if span > int(register_policy.max_overall_span):
-        return False, "overall_span_guard_failed"
-    return True, "ok"
-
-
 def _dedupe_spread_projection_candidates(candidates: list[SpreadProjectionCandidate]) -> list[SpreadProjectionCandidate]:
     out: list[SpreadProjectionCandidate] = []
     seen: set[tuple[str, tuple[int, ...], str, str]] = set()
@@ -5855,538 +5118,6 @@ def _spread_register_penalty(candidate: SpreadProjectionCandidate) -> int:
         _outside_register_distance(candidate.lower_notes, int(policy.lower_low), int(policy.lower_high))
         + _outside_register_distance(candidate.upper_notes, int(policy.upper_low), int(policy.upper_high))
     )
-
-
-def _plan_upper_source_content_recipes(chord_symbol: str, ref: UpperSourceRef, policy: Any) -> list[Any]:
-    from jammate_engine.core.voicing.sources.content_planner import plan_content_recipes
-
-    return list(plan_content_recipes(chord_symbol, policy))
-
-
-def _spread_upper_adapter_policy(ref: UpperSourceRef, policy: Any | None) -> Any:
-    from dataclasses import replace
-
-    from jammate_engine.core.voicing.policy import ContentFamily, RootSupportPolicy, VoicingPolicy
-
-    base = policy if policy is not None else VoicingPolicy()
-    if not isinstance(base, VoicingPolicy):
-        base = VoicingPolicy.from_legacy_dict(dict(base or {}))
-    note_count = int(ref.note_count)
-    allowed_content: tuple[ContentFamily, ...]
-    metadata_source = dict(getattr(base, "metadata", None) or {})
-    prefer_expanded_3note_color = bool(metadata_source.get("spread_upper_3note_prefer_expanded_color"))
-    prefer_expanded_4note_color = bool(metadata_source.get("spread_upper_4note_prefer_expanded_color"))
-    if note_count == 2:
-        allowed_content = (ContentFamily.GUIDE_TONE, ContentFamily.SHELL)
-    elif note_count == 3:
-        if prefer_expanded_3note_color:
-            allowed_content = (
-                ContentFamily.SHELL_PLUS_COLOR,
-                ContentFamily.SHELL_PLUS_5,
-                ContentFamily.MAJOR_TRIAD,
-                ContentFamily.MINOR_TRIAD,
-                ContentFamily.DIMINISHED_TRIAD,
-                ContentFamily.AUGMENTED_TRIAD,
-                ContentFamily.SUS2_TRIAD,
-                ContentFamily.SUS4_TRIAD,
-                ContentFamily.POWER_CHORD_5TH,
-            )
-        else:
-            allowed_content = (
-                ContentFamily.SHELL_PLUS_5,
-                ContentFamily.SHELL_PLUS_COLOR,
-                ContentFamily.MAJOR_TRIAD,
-                ContentFamily.MINOR_TRIAD,
-                ContentFamily.DIMINISHED_TRIAD,
-                ContentFamily.AUGMENTED_TRIAD,
-                ContentFamily.SUS2_TRIAD,
-                ContentFamily.SUS4_TRIAD,
-                ContentFamily.POWER_CHORD_5TH,
-            )
-    elif note_count == 4:
-        if prefer_expanded_4note_color:
-            allowed_content = (
-                ContentFamily.ROOTED_COLOR,
-                ContentFamily.ROOTLESS_A,
-                ContentFamily.ROOTLESS_B,
-                ContentFamily.SEVENTH_BASIC,
-                ContentFamily.MAJOR_TRIAD,
-                ContentFamily.MINOR_TRIAD,
-                ContentFamily.DIMINISHED_TRIAD,
-                ContentFamily.AUGMENTED_TRIAD,
-                ContentFamily.SUS2_TRIAD,
-                ContentFamily.SUS4_TRIAD,
-                ContentFamily.POWER_CHORD_5TH,
-            )
-        else:
-            allowed_content = (
-                ContentFamily.SEVENTH_BASIC,
-                ContentFamily.ROOTED_COLOR,
-                ContentFamily.ROOTLESS_A,
-                ContentFamily.ROOTLESS_B,
-                ContentFamily.MAJOR_TRIAD,
-                ContentFamily.MINOR_TRIAD,
-                ContentFamily.DIMINISHED_TRIAD,
-                ContentFamily.AUGMENTED_TRIAD,
-                ContentFamily.SUS2_TRIAD,
-                ContentFamily.SUS4_TRIAD,
-                ContentFamily.POWER_CHORD_5TH,
-            )
-    else:
-        allowed_content = tuple(getattr(base, "allowed_content", ()) or ())
-    metadata = {
-        **metadata_source,
-        "spread_upper_source_adapter": True,
-        "spread_upper_3note_prefer_expanded_color": prefer_expanded_3note_color,
-        "spread_upper_4note_prefer_expanded_color": prefer_expanded_4note_color,
-        "spread_upper_source_ref_id": ref.ref_id,
-        "spread_upper_source_note_count": note_count,
-        "spread_upper_reuse_level": ref.reusable_level,
-        "spread_upper_final_placed_result_reuse_allowed": False,
-    }
-    return replace(
-        base,
-        allowed_content=allowed_content,
-        preferred_content=None,
-        root_support=RootSupportPolicy.ROOT_OPTIONAL,
-        preferred_density=note_count,
-        min_density=min(note_count, max(1, int(getattr(base, "min_density", note_count)))),
-        max_density=note_count,
-        metadata=metadata,
-    )
-
-
-def _spread_upper_adapter_policy_metadata(policy: Any, ref: UpperSourceRef) -> dict[str, object]:
-    return {
-        "upper_source_ref_id": ref.ref_id,
-        "upper_source_note_count": int(ref.note_count),
-        "upper_source_kind": ref.kind.value,
-        "allowed_content": [getattr(item, "value", str(item)) for item in getattr(policy, "allowed_content", ())],
-        "preferred_density": int(getattr(policy, "preferred_density", 0)),
-        "min_density": int(getattr(policy, "min_density", 0)),
-        "max_density": int(getattr(policy, "max_density", 0)),
-        "harmonic_expansion_enabled": bool(getattr(policy, "harmonic_expansion_enabled", False)),
-        "color_policy_mode": getattr(getattr(policy, "color_policy_mode", ""), "value", str(getattr(policy, "color_policy_mode", ""))),
-        "reuses_core_content_planner": True,
-        "reuses_core_color_permission": True,
-        "reuses_drop_family_projection_resource": ref.kind == SpreadUpperSourceKind.DROP_FAMILY_DERIVED_PROJECTION_BLOCK,
-        "final_placed_result_reuse_allowed": False,
-    }
-
-
-def _normalized_upper_projection_methods(ref: UpperSourceRef) -> tuple[str, ...]:
-    if ref.kind == SpreadUpperSourceKind.DROP_FAMILY_DERIVED_PROJECTION_BLOCK:
-        return _spread_allowed_upper_4note_projection_methods(ref.projection_methods)
-    if ref.projection_methods:
-        return tuple(_normalize_projection_method_name(method) for method in ref.projection_methods)
-    return ()
-
-
-def _spread_allowed_upper_4note_projection_methods(methods: tuple[str, ...] | list[str] | None = None) -> tuple[str, ...]:
-    """Return the only OPEN projection resources SPREAD may reuse for upper 4-note blocks.
-
-    SPREAD already owns a lower+upper functional grouping and a group gap/span
-    guard.  Its upper 4-note resource therefore deliberately reuses only DROP2
-    and DROP3 from the OPEN family; DROP2&4 remains an OPEN-family method, but
-    is intentionally excluded from SPREAD upper 4-note projections because it
-    tends to over-widen the upper block after the lower/foundation group has
-    already created the spread texture.
-    """
-
-    requested = methods or (OpenProjectionMethod.DROP2.value, OpenProjectionMethod.DROP3.value)
-    allowed = {OpenProjectionMethod.DROP2.value, OpenProjectionMethod.DROP3.value}
-    out: list[str] = []
-    for method in requested:
-        normalized = _normalize_projection_method_name(method)
-        if normalized in allowed and normalized not in out:
-            out.append(normalized)
-    return tuple(out) or (OpenProjectionMethod.DROP2.value, OpenProjectionMethod.DROP3.value)
-
-
-def _normalize_projection_method_name(method: object) -> str:
-    value = getattr(method, "value", str(method))
-    text = str(value).strip().lower().replace("-", "_")
-    aliases = {
-        "drop2": "drop2",
-        "drop_2": "drop2",
-        "drop3": "drop3",
-        "drop_3": "drop3",
-        "drop2_and_4": "drop2_and_4",
-        "drop_2_and_4": "drop2_and_4",
-        "drop24": "drop2_and_4",
-        "drop_2_4": "drop2_and_4",
-        "drop2&4": "drop2_and_4",
-        "drop_2&4": "drop2_and_4",
-    }
-    return aliases.get(text, text)
-
-
-def _extract_upper_functional_source_type(metadata: tuple[str, ...], source_family: str) -> str:
-    prefixes = (
-        "three_note_functional_source_type_",
-        "rootless_ab_functional_source_type_",
-        "basic_4note_functional_content_type_",
-        "triad_4note_functional_content_type_",
-        "rooted_color_4note_functional_source_type_",
-    )
-    for note in metadata:
-        for prefix in prefixes:
-            if note.startswith(prefix):
-                return note.removeprefix(prefix)
-    return str(source_family)
-
-
-def _extract_upper_orientation_token(metadata: tuple[str, ...]) -> str:
-    for prefix in (
-        "rootless_ab_orientation_",
-        "rootless_ab_inversion_index_",
-        "basic_4note_inversion_index_",
-        "triad_4note_inversion_index_",
-        "rooted_color_4note_inversion_index_",
-    ):
-        for note in metadata:
-            if note.startswith(prefix):
-                return note
-    for note in metadata:
-        if "degree_order_" in note or "source_order_" in note:
-            return note
-    return "source_order_as_emitted_by_content_planner"
-
-
-_LOWER_GROUP_RECIPE_INVENTORY: tuple[LowerGroupRecipeInventoryItem, ...] = (
-    LowerGroupRecipeInventoryItem(LowerGroupRecipeId.ROOT, 1, ("root",)),
-    LowerGroupRecipeInventoryItem(LowerGroupRecipeId.ROOT_SEVENTH, 2, ("root", "seventh")),
-    LowerGroupRecipeInventoryItem(LowerGroupRecipeId.ROOT_THIRD, 2, ("root", "third")),
-    LowerGroupRecipeInventoryItem(LowerGroupRecipeId.ROOT_FIFTH, 2, ("root", "fifth")),
-    LowerGroupRecipeInventoryItem(LowerGroupRecipeId.THIRD_SEVENTH, 2, ("third", "seventh")),
-    # v2_2_68: rooted 3-note lower/foundation recipes now align with
-    # the 2+3 lower-foundation family.  Root+3+7 returns as the shell
-    # foundation option, root+5+7 is removed, and wider upper-root/upper3
-    # shapes may span up to 16 semitones after root octave anchoring.
-    LowerGroupRecipeInventoryItem(
-        LowerGroupRecipeId.ROOT_FIFTH_UPPER_ROOT,
-        3,
-        ("root", "fifth", "upper_root"),
-        requires_within_octave=False,
-        max_span_semitones=16,
-    ),
-    LowerGroupRecipeInventoryItem(
-        LowerGroupRecipeId.ROOT_THIRD_SEVENTH,
-        3,
-        ("root", "third", "seventh"),
-        requires_within_octave=False,
-        max_span_semitones=16,
-    ),
-    LowerGroupRecipeInventoryItem(
-        LowerGroupRecipeId.ROOT_SEVENTH_UPPER_THIRD,
-        3,
-        ("root", "seventh", "upper3"),
-        requires_within_octave=False,
-        max_span_semitones=16,
-    ),
-    LowerGroupRecipeInventoryItem(
-        LowerGroupRecipeId.ROOT_FIFTH_UPPER_THIRD,
-        3,
-        ("root", "fifth", "upper3"),
-        requires_within_octave=False,
-        max_span_semitones=16,
-    ),
-)
-
-
-def lower_group_recipe_inventory() -> tuple[LowerGroupRecipeInventoryItem, ...]:
-    """Return the implemented v2_2_38 lower/foundation inventory.
-
-    This is still notes-only.  It intentionally does not select SPREAD for any
-    style runtime; it only exposes chord-quality-aware lower recipes for later
-    projection and group-wise voice-leading passes.
-    """
-
-    return _LOWER_GROUP_RECIPE_INVENTORY
-
-
-def lower_group_recipe_by_id(recipe_id: LowerGroupRecipeId | str) -> LowerGroupRecipeInventoryItem:
-    """Look up one lower group recipe by enum or string id."""
-
-    normalized = recipe_id if isinstance(recipe_id, LowerGroupRecipeId) else LowerGroupRecipeId(str(recipe_id))
-    for recipe in _LOWER_GROUP_RECIPE_INVENTORY:
-        if recipe.recipe_id == normalized:
-            return recipe
-    raise KeyError(f"unknown lower group recipe id: {recipe_id!r}")
-
-
-def instantiate_lower_group_recipe(
-    chord_symbol: str,
-    recipe_id: LowerGroupRecipeId | str,
-) -> LowerGroupRecipeInstance:
-    """Resolve one lower recipe into chord-quality-aware degree specs.
-
-    Harmony remains the source of truth for 3rd/5th/7th spelling.  For recipes
-    that require a seventh, triads without a written seventh/sixth are marked
-    unavailable rather than silently adding a color tone.
-    """
-
-    recipe = lower_group_recipe_by_id(recipe_id)
-    chord = parse_chord(chord_symbol)
-    specs: list[LowerGroupDegreeSpec] = []
-    for role in recipe.role_contract:
-        spec = _resolve_lower_group_degree_spec(chord_symbol, role)
-        if spec is None:
-            return LowerGroupRecipeInstance(
-                chord_symbol=chord.symbol,
-                recipe=recipe,
-                degree_specs=tuple(specs),
-                is_available=False,
-                unavailable_reason=f"role {role!r} is unavailable for chord symbol {chord.symbol!r} without explicit seventh/sixth material",
-            )
-        specs.append(spec)
-    return LowerGroupRecipeInstance(chord_symbol=chord.symbol, recipe=recipe, degree_specs=tuple(specs))
-
-
-def place_lower_group_recipe(
-    chord_symbol: str,
-    recipe_id: LowerGroupRecipeId | str,
-    low: int,
-    high: int,
-    *,
-    target_low: int | None = None,
-    min_top_note: int | None = None,
-    root_bass_anchor_enabled: bool = False,
-    root_bass_anchor_low: int | None = None,
-    root_bass_anchor_high: int | None = None,
-    allow_rooted_anchor_upper3_compression: bool = False,
-    upper3_compression_root_threshold: int | None = None,
-) -> LowerGroupPlacement:
-    """Place an implemented lower group inside a register with an octave guard."""
-
-    instance = instantiate_lower_group_recipe(chord_symbol, recipe_id)
-    target = int(low if target_low is None else target_low)
-    if not instance.is_available:
-        return LowerGroupPlacement(
-            instance=instance,
-            placed_degrees=(),
-            low=int(low),
-            high=int(high),
-            target_low=target,
-            is_legal=False,
-            legality_reason=instance.unavailable_reason,
-        )
-    root_pc = parse_chord(chord_symbol).root_pc
-    placement = _place_lower_group_offsets(
-        root_pc=root_pc,
-        specs=instance.degree_specs,
-        low=int(low),
-        high=int(high),
-        target_low=target,
-        max_span=instance.recipe.max_span_semitones,
-        min_top_note=min_top_note,
-        root_bass_anchor_enabled=root_bass_anchor_enabled,
-        root_bass_anchor_low=root_bass_anchor_low,
-        root_bass_anchor_high=root_bass_anchor_high,
-    )
-    if (
-        placement is not None
-        and bool(allow_rooted_anchor_upper3_compression)
-        and any(spec.role == "upper3" for spec in instance.degree_specs)
-    ):
-        root_notes = [int(note) for degree, note in placement if str(degree) in {"R", "1"}]
-        threshold = int(upper3_compression_root_threshold) if upper3_compression_root_threshold is not None else None
-        if root_notes and threshold is not None and min(root_notes) >= threshold:
-            compressed = _compress_upper3_specs_within_root_octave(instance.degree_specs)
-            compressed_placement = _place_lower_group_offsets(
-                root_pc=root_pc,
-                specs=compressed,
-                low=int(low),
-                high=int(high),
-                target_low=target,
-                max_span=instance.recipe.max_span_semitones,
-                min_top_note=min_top_note,
-                root_bass_anchor_enabled=root_bass_anchor_enabled,
-                root_bass_anchor_low=root_bass_anchor_low,
-                root_bass_anchor_high=root_bass_anchor_high,
-            )
-            if compressed_placement is not None:
-                placement = compressed_placement
-    if placement is None:
-        return LowerGroupPlacement(
-            instance=instance,
-            placed_degrees=(),
-            low=int(low),
-            high=int(high),
-            target_low=target,
-            is_legal=False,
-            legality_reason="no octave placement satisfies register and within-octave guard",
-        )
-    notes = [note for _, note in placement]
-    span = int(max(notes) - min(notes)) if notes else 0
-    is_legal = all(int(low) <= note <= int(high) for note in notes) and span <= instance.recipe.max_span_semitones
-    return LowerGroupPlacement(
-        instance=instance,
-        placed_degrees=tuple(placement),
-        low=int(low),
-        high=int(high),
-        target_low=target,
-        is_legal=is_legal,
-        legality_reason="ok" if is_legal else "placement violates register or octave guard",
-    )
-
-
-def lower_group_inventory_debug(chord_symbol: str = "Cmaj7", low: int = 36, high: int = 60) -> dict[str, object]:
-    """Return a compact debug payload for lower group inventory audits."""
-
-    placements = [place_lower_group_recipe(chord_symbol, recipe.recipe_id, low, high) for recipe in lower_group_recipe_inventory()]
-    return {
-        "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-        "inventory_version": LOWER_GROUP_INVENTORY_VERSION,
-        "layer": "core.voicing.disposition.spread",
-        "purpose": "SPREAD lower/foundation group recipe inventory",
-        "runtime_enabled": False,
-        "notes_only": True,
-        "no_expression_or_pedal": True,
-        "inventory": [recipe.to_debug_dict() for recipe in lower_group_recipe_inventory()],
-        "placements": [placement.to_debug_dict() for placement in placements],
-    }
-
-
-def _compress_upper3_specs_within_root_octave(
-    specs: tuple[LowerGroupDegreeSpec, ...],
-) -> tuple[LowerGroupDegreeSpec, ...]:
-    """Lower register rescue for 3+4 high-root cases inside A1-G5.
-
-    The 3+4 lower recipe remains root+7+upper3/root+5+upper3 at the recipe
-    level, but when the root cannot be placed below A1 (for example Ab), a
-    literal upper3 leaves no legal color upper block under G5.  This contract-
-    local compression keeps the third content while placing it in the root
-    octave so the whole 3+4 voicing can stay inside A1-G5.
-    """
-
-    out: list[LowerGroupDegreeSpec] = []
-    for spec in specs:
-        if str(spec.role) == "upper3":
-            out.append(replace(spec, relative_semitone=degree_to_semitone(spec.degree, stacked=False)))
-        else:
-            out.append(spec)
-    return tuple(out)
-
-
-def _resolve_lower_group_degree_spec(chord_symbol: str, role: str) -> LowerGroupDegreeSpec | None:
-    chord = parse_chord(chord_symbol)
-    normalized = str(role)
-    if normalized == "root":
-        return LowerGroupDegreeSpec(role=normalized, degree="R", relative_semitone=0)
-    if normalized == "upper_root":
-        return LowerGroupDegreeSpec(role=normalized, degree="R", relative_semitone=12)
-    if normalized == "third":
-        degree = third_degree_for_chord(chord)
-        return LowerGroupDegreeSpec(role=normalized, degree=degree, relative_semitone=degree_to_semitone(degree, stacked=False))
-    if normalized == "upper3":
-        degree = third_degree_for_chord(chord)
-        return LowerGroupDegreeSpec(role=normalized, degree=degree, relative_semitone=12 + degree_to_semitone(degree, stacked=False))
-    if normalized == "fifth":
-        degree = fifth_degree_for_chord(chord)
-        return LowerGroupDegreeSpec(role=normalized, degree=degree, relative_semitone=degree_to_semitone(degree, stacked=False))
-    if normalized == "seventh":
-        degree = seventh_degree_for_chord(chord)
-        if degree is None and chord.has_sixth:
-            degree = "6"
-        if degree is None:
-            return None
-        return LowerGroupDegreeSpec(role=normalized, degree=degree, relative_semitone=degree_to_semitone(degree, stacked=False))
-    raise ValueError(f"unsupported lower group role: {role!r}")
-
-
-def _place_lower_group_offsets(
-    *,
-    root_pc: int,
-    specs: tuple[LowerGroupDegreeSpec, ...],
-    low: int,
-    high: int,
-    target_low: int,
-    max_span: int,
-    min_top_note: int | None = None,
-    root_bass_anchor_enabled: bool = False,
-    root_bass_anchor_low: int | None = None,
-    root_bass_anchor_high: int | None = None,
-) -> list[PlacedDegree] | None:
-    candidates: list[tuple[int, list[PlacedDegree]]] = []
-    pc = int(root_pc) % 12
-    for octave in range(0, 11):
-        root_note = pc + 12 * octave
-        placed = [(spec.degree, root_note + int(spec.relative_semitone)) for spec in specs]
-        notes = [note for _, note in placed]
-        if not notes:
-            continue
-        if root_bass_anchor_enabled:
-            root_notes = [int(note) for degree, note in placed if str(degree) in {"R", "1"}]
-            if not root_notes:
-                continue
-            root_note = min(root_notes)
-            if root_bass_anchor_low is not None and root_note < int(root_bass_anchor_low):
-                continue
-            if root_bass_anchor_high is not None and root_note > int(root_bass_anchor_high):
-                continue
-            if root_note != min(notes):
-                continue
-        span = max(notes) - min(notes)
-        if span > int(max_span):
-            continue
-        if any(note < int(low) or note > int(high) for note in notes):
-            continue
-        if min_top_note is not None and max(notes) < int(min_top_note):
-            continue
-        # Prefer root anchor near target_low, then compact lower placement.
-        score = abs(root_note - int(target_low)) * 10 + min(notes)
-        candidates.append((score, sorted(placed, key=lambda item: item[1])))
-    if candidates:
-        candidates.sort(key=lambda item: item[0])
-        return candidates[0][1]
-
-    if root_bass_anchor_enabled:
-        return None
-
-    # v2_2_60: the Ballad SPREAD 2+3 lower band is E2-E3. For some
-    # roots, e.g. Ebmaj7, a literal root-at-bottom placement cannot fit
-    # root+3/root+5/root+7 entirely inside that one-octave band.  Keep the
-    # same functional content, but allow the two-note lower/foundation group
-    # to invert within the band so rooted and rootless modes do not get mixed
-    # merely because of register geometry.
-    inversion_candidates: list[tuple[int, int, list[PlacedDegree]]] = []
-    note_choices: list[list[tuple[str, int]]] = []
-    for spec in specs:
-        spec_pc = (pc + int(spec.relative_semitone)) % 12
-        choices: list[tuple[str, int]] = []
-        for octave in range(0, 11):
-            note = spec_pc + 12 * octave
-            if int(low) <= note <= int(high):
-                choices.append((spec.degree, note))
-        if not choices:
-            return None
-        note_choices.append(choices)
-
-    from itertools import product
-
-    for combo in product(*note_choices):
-        notes = [int(note) for _, note in combo]
-        if len(set(notes)) != len(notes):
-            continue
-        span = max(notes) - min(notes)
-        if span > int(max_span):
-            continue
-        if min_top_note is not None and max(notes) < int(min_top_note):
-            continue
-        placed = sorted([(str(degree), int(note)) for degree, note in combo], key=lambda item: item[1])
-        lower_center = sum(notes) / len(notes)
-        target_center = int(target_low) + min(7, max(0, int(high) - int(target_low)) / 2)
-        root_degrees = {"R", "1"}
-        root_notes = [note for degree, note in placed if str(degree) in root_degrees]
-        root_cost = min(abs(note - int(target_low)) for note in root_notes) if root_notes else 0
-        center_cost = int(abs(lower_center - target_center) * 10)
-        score = center_cost + root_cost + span
-        inversion_candidates.append((score, span, placed))
-    if not inversion_candidates:
-        return None
-    inversion_candidates.sort(key=lambda item: (item[0], item[1], item[2]))
-    return inversion_candidates[0][2]
 
 
 def spread_recipe_reuse_audit() -> tuple[SpreadReuseAuditItem, ...]:
