@@ -23,6 +23,12 @@ from jammate_agent.core.tool_invocation import (
     ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
     CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
     CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+    CONTEXT_PERSISTENCE_STORAGE_ADAPTER_DESIGN_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_DEV_PREVIEW_VERSION,
+    CONTEXT_PERSISTENCE_DEV_SQLITE_WRITE_GATE_VERSION,
+    CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
+    CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_VERSION,
+    CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -60,6 +66,12 @@ class CapabilityManifest:
     supports_routine_history_persistence_candidate_contract: bool = True
     supports_context_persistence_confirmation_boundary: bool = True
     supports_context_persistence_executor_noop: bool = True
+    supports_context_persistence_storage_adapter_design: bool = True
+    supports_context_persistence_sqlite_dev_preview: bool = True
+    supports_context_persistence_dev_sqlite_write_gate: bool = True
+    supports_context_persistence_dev_sqlite_fixture_write_dry_run: bool = True
+    supports_context_persistence_dev_sqlite_fixture_store: bool = True
+    supports_context_persistence_dev_fixture_readback_replay: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -89,6 +101,12 @@ class CapabilityManifest:
             "supports_routine_history_persistence_candidate_contract": self.supports_routine_history_persistence_candidate_contract,
             "supports_context_persistence_confirmation_boundary": self.supports_context_persistence_confirmation_boundary,
             "supports_context_persistence_executor_noop": self.supports_context_persistence_executor_noop,
+            "supports_context_persistence_storage_adapter_design": self.supports_context_persistence_storage_adapter_design,
+            "supports_context_persistence_sqlite_dev_preview": self.supports_context_persistence_sqlite_dev_preview,
+            "supports_context_persistence_dev_sqlite_write_gate": self.supports_context_persistence_dev_sqlite_write_gate,
+            "supports_context_persistence_dev_sqlite_fixture_write_dry_run": self.supports_context_persistence_dev_sqlite_fixture_write_dry_run,
+            "supports_context_persistence_dev_sqlite_fixture_store": self.supports_context_persistence_dev_sqlite_fixture_store,
+            "supports_context_persistence_dev_fixture_readback_replay": self.supports_context_persistence_dev_fixture_readback_replay,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -289,6 +307,12 @@ class ContextBuilder:
                 "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
                 "context_persistence_confirmation_boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
                 "context_persistence_executor_noop_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+                "context_persistence_storage_adapter_design_version": CONTEXT_PERSISTENCE_STORAGE_ADAPTER_DESIGN_VERSION,
+                "context_persistence_sqlite_dev_preview_version": CONTEXT_PERSISTENCE_SQLITE_DEV_PREVIEW_VERSION,
+                "context_persistence_dev_sqlite_write_gate_version": CONTEXT_PERSISTENCE_DEV_SQLITE_WRITE_GATE_VERSION,
+                "context_persistence_dev_sqlite_fixture_write_dry_run_version": CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
+                "context_persistence_dev_sqlite_fixture_store_version": CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_VERSION,
+                "context_persistence_dev_fixture_readback_replay_version": CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),
                 "user_practice_profile_context_present": bool(user_practice_profile_context),

@@ -50,6 +50,12 @@ from jammate_agent.core.contracts import (
     routine_history_persistence_candidate_contract,
     context_persistence_confirmation_boundary_contract,
     context_persistence_executor_noop_contract,
+    context_persistence_storage_adapter_design_contract,
+    context_persistence_sqlite_dev_preview_contract,
+    context_persistence_dev_sqlite_write_gate_contract,
+    context_persistence_dev_sqlite_fixture_write_dry_run_contract,
+    context_persistence_dev_sqlite_fixture_store_contract,
+    context_persistence_dev_fixture_readback_replay_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -85,6 +91,18 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_confirmation_boundary_summary,
     build_context_persistence_executor_noop_payload,
     build_context_persistence_executor_noop_summary,
+    build_context_persistence_storage_adapter_design_payload,
+    build_context_persistence_storage_adapter_design_summary,
+    build_context_persistence_sqlite_dev_preview_payload,
+    build_context_persistence_sqlite_dev_preview_summary,
+    build_context_persistence_dev_sqlite_write_gate_payload,
+    build_context_persistence_dev_sqlite_write_gate_summary,
+    build_context_persistence_dev_sqlite_fixture_write_dry_run_payload,
+    build_context_persistence_dev_sqlite_fixture_write_dry_run_summary,
+    build_context_persistence_dev_sqlite_fixture_store_payload,
+    build_context_persistence_dev_sqlite_fixture_store_summary,
+    build_context_persistence_dev_fixture_readback_replay_payload,
+    build_context_persistence_dev_fixture_readback_replay_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -1646,6 +1664,310 @@ def preview_context_persistence_executor_noop_request(request: dict) -> dict:
         "routine_start_enabled": False,
     }
 
+
+@router.get("/context/persistence-storage-adapter/spec")
+def get_context_persistence_storage_adapter_design_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_storage_adapter_design_contract()}
+
+
+@router.post("/context/persistence-storage-adapter/design-preview")
+def preview_context_persistence_storage_adapter_design_request(request: dict) -> dict:
+    """Return the future real storage-adapter design preview only.
+
+    This route intentionally does not create a database connection, write
+    backend storage, write HarmonyOS local state, call an LLM, execute tools,
+    start Routine, call /accompaniment/generate, dispatch engine adapters,
+    create MIDI assets, or start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_storage_adapter_design_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_storage_adapter_design",
+    )
+    summary = build_context_persistence_storage_adapter_design_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_storage_adapter_design_version": context_persistence_storage_adapter_design_contract()["version"],
+        "context_persistence_storage_adapter_design_payload": payload.to_dict(),
+        "context_persistence_storage_adapter_design_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/persistence-sqlite-dev-preview/spec")
+def get_context_persistence_sqlite_dev_preview_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_dev_preview_contract()}
+
+
+@router.post("/context/persistence-sqlite-dev-preview/preview")
+def preview_context_persistence_sqlite_dev_preview_request(request: dict) -> dict:
+    """Return a dev-only SQLite/fixture adapter preview without writing.
+
+    This route exposes schema DDL, idempotency, trace-link, and read-snapshot
+    preview shapes. It intentionally does not create a SQLite connection, apply
+    migrations, write rows, write HarmonyOS local state, call an LLM, execute
+    tools, start Routine, call /accompaniment/generate, dispatch engine
+    adapters, create MIDI assets, or start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_dev_preview_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_dev_preview",
+    )
+    summary = build_context_persistence_sqlite_dev_preview_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_dev_preview_version": context_persistence_sqlite_dev_preview_contract()["version"],
+        "context_persistence_sqlite_dev_preview_payload": payload.to_dict(),
+        "context_persistence_sqlite_dev_preview_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/persistence-dev-sqlite-write-gate/spec")
+def get_context_persistence_dev_sqlite_write_gate_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_dev_sqlite_write_gate_contract()}
+
+
+@router.post("/context/persistence-dev-sqlite-write-gate/preview")
+def preview_context_persistence_dev_sqlite_write_gate_request(request: dict) -> dict:
+    """Return an explicit dev-only SQLite write-gate preview without writing.
+
+    This route validates the future write gate/config path shape only. It does
+    not create a SQLite connection, apply migrations, write rows, write
+    HarmonyOS local state, call an LLM, execute tools, start Routine, call
+    /accompaniment/generate, dispatch engine adapters, create MIDI assets, or
+    start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_dev_sqlite_write_gate_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_dev_sqlite_write_gate",
+    )
+    summary = build_context_persistence_dev_sqlite_write_gate_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_dev_sqlite_write_gate_version": context_persistence_dev_sqlite_write_gate_contract()["version"],
+        "context_persistence_dev_sqlite_write_gate_payload": payload.to_dict(),
+        "context_persistence_dev_sqlite_write_gate_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_write_enabled": False,
+        "future_executor_implemented": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/persistence-dev-sqlite-fixture-write-dry-run/spec")
+def get_context_persistence_dev_sqlite_fixture_write_dry_run_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_dev_sqlite_fixture_write_dry_run_contract()}
+
+
+@router.post("/context/persistence-dev-sqlite-fixture-write-dry-run/preview")
+def preview_context_persistence_dev_sqlite_fixture_write_dry_run_request(request: dict) -> dict:
+    """Return a dev SQLite fixture writer dry-run without storage side effects.
+
+    This route simulates transaction, idempotency, trace-link, and read-back
+    shapes only. It does not create a SQLite connection, apply migrations,
+    write rows, write HarmonyOS local state, call an LLM, execute tools, start
+    Routine, call /accompaniment/generate, dispatch engine adapters, create MIDI
+    assets, or start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_dev_sqlite_fixture_write_dry_run_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_dev_sqlite_fixture_write_dry_run",
+    )
+    summary = build_context_persistence_dev_sqlite_fixture_write_dry_run_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_dev_sqlite_fixture_write_dry_run_version": context_persistence_dev_sqlite_fixture_write_dry_run_contract()["version"],
+        "context_persistence_dev_sqlite_fixture_write_dry_run_payload": payload.to_dict(),
+        "context_persistence_dev_sqlite_fixture_write_dry_run_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "durable_backend_write_executed": False,
+        "fixture_write_executed": False,
+        "transaction_committed": False,
+        "future_executor_implemented": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+
+@router.get("/context/persistence-dev-sqlite-fixture-store/spec")
+def get_context_persistence_dev_sqlite_fixture_store_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_dev_sqlite_fixture_store_contract()}
+
+
+@router.post("/context/persistence-dev-sqlite-fixture-store/preview")
+def preview_context_persistence_dev_sqlite_fixture_store_request(request: dict) -> dict:
+    """Return an explicit dev-only fixture store payload.
+
+    The route may append one redacted JSONL record only when the caller passes
+    fixtureStoreWriteEnabled=true, executeFixtureStore=true, an approved
+    confirmation, a dev/test environment, a safe fixture path, a trace id, and
+    redaction/storage-boundary gates. It never opens SQLite, writes backend
+    database rows, writes HarmonyOS local state, calls an LLM, executes tools,
+    starts Routine, calls /accompaniment/generate, dispatches engine adapters,
+    creates MIDI assets, or starts playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_dev_sqlite_fixture_store_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_dev_sqlite_fixture_store",
+    )
+    summary = build_context_persistence_dev_sqlite_fixture_store_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_dev_sqlite_fixture_store_version": context_persistence_dev_sqlite_fixture_store_contract()["version"],
+        "context_persistence_dev_sqlite_fixture_store_payload": payload.to_dict(),
+        "context_persistence_dev_sqlite_fixture_store_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "durable_backend_write_executed": False,
+        "fixture_store_write_executed": summary.get("fixture_store_write_executed", False),
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/persistence-dev-fixture-readback-replay/spec")
+def get_context_persistence_dev_fixture_readback_replay_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_dev_fixture_readback_replay_contract()}
+
+
+@router.post("/context/persistence-dev-fixture-readback-replay/preview")
+def preview_context_persistence_dev_fixture_readback_replay_request(request: dict) -> dict:
+    """Return a read-only dev fixture read-back/replay preview.
+
+    The route may read a safe development JSONL fixture and build a context
+    snapshot/replay preview. It never writes files, opens SQLite, writes backend
+    database rows, writes HarmonyOS local state, calls an LLM, executes tools,
+    starts Routine, calls /accompaniment/generate, dispatches engine adapters,
+    creates MIDI assets, or starts playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_dev_fixture_readback_replay_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_dev_fixture_readback_replay",
+    )
+    summary = build_context_persistence_dev_fixture_readback_replay_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_dev_fixture_readback_replay_version": context_persistence_dev_fixture_readback_replay_contract()["version"],
+        "context_persistence_dev_fixture_readback_replay_payload": payload.to_dict(),
+        "context_persistence_dev_fixture_readback_replay_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "durable_backend_write_executed": False,
+        "fixture_write_executed": False,
+        "transaction_committed": False,
+        "replay_execution_committed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
 
 @router.get("/traces/spec")
 def get_agent_trace_api_spec() -> dict:

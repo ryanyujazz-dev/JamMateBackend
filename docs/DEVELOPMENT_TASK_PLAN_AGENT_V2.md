@@ -1,3 +1,15 @@
+## v2_8_10_agent_context_persistence_real_storage_adapter_design
+
+- Added design-only Context Persistence Storage Adapter contract.
+- Added `ContextPersistenceStorageAdapterDesignPayload`, summary builder, and `context_persistence_storage_adapter_design_contract()`.
+- Added API routes: `GET /agent/context/persistence-storage-adapter/spec` and `POST /agent/context/persistence-storage-adapter/design-preview`.
+- Added terminal command `/context-persistence-storage-adapter [json_payload]`.
+- Defined future adapter interface methods: `preview_write`, `write_confirmed_context`, `read_context_snapshot`, `check_idempotency`, and `record_trace_link`.
+- Mapped durable context entities to backend-long-term ownership while keeping HarmonyOS Routine session/playback/local MIDI state client-owned.
+- Preserved all no-side-effect guards: no database connection, no storage write, no LLM/tool/Engine/Routine/MIDI/playback side effects.
+
+Next recommended task: `v2_8_11_agent_context_persistence_storage_adapter_sqlite_dev_preview`.
+
 ## v2_8_9_agent_context_persistence_executor_noop_skeleton
 
 - Added Context Persistence Executor no-op skeleton.
@@ -601,3 +613,180 @@ v2_8_5_agent_practice_plan_persistence_candidate_contract
 ```
 
 Goal: design save/update PracticePlan as a previewable, user-confirmed candidate action, still without implementing full database persistence unless explicitly requested.
+
+## v2_8_11_agent_context_persistence_storage_adapter_sqlite_dev_preview
+
+Status: completed in Agent track.
+
+Scope:
+
+```text
+Dev-only SQLite/fixture adapter preview.
+No real SQLite write.
+No database connection.
+No schema migration applied.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No engine adapter.
+No MIDI asset.
+No playback.
+```
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-dev-preview/spec
+POST /agent/context/persistence-sqlite-dev-preview/preview
+/context-persistence-sqlite-dev-preview [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_DEV_PREVIEW_V2_8_11.md
+```
+
+Key judgment:
+
+```text
+v2_8_11 should expose the concrete dev storage shape and roundtrip boundaries
+(schema/idempotency/trace/snapshot) before enabling even local SQLite writes.
+This keeps persistence work inspectable and prevents accidentally introducing
+backend storage side effects into the Agent route.
+```
+
+Recommended next task:
+
+```text
+v2_8_12_agent_context_persistence_dev_sqlite_explicit_write_gate
+```
+
+Goal: define an explicit dev-only write gate and config-path contract for a future SQLite adapter, still requiring confirmation, idempotency, trace-link, redaction, and storage-boundary checks.
+
+## v2_8_12_agent_context_persistence_dev_sqlite_explicit_write_gate
+
+Status: completed in Agent track.
+
+Scope:
+
+```text
+Explicit dev-only SQLite write gate and config-path contract.
+No real SQLite write.
+No database connection.
+No schema migration applied.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No engine adapter.
+No MIDI asset.
+No playback.
+```
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-dev-sqlite-write-gate/spec
+POST /agent/context/persistence-dev-sqlite-write-gate/preview
+/context-persistence-dev-sqlite-write-gate [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_DEV_SQLITE_WRITE_GATE_V2_8_12.md
+```
+
+Key judgment:
+
+```text
+v2_8_12 does not implement SQLite writes. It defines the explicit switch and
+checks a future dev writer must pass: user approval, confirmation status,
+idempotency key, trace link, dev config path, redaction, storage-boundary, and
+schema-preview acceptance.
+```
+
+Recommended next task:
+
+```text
+v2_8_13_agent_context_persistence_dev_sqlite_fixture_write_dry_run
+```
+
+Goal: add a fixture/dry-run writer shape that simulates the transaction and read-back contract while still avoiding durable backend writes by default.
+
+## v2_8_13_agent_context_persistence_dev_sqlite_fixture_write_dry_run
+
+Status: completed in Agent track.
+
+Scope:
+
+```text
+Dev SQLite fixture writer dry-run.
+No real SQLite write.
+No database connection.
+No schema migration applied.
+No transaction commit.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No engine adapter.
+No MIDI asset.
+No playback.
+```
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-dev-sqlite-fixture-write-dry-run/spec
+POST /agent/context/persistence-dev-sqlite-fixture-write-dry-run/preview
+/context-persistence-dev-sqlite-fixture-write-dry-run [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_V2_8_13.md
+```
+
+Key judgment:
+
+```text
+v2_8_13 should still not write SQLite. It previews the future writer shape:
+transaction begin/commit/rollback, idempotency lookup/insert, sanitized row plan,
+trace metadata link, and read-back snapshot. This allows the persistence chain to
+be reviewed end-to-end before any durable backend write is enabled.
+```
+
+Recommended next task:
+
+```text
+v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_opt_in
+```
+
+Goal: if desired, introduce a dev-only explicit opt-in fixture store while preserving confirmation, idempotency, trace-link, redaction, storage-boundary, and no Engine side effects.
+
+## v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_opt_in
+
+目标：在 v2_8_13 dry-run writer shape 之后，新增 dev-only 显式 opt-in fixture store。
+
+完成内容：
+
+```text
+GET  /agent/context/persistence-dev-sqlite-fixture-store/spec
+POST /agent/context/persistence-dev-sqlite-fixture-store/preview
+CLI  /context-persistence-dev-sqlite-fixture-store [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_V2_8_14.md
+tests/test_v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_opt_in.py
+```
+
+边界：
+
+```text
+只允许显式 opt-in 后写 dev fixture JSONL
+不写 SQLite / backend database
+不写 HarmonyOS local state
+不调用 LLM
+不执行 tool
+不启动 Routine
+不调用 /accompaniment/generate
+不调用 Engine adapter
+不生成 MIDI
+不播放
+```
+
+下一步建议：
+
+```text
+v2_8_15_agent_context_persistence_dev_fixture_readback_and_replay_preview
+```

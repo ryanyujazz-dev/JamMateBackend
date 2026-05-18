@@ -51,6 +51,11 @@ from jammate_agent.core.tool_invocation import (
     ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
     CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
     CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+    CONTEXT_PERSISTENCE_STORAGE_ADAPTER_DESIGN_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_DEV_PREVIEW_VERSION,
+    CONTEXT_PERSISTENCE_DEV_SQLITE_WRITE_GATE_VERSION,
+    CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
+    CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
     ToolWorkflowDispatchResult,
@@ -101,6 +106,18 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_confirmation_boundary_summary,
     build_context_persistence_executor_noop_payload,
     build_context_persistence_executor_noop_summary,
+    build_context_persistence_storage_adapter_design_payload,
+    build_context_persistence_storage_adapter_design_summary,
+    build_context_persistence_sqlite_dev_preview_payload,
+    build_context_persistence_sqlite_dev_preview_summary,
+    build_context_persistence_dev_sqlite_write_gate_payload,
+    build_context_persistence_dev_sqlite_write_gate_summary,
+    build_context_persistence_dev_sqlite_fixture_write_dry_run_payload,
+    build_context_persistence_dev_sqlite_fixture_write_dry_run_summary,
+    build_context_persistence_dev_sqlite_fixture_store_payload,
+    build_context_persistence_dev_sqlite_fixture_store_summary,
+    build_context_persistence_dev_fixture_readback_replay_payload,
+    build_context_persistence_dev_fixture_readback_replay_summary,
     build_context_and_guidance_skeleton_cleanup_payload,
     build_context_and_guidance_skeleton_cleanup_summary,
     detect_today_practice_guidance_intent,
@@ -113,6 +130,12 @@ from jammate_agent.core.tool_invocation import (
     routine_history_persistence_candidate_contract,
     context_persistence_confirmation_boundary_contract,
     context_persistence_executor_noop_contract,
+    context_persistence_storage_adapter_design_contract,
+    context_persistence_sqlite_dev_preview_contract,
+    context_persistence_dev_sqlite_write_gate_contract,
+    context_persistence_dev_sqlite_fixture_write_dry_run_contract,
+    context_persistence_dev_sqlite_fixture_store_contract,
+    context_persistence_dev_fixture_readback_replay_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -1211,6 +1234,251 @@ class TerminalChatSession:
 
 
 
+    def context_persistence_sqlite_dev_preview(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_sqlite_dev_preview", "/context-persistence-sqlite-dev-preview")
+        payload = build_context_persistence_sqlite_dev_preview_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_sqlite_dev_preview",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_dev_preview_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_dev_preview_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_dev_preview_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_sqlite_dev_previewed", {"ok": True, "command": "/context-persistence-sqlite-dev-preview", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-sqlite-dev-preview",
+            "context_persistence_sqlite_dev_preview_version": CONTEXT_PERSISTENCE_SQLITE_DEV_PREVIEW_VERSION,
+            "context_persistence_sqlite_dev_preview_payload": payload_dict,
+            "context_persistence_sqlite_dev_preview_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_dev_sqlite_write_gate(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_dev_sqlite_write_gate", "/context-persistence-dev-sqlite-write-gate")
+        payload = build_context_persistence_dev_sqlite_write_gate_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_dev_sqlite_write_gate",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_dev_sqlite_write_gate_payload_built", payload_dict)
+        summary = build_context_persistence_dev_sqlite_write_gate_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_dev_sqlite_write_gate_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_dev_sqlite_write_gate_previewed", {"ok": True, "command": "/context-persistence-dev-sqlite-write-gate", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-dev-sqlite-write-gate",
+            "context_persistence_dev_sqlite_write_gate_version": CONTEXT_PERSISTENCE_DEV_SQLITE_WRITE_GATE_VERSION,
+            "context_persistence_dev_sqlite_write_gate_payload": payload_dict,
+            "context_persistence_dev_sqlite_write_gate_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_write_enabled": False,
+            "future_executor_implemented": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_dev_sqlite_fixture_write_dry_run(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_dev_sqlite_fixture_write_dry_run", "/context-persistence-dev-sqlite-fixture-write-dry-run")
+        payload = build_context_persistence_dev_sqlite_fixture_write_dry_run_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_dev_sqlite_fixture_write_dry_run",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_dev_sqlite_fixture_write_dry_run_payload_built", payload_dict)
+        summary = build_context_persistence_dev_sqlite_fixture_write_dry_run_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_dev_sqlite_fixture_write_dry_run_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_dev_sqlite_fixture_write_dry_run_previewed", {"ok": True, "command": "/context-persistence-dev-sqlite-fixture-write-dry-run", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-dev-sqlite-fixture-write-dry-run",
+            "context_persistence_dev_sqlite_fixture_write_dry_run_version": CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
+            "context_persistence_dev_sqlite_fixture_write_dry_run_payload": payload_dict,
+            "context_persistence_dev_sqlite_fixture_write_dry_run_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "durable_backend_write_executed": False,
+            "fixture_write_executed": False,
+            "transaction_committed": False,
+            "future_executor_implemented": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_dev_sqlite_fixture_store(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_dev_sqlite_fixture_store", "/context-persistence-dev-sqlite-fixture-store")
+        payload = build_context_persistence_dev_sqlite_fixture_store_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_dev_sqlite_fixture_store",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_dev_sqlite_fixture_store_payload_built", payload_dict)
+        summary = build_context_persistence_dev_sqlite_fixture_store_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_dev_sqlite_fixture_store_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_dev_sqlite_fixture_store_previewed", {"ok": True, "command": "/context-persistence-dev-sqlite-fixture-store", "summary": summary, "backend_database_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-dev-sqlite-fixture-store",
+            "context_persistence_dev_sqlite_fixture_store_version": context_persistence_dev_sqlite_fixture_store_contract()["version"],
+            "context_persistence_dev_sqlite_fixture_store_payload": payload_dict,
+            "context_persistence_dev_sqlite_fixture_store_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "durable_backend_write_executed": False,
+            "fixture_store_write_executed": summary.get("fixture_store_write_executed", False),
+            "future_executor_implemented": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_dev_fixture_readback_replay(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_dev_fixture_readback_replay", "/context-persistence-dev-fixture-readback-replay")
+        payload = build_context_persistence_dev_fixture_readback_replay_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_dev_fixture_readback_replay",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_dev_fixture_readback_replay_payload_built", payload_dict)
+        summary = build_context_persistence_dev_fixture_readback_replay_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_dev_fixture_readback_replay_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_dev_fixture_readback_replay_previewed", {"ok": True, "command": "/context-persistence-dev-fixture-readback-replay", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-dev-fixture-readback-replay",
+            "context_persistence_dev_fixture_readback_replay_version": context_persistence_dev_fixture_readback_replay_contract()["version"],
+            "context_persistence_dev_fixture_readback_replay_payload": payload_dict,
+            "context_persistence_dev_fixture_readback_replay_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "durable_backend_write_executed": False,
+            "fixture_write_executed": False,
+            "transaction_committed": False,
+            "replay_execution_committed": False,
+            "future_executor_implemented": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_storage_adapter_design(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_storage_adapter_design", "/context-persistence-storage-adapter")
+        payload = build_context_persistence_storage_adapter_design_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_storage_adapter_design",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_storage_adapter_design_payload_built", payload_dict)
+        summary = build_context_persistence_storage_adapter_design_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_storage_adapter_design_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_storage_adapter_design_previewed", {"ok": True, "command": "/context-persistence-storage-adapter", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-storage-adapter",
+            "context_persistence_storage_adapter_design_version": CONTEXT_PERSISTENCE_STORAGE_ADAPTER_DESIGN_VERSION,
+            "context_persistence_storage_adapter_design_payload": payload_dict,
+            "context_persistence_storage_adapter_design_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
     def context_persistence_executor_noop(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         trace = self._start_trace("terminal_context_persistence_executor_noop", "/context-persistence-executor-noop")
         payload = build_context_persistence_executor_noop_payload(
@@ -2136,7 +2404,7 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             return True
         _print_context_guidance_skeleton_cleanup(session.context_guidance_skeleton_cleanup(parsed.get("arguments") or {}), stdout)
         return True
-    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop")):
+    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop", "/context-persistence-storage-adapter", "/context-persistence-sqlite-dev-preview", "/context-persistence-dev-sqlite-write-gate", "/context-persistence-dev-sqlite-fixture-write-dry-run", "/context-persistence-dev-sqlite-fixture-store", "/context-persistence-dev-fixture-readback-replay")):
         full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
         _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
         return True
@@ -2255,6 +2523,54 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             _print_command_error(parsed, stdout)
             return True
         _print_routine_history_persistence_candidate(session.routine_history_persistence_candidate(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/context-persistence-dev-fixture-readback-replay"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-dev-fixture-readback-replay")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_dev_fixture_readback_replay(session.context_persistence_dev_fixture_readback_replay(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-dev-sqlite-fixture-store"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-dev-sqlite-fixture-store")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_dev_sqlite_fixture_store(session.context_persistence_dev_sqlite_fixture_store(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/context-persistence-dev-sqlite-fixture-write-dry-run"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-dev-sqlite-fixture-write-dry-run")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_dev_sqlite_fixture_write_dry_run(session.context_persistence_dev_sqlite_fixture_write_dry_run(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-dev-sqlite-write-gate"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-dev-sqlite-write-gate")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_dev_sqlite_write_gate(session.context_persistence_dev_sqlite_write_gate(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/context-persistence-sqlite-dev-preview"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-dev-preview")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_dev_preview(session.context_persistence_sqlite_dev_preview(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/context-persistence-storage-adapter"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-storage-adapter")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_storage_adapter_design(session.context_persistence_storage_adapter_design(parsed.get("arguments") or {}), stdout)
         return True
     if user_input.startswith("/context-persistence-executor-noop"):
         parsed = _parse_json_payload_command(user_input, "/context-persistence-executor-noop")
@@ -2789,6 +3105,152 @@ def _print_routine_history_persistence_candidate(response: dict[str, Any], stdou
 
 
 
+
+
+
+def _print_context_persistence_dev_sqlite_fixture_store(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceDevSqliteFixtureStore failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_dev_sqlite_fixture_store_summary") or {}
+    print("ContextPersistenceDevSqliteFixtureStore>", file=stdout)
+    print(f"  version: {response.get('context_persistence_dev_sqlite_fixture_store_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  fixture_store_write_executed: {summary.get('fixture_store_write_executed')}", file=stdout)
+    print(f"  fixture_store_path: {summary.get('fixture_store_path')}", file=stdout)
+    print(f"  entity_count: {summary.get('entity_count')}", file=stdout)
+    print(f"  idempotency_key: {summary.get('idempotency_key')}", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_dev_fixture_readback_replay(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceDevFixtureReadbackReplay failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_dev_fixture_readback_replay_summary") or {}
+    print("ContextPersistenceDevFixtureReadbackReplay>", file=stdout)
+    print(f"  version: {response.get('context_persistence_dev_fixture_readback_replay_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  fixture_store_path: {summary.get('fixture_store_path')}", file=stdout)
+    print(f"  file_exists: {summary.get('file_exists')}", file=stdout)
+    print(f"  records_read: {summary.get('records_read')}", file=stdout)
+    print(f"  matched_record_count: {summary.get('matched_record_count')}", file=stdout)
+    print(f"  snapshot_available: {summary.get('snapshot_available')}", file=stdout)
+    print(f"  replayable: {summary.get('replayable')}", file=stdout)
+    print("  replay_execution_committed: false", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+def _print_context_persistence_dev_sqlite_fixture_write_dry_run(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceDevSqliteFixtureWriteDryRun failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_dev_sqlite_fixture_write_dry_run_summary") or {}
+    print("ContextPersistenceDevSqliteFixtureWriteDryRun>", file=stdout)
+    print(f"  version: {response.get('context_persistence_dev_sqlite_fixture_write_dry_run_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  planned_row_count: {summary.get('planned_row_count')}", file=stdout)
+    print(f"  transaction_simulated: {summary.get('transaction_simulated')}", file=stdout)
+    print(f"  read_back_simulated: {summary.get('read_back_simulated')}", file=stdout)
+    print(f"  idempotency_key: {summary.get('idempotency_key')}", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  fixture_write_executed: false", file=stdout)
+    print("  durable_backend_write_executed: false", file=stdout)
+    print("  transaction_committed: false", file=stdout)
+    print("  storage_written: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_dev_sqlite_write_gate(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceDevSqliteWriteGate failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_dev_sqlite_write_gate_summary") or {}
+    print("ContextPersistenceDevSqliteWriteGate>", file=stdout)
+    print(f"  version: {response.get('context_persistence_dev_sqlite_write_gate_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  dev_write_requested: {summary.get('dev_write_requested')}", file=stdout)
+    print(f"  dev_write_enabled_for_future_executor: {summary.get('dev_write_enabled_for_future_executor')}", file=stdout)
+    print(f"  all_required_checks_passed: {summary.get('all_required_checks_passed')}", file=stdout)
+    print(f"  idempotency_key: {summary.get('idempotency_key')}", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  storage_written: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_sqlite_dev_preview(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceSqliteDevPreview failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_sqlite_dev_preview_summary") or {}
+    print("ContextPersistenceSqliteDevPreview>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_dev_preview_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  adapter_mode: {summary.get('adapter_mode')}", file=stdout)
+    print(f"  schema_table_count: {summary.get('schema_table_count')}", file=stdout)
+    print(f"  idempotency_key: {summary.get('idempotency_key')}", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  storage_written: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_storage_adapter_design(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceStorageAdapterDesign failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_storage_adapter_design_summary") or {}
+    print("ContextPersistenceStorageAdapterDesign>", file=stdout)
+    print(f"  version: {response.get('context_persistence_storage_adapter_design_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  adapter_mode: {summary.get('adapter_mode')}", file=stdout)
+    print(f"  real_adapter_implemented: {summary.get('real_adapter_implemented')}", file=stdout)
+    print(f"  real_write_enabled: {summary.get('real_write_enabled')}", file=stdout)
+    print("  design_only: true", file=stdout)
+    print("  storage_written: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
 
 def _print_context_persistence_executor_noop(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):

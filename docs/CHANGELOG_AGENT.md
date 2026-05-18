@@ -1,3 +1,15 @@
+## v2_8_10_agent_context_persistence_real_storage_adapter_design
+
+- Added design-only Context Persistence Storage Adapter contract.
+- Added `ContextPersistenceStorageAdapterDesignPayload`, summary builder, and `context_persistence_storage_adapter_design_contract()`.
+- Added API routes: `GET /agent/context/persistence-storage-adapter/spec` and `POST /agent/context/persistence-storage-adapter/design-preview`.
+- Added terminal command `/context-persistence-storage-adapter [json_payload]`.
+- Defined future adapter interface methods: `preview_write`, `write_confirmed_context`, `read_context_snapshot`, `check_idempotency`, and `record_trace_link`.
+- Mapped durable context entities to backend-long-term ownership while keeping HarmonyOS Routine session/playback/local MIDI state client-owned.
+- Preserved all no-side-effect guards: no database connection, no storage write, no LLM/tool/Engine/Routine/MIDI/playback side effects.
+
+Next recommended task: `v2_8_11_agent_context_persistence_storage_adapter_sqlite_dev_preview`.
+
 ## v2_8_9_agent_context_persistence_executor_noop_skeleton
 
 - Added Context Persistence Executor no-op skeleton.
@@ -300,3 +312,78 @@ Recommended next Agent task:
 ```text
 v2_8_5_agent_practice_plan_persistence_candidate_contract
 ```
+
+## v2_8_11_agent_context_persistence_storage_adapter_sqlite_dev_preview
+
+- Added dev-only SQLite/fixture adapter preview for Agent context persistence.
+- Added `ContextPersistenceSqliteDevPreviewPayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/persistence-sqlite-dev-preview/spec`
+  - `POST /agent/context/persistence-sqlite-dev-preview/preview`
+- Added terminal command `/context-persistence-sqlite-dev-preview [json_payload]`.
+- Added schema DDL preview for `user_practice_profiles`, `active_practice_plans`, `practice_history_summaries`, `context_persistence_idempotency_keys`, and `agent_trace_metadata`.
+- Added idempotency-key, trace-link, read-snapshot, and fixture-snapshot preview sections.
+- Kept default behavior no-write: no SQLite connection, no tables, no rows, no backend database write, no HarmonyOS local write.
+- Explicitly blocks `devWriteEnabled=true` in this version because v2_8_11 is preview-only.
+- Preserved all Agent guards: no LLM call, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no post-session recommendation card.
+
+Recommended next Agent task:
+
+```text
+v2_8_12_agent_context_persistence_dev_sqlite_explicit_write_gate
+```
+
+## v2_8_12_agent_context_persistence_dev_sqlite_explicit_write_gate
+
+- Added explicit dev-only SQLite write gate and config-path contract for future Agent context persistence.
+- Added `ContextPersistenceDevSqliteWriteGatePayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/persistence-dev-sqlite-write-gate/spec`
+  - `POST /agent/context/persistence-dev-sqlite-write-gate/preview`
+- Added terminal command `/context-persistence-dev-sqlite-write-gate [json_payload]`.
+- Added required future-write checks: approved confirmation, idempotency key, trace link, dev config path, storage-boundary check, redaction check, and schema-preview acceptance.
+- Kept the version no-write: no SQLite connection, no tables, no rows, no backend database write, no HarmonyOS local write.
+- Preserved all Agent guards: no LLM call, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no post-session recommendation card.
+
+Recommended next Agent task:
+
+```text
+v2_8_13_agent_context_persistence_dev_sqlite_fixture_write_dry_run
+```
+
+## v2_8_13_agent_context_persistence_dev_sqlite_fixture_write_dry_run
+
+- Added dev SQLite fixture writer dry-run contract for Agent context persistence.
+- Added `ContextPersistenceDevSqliteFixtureWriteDryRunPayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/persistence-dev-sqlite-fixture-write-dry-run/spec`
+  - `POST /agent/context/persistence-dev-sqlite-fixture-write-dry-run/preview`
+- Added terminal command `/context-persistence-dev-sqlite-fixture-write-dry-run [json_payload]`.
+- Added transaction, idempotency, trace-link, fixture row plan, and read-back snapshot preview sections.
+- Kept the version dry-run only: no SQLite connection, no tables, no rows, no backend database write, no HarmonyOS local write, no committed transaction.
+- Preserved all Agent guards: no LLM call, no tool execution, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback, no post-session recommendation card.
+
+Recommended next Agent task:
+
+```text
+v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_opt_in
+```
+
+## v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_opt_in
+
+- Added dev-only explicit opt-in fixture JSONL store contract.
+- Added `GET /agent/context/persistence-dev-sqlite-fixture-store/spec`.
+- Added `POST /agent/context/persistence-dev-sqlite-fixture-store/preview`.
+- Added terminal command `/context-persistence-dev-sqlite-fixture-store [json_payload]`.
+- Added tests for explicit opt-in gates, redaction, idempotency, API, CLI, and manifest exposure.
+- The fixture store can append a local development JSONL record only after explicit opt-in and all gates pass.
+- Still does not open SQLite, create tables, write SQLite rows, write backend database, write HarmonyOS local state, call LLM, execute tools, start Routine, call Engine, create MIDI, or start playback.
+
+## v2_8_15_agent_context_persistence_dev_fixture_readback_and_replay_preview
+
+- Added dev fixture JSONL read-back / replay preview contract.
+- Added `GET /agent/context/persistence-dev-fixture-readback-replay/spec`.
+- Added `POST /agent/context/persistence-dev-fixture-readback-replay/preview`.
+- Added terminal command `/context-persistence-dev-fixture-readback-replay`.
+- Added `docs/AGENT_CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_V2_8_15.md`.
+- Read-only preview only: no SQLite connection, no SQLite rows, no backend write, no HarmonyOS local write, no LLM/tool/Engine call.
