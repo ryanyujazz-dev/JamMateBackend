@@ -1,6 +1,6 @@
 # Development Harness V2
 
-Current version: `v2_4_1`.
+Current version: `v2_4_7`.
 
 This document expands the root `agent.md` harness. The root file is the active short checklist; this file explains the same rules for future maintainers.
 

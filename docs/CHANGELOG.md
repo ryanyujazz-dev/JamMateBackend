@@ -1,8 +1,53 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_4_7 — Agent Terminal Trace Export
+
+- Added explicit terminal trace export through `--trace-dir <dir>` on `python -m jammate_agent.cli.terminal_chat` and the `jammate-agent-chat` console script.
+- Reused the existing `TraceLogger` / `JsonTraceStore` / `AgentTrace` owner instead of creating a second tracing subsystem.
+- Terminal chat traces now capture context packet summaries, request-envelope summaries, provider response summaries, and final response summaries.
+- Terminal `/tool-preview` traces now capture context packet summaries and validation-only tool invocation preview results.
+- Added `/trace` and `/traces` terminal commands for inspecting the most recent local trace export.
+- Trace export remains explicit, local, and debug-only: no autonomous tools, no deterministic workflow dispatch, no adapter dispatch, no engine call, and no provider guard bypass.
+- Runtime music generation behavior is unchanged.
+
+## v2_4_6 — Agent Terminal Tool Preview CLI
+
+- Added explicit `/tool-preview <tool_name> [json_object_arguments]` command inside `python -m jammate_agent.cli.terminal_chat` and the `jammate-agent-chat` console script.
+- Reused `ContextBuilder`, task-scoped `ContextPacket.allowed_tools`, `tool_registry.py`, and `tool_invocation.py` instead of creating a second terminal tool stack.
+- Added `/tools` and `/help` terminal commands for local debugging of allowed tool names and CLI usage.
+- Tool preview from the terminal remains validation-only: no deterministic workflow dispatch, no API route dispatch, no adapter dispatch, no engine call, and no autonomous tool execution.
+- Normal terminal chat provider behavior remains unchanged: provider calls require explicit env guards and never execute tools.
+- Runtime music generation behavior is unchanged.
+
 This file is the chronological project history. README should remain the project overview; `agent.md` should remain the development harness.
 
 ---
+
+## v2_4_5 — Agent Tool Invocation Preview Contract
+
+- Added `jammate_agent/core/tool_invocation.py` as the validation-only owner for future LLM-proposed tool calls.
+- Added `GET /agent/tools/invocation/spec` and `POST /agent/tools/invocation/preview`.
+- Tool-call proposals validate against the task-scoped `ContextPacket.allowed_tools` and registry descriptors, but never dispatch deterministic workflows, adapters, routes, or engine code.
+- Context/runtime policies expose `tool_invocation_preview_version` and preview-only execution guards.
+- HarmonyOS contract/codegen/smoke fixtures include the preview endpoint.
+- Runtime music generation behavior is unchanged.
+
+## v2_4_4 — Agent Terminal Chat CLI Foundation
+
+- Added `src/jammate_agent/cli/terminal_chat.py` and console script `jammate-agent-chat` for terminal-first LLM conversation debugging.
+- Reused ContextBuilder, ContextPacket, provider boundary, and tool registry descriptors instead of creating a separate prompt stack.
+- Added stdlib-only OpenAI-compatible chat-completions provider support behind explicit env guards: provider, model, API key, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS=true`.
+- Kept API runloop preview-only and kept autonomous/tool execution disabled; terminal chat can see tool descriptors as context but cannot execute tools.
+- Preserved HarmonyOS `/accompaniment/generate` inline leadsheet contract and left runtime music generation unchanged.
+
+## v2_4_2 — Agent LLM Provider Boundary
+
+- Added provider-neutral `src/jammate_agent/core/llm_provider.py` with `LLMProviderConfig`, `DisabledLLMProvider`, `LLMRequestEnvelope`, and provider protocol shape.
+- Added `GET /agent/llm/provider/spec` to inspect provider config/status without making network calls.
+- Extended context runtime packets and runloop preview with provider status, request-envelope summary, and explicit `llm_call_mode = provider_boundary_preview_only`.
+- Kept `llm_calls_enabled = false` and `autonomous_tool_execution_enabled = false` even when future provider config env vars are present.
+- Synchronized Agent capability manifest, API docs, ArkTS contract codegen, fixtures, smoke pack, and harness docs.
+- Runtime music generation behavior is unchanged from `v2_3_17`; no voicing/pattern/expression/pedal deepening in this delivery.
 
 ## v2_4_1 — HarmonyOS Generate Contract Sync
 

@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_4_1`.
+Current baseline: `v2_4_7`.
 
-`v2_4_1_harmonyos_generate_contract_sync` hardens the HarmonyOS direct accompaniment contract on `feature/agent-workflow`. It keeps `/accompaniment/generate` as the active route, prefers inline `jammate_leadsheet_v2` with `sections + written_form`, preserves camelCase/snake_case request compatibility, and leaves runtime music generation behavior unchanged from `v2_3_17`.
+`v2_4_7_agent_terminal_trace_export` adds explicit `--trace-dir` JSON export for terminal chat and `/tool-preview` on `feature/agent-workflow`. It reuses TraceLogger, JsonTraceStore, ContextBuilder, provider boundary, descriptor-only tool registry, and the validation-only tool invocation preview contract; it does not dispatch workflows, routes, adapters, or engine code. Runtime music generation behavior is unchanged from `v2_3_17`; HarmonyOS direct `/accompaniment/generate` contract from `v2_4_1` remains intact.
 
 ---
 
@@ -26,7 +26,7 @@ Scope:
 Suggested next task:
 
 ```text
-v2_4_2_agent_llm_provider_boundary
+v2_4_8_agent_trace_api_contract_hardening
 ```
 
 ### Engine branch

@@ -3,7 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-CONTEXT_RUNTIME_VERSION = "v2_4_1"
+from jammate_agent.core.llm_provider import LLMProviderConfig
+from jammate_agent.core.tool_invocation import TOOL_INVOCATION_PREVIEW_VERSION, DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY
+from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, summarize_tools_for_names, validate_allowed_tools
+
+CONTEXT_RUNTIME_VERSION = "v2_4_7"
 
 
 @dataclass
@@ -15,6 +19,9 @@ class CapabilityManifest:
     supports_harmonic_expansion: bool = True
     supports_llm_context_runtime_preview: bool = True
     supports_bounded_tool_loop_preview: bool = True
+    supports_llm_provider_boundary: bool = True
+    supports_tool_registry_boundary: bool = True
+    supports_tool_invocation_preview: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -26,6 +33,9 @@ class CapabilityManifest:
             "supports_harmonic_expansion": self.supports_harmonic_expansion,
             "supports_llm_context_runtime_preview": self.supports_llm_context_runtime_preview,
             "supports_bounded_tool_loop_preview": self.supports_bounded_tool_loop_preview,
+            "supports_llm_provider_boundary": self.supports_llm_provider_boundary,
+            "supports_tool_registry_boundary": self.supports_tool_registry_boundary,
+            "supports_tool_invocation_preview": self.supports_tool_invocation_preview,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -46,6 +56,7 @@ class ContextProfile:
             "required_context_layers": list(self.required_context_layers),
             "optional_context_layers": list(self.optional_context_layers),
             "allowed_tools": list(self.allowed_tools),
+            "tool_descriptor_count": len(summarize_tools_for_names(self.allowed_tools)),
             "output_schema": self.output_schema,
             "llm_required": self.llm_required,
             "deterministic_fallback": self.deterministic_fallback,
@@ -107,6 +118,7 @@ class ContextPacket:
     context_runtime_version: str = CONTEXT_RUNTIME_VERSION
     selected_context_layers: list[str] = field(default_factory=list)
     allowed_tools: list[str] = field(default_factory=list)
+    tool_descriptors: list[dict[str, Any]] = field(default_factory=list)
     output_contract: dict[str, Any] = field(default_factory=dict)
     runtime_policy: dict[str, Any] = field(default_factory=dict)
     routing_hints: dict[str, Any] = field(default_factory=dict)
@@ -126,6 +138,7 @@ class ContextPacket:
             "capabilities": self.capabilities.to_dict(),
             "constraints": self.constraints,
             "allowed_tools": list(self.allowed_tools),
+            "tool_descriptors": list(self.tool_descriptors),
             "output_contract": self.output_contract,
             "runtime_policy": self.runtime_policy,
             "routing_hints": self.routing_hints,
@@ -137,6 +150,7 @@ class ContextPacket:
             "task_type": self.task_type,
             "selected_context_layers": list(self.selected_context_layers),
             "allowed_tools": list(self.allowed_tools),
+            "tool_descriptor_count": len(self.tool_descriptors),
             "output_schema": self.output_contract.get("schema"),
             "llm_required": self.runtime_policy.get("llm_required"),
             "deterministic_fallback": self.runtime_policy.get("deterministic_fallback"),
@@ -155,6 +169,8 @@ class ContextBuilder:
         profile = CONTEXT_PROFILES.get(task_type, CONTEXT_PROFILES["practice_plan_generation"])
         client_context = self._clean_dict(kwargs.get("client_context") or {})
         constraints = self._build_constraints(kwargs, client_context)
+        allowed_tools = list(profile.allowed_tools)
+        tool_descriptors = summarize_tools_for_names(allowed_tools)
         context = ContextPacket(
             task_type=profile.task_type,
             user_request={"text": user_input, **self._request_metadata(kwargs)},
@@ -166,15 +182,10 @@ class ContextBuilder:
             constraints=constraints,
             system_product_context=self._system_product_context(),
             selected_context_layers=[*profile.required_context_layers, *profile.optional_context_layers],
-            allowed_tools=list(profile.allowed_tools),
+            allowed_tools=allowed_tools,
+            tool_descriptors=tool_descriptors,
             output_contract={"schema": profile.output_schema, "response_case": "snake_case", "client_domain_case": "camelCase"},
-            runtime_policy={
-                "llm_required": profile.llm_required,
-                "llm_provider_configured": False,
-                "deterministic_fallback": profile.deterministic_fallback,
-                "max_tool_steps": 4,
-                "tool_loop_mode": "bounded_preview",
-            },
+            runtime_policy=self._runtime_policy(profile),
             routing_hints={
                 "direct_client_callable": profile.task_type in {"practice_plan_generation", "immediate_practice_playback", "session_review"},
                 "preferred_route": self._preferred_route(profile.task_type),
@@ -185,6 +196,27 @@ class ContextBuilder:
 
     def profile_manifest(self) -> dict[str, Any]:
         return {key: profile.to_dict() for key, profile in CONTEXT_PROFILES.items()}
+
+
+    def _runtime_policy(self, profile: ContextProfile) -> dict[str, Any]:
+        provider_config = LLMProviderConfig.from_env()
+        provider_status = provider_config.to_dict()
+        return {
+            "llm_required": profile.llm_required,
+            "llm_provider_configured": provider_config.provider_configured,
+            "llm_provider_boundary_version": provider_status["boundary_version"],
+            "llm_provider_status": provider_status,
+            "tool_registry_boundary_version": TOOL_REGISTRY_VERSION,
+            "tool_invocation_preview_version": TOOL_INVOCATION_PREVIEW_VERSION,
+            "tool_invocation_preview_policy": DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY.to_dict(),
+            "allowed_tool_validation": validate_allowed_tools(profile.allowed_tools),
+            "deterministic_fallback": profile.deterministic_fallback,
+            "max_tool_steps": 4,
+            "tool_loop_mode": "bounded_preview",
+            "llm_call_mode": "provider_boundary_preview_only",
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+        }
 
     def _request_metadata(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         metadata: dict[str, Any] = {}

@@ -57,6 +57,17 @@ class AgentContextRuntimePreviewRequest(ApiModel):
     local_unsynced_summary: dict[str, Any] = Field(default_factory=dict)
 
 
+
+
+class AgentToolInvocationPreviewRequest(ApiModel):
+    request_id: str | None = None
+    user_input: str | None = None
+    task_type: str = "coach_qa"
+    tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    client_context: ClientContext = Field(default_factory=ClientContext)
+
+
 class SessionReviewRequest(ApiModel):
     session_id: str
     completed: bool = True

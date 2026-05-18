@@ -1,6 +1,6 @@
 # JamMate API Contract V2
 
-Current baseline: `v2_4_1`.
+Current baseline: `v2_4_7`.
 
 This document records the stable API contract shape. Detailed version-specific API delivery notes live in separate `docs/*V2_x_x*.md` files.
 
@@ -43,7 +43,7 @@ Expected response:
 {
   "ok": true,
   "service": "jammate-api",
-  "engine_version": "v2_4_1",
+  "engine_version": "v2_4_7",
   "agent_version": "v0_1"
 }
 ```
@@ -181,9 +181,11 @@ HarmonyOS should loop the returned asset until its local practice timer reaches 
 ```text
 GET  /agent/context/runtime/spec
 POST /agent/context/runtime/preview
+GET  /agent/llm/provider/spec
+GET  /agent/tools/registry
 ```
 
-Use this on `feature/agent-workflow` to inspect the task-scoped context packet and bounded runloop envelope that a future LLM provider would receive. `v2_4_1` does not call an LLM and does not execute autonomous tools.
+Use this on `feature/agent-workflow` to inspect the task-scoped context packet, provider-neutral request envelope summary, and bounded runloop envelope that a future LLM provider would receive. `v2_4_7` does not call an LLM and does not execute autonomous tools.
 
 Example request:
 
@@ -210,22 +212,199 @@ Expected response shape:
   "ok": true,
   "task_type": "immediate_practice_playback",
   "context_packet": {
-    "context_runtime_version": "v2_4_1",
+    "context_runtime_version": "v2_4_7",
     "task_type": "immediate_practice_playback",
     "allowed_tools": ["chart_resolve", "agent_playback_prepare"],
     "runtime_policy": {
       "tool_loop_mode": "bounded_preview",
-      "llm_provider_configured": false
+      "llm_call_mode": "provider_boundary_preview_only",
+      "llm_provider_configured": false,
+      "llm_provider_boundary_version": "v2_4_7"
     }
   },
   "runloop_preview": {
     "runtime_mode": "preview_only",
     "tool_execution_enabled": false,
-    "next_action": "deterministic_workflow_fallback"
+    "next_action": "deterministic_workflow_fallback",
+    "llm_provider_status": { "provider_configured": false },
+    "request_envelope_summary": { "message_count": 3 }
   },
   "trace_id": "trace_..."
 }
 ```
+
+
+
+
+### Agent tool invocation preview
+
+```text
+GET  /agent/tools/invocation/spec
+POST /agent/tools/invocation/preview
+```
+
+Use this to validate a future LLM-proposed tool call against the task-specific `ContextPacket.allowed_tools` and tool registry descriptor before any execution capability exists.
+
+Example request:
+
+```json
+{
+  "userInput": "我想练 Blue Bossa 20分钟",
+  "taskType": "immediate_practice_playback",
+  "toolName": "agent_playback_prepare",
+  "arguments": {
+    "userInput": "练 Blue Bossa 20分钟",
+    "durationMinutes": 20
+  },
+  "clientContext": {
+    "currentScreen": "practice_home",
+    "availableMinutes": 20,
+    "locale": "zh-CN"
+  }
+}
+```
+
+Expected response shape:
+
+```json
+{
+  "ok": true,
+  "preview": {
+    "preview_version": "v2_4_7",
+    "status": "preview_only_blocked_by_execution_guard",
+    "known_tool": true,
+    "allowed_by_context": true,
+    "execution_enabled": false,
+    "autonomous_execution_enabled": false,
+    "would_execute": false,
+    "blocking_reasons": ["tool_execution_disabled_in_v2_4_7"]
+  },
+  "context_packet_summary": {}
+}
+```
+
+Rules:
+
+- Unknown tools are rejected.
+- Tools not present in the task-scoped allow-list are rejected.
+- Arguments are normalized and shape-checked only.
+- The preview endpoint never dispatches deterministic workflows, adapters, API routes, or engine code.
+
+
+### Agent tool registry boundary spec
+
+```text
+GET /agent/tools/registry
+```
+
+Returns descriptor-only Agent tool/workflow contracts for HarmonyOS diagnostics and future bounded LLM tool planning. `v2_4_7` does not execute tools from the runloop. Deterministic API routes remain the only execution path.
+
+Minimum response shape:
+
+```json
+{
+  "ok": true,
+  "registry": {
+    "version": "v2_4_7",
+    "execution_status": {
+      "tool_execution_enabled": false,
+      "autonomous_tool_execution_enabled": false,
+      "llm_tool_calls_enabled": false
+    },
+    "tool_names": ["direct_accompaniment_generate", "chart_resolve", "agent_playback_prepare"],
+    "task_allow_lists": {
+      "immediate_practice_playback": ["direct_accompaniment_generate", "chart_resolve", "agent_playback_prepare"]
+    }
+  }
+}
+```
+
+### Agent LLM provider boundary spec
+
+```text
+GET /agent/llm/provider/spec
+```
+
+Returns provider-neutral configuration/status information. This endpoint is diagnostic only; the API route does not call an LLM and does not enable autonomous tools. Terminal chat can call a configured provider through `python -m jammate_agent.cli.terminal_chat`.
+
+Expected response shape:
+
+```json
+{
+  "ok": true,
+  "spec": {
+    "version": "v2_4_7",
+    "boundary_version": "v2_4_7",
+    "route": "GET /agent/llm/provider/spec",
+    "status": {
+      "provider_name": "none",
+      "provider_configured": false,
+      "llm_calls_enabled": false,
+      "autonomous_tool_execution_enabled": false
+    },
+    "guards": {
+      "api_runloop_llm_calls_enabled": false,
+      "terminal_chat_llm_calls_enabled_when_configured": true,
+      "autonomous_tool_execution_enabled": false
+    }
+  }
+}
+```
+
+Provider env/config keys currently inspected only:
+
+```text
+JAMMATE_LLM_PROVIDER
+JAMMATE_LLM_MODEL
+JAMMATE_LLM_API_KEY_ENV_VAR
+JAMMATE_LLM_API_KEY
+JAMMATE_LLM_ENABLE_NETWORK_CALLS
+JAMMATE_LLM_BASE_URL
+JAMMATE_LLM_CHAT_COMPLETIONS_PATH
+JAMMATE_LLM_MAX_PROMPT_CHARS
+JAMMATE_LLM_MAX_OUTPUT_TOKENS
+JAMMATE_LLM_TEMPERATURE
+```
+
+
+### Terminal Agent chat CLI
+
+```text
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat
+```
+
+The CLI is a developer/operator debugging surface, not a HarmonyOS API contract. It uses the same context packet and provider boundary as the Agent runtime preview. It may call an OpenAI-compatible chat-completions provider only when provider, model, API key, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS=true` are explicitly configured. It does not execute tools.
+
+One-shot example:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --once "解释一下 altered dominant"
+```
+
+Trace-export one-shot example:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --trace-dir tmp/terminal_traces --once "解释一下 altered dominant"
+```
+
+Terminal tool preview example:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --task-type immediate_practice_playback --once '/tool-preview agent_playback_prepare {"durationMinutes":20}'
+```
+
+Interactive slash commands:
+
+```text
+/help
+/tools
+/tool-preview <tool_name> [json_object_arguments]
+/trace
+/traces
+/exit
+```
+
+`/tool-preview` returns terminal text for the same validation-only preview contract as `POST /agent/tools/invocation/preview`; it does not execute tools, routes, adapters, or engine workflows. `--trace-dir <dir>` explicitly exports normal chat and tool-preview turns as `AgentTrace` JSON via the existing `TraceLogger` / `JsonTraceStore` owner; no traces are written by default.
 
 ---
 

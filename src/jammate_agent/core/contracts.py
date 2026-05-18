@@ -4,7 +4,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from jammate_agent.core.context import CONTEXT_PROFILES, CONTEXT_RUNTIME_VERSION
+from jammate_agent.core.llm_provider import LLM_PROVIDER_BOUNDARY_VERSION, build_llm_provider_from_env
 from jammate_agent.core.runloop import BoundedAgentRunLoop, RUNLOOP_CONTRACT_VERSION
+from jammate_agent.core.tool_invocation import TOOL_INVOCATION_PREVIEW_VERSION, tool_invocation_preview_contract
+from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, tool_registry_manifest
 
 
 @dataclass(frozen=True)
@@ -47,60 +50,29 @@ class ContextProfileContract:
 
 def agent_capability_manifest() -> dict[str, Any]:
     """Machine-readable manifest for HarmonyOS and future LLM context packets."""
-    tools = [
-        AgentToolContract(
-            name="direct_accompaniment_generate",
-            description="Direct client-callable accompaniment generation path; does not require Agent/LLM.",
-            requires_llm=False,
-            direct_client_callable=True,
-            input_contract={"route": "POST /accompaniment/generate", "schema": "DirectAccompanimentGenerateRequest", "preferred_chart_input": "inline jammate_leadsheet_v2", "fallback_chart_input": "tune"},
-            output_contract={"asset_format": "midi_base64", "requires_client_looping": False},
-        ),
-        AgentToolContract(
-            name="agent_playback_prepare",
-            description="Natural-language immediate practice playback workflow. Agent resolves chart, arrangement intent, and accompaniment asset.",
-            requires_llm=False,
-            direct_client_callable=True,
-            input_contract={"route": "POST /agent/playback/prepare", "schema": "AgentPlaybackPrepareRequest"},
-            output_contract={"asset_format": "midi_base64", "playback_instruction": "client_loop_until_target_duration"},
-        ),
-        AgentToolContract(
-            name="agent_practice_plan",
-            description="Natural-language practice-plan generation. P0 is deterministic; future LLM planner can replace the planner provider.",
-            requires_llm=False,
-            direct_client_callable=True,
-            input_contract={"route": "POST /agent/practice/plan", "schema": "AgentPlanRequest"},
-            output_contract={"schema": "PracticePlan"},
-        ),
-        AgentToolContract(
-            name="session_review_recommendation",
-            description="Session review to next-step recommendation. P0 is rule-based.",
-            requires_llm=False,
-            direct_client_callable=True,
-            input_contract={"route": "POST /agent/session/review", "schema": "SessionReviewRequest"},
-            output_contract={"schema": "NextStepRecommendation"},
-        ),
-        AgentToolContract(
-            name="agent_llm_context_runtime_preview",
-            description="Preview task-scoped ContextPacket and bounded runloop envelope before any real LLM provider is connected.",
-            requires_llm=False,
-            direct_client_callable=True,
-            input_contract={"route": "POST /agent/context/runtime/preview", "schema": "AgentContextRuntimePreviewRequest"},
-            output_contract={"schema": "AgentContextRuntimePreviewResponse", "runtime_mode": "preview_only"},
-        ),
-    ]
+    registry = tool_registry_manifest()
     return {
         "version": CONTEXT_RUNTIME_VERSION,
         "agent_name": "JamMateAgent",
         "principle": "LLM/Agent is an enhancement path, not a required path. Direct accompaniment remains callable without LLM.",
         "available_styles": ["medium_swing", "bossa_nova", "jazz_ballad"],
-        "available_tools": [tool.to_dict() for tool in tools],
+        "available_tools": registry["tools"],
+        "tool_registry": {
+            "registry_version": registry["registry_version"],
+            "route": "GET /agent/tools/registry",
+            "execution_status": registry["execution_status"],
+            "task_allow_lists": registry["task_allow_lists"],
+        },
         "dependency_boundary": {
             "jammate_engine_imports_jammate_agent": False,
             "jammate_agent_uses_engine_only_through_adapter": True,
             "jammate_api_assembles_engine_and_agent": True,
         },
     }
+
+
+def tool_registry_contract() -> dict[str, Any]:
+    return tool_registry_manifest()
 
 
 def context_profile_manifest() -> dict[str, Any]:
@@ -110,6 +82,9 @@ def context_profile_manifest() -> dict[str, Any]:
         "context_rule": "LLM receives a task-scoped ContextPacket selected by task type; HarmonyOS sends current input, client state, and object ids only.",
         "runtime_preview_route": "POST /agent/context/runtime/preview",
         "runtime_spec_route": "GET /agent/context/runtime/spec",
+        "provider_boundary_spec_route": "GET /agent/llm/provider/spec",
+        "tool_registry_spec_route": "GET /agent/tools/registry",
+        "tool_invocation_preview_spec_route": "GET /agent/tools/invocation/spec",
         "profiles": profiles,
     }
 
@@ -123,6 +98,10 @@ def llm_context_runtime_contract() -> dict[str, Any]:
         "routes": {
             "preview": "POST /agent/context/runtime/preview",
             "spec": "GET /agent/context/runtime/spec",
+            "provider": "GET /agent/llm/provider/spec",
+            "tool_registry": "GET /agent/tools/registry",
+            "tool_invocation_preview_spec": "GET /agent/tools/invocation/spec",
+            "tool_invocation_preview": "POST /agent/tools/invocation/preview",
         },
         "request_schema": {
             "request_id": "string | null",
@@ -151,11 +130,71 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             "output_contract": "Expected response schema and case policy.",
         },
         "runloop": runloop_contract,
+        "llm_provider_boundary": llm_provider_boundary_contract(),
+        "tool_registry_boundary": tool_registry_contract(),
+        "tool_invocation_preview_boundary": tool_invocation_preview_contract(),
         "non_goals": [
-            "No real LLM network call in v2_4_1.",
-            "No autonomous tool execution in v2_4_1.",
+            "No real LLM network call from the API runloop preview in v2_4_7.",
+            "No autonomous tool execution in v2_4_7.",
+            "No runloop-driven tool execution in v2_4_7; tools are descriptor-only.",
+            "No runloop-driven tool execution in v2_4_7; tools are descriptor-only and invocation preview is validation-only.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
         ],
+    }
+
+
+def llm_provider_boundary_contract() -> dict[str, Any]:
+    provider = build_llm_provider_from_env()
+    return {
+        "version": CONTEXT_RUNTIME_VERSION,
+        "boundary_version": LLM_PROVIDER_BOUNDARY_VERSION,
+        "route": "GET /agent/llm/provider/spec",
+        "status": provider.status(),
+        "config_env": {
+            "provider": "JAMMATE_LLM_PROVIDER",
+            "model": "JAMMATE_LLM_MODEL",
+            "api_key_env_var": "JAMMATE_LLM_API_KEY_ENV_VAR, defaults to JAMMATE_LLM_API_KEY",
+            "api_key": "JAMMATE_LLM_API_KEY or the env var named by JAMMATE_LLM_API_KEY_ENV_VAR",
+            "base_url": "JAMMATE_LLM_BASE_URL, defaults to https://api.openai.com/v1",
+            "chat_completions_path": "JAMMATE_LLM_CHAT_COMPLETIONS_PATH, defaults to /chat/completions",
+            "enable_network_calls": "JAMMATE_LLM_ENABLE_NETWORK_CALLS",
+            "max_prompt_chars": "JAMMATE_LLM_MAX_PROMPT_CHARS",
+            "max_output_tokens": "JAMMATE_LLM_MAX_OUTPUT_TOKENS",
+            "temperature": "JAMMATE_LLM_TEMPERATURE",
+        },
+        "terminal_chat": {
+            "entrypoint": "python -m jammate_agent.cli.terminal_chat",
+            "console_script": "jammate-agent-chat",
+            "supported_providers": ["openai", "openai_compatible"],
+            "requires_explicit_network_gate": True,
+            "tool_execution_enabled": False,
+            "slash_commands": ["/help", "/tools", "/tool-preview <tool_name> [json_object_arguments]", "/trace", "/traces", "/exit"],
+            "tool_preview_example": 'python -m jammate_agent.cli.terminal_chat --task-type immediate_practice_playback --once \'/tool-preview agent_playback_prepare {"durationMinutes":20}\'',
+            "trace_export": {
+                "enabled_by": "--trace-dir <dir>",
+                "commands": ["/trace", "/traces"],
+                "format": "AgentTrace JSON",
+                "execution_enabled": False,
+            },
+        },
+        "guards": {
+            "api_runloop_llm_calls_enabled": False,
+            "terminal_chat_llm_calls_enabled_when_configured": True,
+            "autonomous_tool_execution_enabled": False,
+            "default_provider_class": "DisabledLLMProvider",
+            "network_rule": "API runloop preview never calls the provider; terminal chat may call only when provider, model, API key, and JAMMATE_LLM_ENABLE_NETWORK_CALLS are configured.",
+            "tool_rule": "Terminal chat may include allowed tool descriptors as context but must not execute tools.",
+        },
+        "tool_invocation_preview": {
+            "version": TOOL_INVOCATION_PREVIEW_VERSION,
+            "route": "POST /agent/tools/invocation/preview",
+            "execution_enabled": False,
+        },
+        "future_provider_contract": {
+            "protocol": "LLMProvider.status() + LLMProvider.generate(LLMRequestEnvelope)",
+            "request_envelope": ["context_packet", "allowed_tools", "output_contract", "runtime_policy", "messages"],
+            "response": ["ok", "content", "provider_name", "model", "error_code", "message", "raw_usage"],
+        },
     }
 
 
@@ -377,7 +416,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_4_1
+// JamMate Agent / Practice API Contract v2_4_7
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'

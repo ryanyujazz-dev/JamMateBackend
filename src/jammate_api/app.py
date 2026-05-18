@@ -7,7 +7,7 @@ from jammate_api.routes.agent_routes import router as agent_router
 from jammate_api.routes.health_routes import router as health_router
 from jammate_api.routes.practice_routes import router as practice_router
 
-APP_VERSION = "v2_4_1_harmonyos_generate_contract_sync"
+APP_VERSION = "v2_4_7_agent_terminal_trace_export"
 
 app = FastAPI(
     title="JamMate API",

@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_4_1`.
+Current package version: `v2_4_7`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -80,6 +80,9 @@ Patterns live in styles. Voicing and expression are core-level shared systems.
 - Prepares immediate practice playback from natural-language-like user input.
 - Creates practice plan and session review responses.
 - Builds task-scoped LLM context runtime preview packets without calling a real LLM provider.
+- Exposes a provider-neutral LLM config/status boundary without provider SDK imports or network calls.
+- Exposes a descriptor-only Agent tool registry for future bounded LLM tool planning.
+- Exposes a terminal chat CLI for optional provider-backed LLM conversation during backend debugging.
 - Exposes a bounded runloop preview contract for future tool workflows.
 - Maintains trace logging for Agent steps.
 - Exposes capability and contract manifests for HarmonyOS integration.
@@ -201,6 +204,8 @@ GET  /agent/capabilities
 GET  /agent/context/profiles
 GET  /agent/context/runtime/spec
 POST /agent/context/runtime/preview
+GET  /agent/llm/provider/spec
+GET  /agent/tools/registry
 GET  /agent/contracts/arkts
 GET  /agent/contracts/arkts/files
 GET  /agent/contracts/frontend-pack
@@ -276,9 +281,36 @@ docs/GENERATION_RULES_SUMMARY_V2.md
 
 ---
 
+## Terminal Agent Chat
+
+The terminal-first LLM chat entry point remains available for backend debugging:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat
+```
+
+The CLI is guarded by explicit provider env vars and does not execute Agent tools. Default behavior is disabled/guarded unless `JAMMATE_LLM_PROVIDER`, `JAMMATE_LLM_MODEL`, API key, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS=true` are configured. The API runloop preview remains preview-only.
+
+Terminal tool-call validation is also available without execution:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --task-type immediate_practice_playback --once '/tool-preview agent_playback_prepare {"durationMinutes":20}'
+```
+
+Interactive commands:
+
+```text
+/help
+/tools
+/tool-preview <tool_name> [json_object_arguments]
+/trace
+/traces
+/exit
+```
+
 ## Current Development Status
 
-`v2_4_1` is the HarmonyOS generate contract sync baseline for `feature/agent-workflow`. It confirms `POST /accompaniment/generate` as the current direct playback route, promotes inline `jammate_leadsheet_v2` with `sections + written_form` as the preferred chart input, preserves camelCase/snake_case request compatibility, and keeps backend responses canonical snake_case. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_7` is the Agent terminal trace export foundation for `feature/agent-workflow`. It preserves the terminal chat and explicit `/tool-preview` preview contract from previous v2_4_x work, then adds explicit `--trace-dir` JSON trace export plus `/trace` and `/traces` inspection commands. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch all remain disabled from the terminal boundary. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ```text
 Current active window -> feature/agent-workflow

@@ -1,7 +1,7 @@
 [project]
 name = "jammate-engine"
-version = "2.4.1"
-description = "JamMatePyEngineV2 Harness Hardening and Changelog Split"
+version = "2.4.7"
+description = "JamMatePyEngineV2 Agent Terminal Trace Export"
 requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.110",
@@ -15,3 +15,6 @@ where = ["src"]
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+jammate-agent-chat = "jammate_agent.cli.terminal_chat:main"
