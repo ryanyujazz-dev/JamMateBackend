@@ -1,3 +1,33 @@
+## v2_6_24 Voicing cleanup — realizer NoteEvent/audit split
+
+- NoteEvent/audit/debug helpers have moved from `harmonic_realizer.py` to `realization/realizer_note_audit.py`.
+- `harmonic_realizer.py` should remain an orchestration boundary: normalize policy, adapt event context, build `VoicingRequest`, call `VoicingResolver`, reuse/copy region voicings, pass selected plans into `GestureRealizer`, and return final `NoteEvent` output.
+- `realizer_note_audit.py` may serialize PatternEvent / Expression / VoicingPlan / NoteEvent debug payloads and trim partial inner-movement reattacks using already-selected voicing metadata, but it must not build requests, construct sources, decide color permission, project voicings, score/select candidates, apply expression, or write MIDI.
+- Current Ballad guardrails remain: 4-note SPREAD disabled, 5-note / 6-note near 6:4, maj7#11 absent unless written/intent-enabled.
+
+Recommended next task:
+
+```text
+v2_6_25_engine_voicing_request_orchestration_cache_boundary_audit
+```
+
+Goal: audit the remaining `harmonic_realizer.py` request orchestration/cache responsibilities and ensure one-voicing-per-region reuse remains explicit, behavior-preserving.
+
+## v2_6_23 Voicing cleanup — harmonic realizer policy/context adapter
+
+- Event-scoped voicing policy/context adaptation has moved from `harmonic_realizer.py` to `realization/voicing_policy_context_adapter.py`.
+- `harmonic_realizer.py` should remain a request-orchestration and NoteEvent realization boundary: build `VoicingRequest`, call `VoicingResolver`, reuse/copy region voicings, pass selected plans into `GestureRealizer`, and maintain final piano audit output.
+- `voicing_policy_context_adapter.py` may translate PatternEvent metadata into `VoicingPolicy.metadata`, but it must not construct sources, decide color permission, project voicings, score/select candidates, apply expression, or write MIDI.
+- Current Ballad guardrails remain: 4-note SPREAD disabled, 5-note / 6-note near 6:4, maj7#11 absent unless written/intent-enabled.
+
+Recommended next task:
+
+```text
+v2_6_24_engine_voicing_realizer_note_audit_cleanup
+```
+
+Goal: continue cleanup inside `harmonic_realizer.py` by separating NoteEvent/audit/debug helpers from voicing request orchestration, behavior-preserving.
+
 ## v2_6_22 Engine Voicing Cleanup — retired SPREAD pilot logic
 
 Completed cleanup scope:

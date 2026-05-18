@@ -12,7 +12,9 @@ from .placement_utils import Degree, PlacedDegree, dedupe_by_note, degree_to_not
 
 
 from .spread_contracts import (
+    SPREAD_ACTIVE_CONTRACT_IDS,
     SPREAD_RECIPE_CONTRACT_VERSION,
+    SPREAD_RETIRED_FOUR_NOTE_CONTRACT_IDS,
     SpreadGrouping,
     SpreadReuseStatus,
     SpreadUpperSourceKind,

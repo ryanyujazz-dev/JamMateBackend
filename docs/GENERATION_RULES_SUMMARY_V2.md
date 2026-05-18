@@ -1,3 +1,22 @@
+## v2_6_24 Voicing realization boundary note
+
+The harmonic realization boundary now separates voicing request orchestration from note/audit/debug payload construction:
+
+```text
+harmonic_realizer.py        # VoicingRequest / resolver / gesture realizer orchestration
+realizer_note_audit.py      # piano audit rows, note debug payloads, partial reattack NoteEvent trims
+```
+
+`realizer_note_audit.py` is not a voicing source, color, projection, selector, expression, or MIDI owner. It may only consume already-selected PatternEvent / Expression / VoicingPlan / NoteEvent data.
+
+## v2_6_23 Harmonic realizer policy/context adapter cleanup
+
+- No musical rule, density, pattern, expression, MIDI, or API behavior changed in this pass.
+- `voicing_policy_context_adapter.py` now owns only event-scoped policy/context metadata translation for voicing requests.
+- `harmonic_realizer.py` should not directly own harmonic-context, texture-scope, Ballad SPREAD grouping-mix, or SPREAD expansion-ratio helper logic.
+- The adapter does not construct degree sources, does not decide color permission, does not project closed/open/spread voicings, and does not score or select candidates.
+- Jazz Ballad guardrails remain: 4-note SPREAD disabled, 5-note:6-note ~= 6:4, and maj7#11 remains off by default unless explicit/written/intent-enabled.
+
 ## v2_6_22 Voicing cleanup — retired SPREAD pilot logic
 
 - Retired Jazz Ballad SPREAD pilot / dry-run / safe-dry-run / runtime-guard logic has been deleted from the active voicing surface.

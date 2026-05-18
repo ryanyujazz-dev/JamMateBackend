@@ -1,3 +1,19 @@
+## v2_6_24_engine_voicing_realizer_note_audit_cleanup
+
+- Cleanup pass: moved piano NoteEvent/audit/debug helpers out of `harmonic_realizer.py` into `src/jammate_engine/realization/realizer_note_audit.py`.
+- `harmonic_realizer.py` now remains focused on voicing request orchestration, one-voicing-per-region cache reuse, `VoicingResolver`, `GestureRealizer`, and final NoteEvent list ownership.
+- `realizer_note_audit.py` owns `piano_audit_event`, `sync_piano_audit_realized_notes`, note/gesture debug serialization, and partial inner-movement reattack release using already-selected voicing metadata.
+- Preserved Jazz Ballad guardrails: 4-note SPREAD remains 0, 5-note / 6-note remains near 6:4, and maj7#11 remains off by default.
+- Added `docs/ENGINE_VOICING_REALIZER_NOTE_AUDIT_CLEANUP_V2_6_24.md` and `tests/test_v2_6_24_engine_voicing_realizer_note_audit_cleanup.py`.
+
+## v2_6_23_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup
+
+- Cleanup pass: moved event-scoped voicing policy/context adaptation out of `harmonic_realizer.py` into `src/jammate_engine/realization/voicing_policy_context_adapter.py`.
+- Added `HarmonicRealizerPolicyContextAdapterProfile` and explicit owned/forbidden responsibility constants.
+- `harmonic_realizer.py` now calls `policy_with_event_voicing_context(policy, event)` and no longer directly owns harmonic-context, texture-scope, Ballad SPREAD grouping-mix, or SPREAD ratio-slot helpers.
+- Preserved current Jazz Ballad guardrails: 4-note SPREAD default remains 0, 5-note / 6-note remains near 6:4, and maj7#11 remains absent by default.
+- Added `docs/ENGINE_VOICING_HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_CLEANUP_V2_6_23.md` and `tests/test_v2_6_23_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup.py`.
+
 ## v2_6_22_engine_voicing_cleanup_retired_spread_pilot_logic
 
 - Cleanup pass: deleted retired Jazz Ballad SPREAD pilot / dry-run / safe-dry-run / selection-audit workflow from the active voicing surface.
