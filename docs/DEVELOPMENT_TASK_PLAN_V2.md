@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_4_0`.
+Current baseline: `v2_4_7`.
 
-`v2_4_0_agent_llm_context_runtime_foundation` establishes the Agent-side LLM context runtime preview envelope on `feature/agent-workflow`. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_7_agent_terminal_trace_export` adds explicit `--trace-dir` JSON export for terminal chat and `/tool-preview` on `feature/agent-workflow`. It reuses TraceLogger, JsonTraceStore, ContextBuilder, provider boundary, descriptor-only tool registry, and the validation-only tool invocation preview contract; it does not dispatch workflows, routes, adapters, or engine code. Runtime music generation behavior is unchanged from `v2_3_17`; HarmonyOS direct `/accompaniment/generate` contract from `v2_4_1` remains intact.
 
 ---
 
@@ -26,7 +26,7 @@ Scope:
 Suggested next task:
 
 ```text
-v2_4_1_agent_llm_provider_boundary
+v2_4_8_agent_trace_api_contract_hardening
 ```
 
 ### Engine branch

@@ -15,10 +15,14 @@ def test_smoke_pack_endpoint_exposes_minimum_harmonyos_sequence() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_4_0"
+    assert payload["version"] == "v2_4_7"
     steps = payload["minimum_smoke_sequence"]
     assert [step["path"] for step in steps] == ["/health", "/accompaniment/generate", "/agent/playback/prepare"]
-    assert payload["requests"]["directAccompanimentBlueBossa"]["tune"] == "Blue Bossa"
+    direct_request = payload["requests"]["directAccompanimentBlueBossa"]
+    assert direct_request["leadsheet"]["schema_version"] == "jammate_leadsheet_v2"
+    assert "sections" in direct_request["leadsheet"]
+    assert "written_form" in direct_request["leadsheet"]
+    assert direct_request["tune"] == "Blue Bossa"
     assert payload["playback_assertions"]["loop_rule"]
 
 
@@ -28,7 +32,7 @@ def test_smoke_pack_files_endpoint_exposes_copyable_json_and_curl_script() -> No
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_4_0"
+    assert payload["version"] == "v2_4_7"
     files = {item["relative_path"]: item for item in payload["files"]}
     assert "README.md" in files
     assert "curl_smoke.sh" in files
@@ -43,7 +47,12 @@ def test_smoke_pack_payloads_are_valid_json_and_match_endpoint_contracts() -> No
     direct = json.loads(files["smoke_direct_accompaniment_blue_bossa.json"]["source"])
     agent = json.loads(files["smoke_agent_playback_blue_bossa.json"]["source"])
     plan = json.loads(files["smoke_agent_practice_plan_misty.json"]["source"])
+    assert direct["leadsheet"]["schema_version"] == "jammate_leadsheet_v2"
+    assert "sections" in direct["leadsheet"]
+    assert "written_form" in direct["leadsheet"]
+    assert direct["tune"] == "Blue Bossa"
     assert direct["outputFormat"] == "midi_base64"
+    assert "voicingOverride" in direct
     assert agent["durationMinutes"] == 20
     assert plan["availableMinutes"] == 45
 
@@ -54,7 +63,7 @@ def test_repository_harmonyos_smoke_files_are_present() -> None:
     assert (smoke_root / "README.md").exists()
     assert (smoke_root / "curl_smoke.sh").exists()
     assert (smoke_root / "smoke_pack.json").exists()
-    assert "v2_4_0" in (smoke_root / "README.md").read_text(encoding="utf-8")
+    assert "v2_4_7" in (smoke_root / "README.md").read_text(encoding="utf-8")
     assert "Blue Bossa" in (smoke_root / "smoke_direct_accompaniment_blue_bossa.json").read_text(encoding="utf-8")
 
 
@@ -73,6 +82,8 @@ def test_minimum_smoke_sequence_runs_through_test_client() -> None:
     assert direct_payload["ok"] is True
     assert direct_payload["asset"]["midi_base64"]
     assert direct_payload["asset"]["cache_key"].startswith("direct_accomp:")
+    assert direct_payload["asset"]["debug_summary"]["chart_source"] == "request.leadsheet"
+    assert direct_payload["asset"]["debug_summary"]["inline_leadsheet_schema_version"] == "jammate_leadsheet_v2"
 
     agent_request = pack["requests"]["agentPlaybackBlueBossa"]
     agent = client.post("/agent/playback/prepare", json=agent_request)

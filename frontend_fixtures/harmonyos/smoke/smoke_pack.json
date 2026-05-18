@@ -1,5 +1,5 @@
 {
-  "version": "v2_4_0",
+  "version": "v2_4_7",
   "purpose": "Minimal HarmonyOS-to-Python smoke validation pack.",
   "base_url_examples": {
     "local_mac": "http://127.0.0.1:8000",
@@ -25,11 +25,73 @@
       "method": "POST",
       "path": "/accompaniment/generate",
       "request": {
+        "leadsheet": {
+          "schema_version": "jammate_leadsheet_v2",
+          "title": "HarmonyOS Inline Blue Bossa Smoke",
+          "key": "C minor",
+          "sections": {
+            "A": {
+              "label": "A",
+              "bars": [
+                {
+                  "chords": [
+                    {
+                      "beat": 1.0,
+                      "symbol": "Cm7"
+                    },
+                    {
+                      "beat": 3.0,
+                      "symbol": "F7"
+                    }
+                  ]
+                },
+                {
+                  "chords": [
+                    {
+                      "beat": 1.0,
+                      "symbol": "Dm7b5"
+                    },
+                    {
+                      "beat": 3.0,
+                      "symbol": "G7b9"
+                    }
+                  ]
+                },
+                {
+                  "chords": [
+                    {
+                      "beat": 1.0,
+                      "symbol": "Cm7"
+                    },
+                    {
+                      "beat": 3.0,
+                      "symbol": "G7"
+                    }
+                  ]
+                },
+                {
+                  "chords": [
+                    {
+                      "beat": 1.0,
+                      "symbol": "Cm7"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "written_form": [
+            "A"
+          ]
+        },
         "tune": "Blue Bossa",
         "style": "bossa_nova",
         "tempo": 120,
         "choruses": 1,
         "seed": 42,
+        "voicingOverride": {
+          "harmonicExpansionEnabled": false
+        },
         "outputFormat": "midi_base64"
       },
       "expect": {
@@ -96,6 +158,47 @@
       }
     },
     {
+      "name": "agent_llm_provider_spec",
+      "method": "GET",
+      "path": "/agent/llm/provider/spec",
+      "expect": {
+        "ok": true,
+        "spec.guards.api_runloop_llm_calls_enabled": false
+      }
+    },
+    {
+      "name": "agent_tool_registry",
+      "method": "GET",
+      "path": "/agent/tools/registry",
+      "expect": {
+        "ok": true,
+        "registry.execution_status.autonomous_tool_execution_enabled": false
+      }
+    },
+    {
+      "name": "agent_tool_invocation_preview",
+      "method": "POST",
+      "path": "/agent/tools/invocation/preview",
+      "request": {
+        "userInput": "我想让系统帮我准备 Blue Bossa 20分钟",
+        "taskType": "immediate_practice_playback",
+        "toolName": "agent_playback_prepare",
+        "arguments": {
+          "userInput": "练 Blue Bossa 20分钟",
+          "durationMinutes": 20
+        },
+        "clientContext": {
+          "currentScreen": "practice_home",
+          "availableMinutes": 20,
+          "locale": "zh-CN"
+        }
+      },
+      "expect": {
+        "ok": true,
+        "preview.would_execute": false
+      }
+    },
+    {
       "name": "session_review",
       "method": "POST",
       "path": "/agent/session/review",
@@ -135,11 +238,73 @@
   ],
   "requests": {
     "directAccompanimentBlueBossa": {
+      "leadsheet": {
+        "schema_version": "jammate_leadsheet_v2",
+        "title": "HarmonyOS Inline Blue Bossa Smoke",
+        "key": "C minor",
+        "sections": {
+          "A": {
+            "label": "A",
+            "bars": [
+              {
+                "chords": [
+                  {
+                    "beat": 1.0,
+                    "symbol": "Cm7"
+                  },
+                  {
+                    "beat": 3.0,
+                    "symbol": "F7"
+                  }
+                ]
+              },
+              {
+                "chords": [
+                  {
+                    "beat": 1.0,
+                    "symbol": "Dm7b5"
+                  },
+                  {
+                    "beat": 3.0,
+                    "symbol": "G7b9"
+                  }
+                ]
+              },
+              {
+                "chords": [
+                  {
+                    "beat": 1.0,
+                    "symbol": "Cm7"
+                  },
+                  {
+                    "beat": 3.0,
+                    "symbol": "G7"
+                  }
+                ]
+              },
+              {
+                "chords": [
+                  {
+                    "beat": 1.0,
+                    "symbol": "Cm7"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "written_form": [
+          "A"
+        ]
+      },
       "tune": "Blue Bossa",
       "style": "bossa_nova",
       "tempo": 120,
       "choruses": 1,
       "seed": 42,
+      "voicingOverride": {
+        "harmonicExpansionEnabled": false
+      },
       "outputFormat": "midi_base64"
     },
     "agentPlaybackBlueBossa": {
@@ -164,6 +329,20 @@
       "clientContext": {
         "currentScreen": "practice_home",
         "availableMinutes": 45,
+        "locale": "zh-CN"
+      }
+    },
+    "agentToolInvocationPreview": {
+      "userInput": "我想让系统帮我准备 Blue Bossa 20分钟",
+      "taskType": "immediate_practice_playback",
+      "toolName": "agent_playback_prepare",
+      "arguments": {
+        "userInput": "练 Blue Bossa 20分钟",
+        "durationMinutes": 20
+      },
+      "clientContext": {
+        "currentScreen": "practice_home",
+        "availableMinutes": 20,
         "locale": "zh-CN"
       }
     },

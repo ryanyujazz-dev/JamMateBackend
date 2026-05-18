@@ -1,0 +1,14 @@
+{
+  "userInput": "我想让系统帮我准备 Blue Bossa 20分钟",
+  "taskType": "immediate_practice_playback",
+  "toolName": "agent_playback_prepare",
+  "arguments": {
+    "userInput": "练 Blue Bossa 20分钟",
+    "durationMinutes": 20
+  },
+  "clientContext": {
+    "currentScreen": "practice_home",
+    "availableMinutes": 20,
+    "locale": "zh-CN"
+  }
+}

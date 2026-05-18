@@ -14,11 +14,11 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_v2_4_0_version_surfaces_are_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_4_0"
-    assert _read("VERSION").strip() == "v2_4_0"
-    assert 'version = "2.4.0"' in _read("pyproject.toml")
-    assert 'CONTRACT_VERSION = "v2_4_0"' in _read("src/jammate_agent/core/contract_codegen.py")
+def test_v2_4_7_version_surfaces_are_current() -> None:
+    assert ENGINE_VERSION_TAG == "v2_4_7"
+    assert _read("VERSION").strip() == "v2_4_7"
+    assert 'version = "2.4.7"' in _read("pyproject.toml")
+    assert 'CONTRACT_VERSION = "v2_4_7"' in _read("src/jammate_agent/core/contract_codegen.py")
 
 
 def test_agent_md_is_compact_hard_harness_not_changelog() -> None:
@@ -38,8 +38,8 @@ def test_readme_and_changelog_have_separate_roles() -> None:
     assert "Core Design Principles" in readme
     assert "Directory Architecture" in readme
     assert "Current Main Capabilities" in readme
-    assert "## v2_4_0" not in readme
-    assert "## v2_4_0 — Agent LLM Context Runtime Foundation" in changelog
+    assert "## v2_4_7" not in readme
+    assert "## v2_4_7 — Agent Terminal Trace Export" in changelog
     assert "## v2_3_17 — Harness Hardening and Changelog Split" in changelog
     assert "## v2_3_10 — Agent / Engine / API Boundary Foundation" in changelog
 

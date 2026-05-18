@@ -1,4 +1,4 @@
-# JamMate HarmonyOS API Smoke Pack v2_4_0
+# JamMate HarmonyOS API Smoke Pack v2_4_7
 
 This folder contains the minimal payloads and commands for testing the Python API from HarmonyOS or from a Mac terminal.
 

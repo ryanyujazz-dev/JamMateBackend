@@ -1,8 +1,8 @@
-// JamMate API Client Sketch v2_4_0
+// JamMate API Client Sketch v2_4_7
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 
-import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse } from '../model/AgentTypes'
+import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse } from '../model/AgentTypes'
 import type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'
 import { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
 
@@ -26,6 +26,16 @@ export class JamMateApiClient {
   async previewAgentContextRuntime(request: AgentContextRuntimePreviewRequest): Promise<AgentContextRuntimePreviewResponse> {
     const raw = await this.post('/agent/context/runtime/preview', request as Record<string, unknown>)
     return deepSnakeToCamel(raw) as AgentContextRuntimePreviewResponse
+  }
+
+  async getLLMProviderBoundarySpec(): Promise<Record<string, unknown>> {
+    const raw = await this.get('/agent/llm/provider/spec')
+    return deepSnakeToCamel(raw) as Record<string, unknown>
+  }
+
+  async previewAgentToolInvocation(request: AgentToolInvocationPreviewRequest): Promise<AgentToolInvocationPreviewResponse> {
+    const raw = await this.post('/agent/tools/invocation/preview', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as AgentToolInvocationPreviewResponse
   }
 
   async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {

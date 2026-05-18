@@ -1,4 +1,4 @@
-// JamMate Playback / Accompaniment Types v2_4_0
+// JamMate Playback / Accompaniment Types v2_4_7
 // Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets
 // Client-domain types are camelCase. Duration is a practice-timer concern.
 
@@ -6,8 +6,47 @@ import type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'
 
 export type AssetLoopMode = 'loop_until_target_duration' | string
 
+export interface JamMateChordEventV2 {
+  beat: number
+  symbol: string
+  beats?: number | null
+  metadata?: Record<string, unknown>
+}
+
+export interface JamMateBarV2 {
+  chords: JamMateChordEventV2[]
+  timeSignature?: { numerator: number; denominator: number }
+  metadata?: Record<string, unknown>
+}
+
+export interface JamMateSectionV2 {
+  id?: string
+  label?: string
+  phrase?: string
+  role?: string
+  bars: JamMateBarV2[]
+  metadata?: Record<string, unknown>
+}
+
+export type JamMateWrittenFormItemV2 =
+  | string
+  | { section: string; repeat?: number; times?: number; label?: string | null; metadata?: Record<string, unknown> }
+  | Record<string, unknown>
+
+export interface JamMateLeadsheetV2 {
+  schema_version: 'jammate_leadsheet_v2'
+  title: string
+  key?: string
+  default_time_signature?: { numerator: number; denominator: number }
+  sections: Record<string, JamMateSectionV2> | JamMateSectionV2[]
+  written_form: JamMateWrittenFormItemV2[]
+  metadata?: Record<string, unknown>
+}
+
 export interface DirectAccompanimentGenerateRequest {
-  leadsheet?: Record<string, unknown> | null
+  // Preferred HarmonyOS path: inline jammate_leadsheet_v2 with sections + written_form.
+  leadsheet?: JamMateLeadsheetV2 | Record<string, unknown> | null
+  // Optional fallback only; do not depend on tune for user-custom charts.
   tune?: string | null
   style?: JamMateStyle
   tempo?: number

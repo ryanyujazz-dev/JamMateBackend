@@ -23,11 +23,15 @@ from jammate_agent.core.contracts import (
     context_profile_manifest,
     harmonyos_playback_contract,
     llm_context_runtime_contract,
+    llm_provider_boundary_contract,
     response_case_policy_manifest,
+    tool_invocation_preview_contract,
+    tool_registry_contract,
 )
 from jammate_agent.core.jammate_agent import JamMateAgent
+from jammate_agent.core.tool_invocation import ToolInvocationProposal, preview_tool_invocation
 from jammate_agent.core.trace import JsonTraceStore, TraceLogger
-from jammate_api.schemas import AgentContextRuntimePreviewRequest, AgentMessageRequest, AgentPlanRequest, AgentPlaybackPrepareRequest, SessionReviewRequest
+from jammate_api.schemas import AgentContextRuntimePreviewRequest, AgentMessageRequest, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentToolInvocationPreviewRequest, SessionReviewRequest
 
 router = APIRouter(prefix="/agent", tags=["jammate-agent"])
 
@@ -86,6 +90,46 @@ def preview_context_runtime(request: AgentContextRuntimePreviewRequest) -> dict:
         local_unsynced_summary=request.local_unsynced_summary,
     )
     return result.__dict__
+
+
+@router.get("/llm/provider/spec")
+def get_llm_provider_boundary_spec() -> dict:
+    return {"ok": True, "spec": llm_provider_boundary_contract()}
+
+
+@router.get("/tools/registry")
+def get_agent_tool_registry_spec() -> dict:
+    return {"ok": True, "registry": tool_registry_contract()}
+
+
+@router.get("/tools/invocation/spec")
+def get_tool_invocation_preview_spec() -> dict:
+    return {"ok": True, "spec": tool_invocation_preview_contract()}
+
+
+@router.post("/tools/invocation/preview")
+def preview_tool_invocation_request(request: AgentToolInvocationPreviewRequest) -> dict:
+    agent = build_agent()
+    context = agent.context_builder.build(
+        request.task_type,
+        request.user_input or f"Preview tool call: {request.tool_name}",
+        request_id=request.request_id,
+        client_context=request.client_context.model_dump(),
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=request.tool_name,
+        arguments=request.arguments,
+        task_type=context.task_type,
+        request_id=request.request_id,
+        user_input=request.user_input,
+        client_context=request.client_context.model_dump(),
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    return {
+        "ok": preview.ok,
+        "preview": preview.to_dict(),
+        "context_packet_summary": context.summary(),
+    }
 
 
 @router.get("/contracts/arkts/source")
