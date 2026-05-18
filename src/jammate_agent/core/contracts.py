@@ -10,6 +10,8 @@ from jammate_agent.core.tool_invocation import (
     TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
     TOOL_INVOCATION_PREVIEW_VERSION,
     tool_call_preview_trace_contract,
+    tool_execution_confirmation_contract,
+    tool_executor_boundary_contract,
     tool_invocation_preview_contract,
 )
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, tool_registry_manifest
@@ -91,6 +93,8 @@ def context_profile_manifest() -> dict[str, Any]:
         "provider_boundary_spec_route": "GET /agent/llm/provider/spec",
         "tool_registry_spec_route": "GET /agent/tools/registry",
         "tool_invocation_preview_spec_route": "GET /agent/tools/invocation/spec",
+        "tool_execution_confirmation_spec_route": "GET /agent/tools/confirmation/spec",
+        "tool_executor_spec_route": "GET /agent/tools/executor/spec",
         "trace_api_spec_route": "GET /agent/traces/spec",
         "trace_list_route": "GET /agent/traces",
         "trace_detail_route": "GET /agent/traces/{trace_id}",
@@ -111,6 +115,10 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             "tool_registry": "GET /agent/tools/registry",
             "tool_invocation_preview_spec": "GET /agent/tools/invocation/spec",
             "tool_invocation_preview": "POST /agent/tools/invocation/preview",
+            "tool_execution_confirmation_spec": "GET /agent/tools/confirmation/spec",
+            "tool_execution_confirmation_preview": "POST /agent/tools/confirmation/preview",
+            "tool_executor_spec": "GET /agent/tools/executor/spec",
+            "tool_executor_dry_run": "POST /agent/tools/executor/dry-run",
             "trace_spec": "GET /agent/traces/spec",
             "trace_list": "GET /agent/traces",
             "trace_detail": "GET /agent/traces/{trace_id}",
@@ -145,6 +153,8 @@ def llm_context_runtime_contract() -> dict[str, Any]:
         "llm_provider_boundary": llm_provider_boundary_contract(),
         "tool_registry_boundary": tool_registry_contract(),
         "tool_invocation_preview_boundary": tool_invocation_preview_contract(),
+        "tool_execution_confirmation_boundary": tool_execution_confirmation_contract(),
+        "tool_executor_boundary": tool_executor_boundary_contract(),
         "terminal_tool_call_candidate_extraction": {
             "version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
             "surface": "terminal_chat_only",
@@ -164,6 +174,7 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             "No runloop-driven tool execution in v2_4_13; tools are descriptor-only.",
             "No runloop-driven tool execution in v2_4_13; tools are descriptor-only and invocation preview is validation-only.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
+            "ToolExecutor boundary in v2_6_3 is dry-run/no-op only and does not dispatch workflows or call engine adapters.",
             "Trace API and terminal trace viewer only shape/read trace list/detail/spec responses; tool-call preview trace contract only shapes terminal candidate/preview summaries; they do not execute tools, call LLM providers, dispatch workflows, or call the engine adapter.",
         ],
     }
@@ -200,7 +211,7 @@ def llm_provider_boundary_contract() -> dict[str, Any]:
                 "execution_enabled": False,
                 "source": "successful assistant text",
             },
-            "slash_commands": ["/help", "/session", "/context [full]", "/profiles", "/profile [task_type]", "/task-type [task_type]", "/instrument [instrument]", "/reset", "/tools", "/tool-preview <tool_name> [json_object_arguments]", "/trace", "/traces", "/exit"],
+            "slash_commands": ["/help", "/session", "/context [full]", "/profiles", "/profile [task_type]", "/task-type [task_type]", "/instrument [instrument]", "/reset", "/tools", "/tool-preview <tool_name> [json_object_arguments]", "/pending", "/confirm", "/reject", "/execute-dry-run", "/trace", "/traces", "/exit"],
             "context_controls": {"profile_switch_clears_history": True, "provider_call_enabled": False, "tool_execution_enabled": False, "commands": ["/context", "/profiles", "/profile", "/task-type", "/instrument", "/session", "/reset"]},
             "tool_preview_example": 'python -m jammate_agent.cli.terminal_chat --task-type immediate_practice_playback --once \'/tool-preview agent_playback_prepare {"durationMinutes":20}\'',
             "trace_export": {

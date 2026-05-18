@@ -25,11 +25,20 @@ from jammate_agent.core.contracts import (
     llm_context_runtime_contract,
     llm_provider_boundary_contract,
     response_case_policy_manifest,
+    tool_execution_confirmation_contract,
+    tool_executor_boundary_contract,
     tool_invocation_preview_contract,
     tool_registry_contract,
 )
 from jammate_agent.core.jammate_agent import JamMateAgent
-from jammate_agent.core.tool_invocation import ToolInvocationProposal, preview_tool_invocation
+from jammate_agent.core.tool_invocation import (
+    ToolInvocationProposal,
+    build_confirmation_envelope,
+    build_tool_executor_summary,
+    confirm_tool_invocation,
+    execute_tool_dry_run,
+    preview_tool_invocation,
+)
 from jammate_agent.core.trace import TRACE_API_CONTRACT_VERSION, JsonTraceStore, TraceLogger, trace_api_contract
 from jammate_api.schemas import AgentContextRuntimePreviewRequest, AgentMessageRequest, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentToolInvocationPreviewRequest, SessionReviewRequest
 
@@ -128,6 +137,86 @@ def preview_tool_invocation_request(request: AgentToolInvocationPreviewRequest) 
     return {
         "ok": preview.ok,
         "preview": preview.to_dict(),
+        "context_packet_summary": context.summary(),
+    }
+
+
+@router.get("/tools/confirmation/spec")
+def get_tool_execution_confirmation_spec() -> dict:
+    return {"ok": True, "spec": tool_execution_confirmation_contract()}
+
+
+@router.post("/tools/confirmation/preview")
+def preview_tool_execution_confirmation_request(request: AgentToolInvocationPreviewRequest) -> dict:
+    agent = build_agent()
+    context = agent.context_builder.build(
+        request.task_type,
+        request.user_input or f"Preview tool confirmation: {request.tool_name}",
+        request_id=request.request_id,
+        client_context=request.client_context.model_dump(),
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=request.tool_name,
+        arguments=request.arguments,
+        task_type=context.task_type,
+        request_id=request.request_id,
+        user_input=request.user_input,
+        client_context=request.client_context.model_dump(),
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    return {
+        "ok": confirmation.confirmable,
+        "confirmation_contract_version": confirmation.confirmation_contract_version,
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "context_packet_summary": context.summary(),
+    }
+
+
+@router.get("/tools/executor/spec")
+def get_tool_executor_boundary_spec() -> dict:
+    return {"ok": True, "spec": tool_executor_boundary_contract()}
+
+
+@router.post("/tools/executor/dry-run")
+def dry_run_tool_executor_request(request: dict) -> dict:
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "coach_qa"
+    tool_name = request.get("tool_name") or request.get("toolName") or ""
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"Dry-run tool executor: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    summary = build_tool_executor_summary(execution_result=execution_result, source="agent_api")
+    return {
+        "ok": execution_result.ok,
+        "tool_executor_boundary_version": execution_result.to_dict()["tool_executor_boundary_version"],
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "tool_executor_summary": summary,
         "context_packet_summary": context.summary(),
     }
 

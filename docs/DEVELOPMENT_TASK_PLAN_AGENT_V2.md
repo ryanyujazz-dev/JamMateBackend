@@ -1,6 +1,6 @@
 # Agent Track Development Task Plan V2
 
-Current baseline: `v2_6_1`.
+Current baseline: `v2_6_2_agent_tool_execution_confirmation_gate`.
 
 This file is the rolling plan for `feature/agent-workflow`. It owns Agent / LLM orchestration, terminal chat, tool-preview, traces, provider boundaries, and HarmonyOS Agent contract surfaces.
 
@@ -46,30 +46,46 @@ Important retained Agent facts:
 
 ---
 
-## Recommended Next Agent Task
-
-No Agent implementation task is currently required before the next Engine pass.
-
-When resumed, the next Agent task should stay within Agent-owned surfaces, for example:
+## Current Agent Task
 
 ```text
-v2_6_agent_terminal_chat_usage_polish_or_harmonyos_agent_fixture_review
+v2_6_3_agent_tool_executor_boundary
 ```
+
+Scope:
+
+- define ToolExecutor boundary contracts without real tool execution;
+- add `ToolExecutionPolicy`, `ToolExecutionRequest`, and `ToolExecutionResult`;
+- add dry-run/no-op executor behavior after approved confirmation;
+- add terminal `/execute-dry-run` command;
+- expose executor spec/dry-run API routes;
+- record dry-run executor request/result in trace.
 
 Forbidden scope:
 
 - no direct edits to `src/jammate_engine/styles/`;
 - no direct edits to `src/jammate_engine/core/`;
 - no changes to MIDI realization;
-- no replacement of `/accompaniment/generate` response shape.
+- no replacement of `/accompaniment/generate` response shape;
+- no real workflow dispatch;
+- no engine adapter calls;
+- no shared documentation updates from the Agent branch.
+
+## Recommended Next Agent Task
+
+```text
+v2_6_4_agent_deterministic_workflow_dispatcher
+```
+
+Goal: map approved tool names to deterministic workflow descriptors while still avoiding deep engine imports and uncontrolled execution.
 
 ---
 
 ## Near-Term Agent Queue
 
-1. terminal chat UX polish after engine baseline stabilizes;
-2. HarmonyOS fixture review after frontend asks for concrete fields;
-3. provider-boundary LLM config validation hardening;
-4. trace viewer filtering/export polish.
+1. `v2_6_4_agent_deterministic_workflow_dispatcher` — map tool names to deterministic workflows without engine deep imports;
+2. `v2_6_5_agent_first_controlled_tool_execution_e2e` — first low-risk real controlled workflow;
+3. `v2_6_6_harmonyos_agent_action_contract` — expose Agent action cards/confirmation/execution state to Routine;
+4. `v2_6_7_agent_runtime_skeleton_cleanup` — cleanup before concrete Agent feature development.
 
 Any task that changes shared API contract or frontend fixtures should be moved to an integration task.

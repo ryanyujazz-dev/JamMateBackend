@@ -1,10 +1,26 @@
 # Agent Track Changelog
 
-Current baseline: `v2_6_1`.
+Current baseline: `v2_6_3_agent_tool_executor_boundary`.
 
 This file records Agent-track changes to reduce conflicts in the global `docs/CHANGELOG.md`.
 
 ---
+
+## v2_6_3 — Agent Tool Executor Boundary
+
+- Added dry-run/no-op ToolExecutor boundary contracts.
+- Added `ToolExecutionPolicy`, `ToolExecutionRequest`, and `ToolExecutionResult` shapes.
+- Added terminal `/execute-dry-run` command after explicit confirmation.
+- Added Agent executor spec/dry-run API routes.
+- Execution remains no-op: no deterministic workflow dispatch, no route call, no engine adapter call, no MIDI asset creation.
+
+## v2_6_2 — Agent Tool Execution Confirmation Gate
+
+- Added a preview-after confirmation envelope for Agent tool proposals.
+- Added terminal chat `/pending`, `/confirm`, and `/reject` commands.
+- Added trace summaries for confirmation envelope creation and user approve/reject decisions.
+- Added Agent confirmation spec/preview API routes.
+- Execution remains disabled: no ToolExecutor, no workflow dispatch, no engine adapter call.
 
 ## v2_4_13 — Agent Tool Call Preview Trace Contract
 

@@ -233,6 +233,33 @@ def trace_api_contract() -> dict[str, Any]:
             "chain": "LLM response -> JSON candidate extraction -> tool invocation preview -> execution guard",
             "execution_enabled": False,
         },
+        "tool_execution_confirmation_trace_contract": {
+            "version": "v2_6_2",
+            "summary_field": "final_response_summary.tool_execution_confirmation_summary",
+            "step_names": [
+                "terminal_tool_confirmation_envelope_created",
+                "terminal_tool_confirmation_user_approved",
+                "terminal_tool_confirmation_user_rejected",
+            ],
+            "chain": "tool invocation preview -> confirmation envelope -> user approve/reject -> execution remains disabled",
+            "execution_enabled": False,
+            "dispatch_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+        },
+        "tool_executor_trace_contract": {
+            "version": "v2_6_3",
+            "summary_field": "final_response_summary.tool_executor_summary",
+            "step_names": [
+                "terminal_tool_executor_dry_run_requested",
+                "terminal_tool_executor_dry_run_completed",
+                "terminal_tool_executor_dry_run_blocked",
+            ],
+            "chain": "approved confirmation -> dry-run ToolExecutor request/result -> no-op result -> dispatcher still required",
+            "dry_run_enabled": True,
+            "real_execution_enabled": False,
+            "dispatch_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+        },
         "guards": {
             "trace_api_executes_tools": False,
             "trace_api_calls_llm_provider": False,

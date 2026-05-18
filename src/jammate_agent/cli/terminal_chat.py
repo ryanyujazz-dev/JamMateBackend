@@ -20,8 +20,16 @@ from jammate_agent.core.llm_provider import (
 from jammate_agent.core.tool_invocation import (
     TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
     TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION,
+    TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
+    TOOL_EXECUTOR_BOUNDARY_VERSION,
+    ToolExecutionConfirmationEnvelope,
     ToolInvocationProposal,
+    build_confirmation_envelope,
     build_tool_call_preview_trace_summary,
+    build_tool_execution_confirmation_summary,
+    build_tool_executor_summary,
+    confirm_tool_invocation,
+    execute_tool_dry_run,
     extract_tool_call_candidates,
     preview_tool_invocation,
 )
@@ -53,6 +61,10 @@ class TerminalChatSession:
     v2_4_13 adds setup/doctor configuration helpers and local config-file
     loading for terminal LLM use. These helpers do not change tool execution
     policy and do not expose API keys in status, trace, or response payloads.
+
+    v2_6_3 adds a dry-run/no-op ToolExecutor boundary after explicit user
+    confirmation. The dry-run proves execution request/result shape only and
+    still never dispatches workflows, routes, or engine adapters.
     """
 
     task_type: str = "coach_qa"
@@ -63,6 +75,7 @@ class TerminalChatSession:
     trace_logger: TraceLogger | None = None
     last_trace_id: str | None = None
     last_trace_path: str | None = None
+    pending_confirmation: ToolExecutionConfirmationEnvelope | None = None
 
     def provider_status(self) -> dict:
         return self.provider.status()
@@ -115,6 +128,7 @@ class TerminalChatSession:
             "autonomous_tool_execution_enabled": False,
         }
         candidate_previews: list[dict[str, Any]] = []
+        confirmation_envelopes: list[dict[str, Any]] = []
         extraction = extract_tool_call_candidates(None)
         if result.ok and result.content:
             extraction = extract_tool_call_candidates(result.content)
@@ -131,9 +145,17 @@ class TerminalChatSession:
                 )
                 preview = preview_tool_invocation(proposal, allowed_tools=packet.allowed_tools)
                 preview_payload = preview.to_dict()
+                confirmation_payload: dict[str, Any] | None = None
+                if preview.ok:
+                    confirmation = build_confirmation_envelope(preview)
+                    self.pending_confirmation = confirmation
+                    confirmation_payload = confirmation.to_dict()
+                    confirmation_envelopes.append(confirmation_payload)
+                    self._add_trace_step(trace, "terminal_tool_confirmation_envelope_created", confirmation_payload)
                 candidate_previews.append({
                     "candidate": candidate.to_dict(),
                     "preview": preview_payload,
+                    "confirmation": confirmation_payload,
                     "would_execute": False,
                 })
             if candidate_previews:
@@ -154,13 +176,26 @@ class TerminalChatSession:
             task_type=packet.task_type,
             source="terminal_chat_cli",
         )
+        confirmation_summary = build_tool_execution_confirmation_summary(
+            confirmation=self.pending_confirmation,
+            source="terminal_chat_cli",
+        )
         self._add_trace_step(trace, "terminal_tool_call_preview_trace_summary_recorded", trace_summary)
+        if confirmation_envelopes:
+            self._add_trace_step(
+                trace,
+                "terminal_tool_execution_confirmation_summary_recorded",
+                confirmation_summary,
+            )
         response["tool_call_candidate_extraction_version"] = TOOL_CALL_CANDIDATE_EXTRACTION_VERSION
         response["tool_call_preview_trace_contract_version"] = TOOL_CALL_PREVIEW_TRACE_CONTRACT_VERSION
         response["tool_call_candidate_extraction"] = extraction_payload
         response["tool_call_candidate_previews"] = candidate_previews
         response["tool_call_candidate_preview_count"] = len(candidate_previews)
         response["tool_call_preview_trace_summary"] = trace_summary
+        response["tool_execution_confirmation_contract_version"] = TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION
+        response["tool_execution_confirmation_envelopes"] = confirmation_envelopes
+        response["tool_execution_confirmation_summary"] = confirmation_summary
         self._finish_trace(
             trace,
             "passed" if result.ok else "guarded",
@@ -173,6 +208,8 @@ class TerminalChatSession:
                 "tool_call_candidate_count": extraction_payload.get("candidate_count", 0),
                 "tool_call_candidate_preview_count": len(candidate_previews),
                 "tool_call_preview_trace_summary": trace_summary,
+                "tool_execution_confirmation_contract_version": TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
+                "tool_execution_confirmation_summary": confirmation_summary,
             },
         )
         response["trace_id"] = self.last_trace_id
@@ -202,6 +239,15 @@ class TerminalChatSession:
         preview = preview_tool_invocation(proposal, allowed_tools=packet.allowed_tools)
         preview_payload = preview.to_dict()
         self._add_trace_step(trace, "terminal_tool_invocation_previewed", preview_payload)
+        confirmation_payload: dict[str, Any] | None = None
+        confirmation_summary = build_tool_execution_confirmation_summary(source="terminal_chat_cli")
+        if preview.ok:
+            confirmation = build_confirmation_envelope(preview)
+            self.pending_confirmation = confirmation
+            confirmation_payload = confirmation.to_dict()
+            confirmation_summary = build_tool_execution_confirmation_summary(confirmation=confirmation, source="terminal_chat_cli")
+            self._add_trace_step(trace, "terminal_tool_confirmation_envelope_created", confirmation_payload)
+            self._add_trace_step(trace, "terminal_tool_execution_confirmation_summary_recorded", confirmation_summary)
         self._finish_trace(
             trace,
             "previewed" if preview.ok else "blocked",
@@ -215,8 +261,138 @@ class TerminalChatSession:
             "autonomous_tool_execution_enabled": False,
             "would_execute": False,
             "preview": preview_payload,
+            "confirmation": confirmation_payload,
+            "tool_execution_confirmation_contract_version": TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
+            "tool_execution_confirmation_summary": confirmation_summary,
             "context_packet_summary": packet.summary(),
             "session_summary": self.session_summary(),
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def pending_confirmation_status(self) -> dict[str, Any]:
+        summary = build_tool_execution_confirmation_summary(
+            confirmation=self.pending_confirmation,
+            source="terminal_chat_cli",
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/pending",
+            "tool_execution_confirmation_contract_version": TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
+            "has_pending_confirmation": self.pending_confirmation is not None and self.pending_confirmation.confirmation_status == "pending",
+            "confirmation": self.pending_confirmation.to_dict() if self.pending_confirmation else None,
+            "tool_execution_confirmation_summary": summary,
+            "tool_execution_enabled": False,
+            "would_execute": False,
+        }
+
+    def confirm_pending_tool(self) -> dict[str, Any]:
+        return self._decide_pending_confirmation(user_approved=True, command="/confirm")
+
+    def reject_pending_tool(self) -> dict[str, Any]:
+        return self._decide_pending_confirmation(user_approved=False, command="/reject")
+
+    def _decide_pending_confirmation(self, *, user_approved: bool, command: str) -> dict[str, Any]:
+        if self.pending_confirmation is None or self.pending_confirmation.confirmation_status != "pending":
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": command,
+                "error_code": "NO_PENDING_CONFIRMATION",
+                "message": "No pending tool confirmation. Use /tool-preview or an LLM JSON tool-call candidate first.",
+                "tool_execution_enabled": False,
+                "would_execute": False,
+            }
+        trace = self._start_trace("terminal_tool_confirmation", command)
+        result = confirm_tool_invocation(self.pending_confirmation, user_approved=user_approved)
+        self.pending_confirmation = result.confirmation
+        result_payload = result.to_dict()
+        step_name = "terminal_tool_confirmation_user_approved" if user_approved else "terminal_tool_confirmation_user_rejected"
+        self._add_trace_step(trace, step_name, result_payload)
+        summary = build_tool_execution_confirmation_summary(result=result, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_tool_execution_confirmation_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "confirmed" if user_approved else "rejected",
+            {
+                "ok": result.ok,
+                "command": command,
+                "tool_execution_confirmation_contract_version": TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
+                "tool_execution_confirmation_summary": summary,
+                "would_execute": False,
+                "execution_still_disabled": True,
+            },
+        )
+        return {
+            "ok": result.ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": command,
+            "tool_execution_confirmation_contract_version": TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION,
+            "result": result_payload,
+            "tool_execution_confirmation_summary": summary,
+            "tool_execution_enabled": False,
+            "would_execute": False,
+            "execution_still_disabled": True,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def execute_confirmed_tool_dry_run(self) -> dict[str, Any]:
+        if self.pending_confirmation is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/execute-dry-run",
+                "error_code": "NO_CONFIRMATION_AVAILABLE",
+                "message": "No confirmed tool is available. Use /tool-preview and /confirm first.",
+                "tool_executor_boundary_version": TOOL_EXECUTOR_BOUNDARY_VERSION,
+                "real_tool_executed": False,
+            }
+        trace = self._start_trace("terminal_tool_executor_dry_run", "/execute-dry-run")
+        self._add_trace_step(
+            trace,
+            "terminal_tool_executor_dry_run_requested",
+            {
+                "tool_executor_boundary_version": TOOL_EXECUTOR_BOUNDARY_VERSION,
+                "tool_name": self.pending_confirmation.tool_name,
+                "proposal_id": self.pending_confirmation.proposal_id,
+                "confirmation_status": self.pending_confirmation.confirmation_status,
+                "user_approved": self.pending_confirmation.user_approved,
+                "dry_run": True,
+            },
+        )
+        result = execute_tool_dry_run(self.pending_confirmation)
+        result_payload = result.to_dict()
+        step_name = "terminal_tool_executor_dry_run_completed" if result.ok else "terminal_tool_executor_dry_run_blocked"
+        self._add_trace_step(trace, step_name, result_payload)
+        summary = build_tool_executor_summary(execution_result=result, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_tool_executor_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "dry_run_completed" if result.ok else "dry_run_blocked",
+            {
+                "ok": result.ok,
+                "command": "/execute-dry-run",
+                "tool_executor_boundary_version": TOOL_EXECUTOR_BOUNDARY_VERSION,
+                "tool_executor_summary": summary,
+                "real_tool_executed": False,
+                "deterministic_workflow_dispatched": False,
+                "engine_adapter_called": False,
+            },
+        )
+        return {
+            "ok": result.ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/execute-dry-run",
+            "tool_executor_boundary_version": TOOL_EXECUTOR_BOUNDARY_VERSION,
+            "execution_result": result_payload,
+            "tool_executor_summary": summary,
+            "dry_run": True,
+            "noop_only": True,
+            "real_tool_executed": False,
+            "deterministic_workflow_dispatched": False,
+            "engine_adapter_called": False,
             "trace_id": self.last_trace_id,
             "trace_path": self.last_trace_path,
         }
@@ -318,7 +494,9 @@ class TerminalChatSession:
 
     def reset_session(self) -> dict[str, Any]:
         cleared = len(self.history)
+        had_pending_confirmation = self.pending_confirmation is not None
         self.history.clear()
+        self.pending_confirmation = None
         return {
             "ok": True,
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
@@ -326,6 +504,7 @@ class TerminalChatSession:
             "history_messages_cleared": cleared,
             "task_type": self.task_type,
             "instrument": self.instrument,
+            "pending_confirmation_cleared": had_pending_confirmation,
             "tool_execution_enabled": False,
         }
 
@@ -339,6 +518,8 @@ class TerminalChatSession:
             "trace_export_enabled": self.trace_export_enabled(),
             "last_trace_id": self.last_trace_id,
             "last_trace_path": self.last_trace_path,
+            "has_pending_confirmation": self.pending_confirmation is not None and self.pending_confirmation.confirmation_status == "pending",
+            "pending_tool_name": self.pending_confirmation.tool_name if self.pending_confirmation else None,
             "tool_execution_enabled": False,
             "autonomous_tool_execution_enabled": False,
         }
@@ -613,6 +794,18 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
     if user_input == "/traces":
         _print_recent_traces(session, stdout)
         return True
+    if user_input == "/pending":
+        _print_pending_confirmation(session.pending_confirmation_status(), stdout)
+        return True
+    if user_input == "/confirm":
+        _print_confirmation_decision(session.confirm_pending_tool(), stdout)
+        return True
+    if user_input == "/reject":
+        _print_confirmation_decision(session.reject_pending_tool(), stdout)
+        return True
+    if user_input == "/execute-dry-run":
+        _print_execution_dry_run(session.execute_confirmed_tool_dry_run(), stdout)
+        return True
     if user_input.startswith("/tool-preview"):
         result = _parse_tool_preview_command(user_input)
         if not result["ok"]:
@@ -708,7 +901,11 @@ def _print_candidate_preview_summary(response: dict, stdout: TextIO) -> None:
     for item in previews:
         candidate = item.get("candidate") or {}
         preview = item.get("preview") or {}
-        print(f"  - {candidate.get('tool_name')}: {preview.get('status')} would_execute={preview.get('would_execute')}", file=stdout)
+        confirmation = item.get("confirmation") or {}
+        confirmation_status = confirmation.get("confirmation_status") or "none"
+        print(f"  - {candidate.get('tool_name')}: {preview.get('status')} would_execute={preview.get('would_execute')} confirmation={confirmation_status}", file=stdout)
+        if confirmation_status == "pending":
+            print("    confirmation required: use /confirm to approve or /reject to reject", file=stdout)
         blocking = preview.get("blocking_reasons") or []
         if blocking:
             print(f"    blocking_reasons: {', '.join(str(value) for value in blocking)}", file=stdout)
@@ -729,6 +926,52 @@ def _print_tool_preview_response(response: dict, stdout: TextIO) -> None:
     warnings = preview.get("warnings") or []
     if warnings:
         print(f"  warnings: {', '.join(str(item) for item in warnings)}", file=stdout)
+    confirmation = response.get("confirmation") or {}
+    if confirmation:
+        print(f"  confirmation_status: {confirmation.get('confirmation_status')}", file=stdout)
+        print(f"  risk_summary: {confirmation.get('risk_summary')}", file=stdout)
+        print("  next: /confirm or /reject", file=stdout)
+
+
+def _print_pending_confirmation(response: dict[str, Any], stdout: TextIO) -> None:
+    confirmation = response.get("confirmation") or {}
+    if not response.get("has_pending_confirmation"):
+        print("PendingConfirmation> none", file=stdout)
+        print("  tool_execution_enabled: False", file=stdout)
+        return
+    print(f"PendingConfirmation> {confirmation.get('tool_name')}: {confirmation.get('confirmation_status')}", file=stdout)
+    print(f"  proposal_id: {confirmation.get('proposal_id')}", file=stdout)
+    print(f"  side_effect_level: {confirmation.get('side_effect_level')}", file=stdout)
+    print(f"  risk_summary: {confirmation.get('risk_summary')}", file=stdout)
+    print("  would_execute_after_confirmation: False", file=stdout)
+    print("  execution_still_disabled: True", file=stdout)
+
+
+def _print_confirmation_decision(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    result = response.get("result") or {}
+    confirmation = result.get("confirmation") or {}
+    print(f"ToolConfirmation> {confirmation.get('tool_name')}: {result.get('status')}", file=stdout)
+    print(f"  user_approved: {result.get('user_approved')}", file=stdout)
+    print("  would_execute: False", file=stdout)
+    print("  execution_still_disabled: True", file=stdout)
+    print("  next_stage_required: ToolExecutorBoundary", file=stdout)
+
+
+def _print_execution_dry_run(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    result = response.get("execution_result") or {}
+    print(f"ToolExecutorDryRun> {result.get('tool_name')}: {result.get('status')}", file=stdout)
+    print(f"  dry_run: {result.get('dry_run')}", file=stdout)
+    print(f"  noop_only: {result.get('noop_only')}", file=stdout)
+    print("  real_tool_executed: False", file=stdout)
+    print("  deterministic_workflow_dispatched: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  next_stage_required: DeterministicWorkflowDispatcher", file=stdout)
 
 
 def _print_session_summary(summary: dict[str, Any], stdout: TextIO) -> None:
@@ -855,6 +1098,10 @@ def _print_help(stdout: TextIO) -> None:
     print("  /reset", file=stdout)
     print("  /tools", file=stdout)
     print('  /tool-preview <tool_name> [json_object_arguments]', file=stdout)
+    print("  /pending", file=stdout)
+    print("  /confirm", file=stdout)
+    print("  /reject", file=stdout)
+    print("  /execute-dry-run", file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
@@ -864,6 +1111,8 @@ def _print_help(stdout: TextIO) -> None:
     print("Use `python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list|show` to inspect exported traces.", file=stdout)
     print("Context controls rebuild preview packets only; they never call the provider, execute tools, or call engine workflows.", file=stdout)
     print("Tool preview validates only; it never executes tools or engine workflows.", file=stdout)
+    print("Tool confirmation records /confirm or /reject only; it still never executes tools.", file=stdout)
+    print("Tool executor dry-run proves request/result shape only; it never dispatches workflows or engine adapters.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 
 
