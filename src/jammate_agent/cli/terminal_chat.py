@@ -49,6 +49,8 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
     PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
     ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+    CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+    CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
     ToolWorkflowDispatchResult,
@@ -95,6 +97,10 @@ from jammate_agent.core.tool_invocation import (
     build_practice_plan_persistence_candidate_summary,
     build_routine_history_persistence_candidate_payload,
     build_routine_history_persistence_candidate_summary,
+    build_context_persistence_confirmation_boundary_payload,
+    build_context_persistence_confirmation_boundary_summary,
+    build_context_persistence_executor_noop_payload,
+    build_context_persistence_executor_noop_summary,
     build_context_and_guidance_skeleton_cleanup_payload,
     build_context_and_guidance_skeleton_cleanup_summary,
     detect_today_practice_guidance_intent,
@@ -105,6 +111,8 @@ from jammate_agent.core.tool_invocation import (
     today_practice_guidance_profile_aware_e2e_contract,
     practice_plan_persistence_candidate_contract,
     routine_history_persistence_candidate_contract,
+    context_persistence_confirmation_boundary_contract,
+    context_persistence_executor_noop_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -1166,6 +1174,78 @@ class TerminalChatSession:
         }
 
 
+    def context_persistence_confirmation_boundary(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_confirmation_boundary", "/context-persistence-confirmation")
+        payload = build_context_persistence_confirmation_boundary_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_confirmation_boundary",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_confirmation_boundary_payload_built", payload_dict)
+        summary = build_context_persistence_confirmation_boundary_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_confirmation_boundary_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_confirmation_boundary_previewed", {"ok": True, "command": "/context-persistence-confirmation", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-confirmation",
+            "context_persistence_confirmation_boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+            "context_persistence_confirmation_boundary_payload": payload_dict,
+            "context_persistence_confirmation_boundary_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+
+    def context_persistence_executor_noop(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_executor_noop", "/context-persistence-executor-noop")
+        payload = build_context_persistence_executor_noop_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_executor_noop",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_executor_noop_payload_built", payload_dict)
+        summary = build_context_persistence_executor_noop_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_executor_noop_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_executor_noop_previewed", {"ok": True, "command": "/context-persistence-executor-noop", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-executor-noop",
+            "context_persistence_executor_noop_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+            "context_persistence_executor_noop_payload": payload_dict,
+            "context_persistence_executor_noop_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
     def practice_context_assembly(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         trace = self._start_trace("terminal_practice_context_assembly", "/practice-context-assembly")
         payload = build_practice_context_assembly_policy_payload(
@@ -2056,7 +2136,7 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             return True
         _print_context_guidance_skeleton_cleanup(session.context_guidance_skeleton_cleanup(parsed.get("arguments") or {}), stdout)
         return True
-    if user_input.startswith("/context"):
+    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop")):
         full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
         _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
         return True
@@ -2175,6 +2255,20 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             _print_command_error(parsed, stdout)
             return True
         _print_routine_history_persistence_candidate(session.routine_history_persistence_candidate(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/context-persistence-executor-noop"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-executor-noop")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_executor_noop(session.context_persistence_executor_noop(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/context-persistence-confirmation"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-confirmation")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_confirmation_boundary(session.context_persistence_confirmation_boundary(parsed.get("arguments") or {}), stdout)
         return True
     if user_input.startswith("/today-practice-context"):
         parsed = _parse_json_payload_command(user_input, "/today-practice-context")
@@ -2693,6 +2787,50 @@ def _print_routine_history_persistence_candidate(response: dict[str, Any], stdou
     print("  engine_adapter_called: false", file=stdout)
     print("  midi_asset_created: false", file=stdout)
 
+
+
+
+def _print_context_persistence_executor_noop(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceExecutorNoop failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_executor_noop_summary") or {}
+    print("ContextPersistenceExecutorNoop>", file=stdout)
+    print(f"  version: {response.get('context_persistence_executor_noop_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  candidate_kind: {summary.get('candidate_kind')}", file=stdout)
+    print(f"  confirmation_id: {summary.get('confirmation_id')}", file=stdout)
+    print(f"  idempotency_key: {summary.get('idempotency_key')}", file=stdout)
+    print("  noop_only: true", file=stdout)
+    print("  write_attempted: false", file=stdout)
+    print("  storage_written: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+def _print_context_persistence_confirmation_boundary(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("context_persistence_confirmation_boundary_summary") or {}
+    print("ContextPersistenceConfirmationBoundary>", file=stdout)
+    print(f"  version: {response.get('context_persistence_confirmation_boundary_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  candidate_kind: {summary.get('candidate_kind')}", file=stdout)
+    print(f"  user_decision: {summary.get('user_decision')}", file=stdout)
+    print(f"  confirmation_status: {summary.get('confirmation_status')}", file=stdout)
+    print(f"  future_executor_required: {str(summary.get('future_executor_required')).lower()}", file=stdout)
+    print(f"  future_executor_implemented: {str(summary.get('future_executor_implemented')).lower()}", file=stdout)
+    print("  confirmation_record_only: true", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  post_session_recommendation_card_created: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
 
 def _print_practice_context_assembly(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):

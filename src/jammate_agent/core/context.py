@@ -21,6 +21,8 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
     PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
     ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+    CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+    CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -56,6 +58,8 @@ class CapabilityManifest:
     supports_today_practice_guidance_profile_aware_e2e: bool = True
     supports_practice_plan_persistence_candidate_contract: bool = True
     supports_routine_history_persistence_candidate_contract: bool = True
+    supports_context_persistence_confirmation_boundary: bool = True
+    supports_context_persistence_executor_noop: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -83,6 +87,8 @@ class CapabilityManifest:
             "supports_today_practice_guidance_profile_aware_e2e": self.supports_today_practice_guidance_profile_aware_e2e,
             "supports_practice_plan_persistence_candidate_contract": self.supports_practice_plan_persistence_candidate_contract,
             "supports_routine_history_persistence_candidate_contract": self.supports_routine_history_persistence_candidate_contract,
+            "supports_context_persistence_confirmation_boundary": self.supports_context_persistence_confirmation_boundary,
+            "supports_context_persistence_executor_noop": self.supports_context_persistence_executor_noop,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -281,6 +287,8 @@ class ContextBuilder:
                 "today_practice_guidance_profile_aware_e2e_version": TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
                 "practice_plan_persistence_candidate_contract_version": PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
                 "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+                "context_persistence_confirmation_boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+                "context_persistence_executor_noop_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),
                 "user_practice_profile_context_present": bool(user_practice_profile_context),

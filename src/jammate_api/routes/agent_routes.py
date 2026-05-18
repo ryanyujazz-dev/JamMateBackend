@@ -48,6 +48,8 @@ from jammate_agent.core.contracts import (
     today_practice_guidance_profile_aware_e2e_contract,
     practice_plan_persistence_candidate_contract,
     routine_history_persistence_candidate_contract,
+    context_persistence_confirmation_boundary_contract,
+    context_persistence_executor_noop_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -79,6 +81,10 @@ from jammate_agent.core.tool_invocation import (
     build_practice_plan_persistence_candidate_summary,
     build_routine_history_persistence_candidate_payload,
     build_routine_history_persistence_candidate_summary,
+    build_context_persistence_confirmation_boundary_payload,
+    build_context_persistence_confirmation_boundary_summary,
+    build_context_persistence_executor_noop_payload,
+    build_context_persistence_executor_noop_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -1547,6 +1553,98 @@ def preview_routine_history_persistence_candidate_request(request: dict) -> dict
         "routine_start_enabled": False,
     }
 
+
+
+@router.get("/context/persistence-confirmation/spec")
+def get_context_persistence_confirmation_boundary_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_confirmation_boundary_contract()}
+
+
+@router.post("/context/persistence-confirmation/preview")
+def preview_context_persistence_confirmation_boundary_request(request: dict) -> dict:
+    """Preview a unified confirmation record for context persistence candidates.
+
+    This route can wrap PracticePlan and RoutineHistory persistence candidates in
+    a confirmation boundary. It records user decision intent only; it does not
+    call the LLM, execute tools, write backend storage, write local device state,
+    create post-session recommendation cards, start Routine, call
+    /accompaniment/generate, call engine adapters, or create MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_confirmation_boundary_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_confirmation_boundary",
+    )
+    summary = build_context_persistence_confirmation_boundary_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_confirmation_boundary_version": context_persistence_confirmation_boundary_contract()["version"],
+        "context_persistence_confirmation_boundary_payload": payload.to_dict(),
+        "context_persistence_confirmation_boundary_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/persistence-executor-noop/spec")
+def get_context_persistence_executor_noop_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_executor_noop_contract()}
+
+
+@router.post("/context/persistence-executor-noop/preview")
+def preview_context_persistence_executor_noop_request(request: dict) -> dict:
+    """Preview the future persistence executor without writing storage.
+
+    This route validates the confirmed-candidate executor boundary and returns a
+    no-op execution report. It does not call the LLM, execute tools, write
+    backend storage, write local device state, create post-session
+    recommendation cards, start Routine, call /accompaniment/generate, call
+    engine adapters, create MIDI assets, or start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_executor_noop_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_executor_noop",
+    )
+    summary = build_context_persistence_executor_noop_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_executor_noop_version": context_persistence_executor_noop_contract()["version"],
+        "context_persistence_executor_noop_payload": payload.to_dict(),
+        "context_persistence_executor_noop_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
 
 
 @router.get("/traces/spec")

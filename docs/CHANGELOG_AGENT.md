@@ -1,3 +1,13 @@
+## v2_8_9_agent_context_persistence_executor_noop_skeleton
+
+- Added Context Persistence Executor no-op skeleton.
+- Added GET /agent/context/persistence-executor-noop/spec and POST /agent/context/persistence-executor-noop/preview.
+- Added CLI /context-persistence-executor-noop.
+- The executor checks confirmation approval, idempotency, trace and storage-contract boundaries, but never writes storage.
+- Real persistence executor remains unimplemented; no LLM/tool/Engine/Routine/MIDI/playback side effects.
+
+Next recommended task: `v2_8_10_agent_context_persistence_real_storage_adapter_design`.
+
 # Agent Track Changelog
 
 

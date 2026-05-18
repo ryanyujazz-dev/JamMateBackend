@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime
@@ -40,6 +41,8 @@ PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION = "v2_8_2"
 TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION = "v2_8_3"
 PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION = "v2_8_6"
 ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION = "v2_8_7"
+CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION = "v2_8_8"
+CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION = "v2_8_9"
 
 
 @dataclass(frozen=True)
@@ -4353,6 +4356,882 @@ def routine_history_persistence_candidate_contract() -> dict[str, Any]:
     }
 
 
+
+@dataclass(frozen=True)
+class ContextPersistenceConfirmationBoundaryPayload:
+    """v2_8_8 unified confirmation boundary for context persistence candidates.
+
+    This layer wraps candidate-only PracticePlan and RoutineHistory persistence
+    payloads in a user-review confirmation envelope. It records user intent and
+    future executor requirements, but it still does not write backend storage,
+    write local device state, call an LLM, execute tools, start Routine, call
+    /accompaniment/generate, call engine adapters, create MIDI assets, or start
+    playback.
+    """
+
+    payload_contract_version: str
+    source: str
+    confirmation_id: str
+    candidate_kind: str
+    candidate_id: str | None
+    candidate_payload: dict[str, Any]
+    candidate_summary: dict[str, Any]
+    user_decision: str
+    confirmation_status: str
+    confirmation_envelope: dict[str, Any]
+    future_executor_boundary: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "confirmation_id": self.confirmation_id,
+            "candidate_kind": self.candidate_kind,
+            "candidate_id": self.candidate_id,
+            "candidate_payload": _redact_sensitive_values(self.candidate_payload),
+            "candidate_summary": _redact_sensitive_values(self.candidate_summary),
+            "user_decision": self.user_decision,
+            "confirmation_status": self.confirmation_status,
+            "confirmation_envelope": _redact_sensitive_values(self.confirmation_envelope),
+            "future_executor_boundary": _redact_sensitive_values(self.future_executor_boundary),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+        }
+
+
+def build_context_persistence_confirmation_boundary_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "context_persistence_confirmation_boundary",
+) -> ContextPersistenceConfirmationBoundaryPayload:
+    """Wrap a persistence candidate in a confirmation boundary without writing."""
+
+    args = dict(arguments or {})
+    candidate_kind = _normalize_context_persistence_candidate_kind(args)
+    candidate_payload: dict[str, Any] = {}
+    candidate_summary: dict[str, Any] = {}
+    candidate_id: str | None = None
+    warnings: list[str] = []
+    blocked_reasons: list[str] = []
+
+    if candidate_kind == "practice_plan_persistence_candidate":
+        nested = _extract_context_persistence_nested_candidate(args, "practice_plan")
+        if nested and str(nested.get("payload_contract_version") or "") == PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION:
+            candidate_payload = nested
+            candidate_summary = _summarize_embedded_persistence_candidate(candidate_payload, candidate_kind)
+        else:
+            plan_payload = build_practice_plan_persistence_candidate_payload(args, trace_id=trace_id, source=f"{source}:practice_plan_candidate")
+            candidate_payload = plan_payload.to_dict()
+            candidate_summary = build_practice_plan_persistence_candidate_summary(payload=plan_payload, source=source)
+        candidate_id = str(candidate_payload.get("candidate_id") or candidate_summary.get("candidate_id") or "") or None
+    elif candidate_kind == "routine_history_persistence_candidate":
+        nested = _extract_context_persistence_nested_candidate(args, "routine_history")
+        if nested and str(nested.get("payload_contract_version") or "") == ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION:
+            candidate_payload = nested
+            candidate_summary = _summarize_embedded_persistence_candidate(candidate_payload, candidate_kind)
+        else:
+            history_payload = build_routine_history_persistence_candidate_payload(args, trace_id=trace_id, source=f"{source}:routine_history_candidate")
+            candidate_payload = history_payload.to_dict()
+            candidate_summary = build_routine_history_persistence_candidate_summary(payload=history_payload, source=source)
+        candidate_id = str(candidate_payload.get("candidate_id") or candidate_summary.get("candidate_id") or "") or None
+    else:
+        blocked_reasons.append("unsupported_or_missing_persistence_candidate_kind")
+
+    candidate_validation = candidate_payload.get("validation") if isinstance(candidate_payload.get("validation"), dict) else {}
+    if candidate_payload and candidate_validation.get("accepted") is False:
+        blocked_reasons.append("candidate_validation_not_accepted")
+    if not candidate_payload:
+        blocked_reasons.append("missing_candidate_payload")
+
+    user_decision = _normalize_context_persistence_user_decision(args)
+    confirmation_id = str(_first_present(args, "confirmation_id", "confirmationId", "context_confirmation_id", "contextConfirmationId") or f"context_persist_confirm_{uuid4().hex[:12]}")
+    decision_status_map = {
+        "pending": "pending_user_review",
+        "approved": "user_approved_future_executor_required",
+        "rejected": "user_rejected_no_write",
+        "dismissed": "dismissed_no_write",
+    }
+    if blocked_reasons:
+        confirmation_status = "not_confirmable"
+    else:
+        confirmation_status = decision_status_map[user_decision]
+    if user_decision == "approved":
+        warnings.append("user_approved_recorded_but_future_persistence_executor_not_implemented")
+
+    confirmation_envelope = {
+        "confirmation_boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+        "confirmation_id": confirmation_id,
+        "candidate_kind": candidate_kind,
+        "candidate_id": candidate_id,
+        "user_decision": user_decision,
+        "confirmation_status": confirmation_status,
+        "requires_user_confirmation": True,
+        "candidate_preview_required": True,
+        "candidate_preview_accepted": bool(candidate_payload and not blocked_reasons),
+        "future_write_executor_required": True,
+        "future_write_executor_implemented": False,
+        "would_write_if_future_executor_confirmed": user_decision == "approved" and not blocked_reasons,
+        "writes_now": False,
+        "editable_before_future_write": user_decision in {"pending", "approved"},
+        "next_client_actions": _context_persistence_next_client_actions(user_decision, blocked_reasons),
+        "client_button_semantics": {
+            "primary": {
+                "action": "confirm_context_persistence",
+                "label": "Confirm Save/Sync",
+                "requires_explicit_user_confirmation": True,
+                "enabled_now": False,
+                "reason_disabled_now": "v2_8_8 records confirmation intent only; persistence executor is not implemented.",
+            },
+            "secondary": [
+                {"action": "edit_candidate", "label": "Edit Candidate", "side_effect_level": "none"},
+                {"action": "dismiss", "label": "Dismiss", "side_effect_level": "none"},
+                {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+            ],
+        },
+    }
+    future_executor_boundary = {
+        "boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+        "executor_name": "future_context_persistence_executor",
+        "implemented_now": False,
+        "requires_confirmed_candidate": True,
+        "requires_backend_storage_contract": True,
+        "requires_idempotency_key": True,
+        "requires_trace_link": True,
+        "allowed_candidate_kinds": ["practice_plan_persistence_candidate", "routine_history_persistence_candidate"],
+        "forbidden_now": [
+            "database_write",
+            "harmonyos_local_write",
+            "routine_start",
+            "accompaniment_generate_call",
+            "engine_adapter_call",
+            "midi_asset_creation",
+            "playback_start",
+            "post_session_recommendation_card",
+        ],
+    }
+    validation = {
+        "status": "confirmation_blocked" if blocked_reasons else ("confirmation_ready_with_warnings" if warnings else "confirmation_ready"),
+        "accepted": not blocked_reasons,
+        "candidate_kind": candidate_kind,
+        "candidate_id": candidate_id,
+        "user_decision": user_decision,
+        "confirmation_status": confirmation_status,
+        "warnings": warnings,
+        "blocked_reasons": blocked_reasons,
+        "preview_only": True,
+        "requires_user_confirmation": True,
+        "future_executor_required": True,
+        "future_executor_implemented": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    guard_summary = {
+        "unified_confirmation_boundary": True,
+        "candidate_preview_required": True,
+        "candidate_only": True,
+        "confirmation_record_only": True,
+        "future_executor_required": True,
+        "future_executor_implemented": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "raw_api_key_allowed_in_payload": False,
+        "midi_asset_payload_allowed_in_context_confirmation": False,
+        "local_playback_state_allowed_in_context_confirmation": False,
+        "hidden_chain_of_thought_allowed_in_payload": False,
+    }
+    return ContextPersistenceConfirmationBoundaryPayload(
+        payload_contract_version=CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+        source=source,
+        confirmation_id=confirmation_id,
+        candidate_kind=candidate_kind,
+        candidate_id=candidate_id,
+        candidate_payload=candidate_payload,
+        candidate_summary=candidate_summary,
+        user_decision=user_decision,
+        confirmation_status=confirmation_status,
+        confirmation_envelope=confirmation_envelope,
+        future_executor_boundary=future_executor_boundary,
+        validation=validation,
+        guard_summary=guard_summary,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId"),
+    )
+
+
+def build_context_persistence_confirmation_boundary_summary(
+    *,
+    payload: ContextPersistenceConfirmationBoundaryPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "context_persistence_confirmation_boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "candidate_kind": data.get("candidate_kind"),
+        "candidate_id": data.get("candidate_id"),
+        "confirmation_id": data.get("confirmation_id"),
+        "user_decision": data.get("user_decision"),
+        "confirmation_status": data.get("confirmation_status"),
+        "requires_user_confirmation": True,
+        "future_executor_required": True,
+        "future_executor_implemented": False,
+        "preview_only": True,
+        "confirmation_record_only": True,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def context_persistence_confirmation_boundary_contract() -> dict[str, Any]:
+    return {
+        "version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+        "context_persistence_confirmation_boundary_version": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+        "spec_route": "GET /agent/context/persistence-confirmation/spec",
+        "preview_route": "POST /agent/context/persistence-confirmation/preview",
+        "terminal_command": "/context-persistence-confirmation",
+        "surface": "Unified confirmation boundary for Agent context persistence candidates",
+        "mode": "candidate_preview_to_user_confirmation_record_only_no_storage_write",
+        "supported_candidate_kinds": ["practice_plan_persistence_candidate", "routine_history_persistence_candidate"],
+        "execution_status": {
+            "confirmation_boundary_enabled": True,
+            "candidate_payload_enabled": True,
+            "preview_enabled": True,
+            "confirmation_record_enabled": True,
+            "future_persistence_executor_required": True,
+            "future_persistence_executor_implemented": False,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled": False,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "candidate_kind": "practice_plan_persistence_candidate | routine_history_persistence_candidate",
+            "candidate_payload": "Embedded candidate payload or raw fields used to build one",
+            "user_decision": "pending | approved | rejected | dismissed",
+            "confirmation_envelope": "User-review confirmation record; no write in v2_8_8",
+            "future_executor_boundary": "Requirements for a later real persistence executor",
+            "validation": "Confirmation readiness and no-side-effect flags",
+        },
+        "rules": [
+            "PracticePlan and RoutineHistory persistence candidates must pass through one unified confirmation boundary before any future write executor.",
+            "User approval is recorded as intent only in v2_8_8; no backend or local storage write is performed.",
+            "The future persistence executor must be a separate controlled stage with idempotency, trace link, and storage contract checks.",
+            "Confirmation must remain separate from Routine start, playback, accompaniment generation, engine adapters, MIDI asset creation, and post-session recommendation cards.",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "future_executor_implemented": False,
+            "raw_api_key_allowed_in_payload": False,
+            "midi_base64_allowed_in_context_confirmation": False,
+            "local_midi_path_allowed_in_context_confirmation": False,
+            "hidden_chain_of_thought_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "practice_plan_persistence_candidate": PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+            "routine_history_persistence_candidate": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+            "practice_context_storage_boundary": PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
+        },
+        "next_task_hint": "v2_8_9_agent_context_persistence_executor_noop_skeleton",
+    }
+
+
+
+
+@dataclass(frozen=True)
+class ContextPersistenceExecutorNoopPayload:
+    """v2_8_9 no-op executor skeleton after context persistence confirmation.
+
+    This layer previews the future persistence executor stage after a user has
+    approved a PracticePlan or RoutineHistory persistence confirmation. It checks
+    confirmation readiness, idempotency, trace and storage-contract requirements,
+    then intentionally performs no write. It must remain separate from LLM calls,
+    tool execution, Routine start, accompaniment generation, engine adapters,
+    MIDI asset creation, playback, and post-session recommendation cards.
+    """
+
+    payload_contract_version: str
+    source: str
+    execution_id: str
+    executor_name: str
+    executor_mode: str
+    idempotency_key: str
+    confirmation_id: str | None
+    candidate_kind: str
+    candidate_id: str | None
+    confirmation_payload: dict[str, Any]
+    confirmation_summary: dict[str, Any]
+    confirmation_check: dict[str, Any]
+    storage_contract_check: dict[str, Any]
+    executor_plan: dict[str, Any]
+    noop_execution_result: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "execution_id": self.execution_id,
+            "executor_name": self.executor_name,
+            "executor_mode": self.executor_mode,
+            "idempotency_key": self.idempotency_key,
+            "confirmation_id": self.confirmation_id,
+            "candidate_kind": self.candidate_kind,
+            "candidate_id": self.candidate_id,
+            "confirmation_payload": _redact_sensitive_values(self.confirmation_payload),
+            "confirmation_summary": _redact_sensitive_values(self.confirmation_summary),
+            "confirmation_check": _redact_sensitive_values(self.confirmation_check),
+            "storage_contract_check": _redact_sensitive_values(self.storage_contract_check),
+            "executor_plan": _redact_sensitive_values(self.executor_plan),
+            "noop_execution_result": _redact_sensitive_values(self.noop_execution_result),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+        }
+
+
+def build_context_persistence_executor_noop_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "context_persistence_executor_noop",
+) -> ContextPersistenceExecutorNoopPayload:
+    """Preview the future persistence executor without writing storage."""
+
+    args = dict(arguments or {})
+    confirmation_payload = _extract_context_persistence_confirmation_payload(args)
+    if confirmation_payload:
+        confirmation_payload = _redact_sensitive_values(dict(confirmation_payload))
+        confirmation_summary = build_context_persistence_confirmation_boundary_summary(
+            payload=_context_confirmation_payload_from_dict(confirmation_payload),
+            source=source,
+        )
+    else:
+        confirmation_payload_obj = build_context_persistence_confirmation_boundary_payload(
+            args,
+            trace_id=trace_id,
+            source=f"{source}:confirmation_boundary",
+        )
+        confirmation_payload = confirmation_payload_obj.to_dict()
+        confirmation_summary = build_context_persistence_confirmation_boundary_summary(payload=confirmation_payload_obj, source=source)
+
+    confirmation_id = str(confirmation_payload.get("confirmation_id") or "") or None
+    candidate_kind = str(confirmation_payload.get("candidate_kind") or "unknown")
+    candidate_id = str(confirmation_payload.get("candidate_id") or "") or None
+    user_decision = str(confirmation_payload.get("user_decision") or "pending")
+    confirmation_status = str(confirmation_payload.get("confirmation_status") or "")
+    confirmation_validation = confirmation_payload.get("validation") if isinstance(confirmation_payload.get("validation"), dict) else {}
+
+    blocked_reasons: list[str] = []
+    warnings: list[str] = []
+    if not confirmation_payload:
+        blocked_reasons.append("missing_confirmation_payload")
+    if confirmation_validation.get("accepted") is False:
+        blocked_reasons.append("confirmation_validation_not_accepted")
+    if user_decision != "approved":
+        blocked_reasons.append("user_confirmation_not_approved")
+    if confirmation_status != "user_approved_future_executor_required":
+        blocked_reasons.append("confirmation_status_not_executor_ready")
+    if candidate_kind not in {"practice_plan_persistence_candidate", "routine_history_persistence_candidate"}:
+        blocked_reasons.append("unsupported_candidate_kind")
+    if not confirmation_id:
+        blocked_reasons.append("missing_confirmation_id")
+    if not candidate_id:
+        warnings.append("missing_candidate_id_future_executor_should_require_stable_candidate_reference")
+
+    provided_key = _first_present(args, "idempotency_key", "idempotencyKey")
+    idempotency_key = str(provided_key or _build_context_persistence_idempotency_key(confirmation_id, candidate_kind, candidate_id))
+    execution_id = str(_first_present(args, "execution_id", "executionId") or f"context_persist_noop_exec_{uuid4().hex[:12]}")
+
+    confirmation_check = {
+        "required": True,
+        "confirmation_boundary_version": confirmation_payload.get("payload_contract_version") or confirmation_payload.get("confirmation_boundary_version"),
+        "confirmation_id": confirmation_id,
+        "candidate_kind": candidate_kind,
+        "candidate_id": candidate_id,
+        "user_decision": user_decision,
+        "confirmation_status": confirmation_status,
+        "accepted": not blocked_reasons,
+        "blocked_reasons": list(blocked_reasons),
+        "warnings": list(warnings),
+    }
+    storage_contract_check = {
+        "required": True,
+        "storage_contract_version": PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
+        "storage_contract_present": True,
+        "backend_database_write_enabled_now": False,
+        "local_device_write_enabled_now": False,
+        "real_storage_adapter_configured": False,
+        "noop_storage_adapter": True,
+        "allowed_future_candidate_kinds": ["practice_plan_persistence_candidate", "routine_history_persistence_candidate"],
+        "idempotency_key_required": True,
+        "idempotency_key_present": bool(idempotency_key),
+        "trace_link_required": True,
+        "trace_id_present": bool(trace_id or args.get("trace_id") or args.get("traceId") or confirmation_payload.get("trace_id")),
+    }
+    executor_plan = {
+        "executor_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+        "executor_name": "context_persistence_executor_noop",
+        "mode": "noop_preview_only",
+        "steps": [
+            "verify_confirmation_boundary",
+            "verify_user_approved_decision",
+            "verify_candidate_kind",
+            "derive_or_accept_idempotency_key",
+            "link_trace_metadata",
+            "check_storage_contract_boundary",
+            "skip_backend_and_local_writes",
+            "return_noop_execution_report",
+        ],
+        "future_real_executor_requirements": [
+            "database_schema_and_adapter",
+            "idempotent_upsert_semantics",
+            "trace_link_persistence",
+            "explicit_user_confirmation_recheck",
+            "safe_retry_policy",
+            "storage_boundary_conformance",
+        ],
+    }
+    validation_status = "noop_executor_ready" if not blocked_reasons else "noop_executor_blocked"
+    noop_execution_result = {
+        "status": validation_status,
+        "executor_ran": True,
+        "noop_only": True,
+        "would_write_if_real_executor_existed": not blocked_reasons,
+        "write_attempted": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "future_executor_implemented": False,
+        "idempotency_key": idempotency_key,
+        "blocked_reasons": list(blocked_reasons),
+        "warnings": list(warnings),
+    }
+    validation = {
+        "status": validation_status,
+        "accepted": not blocked_reasons,
+        "confirmation_required": True,
+        "confirmed_candidate_required": True,
+        "idempotency_key_required": True,
+        "trace_link_required": True,
+        "storage_contract_required": True,
+        "future_real_executor_required": True,
+        "future_real_executor_implemented": False,
+        "preview_only": True,
+        "noop_only": True,
+        "warnings": list(warnings),
+        "blocked_reasons": list(blocked_reasons),
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    guard_summary = {
+        "context_persistence_executor_noop": True,
+        "confirmed_candidate_required": True,
+        "idempotency_guard_present": bool(idempotency_key),
+        "trace_guard_present": True,
+        "storage_contract_guard_present": True,
+        "real_write_executor_implemented": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "raw_api_key_allowed_in_payload": False,
+        "midi_asset_payload_allowed_in_executor": False,
+        "local_playback_state_allowed_in_executor": False,
+        "hidden_chain_of_thought_allowed_in_payload": False,
+    }
+    return ContextPersistenceExecutorNoopPayload(
+        payload_contract_version=CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+        source=source,
+        execution_id=execution_id,
+        executor_name="context_persistence_executor_noop",
+        executor_mode="noop_preview_only",
+        idempotency_key=idempotency_key,
+        confirmation_id=confirmation_id,
+        candidate_kind=candidate_kind,
+        candidate_id=candidate_id,
+        confirmation_payload=confirmation_payload,
+        confirmation_summary=confirmation_summary,
+        confirmation_check=confirmation_check,
+        storage_contract_check=storage_contract_check,
+        executor_plan=executor_plan,
+        noop_execution_result=noop_execution_result,
+        validation=validation,
+        guard_summary=guard_summary,
+        trace_id=trace_id or args.get("trace_id") or args.get("traceId") or confirmation_payload.get("trace_id"),
+    )
+
+
+def build_context_persistence_executor_noop_summary(
+    *,
+    payload: ContextPersistenceExecutorNoopPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    result = data.get("noop_execution_result") if isinstance(data.get("noop_execution_result"), dict) else {}
+    return {
+        "context_persistence_executor_noop_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "execution_id": data.get("execution_id"),
+        "executor_name": data.get("executor_name"),
+        "executor_mode": data.get("executor_mode"),
+        "confirmation_id": data.get("confirmation_id"),
+        "candidate_kind": data.get("candidate_kind"),
+        "candidate_id": data.get("candidate_id"),
+        "idempotency_key": data.get("idempotency_key"),
+        "noop_only": True,
+        "write_attempted": False,
+        "would_write_if_real_executor_existed": result.get("would_write_if_real_executor_existed", False),
+        "future_real_executor_implemented": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def context_persistence_executor_noop_contract() -> dict[str, Any]:
+    return {
+        "version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+        "context_persistence_executor_noop_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+        "spec_route": "GET /agent/context/persistence-executor-noop/spec",
+        "preview_route": "POST /agent/context/persistence-executor-noop/preview",
+        "terminal_command": "/context-persistence-executor-noop",
+        "surface": "No-op skeleton for the future Agent context persistence executor",
+        "mode": "confirmed_candidate_executor_preview_noop_no_storage_write",
+        "supported_candidate_kinds": ["practice_plan_persistence_candidate", "routine_history_persistence_candidate"],
+        "execution_status": {
+            "noop_executor_enabled": True,
+            "real_persistence_executor_implemented": False,
+            "requires_confirmation_boundary": True,
+            "requires_user_approved_confirmation": True,
+            "requires_idempotency_key": True,
+            "requires_trace_link": True,
+            "requires_storage_contract": True,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled": False,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "payload_schema": {
+            "confirmation_payload": "ContextPersistenceConfirmationBoundaryPayload or raw fields used to build one",
+            "idempotency_key": "Optional stable client key; derived from confirmation/candidate fields when omitted",
+            "confirmation_check": "Approved confirmation readiness check",
+            "storage_contract_check": "No-op storage boundary check; no adapter configured",
+            "executor_plan": "Future executor steps and requirements",
+            "noop_execution_result": "No-op result report; no writes attempted",
+            "validation": "Executor readiness and no-side-effect flags",
+        },
+        "rules": [
+            "Only user-approved ContextPersistenceConfirmationBoundary payloads may be executor-ready.",
+            "v2_8_9 intentionally performs no backend or local storage write even when executor-ready.",
+            "A future real executor must re-check user confirmation, idempotency, trace link, and storage contract before writing.",
+            "Executor preview must remain separate from LLM calls, tool execution, Routine start, playback, accompaniment generation, engine adapters, MIDI asset creation, and post-session recommendation cards.",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "real_executor_implemented": False,
+            "raw_api_key_allowed_in_payload": False,
+            "midi_base64_allowed_in_executor_payload": False,
+            "local_midi_path_allowed_in_executor_payload": False,
+            "hidden_chain_of_thought_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "context_persistence_confirmation_boundary": CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION,
+            "practice_plan_persistence_candidate": PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+            "routine_history_persistence_candidate": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+            "practice_context_storage_boundary": PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
+        },
+        "next_task_hint": "v2_8_10_agent_context_persistence_real_storage_adapter_design",
+    }
+
+
+def _extract_context_persistence_confirmation_payload(args: dict[str, Any]) -> dict[str, Any] | None:
+    for key in (
+        "confirmation_payload",
+        "confirmationPayload",
+        "context_persistence_confirmation_boundary_payload",
+        "contextPersistenceConfirmationBoundaryPayload",
+        "contextPersistenceConfirmation",
+        "context_persistence_confirmation",
+    ):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return value
+    if str(args.get("payload_contract_version") or "") == CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION:
+        return args
+    return None
+
+
+def _context_confirmation_payload_from_dict(data: dict[str, Any]) -> ContextPersistenceConfirmationBoundaryPayload:
+    return ContextPersistenceConfirmationBoundaryPayload(
+        payload_contract_version=str(data.get("payload_contract_version") or CONTEXT_PERSISTENCE_CONFIRMATION_BOUNDARY_VERSION),
+        source=str(data.get("source") or "embedded_context_persistence_confirmation_boundary"),
+        confirmation_id=str(data.get("confirmation_id") or ""),
+        candidate_kind=str(data.get("candidate_kind") or "unknown"),
+        candidate_id=str(data.get("candidate_id") or "") or None,
+        candidate_payload=data.get("candidate_payload") if isinstance(data.get("candidate_payload"), dict) else {},
+        candidate_summary=data.get("candidate_summary") if isinstance(data.get("candidate_summary"), dict) else {},
+        user_decision=str(data.get("user_decision") or "pending"),
+        confirmation_status=str(data.get("confirmation_status") or ""),
+        confirmation_envelope=data.get("confirmation_envelope") if isinstance(data.get("confirmation_envelope"), dict) else {},
+        future_executor_boundary=data.get("future_executor_boundary") if isinstance(data.get("future_executor_boundary"), dict) else {},
+        validation=data.get("validation") if isinstance(data.get("validation"), dict) else {},
+        guard_summary=data.get("guard_summary") if isinstance(data.get("guard_summary"), dict) else {},
+        trace_id=data.get("trace_id"),
+    )
+
+
+def _build_context_persistence_idempotency_key(confirmation_id: str | None, candidate_kind: str, candidate_id: str | None) -> str:
+    material = json.dumps(
+        {
+            "confirmation_id": confirmation_id or "missing_confirmation",
+            "candidate_kind": candidate_kind or "unknown",
+            "candidate_id": candidate_id or "missing_candidate",
+            "executor_version": CONTEXT_PERSISTENCE_EXECUTOR_NOOP_VERSION,
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+    digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
+    return f"ctx_persist_noop_{digest}"
+
+
+def _normalize_context_persistence_candidate_kind(args: dict[str, Any]) -> str:
+    raw = _first_present(args, "candidate_kind", "candidateKind", "candidate_type", "candidateType", "object_type", "objectType")
+    text = str(raw or "").strip().lower().replace("-", "_")
+    if text in {"practice_plan", "practiceplan", "plan", "practice_plan_persistence", "practice_plan_persistence_candidate"}:
+        return "practice_plan_persistence_candidate"
+    if text in {"routine_history", "routinehistory", "history", "routine_history_persistence", "routine_history_persistence_candidate"}:
+        return "routine_history_persistence_candidate"
+    if any(key in args for key in ("practicePlan", "practice_plan", "planBlocks", "plan_blocks", "existingPracticePlan", "existing_practice_plan")):
+        return "practice_plan_persistence_candidate"
+    if any(key in args for key in ("routineHistoryRecords", "routine_history_records", "historyRecords", "history_records", "routineHistoryContextPayload", "routine_history_context_payload")):
+        return "routine_history_persistence_candidate"
+    nested = _extract_context_persistence_nested_candidate(args, "practice_plan")
+    if nested:
+        return "practice_plan_persistence_candidate"
+    nested = _extract_context_persistence_nested_candidate(args, "routine_history")
+    if nested:
+        return "routine_history_persistence_candidate"
+    return "unknown"
+
+
+def _extract_context_persistence_nested_candidate(args: dict[str, Any], kind: str) -> dict[str, Any] | None:
+    keys = ["candidate_payload", "candidatePayload", "persistence_candidate_payload", "persistenceCandidatePayload"]
+    if kind == "practice_plan":
+        keys.extend(["practice_plan_persistence_candidate_payload", "practicePlanPersistenceCandidatePayload", "practicePlanPersistenceCandidate", "practice_plan_persistence_candidate"])
+    else:
+        keys.extend(["routine_history_persistence_candidate_payload", "routineHistoryPersistenceCandidatePayload", "routineHistoryPersistenceCandidate", "routine_history_persistence_candidate"])
+    for key in keys:
+        value = args.get(key)
+        if isinstance(value, dict):
+            return value
+    return None
+
+
+def _normalize_context_persistence_user_decision(args: dict[str, Any]) -> str:
+    raw = _first_present(args, "user_decision", "userDecision", "decision", "confirmation_status", "confirmationStatus")
+    text = str(raw or "pending").strip().lower().replace("-", "_")
+    if text in {"approve", "approved", "confirm", "confirmed", "user_approved", "confirm_save", "confirm_sync"}:
+        return "approved"
+    if text in {"reject", "rejected", "deny", "declined", "user_rejected"}:
+        return "rejected"
+    if text in {"dismiss", "dismissed", "cancel", "cancelled"}:
+        return "dismissed"
+    return "pending"
+
+
+def _context_persistence_next_client_actions(user_decision: str, blocked_reasons: list[str]) -> list[str]:
+    if blocked_reasons:
+        return ["fix_candidate", "dismiss", "view_trace"]
+    if user_decision == "approved":
+        return ["record_confirmation", "await_future_persistence_executor", "view_trace"]
+    if user_decision in {"rejected", "dismissed"}:
+        return ["dismiss", "view_trace"]
+    return ["review_candidate", "edit_candidate", "confirm_context_persistence", "dismiss", "view_trace"]
+
+
+def _summarize_embedded_persistence_candidate(candidate_payload: dict[str, Any], candidate_kind: str) -> dict[str, Any]:
+    validation = candidate_payload.get("validation") if isinstance(candidate_payload.get("validation"), dict) else {}
+    if candidate_kind == "practice_plan_persistence_candidate":
+        plan = candidate_payload.get("normalized_practice_plan") if isinstance(candidate_payload.get("normalized_practice_plan"), dict) else {}
+        return {
+            "practice_plan_persistence_candidate_contract_version": PRACTICE_PLAN_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+            "validation_status": validation.get("status"),
+            "accepted": validation.get("accepted", False),
+            "operation": candidate_payload.get("operation"),
+            "candidate_id": candidate_payload.get("candidate_id"),
+            "plan_title": plan.get("title"),
+            "block_count": len(plan.get("blocks") or []),
+            "requires_user_confirmation": True,
+            "preview_only": True,
+            "storage_written": False,
+        }
+    aggregate = candidate_payload.get("aggregate_summary") if isinstance(candidate_payload.get("aggregate_summary"), dict) else {}
+    records = candidate_payload.get("normalized_routine_history_records") or []
+    items = candidate_payload.get("practice_history_context_items") or []
+    return {
+        "routine_history_persistence_candidate_contract_version": ROUTINE_HISTORY_PERSISTENCE_CANDIDATE_CONTRACT_VERSION,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "operation": candidate_payload.get("operation"),
+        "candidate_id": candidate_payload.get("candidate_id"),
+        "record_count": len(records) if isinstance(records, list) else 0,
+        "context_item_count": len(items) if isinstance(items, list) else 0,
+        "total_practice_minutes": aggregate.get("total_practice_minutes", 0),
+        "requires_user_confirmation": True,
+        "preview_only": True,
+        "storage_written": False,
+    }
+
 def _extract_routine_history_persistence_candidate_records(args: dict[str, Any]) -> list[Any]:
     records = _extract_routine_history_records(args)
     if records:
@@ -7700,6 +8579,7 @@ def _context_guidance_canonical_routes() -> dict[str, str]:
         "today_practice_guidance_profile_aware_e2e": "POST /agent/context/today-practice-guidance/profile-aware/e2e-preview",
         "practice_plan_persistence_candidate": "POST /agent/practice-plan/persistence-candidate/preview",
         "routine_history_persistence_candidate": "POST /agent/routine-history/persistence-candidate/preview",
+        "context_persistence_confirmation_boundary": "POST /agent/context/persistence-confirmation/preview",
         "user_capability_map": "POST /agent/capabilities/user-intents/preview",
     }
 
@@ -7757,7 +8637,7 @@ def build_context_and_guidance_skeleton_cleanup_payload(
         terminal_commands=_context_guidance_terminal_commands(),
         normalized_guard_flags=_context_guidance_no_side_effect_flags(),
         cleanup_findings=tuple(findings),
-        next_recommended_task="v2_8_7_agent_routine_history_persistence_candidate_contract",
+        next_recommended_task="v2_8_8_agent_context_persistence_confirmation_boundary",
     )
 
 
@@ -7832,6 +8712,7 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "today_practice_guidance_profile_aware_e2e": today_practice_guidance_profile_aware_e2e_contract(),
             "practice_plan_persistence_candidate": practice_plan_persistence_candidate_contract(),
             "routine_history_persistence_candidate": routine_history_persistence_candidate_contract(),
+            "context_persistence_confirmation_boundary": context_persistence_confirmation_boundary_contract(),
         },
         "completion_scope": [
             "active PracticePlan can enter ContextPacket",
@@ -7847,6 +8728,7 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "UserPracticeProfileContext can feed profile-aware today-practice guidance as soft context",
             "PracticePlan save/update can be represented as a candidate-only persistence action",
             "RoutineHistory summary save/upload can be represented as a candidate-only persistence action",
+            "PracticePlan and RoutineHistory persistence candidates can pass through a unified confirmation record boundary",
         ],
         "non_goals": [
             "No automatic post-session recommendation card",
@@ -7860,6 +8742,7 @@ def context_engineering_skeleton_contract() -> dict[str, Any]:
             "No terminal today-practice guidance E2E may bypass provider boundary, output validation, or client confirmation",
             "No profile-aware guidance may turn the user profile into hard-coded execution rules",
             "No RoutineHistory persistence candidate may create a post-session recommendation card or write storage directly",
+            "No context persistence confirmation may write storage directly; future executor remains separate",
         ],
         "guards": {
             "llm_called": False,
