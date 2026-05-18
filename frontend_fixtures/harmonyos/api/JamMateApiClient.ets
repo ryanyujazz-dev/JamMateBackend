@@ -1,8 +1,8 @@
-// JamMate API Client Sketch v2_4_7
+// JamMate API Client Sketch v2_4_12
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 
-import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse } from '../model/AgentTypes'
+import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse, AgentTraceApiSpecResponse, AgentTraceDetailResponse, AgentTraceListResponse } from '../model/AgentTypes'
 import type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'
 import { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
 
@@ -36,6 +36,21 @@ export class JamMateApiClient {
   async previewAgentToolInvocation(request: AgentToolInvocationPreviewRequest): Promise<AgentToolInvocationPreviewResponse> {
     const raw = await this.post('/agent/tools/invocation/preview', request as Record<string, unknown>)
     return deepSnakeToCamel(raw) as AgentToolInvocationPreviewResponse
+  }
+
+  async getAgentTraceSpec(): Promise<AgentTraceApiSpecResponse> {
+    const raw = await this.get('/agent/traces/spec')
+    return deepSnakeToCamel(raw) as AgentTraceApiSpecResponse
+  }
+
+  async listAgentTraces(limit: number = 20): Promise<AgentTraceListResponse> {
+    const raw = await this.get(`/agent/traces?limit=${limit}`)
+    return deepSnakeToCamel(raw) as AgentTraceListResponse
+  }
+
+  async getAgentTrace(traceId: string): Promise<AgentTraceDetailResponse> {
+    const raw = await this.get(`/agent/traces/${traceId}`)
+    return deepSnakeToCamel(raw) as AgentTraceDetailResponse
   }
 
   async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {

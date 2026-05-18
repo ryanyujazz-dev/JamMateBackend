@@ -6,8 +6,13 @@ from typing import Any
 from jammate_agent.core.context import CONTEXT_PROFILES, CONTEXT_RUNTIME_VERSION
 from jammate_agent.core.llm_provider import LLM_PROVIDER_BOUNDARY_VERSION, build_llm_provider_from_env
 from jammate_agent.core.runloop import BoundedAgentRunLoop, RUNLOOP_CONTRACT_VERSION
-from jammate_agent.core.tool_invocation import TOOL_INVOCATION_PREVIEW_VERSION, tool_invocation_preview_contract
+from jammate_agent.core.tool_invocation import (
+    TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+    TOOL_INVOCATION_PREVIEW_VERSION,
+    tool_invocation_preview_contract,
+)
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, tool_registry_manifest
+from jammate_agent.core.trace import trace_api_contract
 
 
 @dataclass(frozen=True)
@@ -85,6 +90,9 @@ def context_profile_manifest() -> dict[str, Any]:
         "provider_boundary_spec_route": "GET /agent/llm/provider/spec",
         "tool_registry_spec_route": "GET /agent/tools/registry",
         "tool_invocation_preview_spec_route": "GET /agent/tools/invocation/spec",
+        "trace_api_spec_route": "GET /agent/traces/spec",
+        "trace_list_route": "GET /agent/traces",
+        "trace_detail_route": "GET /agent/traces/{trace_id}",
         "profiles": profiles,
     }
 
@@ -102,6 +110,9 @@ def llm_context_runtime_contract() -> dict[str, Any]:
             "tool_registry": "GET /agent/tools/registry",
             "tool_invocation_preview_spec": "GET /agent/tools/invocation/spec",
             "tool_invocation_preview": "POST /agent/tools/invocation/preview",
+            "trace_spec": "GET /agent/traces/spec",
+            "trace_list": "GET /agent/traces",
+            "trace_detail": "GET /agent/traces/{trace_id}",
         },
         "request_schema": {
             "request_id": "string | null",
@@ -133,12 +144,25 @@ def llm_context_runtime_contract() -> dict[str, Any]:
         "llm_provider_boundary": llm_provider_boundary_contract(),
         "tool_registry_boundary": tool_registry_contract(),
         "tool_invocation_preview_boundary": tool_invocation_preview_contract(),
+        "terminal_tool_call_candidate_extraction": {
+            "version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+            "surface": "terminal_chat_only",
+            "mode": "json_only_extract_then_preview",
+            "execution_enabled": False,
+            "rules": [
+                "Only explicit JSON tool-call candidates are extracted from successful assistant replies.",
+                "Extracted candidates are validated by preview_tool_invocation using the current ContextPacket.allowed_tools.",
+                "Candidate extraction never dispatches workflows, routes, adapters, or engine code.",
+            ],
+        },
+        "trace_api_boundary": trace_api_contract(),
         "non_goals": [
-            "No real LLM network call from the API runloop preview in v2_4_7.",
-            "No autonomous tool execution in v2_4_7.",
-            "No runloop-driven tool execution in v2_4_7; tools are descriptor-only.",
-            "No runloop-driven tool execution in v2_4_7; tools are descriptor-only and invocation preview is validation-only.",
+            "No real LLM network call from the API runloop preview in v2_4_12.",
+            "No autonomous tool execution in v2_4_12.",
+            "No runloop-driven tool execution in v2_4_12; tools are descriptor-only.",
+            "No runloop-driven tool execution in v2_4_12; tools are descriptor-only and invocation preview is validation-only.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
+            "Trace API and terminal trace viewer only shape/read trace list/detail/spec responses; they do not execute tools, call LLM providers, dispatch workflows, or call the engine adapter.",
         ],
     }
 
@@ -168,13 +192,23 @@ def llm_provider_boundary_contract() -> dict[str, Any]:
             "supported_providers": ["openai", "openai_compatible"],
             "requires_explicit_network_gate": True,
             "tool_execution_enabled": False,
-            "slash_commands": ["/help", "/tools", "/tool-preview <tool_name> [json_object_arguments]", "/trace", "/traces", "/exit"],
+            "candidate_extraction": {
+                "version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+                "mode": "json_only_extract_then_preview",
+                "execution_enabled": False,
+                "source": "successful assistant text",
+            },
+            "slash_commands": ["/help", "/session", "/context [full]", "/profiles", "/profile [task_type]", "/task-type [task_type]", "/instrument [instrument]", "/reset", "/tools", "/tool-preview <tool_name> [json_object_arguments]", "/trace", "/traces", "/exit"],
+            "context_controls": {"profile_switch_clears_history": True, "provider_call_enabled": False, "tool_execution_enabled": False, "commands": ["/context", "/profiles", "/profile", "/task-type", "/instrument", "/session", "/reset"]},
             "tool_preview_example": 'python -m jammate_agent.cli.terminal_chat --task-type immediate_practice_playback --once \'/tool-preview agent_playback_prepare {"durationMinutes":20}\'',
             "trace_export": {
                 "enabled_by": "--trace-dir <dir>",
                 "commands": ["/trace", "/traces"],
                 "format": "AgentTrace JSON",
                 "execution_enabled": False,
+                "viewer_entrypoint": "python -m jammate_agent.cli.trace_viewer",
+                "viewer_console_script": "jammate-agent-traces",
+                "viewer_read_only": True,
             },
         },
         "guards": {
@@ -183,7 +217,7 @@ def llm_provider_boundary_contract() -> dict[str, Any]:
             "autonomous_tool_execution_enabled": False,
             "default_provider_class": "DisabledLLMProvider",
             "network_rule": "API runloop preview never calls the provider; terminal chat may call only when provider, model, API key, and JAMMATE_LLM_ENABLE_NETWORK_CALLS are configured.",
-            "tool_rule": "Terminal chat may include allowed tool descriptors as context but must not execute tools.",
+            "tool_rule": "Terminal chat may include allowed tool descriptors as context and may preview extracted JSON tool-call candidates, but must not execute tools.",
         },
         "tool_invocation_preview": {
             "version": TOOL_INVOCATION_PREVIEW_VERSION,
@@ -416,7 +450,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_4_7
+// JamMate Agent / Practice API Contract v2_4_12
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'

@@ -1,18 +1,21 @@
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, get_tool_descriptor, validate_allowed_tools
 
-TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_7"
+TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_12"
+TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_12"
 
 
 @dataclass(frozen=True)
 class ToolInvocationProposal:
     """A future-LLM proposed tool call before any execution is allowed.
 
-    v2_4_7 only validates and previews this proposal. It does not dispatch to
+    v2_4_12 only validates and previews this proposal. It does not dispatch to
     deterministic workflows, API routes, adapters, or engine code.
     """
 
@@ -31,6 +34,64 @@ class ToolInvocationProposal:
             "request_id": self.request_id,
             "user_input": self.user_input,
             "client_context": dict(self.client_context),
+        }
+
+
+@dataclass(frozen=True)
+class ToolCallCandidate:
+    """A tool-call-like proposal extracted from assistant text.
+
+    The candidate is only a parsing artifact. It must still pass
+    `preview_tool_invocation()` before any future execution could be considered.
+    v2_4_12 never executes extracted candidates.
+    """
+
+    tool_name: str
+    arguments: dict[str, Any] = field(default_factory=dict)
+    source_format: str = "unknown"
+    source_index: int = 0
+    raw_candidate_preview: str = ""
+
+    def to_proposal(self, *, task_type: str, user_input: str | None = None, client_context: dict[str, Any] | None = None) -> ToolInvocationProposal:
+        return ToolInvocationProposal(
+            tool_name=self.tool_name,
+            arguments=dict(self.arguments),
+            task_type=task_type,
+            user_input=user_input,
+            client_context=client_context or {},
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "extraction_version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+            "tool_name": self.tool_name,
+            "arguments": dict(self.arguments),
+            "source_format": self.source_format,
+            "source_index": self.source_index,
+            "raw_candidate_preview": self.raw_candidate_preview,
+            "would_execute": False,
+        }
+
+
+@dataclass(frozen=True)
+class ToolCallCandidateExtractionResult:
+    ok: bool
+    candidates: list[ToolCallCandidate] = field(default_factory=list)
+    scanned_char_count: int = 0
+    warnings: list[str] = field(default_factory=list)
+    rejected_candidates: list[dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "extraction_version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+            "ok": self.ok,
+            "candidate_count": len(self.candidates),
+            "candidates": [candidate.to_dict() for candidate in self.candidates],
+            "scanned_char_count": self.scanned_char_count,
+            "warnings": list(self.warnings),
+            "rejected_candidates": list(self.rejected_candidates),
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
         }
 
 
@@ -74,7 +135,7 @@ class ToolInvocationPreviewResult:
 
 @dataclass(frozen=True)
 class ToolInvocationPreviewPolicy:
-    """Hard policy for v2_4_7 tool-call previews."""
+    """Hard policy for v2_4_12 tool-call previews."""
 
     mode: str = "preview_validation_only"
     execution_enabled: bool = False
@@ -183,8 +244,8 @@ def preview_tool_invocation(
 
     blocking_reasons.extend(
         [
-            "tool_execution_disabled_in_v2_4_7",
-            "autonomous_tool_execution_disabled_in_v2_4_7",
+            "tool_execution_disabled_in_v2_4_12",
+            "autonomous_tool_execution_disabled_in_v2_4_12",
             "preview_does_not_dispatch_deterministic_workflows",
         ]
     )
@@ -204,6 +265,120 @@ def preview_tool_invocation(
         blocking_reasons=blocking_reasons,
         warnings=warnings,
     )
+
+
+def extract_tool_call_candidates(text: str | None, *, max_candidates: int = 5) -> ToolCallCandidateExtractionResult:
+    """Extract tool-call-like JSON objects from assistant text without execution.
+
+    Supported shapes are intentionally explicit and JSON-only:
+
+    - {"tool_name": "agent_playback_prepare", "arguments": {...}}
+    - {"toolName": "agent_playback_prepare", "args": {...}}
+    - {"tool_call": {"name": "agent_playback_prepare", "arguments": {...}}}
+    - {"tool_calls": [{"name": "...", "arguments": {...}}]}
+
+    JSON may appear as the full assistant message or inside fenced ```json blocks.
+    Free-form natural language is ignored so the CLI does not hallucinate tool
+    calls from ordinary prose.
+    """
+
+    source_text = text or ""
+    warnings: list[str] = []
+    rejected: list[dict[str, Any]] = []
+    candidates: list[ToolCallCandidate] = []
+    seen: set[tuple[str, str]] = set()
+
+    for index, payload in enumerate(_iter_json_payloads(source_text)):
+        for raw_candidate in _candidate_objects_from_payload(payload):
+            candidate = _tool_candidate_from_object(raw_candidate, source_index=index)
+            if candidate is None:
+                rejected.append({"source_index": index, "reason": "json_object_not_tool_call_shape", "preview": _preview_text(raw_candidate)})
+                continue
+            signature = (candidate.tool_name, json.dumps(candidate.arguments, sort_keys=True, ensure_ascii=False, default=str))
+            if signature in seen:
+                continue
+            seen.add(signature)
+            candidates.append(candidate)
+            if len(candidates) >= max_candidates:
+                warnings.append("candidate_limit_reached")
+                return ToolCallCandidateExtractionResult(ok=True, candidates=candidates, scanned_char_count=len(source_text), warnings=warnings, rejected_candidates=rejected)
+
+    return ToolCallCandidateExtractionResult(ok=True, candidates=candidates, scanned_char_count=len(source_text), warnings=warnings, rejected_candidates=rejected)
+
+
+def _iter_json_payloads(text: str) -> list[Any]:
+    payloads: list[Any] = []
+    for match in re.finditer(r"```(?:json|tool_call|tool_calls)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL):
+        parsed = _parse_json_maybe(match.group(1).strip())
+        if parsed is not None:
+            payloads.append(parsed)
+    stripped = text.strip()
+    parsed = _parse_json_maybe(stripped)
+    if parsed is not None:
+        payloads.append(parsed)
+    return payloads
+
+
+def _parse_json_maybe(raw: str) -> Any | None:
+    if not raw or raw[0] not in "[{":
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+
+
+def _candidate_objects_from_payload(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if not isinstance(payload, dict):
+        return []
+    if isinstance(payload.get("tool_calls"), list):
+        return [item for item in payload["tool_calls"] if isinstance(item, dict)]
+    if isinstance(payload.get("tool_call"), dict):
+        return [payload["tool_call"]]
+    if isinstance(payload.get("function_call"), dict):
+        return [payload["function_call"]]
+    return [payload]
+
+
+def _tool_candidate_from_object(obj: dict[str, Any], *, source_index: int) -> ToolCallCandidate | None:
+    name = obj.get("tool_name") or obj.get("toolName") or obj.get("name") or obj.get("tool")
+    if not isinstance(name, str) or not name.strip():
+        return None
+    raw_arguments = obj.get("arguments", obj.get("args", {}))
+    arguments = _coerce_candidate_arguments(raw_arguments)
+    if arguments is None:
+        return None
+    return ToolCallCandidate(
+        tool_name=name.strip(),
+        arguments=arguments,
+        source_format="json_tool_call_candidate",
+        source_index=source_index,
+        raw_candidate_preview=_preview_text(obj),
+    )
+
+
+def _coerce_candidate_arguments(raw_arguments: Any) -> dict[str, Any] | None:
+    if raw_arguments is None:
+        return {}
+    if isinstance(raw_arguments, dict):
+        return dict(raw_arguments)
+    if isinstance(raw_arguments, str):
+        parsed = _parse_json_maybe(raw_arguments.strip())
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+def _preview_text(value: Any, max_chars: int = 400) -> str:
+    try:
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    except TypeError:
+        text = repr(value)
+    if len(text) > max_chars:
+        return text[:max_chars] + "..."
+    return text
 
 
 def tool_invocation_preview_contract() -> dict[str, Any]:
@@ -234,12 +409,25 @@ def tool_invocation_preview_contract() -> dict[str, Any]:
             "preview": "ToolInvocationPreviewResult",
             "context_packet_summary": "Record<string, unknown>",
         },
+        "candidate_extraction": {
+            "version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+            "surface": "terminal_chat_only",
+            "mode": "json_only_extract_then_preview",
+            "supported_shapes": [
+                "{tool_name, arguments}",
+                "{toolName, args}",
+                "{tool_call: {name, arguments}}",
+                "{tool_calls: [{name, arguments}]}",
+            ],
+            "execution_enabled": False,
+        },
         "policy": policy,
         "rules": [
             "Preview builds the same task-scoped ContextPacket used by the LLM runtime.",
             "A proposed tool must exist in the registry and be present in ContextPacket.allowed_tools.",
             "Arguments are normalized and shape-checked only; no route, adapter, or engine workflow is called.",
-            "Side-effectful tools can be described, but v2_4_7 always blocks execution.",
+            "Side-effectful tools can be described, but v2_4_12 always blocks execution.",
+            "Terminal chat may extract explicit JSON candidates from assistant text and feed them into this same preview contract.",
         ],
     }
 

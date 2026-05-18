@@ -19,11 +19,11 @@ def test_context_runtime_spec_declares_preview_only_bounded_runloop() -> None:
     payload = response.json()
     assert payload["ok"] is True
     spec = payload["spec"]
-    assert spec["version"] == "v2_4_7"
+    assert spec["version"] == "v2_4_12"
     assert spec["routes"]["preview"] == "POST /agent/context/runtime/preview"
     assert spec["runloop"]["execution_status"]["llm_calls_enabled"] is False
     assert spec["runloop"]["execution_status"]["autonomous_tool_execution_enabled"] is False
-    assert "No real LLM network call from the API runloop preview in v2_4_7." in spec["non_goals"]
+    assert "No real LLM network call from the API runloop preview in v2_4_12." in spec["non_goals"]
 
 
 def test_context_runtime_preview_builds_traceable_task_scoped_packet() -> None:
@@ -50,7 +50,7 @@ def test_context_runtime_preview_builds_traceable_task_scoped_packet() -> None:
     assert payload["task_type"] == "immediate_practice_playback"
 
     context = payload["context_packet"]
-    assert context["context_runtime_version"] == "v2_4_7"
+    assert context["context_runtime_version"] == "v2_4_12"
     assert context["allowed_tools"] == ["chart_resolve", "agent_playback_prepare"]
     assert context["output_contract"]["schema"] == "PlaybackPrepareResult"
     assert context["constraints"]["harmonyos_local_timer_owns_practice_duration"] is True
@@ -86,7 +86,7 @@ def test_coach_qa_profile_reports_llm_required_but_does_not_execute_tools() -> N
     assert payload["context_packet"]["runtime_policy"]["llm_required"] is True
     assert payload["runloop_preview"]["next_action"] == "llm_required_but_provider_unavailable"
     assert payload["runloop_preview"]["tool_execution_enabled"] is False
-    assert payload["runloop_preview"]["llm_provider_status"]["boundary_version"] == "v2_4_7"
+    assert payload["runloop_preview"]["llm_provider_status"]["boundary_version"] == "v2_4_12"
 
 
 def test_context_builder_runtime_packet_stays_agent_side_and_task_scoped() -> None:
@@ -99,7 +99,7 @@ def test_context_builder_runtime_packet_stays_agent_side_and_task_scoped() -> No
         client_context={"current_screen": "practice_home", "available_minutes": 45},
     )
     data = packet.to_dict()
-    assert data["context_runtime_version"] == "v2_4_7"
+    assert data["context_runtime_version"] == "v2_4_12"
     assert data["allowed_tools"] == ["agent_practice_plan"]
     assert data["runtime_policy"]["tool_loop_mode"] == "bounded_preview"
     assert data["constraints"]["must_preserve_engine_independence"] is True

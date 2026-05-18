@@ -54,14 +54,14 @@ def test_terminal_chat_trace_export_records_context_envelope_and_provider_respon
     response = session.respond("解释一下 guide tones")
 
     assert response["ok"] is True
-    assert response["terminal_chat_version"] == "v2_4_7"
+    assert response["terminal_chat_version"] == "v2_4_12"
     assert response["trace_id"].startswith("trace_")
     assert Path(response["trace_path"]).exists()
 
     trace = _read_single_trace(tmp_path)
     assert trace["task_type"] == "terminal_chat"
     assert trace["validation_result"] == "passed"
-    assert trace["context_packet_summary"]["terminal_chat_version"] == "v2_4_7"
+    assert trace["context_packet_summary"]["terminal_chat_version"] == "v2_4_12"
     step_names = [step["name"] for step in trace["steps"]]
     assert "terminal_context_packet_built" in step_names
     assert "terminal_request_envelope_built" in step_names
@@ -74,7 +74,7 @@ def test_terminal_tool_preview_trace_export_is_validation_only(tmp_path: Path) -
     session = TerminalChatSession(task_type="immediate_practice_playback", provider=FailingProvider(), trace_logger=trace_logger)
     response = session.preview_tool_call("agent_playback_prepare", {"durationMinutes": 20})
 
-    assert response["terminal_chat_version"] == "v2_4_7"
+    assert response["terminal_chat_version"] == "v2_4_12"
     assert response["would_execute"] is False
     assert response["trace_id"].startswith("trace_")
     preview = response["preview"]

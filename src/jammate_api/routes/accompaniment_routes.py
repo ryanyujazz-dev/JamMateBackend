@@ -112,7 +112,7 @@ def _default_output_path(leadsheet: dict[str, Any], style: str, tempo: int) -> s
     title = str(leadsheet.get("title", "direct_accompaniment"))
     safe_title = _safe_slug(title)
     signature = _leadsheet_signature(leadsheet)
-    return f"demos/v2_4_7_direct_{safe_title}_{signature}_{style}_{tempo}.mid"
+    return f"demos/v2_4_12_direct_{safe_title}_{signature}_{style}_{tempo}.mid"
 
 
 def _cache_key(leadsheet: dict[str, Any], style: str, tempo: int, choruses: int) -> str:

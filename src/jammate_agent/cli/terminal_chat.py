@@ -2,16 +2,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass, field
 from typing import Any, TextIO
 
-from jammate_agent.core.context import ContextBuilder
-from jammate_agent.core.llm_provider import LLMProvider, build_llm_provider_from_env, build_request_envelope
-from jammate_agent.core.tool_invocation import ToolInvocationProposal, preview_tool_invocation
+from jammate_agent.core.context import CONTEXT_PROFILES, ContextBuilder
+from jammate_agent.core.llm_provider import (
+    LLM_CONFIG_FILE_ENV_VAR,
+    LLMProvider,
+    LLMProviderConfig,
+    build_llm_provider_from_env,
+    build_request_envelope,
+    default_user_llm_config_path,
+    write_llm_config_file,
+)
+from jammate_agent.core.tool_invocation import (
+    TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+    ToolInvocationProposal,
+    extract_tool_call_candidates,
+    preview_tool_invocation,
+)
 from jammate_agent.core.trace import AgentTrace, JsonTraceStore, TraceLogger
 
-TERMINAL_CHAT_VERSION = "v2_4_7"
+TERMINAL_CHAT_VERSION = "v2_4_12"
 
 
 @dataclass
@@ -25,6 +39,18 @@ class TerminalChatSession:
     `/tool-preview` is an explicit terminal command that validates a proposed
     tool call against the same ContextPacket allow-list and preview contract.
     It never dispatches deterministic workflows or engine adapters.
+
+    v2_4_10 adds explicit terminal context/session controls so developers can
+    switch task profiles, inspect ContextPacket summaries, reset local chat
+    history, and change instrument hints without restarting the CLI.
+
+    v2_4_12 additionally scans successful assistant text for explicit JSON
+    tool-call candidates and sends them through the preview contract. Extracted
+    candidates never execute tools or engine workflows.
+
+    v2_4_12 adds setup/doctor configuration helpers and local config-file
+    loading for terminal LLM use. These helpers do not change tool execution
+    policy and do not expose API keys in status, trace, or response payloads.
     """
 
     task_type: str = "coach_qa"
@@ -78,13 +104,62 @@ class TerminalChatSession:
                 "tool_execution_enabled": False,
             },
         )
+        extraction_payload: dict[str, Any] = {
+            "extraction_version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+            "ok": True,
+            "candidate_count": 0,
+            "candidates": [],
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+        }
+        candidate_previews: list[dict[str, Any]] = []
         if result.ok and result.content:
+            extraction = extract_tool_call_candidates(result.content)
+            extraction_payload = extraction.to_dict()
+            self._add_trace_step(trace, "terminal_tool_call_candidates_extracted", extraction_payload)
+            for candidate in extraction.candidates:
+                proposal = candidate.to_proposal(
+                    task_type=packet.task_type,
+                    user_input=user_input,
+                    client_context={
+                        "entry_point": "terminal_chat_cli",
+                        "source": "assistant_text_candidate_extraction",
+                    },
+                )
+                preview = preview_tool_invocation(proposal, allowed_tools=packet.allowed_tools)
+                preview_payload = preview.to_dict()
+                candidate_previews.append({
+                    "candidate": candidate.to_dict(),
+                    "preview": preview_payload,
+                    "would_execute": False,
+                })
+            if candidate_previews:
+                self._add_trace_step(
+                    trace,
+                    "terminal_tool_call_candidates_previewed",
+                    {
+                        "candidate_preview_count": len(candidate_previews),
+                        "previews": candidate_previews,
+                        "tool_execution_enabled": False,
+                    },
+                )
             self.history.append({"role": "user", "content": user_input})
             self.history.append({"role": "assistant", "content": result.content})
+        response["tool_call_candidate_extraction_version"] = TOOL_CALL_CANDIDATE_EXTRACTION_VERSION
+        response["tool_call_candidate_extraction"] = extraction_payload
+        response["tool_call_candidate_previews"] = candidate_previews
+        response["tool_call_candidate_preview_count"] = len(candidate_previews)
         self._finish_trace(
             trace,
             "passed" if result.ok else "guarded",
-            {"ok": result.ok, "task_type": packet.task_type, "terminal_chat_version": TERMINAL_CHAT_VERSION, "tool_execution_enabled": False},
+            {
+                "ok": result.ok,
+                "task_type": packet.task_type,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "tool_execution_enabled": False,
+                "tool_call_candidate_count": extraction_payload.get("candidate_count", 0),
+                "tool_call_candidate_preview_count": len(candidate_previews),
+            },
         )
         response["trace_id"] = self.last_trace_id
         response["trace_path"] = self.last_trace_path
@@ -127,6 +202,7 @@ class TerminalChatSession:
             "would_execute": False,
             "preview": preview_payload,
             "context_packet_summary": packet.summary(),
+            "session_summary": self.session_summary(),
             "trace_id": self.last_trace_id,
             "trace_path": self.last_trace_path,
         }
@@ -139,6 +215,119 @@ class TerminalChatSession:
             client_context={"entry_point": "terminal_chat_cli", "terminal_command": "/tools"},
         )
         return list(packet.allowed_tools)
+
+    def context_packet_preview(self, *, full: bool = False, user_input: str = "Terminal context preview") -> dict[str, Any]:
+        """Build the current task-scoped ContextPacket without calling the provider."""
+
+        packet = self.context_builder.build(
+            self.task_type,
+            user_input,
+            instrument=self.instrument,
+            client_context={"entry_point": "terminal_chat_cli", "terminal_command": "/context"},
+        )
+        payload = {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context",
+            "task_type": packet.task_type,
+            "instrument": self.instrument,
+            "summary": packet.summary(),
+            "tool_execution_enabled": False,
+            "provider_call_enabled": False,
+        }
+        if full:
+            payload["context_packet"] = packet.to_dict()
+        return payload
+
+    def profile_manifest(self) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "current_task_type": self.task_type,
+            "profiles": self.context_builder.profile_manifest(),
+        }
+
+    def current_profile(self) -> dict[str, Any]:
+        profile = CONTEXT_PROFILES.get(self.task_type)
+        return {
+            "ok": profile is not None,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "task_type": self.task_type,
+            "profile": profile.to_dict() if profile else None,
+        }
+
+    def switch_task_type(self, task_type: str) -> dict[str, Any]:
+        normalized = task_type.strip()
+        if normalized not in CONTEXT_PROFILES:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "error_code": "UNKNOWN_CONTEXT_PROFILE",
+                "message": f"Unknown task_type: {normalized}",
+                "available_task_types": sorted(CONTEXT_PROFILES.keys()),
+                "task_type": self.task_type,
+            }
+        previous = self.task_type
+        history_messages_before = len(self.history)
+        self.task_type = normalized
+        self.history.clear()
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/task-type",
+            "previous_task_type": previous,
+            "task_type": self.task_type,
+            "history_cleared": True,
+            "history_messages_cleared": history_messages_before,
+            "profile": CONTEXT_PROFILES[self.task_type].to_dict(),
+        }
+
+    def set_instrument(self, instrument: str) -> dict[str, Any]:
+        normalized = instrument.strip()
+        if not normalized:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "error_code": "INSTRUMENT_REQUIRED",
+                "message": "Usage: /instrument <instrument>",
+                "instrument": self.instrument,
+            }
+        previous = self.instrument
+        self.instrument = normalized
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/instrument",
+            "previous_instrument": previous,
+            "instrument": self.instrument,
+        }
+
+    def reset_session(self) -> dict[str, Any]:
+        cleared = len(self.history)
+        self.history.clear()
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/reset",
+            "history_messages_cleared": cleared,
+            "task_type": self.task_type,
+            "instrument": self.instrument,
+            "tool_execution_enabled": False,
+        }
+
+    def session_summary(self) -> dict[str, Any]:
+        return {
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "task_type": self.task_type,
+            "instrument": self.instrument,
+            "history_message_count": len(self.history),
+            "history_turn_count": len(self.history) // 2,
+            "trace_export_enabled": self.trace_export_enabled(),
+            "last_trace_id": self.last_trace_id,
+            "last_trace_path": self.last_trace_path,
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+        }
 
     def trace_export_enabled(self) -> bool:
         return self.trace_logger is not None
@@ -158,6 +347,7 @@ class TerminalChatSession:
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
             "cli_task_type": self.task_type,
             "instrument": self.instrument,
+            "history_message_count": len(self.history),
             "tool_execution_enabled": False,
             "autonomous_tool_execution_enabled": False,
         }
@@ -181,23 +371,151 @@ class TerminalChatSession:
         return str(self.trace_logger.trace_store.trace_dir / f"{trace_id}.json")
 
 
+
+def _build_provider_with_optional_config(config_file: str | None) -> LLMProvider:
+    if not config_file:
+        return build_llm_provider_from_env()
+    env = dict(os.environ)
+    env[LLM_CONFIG_FILE_ENV_VAR] = config_file
+    return build_llm_provider_from_env(env)
+
+
+def _run_setup_command(argv: list[str], stdin: TextIO, stdout: TextIO) -> int:
+    parser = argparse.ArgumentParser(prog="jammate-agent-chat setup", description="Create a local JamMate Agent LLM config file")
+    parser.add_argument("--config-file", default=str(default_user_llm_config_path()), help="Config file to write. Default: ~/.jammate/agent_config.env")
+    parser.add_argument("--provider", default="openai_compatible", help="Provider name. Default: openai_compatible")
+    parser.add_argument("--model", help="Model name")
+    parser.add_argument("--api-key", help="API key. Stored only in the chosen local config file.")
+    parser.add_argument("--base-url", default="https://api.openai.com/v1", help="OpenAI-compatible base URL")
+    parser.add_argument("--chat-completions-path", default="/chat/completions", help="Chat completions path")
+    parser.add_argument("--enable-network-calls", default="true", choices=["true", "false", "yes", "no"], help="Whether terminal chat may call the provider. Default: true")
+    parser.add_argument("--max-output-tokens", default="1200")
+    parser.add_argument("--temperature", default="0.2")
+    parser.add_argument("--request-timeout-seconds", default="30")
+    parser.add_argument("--yes", action="store_true", help="Non-interactive mode; fail if required values are missing.")
+    args = parser.parse_args(argv)
+
+    model = args.model or _prompt(stdin, stdout, "Model", default="gpt-4o-mini" if not args.yes else None)
+    api_key = args.api_key or _prompt_secret(stdin, stdout, "API key", required=not args.yes)
+    if args.yes and (not model or not api_key):
+        print("SetupError> --model and --api-key are required with --yes.", file=stdout)
+        return 2
+    if not model or not api_key:
+        print("SetupError> model and API key are required.", file=stdout)
+        return 2
+
+    values = {
+        "JAMMATE_LLM_PROVIDER": args.provider,
+        "JAMMATE_LLM_MODEL": model,
+        "JAMMATE_LLM_API_KEY_ENV_VAR": "JAMMATE_LLM_API_KEY",
+        "JAMMATE_LLM_API_KEY": api_key,
+        "JAMMATE_LLM_ENABLE_NETWORK_CALLS": "true" if args.enable_network_calls.lower() in {"true", "yes"} else "false",
+        "JAMMATE_LLM_BASE_URL": args.base_url.rstrip("/"),
+        "JAMMATE_LLM_CHAT_COMPLETIONS_PATH": args.chat_completions_path,
+        "JAMMATE_LLM_MAX_OUTPUT_TOKENS": str(args.max_output_tokens),
+        "JAMMATE_LLM_TEMPERATURE": str(args.temperature),
+        "JAMMATE_LLM_REQUEST_TIMEOUT_SECONDS": str(args.request_timeout_seconds),
+    }
+    path = write_llm_config_file(args.config_file, values)
+    status = LLMProviderConfig.from_env({LLM_CONFIG_FILE_ENV_VAR: str(path)}).to_dict()
+    print("LLMConfigSetup> saved", file=stdout)
+    print(f"  path: {path}", file=stdout)
+    print(f"  provider_name: {status.get('provider_name')}", file=stdout)
+    print(f"  model: {status.get('model')}", file=stdout)
+    print(f"  api_key_configured: {status.get('api_key_configured')}", file=stdout)
+    print(f"  network_calls_enabled: {status.get('network_calls_enabled')}", file=stdout)
+    print("  secret_policy: API key is stored locally and never printed in status/trace output.", file=stdout)
+    print("Next: jammate-agent-chat --config-file <path> or set JAMMATE_AGENT_LLM_CONFIG_FILE=<path>.", file=stdout)
+    return 0
+
+
+def _run_doctor_command(argv: list[str], stdout: TextIO) -> int:
+    parser = argparse.ArgumentParser(prog="jammate-agent-chat doctor", description="Inspect terminal LLM provider configuration")
+    parser.add_argument("--config-file", help="Config file to inspect")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable status")
+    args = parser.parse_args(argv)
+    env = dict(os.environ)
+    if args.config_file:
+        env[LLM_CONFIG_FILE_ENV_VAR] = args.config_file
+    config = LLMProviderConfig.from_env(env)
+    status = config.to_dict()
+    status["ok"] = bool(config.terminal_chat_available)
+    status["terminal_chat_setup_version"] = TERMINAL_CHAT_VERSION
+    status["tool_execution_enabled"] = False
+    status["autonomous_tool_execution_enabled"] = False
+    if args.json:
+        print(json.dumps(status, ensure_ascii=False, indent=2), file=stdout)
+        return 0 if status["ok"] else 1
+    _print_doctor_status(status, stdout)
+    return 0 if status["ok"] else 1
+
+
+def _run_config_path_command(argv: list[str], stdout: TextIO) -> int:
+    parser = argparse.ArgumentParser(prog="jammate-agent-chat config-path", description="Print default local LLM config path")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    path = default_user_llm_config_path()
+    payload = {
+        "ok": True,
+        "terminal_chat_version": TERMINAL_CHAT_VERSION,
+        "default_user_config_path": str(path),
+        "env_override": LLM_CONFIG_FILE_ENV_VAR,
+        "repo_local_filename": ".jammate_agent.env",
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2), file=stdout)
+    else:
+        print(f"Default user LLM config path: {path}", file=stdout)
+        print(f"Override with {LLM_CONFIG_FILE_ENV_VAR}=<path> or --config-file <path>.", file=stdout)
+    return 0
+
+
+def _prompt(stdin: TextIO, stdout: TextIO, label: str, default: str | None = None) -> str:
+    suffix = f" [{default}]" if default else ""
+    print(f"{label}{suffix}: ", end="", file=stdout)
+    stdout.flush()
+    value = stdin.readline().strip()
+    return value or (default or "")
+
+
+def _prompt_secret(stdin: TextIO, stdout: TextIO, label: str, required: bool = True) -> str:
+    # Use stdin/stdout instead of getpass so this remains testable and works in
+    # non-tty IDE terminals. The value is never echoed back by JamMate output.
+    value = _prompt(stdin, stdout, label)
+    if required and not value:
+        return ""
+    return value
+
 def run_interactive_chat(argv: list[str] | None = None, stdin: TextIO | None = None, stdout: TextIO | None = None) -> int:
+    argv_list = list(argv or [])
+    input_stream = stdin or sys.stdin
+    output_stream = stdout or sys.stdout
+    if argv_list and argv_list[0] in {"setup", "doctor", "config-path"}:
+        command = argv_list[0]
+        if command == "setup":
+            return _run_setup_command(argv_list[1:], input_stream, output_stream)
+        if command == "doctor":
+            return _run_doctor_command(argv_list[1:], output_stream)
+        return _run_config_path_command(argv_list[1:], output_stream)
+
     parser = argparse.ArgumentParser(description="JamMate Agent terminal LLM chat CLI")
     parser.add_argument("--task-type", default="coach_qa", help="Context profile task type. Default: coach_qa")
     parser.add_argument("--instrument", default="piano", help="Instrument hint for the context packet. Default: piano")
     parser.add_argument("--once", help="Send one message and exit; useful for smoke tests. Slash commands are supported.")
     parser.add_argument("--show-provider-status", action="store_true", help="Print provider status before chatting.")
     parser.add_argument("--trace-dir", help="Export terminal chat/tool-preview traces as JSON into this directory.")
-    args = parser.parse_args(argv)
+    parser.add_argument("--config-file", help="Read LLM provider settings from this local .env-style config file.")
+    args = parser.parse_args(argv_list)
 
-    input_stream = stdin or sys.stdin
-    output_stream = stdout or sys.stdout
     trace_logger = TraceLogger(JsonTraceStore(args.trace_dir)) if args.trace_dir else None
-    session = TerminalChatSession(task_type=args.task_type, instrument=args.instrument, provider=build_llm_provider_from_env(), trace_logger=trace_logger)
+    provider = _build_provider_with_optional_config(args.config_file)
+    session = TerminalChatSession(task_type=args.task_type, instrument=args.instrument, provider=provider, trace_logger=trace_logger)
     status = session.provider_status()
 
     if args.show_provider_status or not status.get("terminal_chat_enabled"):
         _print_provider_status(status, output_stream)
+        if not status.get("terminal_chat_enabled"):
+            _print_setup_hint(status, output_stream)
 
     if args.once:
         once_input = args.once.strip()
@@ -240,6 +558,40 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         for tool in tools:
             print(f"  - {tool}", file=stdout)
         print("Tool execution remains disabled; use /tool-preview to validate a proposed call.", file=stdout)
+        return True
+    if user_input == "/session":
+        _print_session_summary(session.session_summary(), stdout)
+        return True
+    if user_input.startswith("/context"):
+        full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
+        _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
+        return True
+    if user_input == "/profiles":
+        _print_profile_manifest(session.profile_manifest(), stdout)
+        return True
+    if user_input.startswith("/profile"):
+        rest = user_input[len("/profile") :].strip()
+        if not rest:
+            _print_current_profile(session.current_profile(), stdout)
+            return True
+        _print_task_type_switch(session.switch_task_type(rest), stdout)
+        return True
+    if user_input.startswith("/task-type"):
+        rest = user_input[len("/task-type") :].strip()
+        if not rest:
+            _print_current_profile(session.current_profile(), stdout)
+            return True
+        _print_task_type_switch(session.switch_task_type(rest), stdout)
+        return True
+    if user_input.startswith("/instrument"):
+        rest = user_input[len("/instrument") :].strip()
+        if not rest:
+            print(f"Instrument> {session.instrument}", file=stdout)
+            return True
+        _print_instrument_update(session.set_instrument(rest), stdout)
+        return True
+    if user_input == "/reset":
+        _print_reset_response(session.reset_session(), stdout)
         return True
     if user_input == "/trace":
         _print_trace_status(session, stdout)
@@ -289,6 +641,31 @@ def _parse_tool_preview_command(command: str) -> dict[str, Any]:
     return {"ok": True, "tool_name": tool_name, "arguments": parsed_args}
 
 
+
+def _print_setup_hint(status: dict, stdout: TextIO) -> None:
+    print("LLM setup hint:", file=stdout)
+    print("  Run `jammate-agent-chat setup` to create a local config file,", file=stdout)
+    print("  or pass `--config-file <path>` / set JAMMATE_AGENT_LLM_CONFIG_FILE.", file=stdout)
+    print("  Until configured, terminal chat stays in guarded preview mode.", file=stdout)
+
+
+def _print_doctor_status(status: dict, stdout: TextIO) -> None:
+    print("LLMConfigDoctor>", file=stdout)
+    print(f"  status: {'ready' if status.get('ok') else 'guarded'}", file=stdout)
+    print(f"  terminal_chat_setup_version: {status.get('terminal_chat_setup_version')}", file=stdout)
+    print(f"  provider_name: {status.get('provider_name')}", file=stdout)
+    print(f"  model: {status.get('model')}", file=stdout)
+    print(f"  api_key_env_var: {status.get('api_key_env_var')}", file=stdout)
+    print(f"  api_key_configured: {status.get('api_key_configured')}", file=stdout)
+    print(f"  network_calls_enabled: {status.get('network_calls_enabled')}", file=stdout)
+    print(f"  base_url: {status.get('base_url')}", file=stdout)
+    print(f"  config_source: {status.get('config_source')}", file=stdout)
+    print(f"  config_file_path: {status.get('config_file_path')}", file=stdout)
+    print(f"  terminal_chat_available: {status.get('terminal_chat_available')}", file=stdout)
+    print(f"  guard_reason: {status.get('guard_reason')}", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
+    print("  secret_policy: API key values are not printed, traced, or packaged.", file=stdout)
+
 def _print_provider_status(status: dict, stdout: TextIO) -> None:
     print("Provider status:", file=stdout)
     print(f"  provider_name: {status.get('provider_name')}", file=stdout)
@@ -302,8 +679,25 @@ def _print_provider_status(status: dict, stdout: TextIO) -> None:
 def _print_response(response: dict, stdout: TextIO) -> None:
     if response.get("ok"):
         print(f"JamMate> {response.get('content', '')}", file=stdout)
+        _print_candidate_preview_summary(response, stdout)
         return
     print(f"JamMate[guarded]> {response.get('error_code')}: {response.get('message')}", file=stdout)
+
+
+def _print_candidate_preview_summary(response: dict, stdout: TextIO) -> None:
+    previews = response.get("tool_call_candidate_previews") or []
+    extraction = response.get("tool_call_candidate_extraction") or {}
+    candidate_count = extraction.get("candidate_count", 0)
+    if not candidate_count:
+        return
+    print(f"ToolCandidateExtraction> {candidate_count} candidate(s); execution disabled", file=stdout)
+    for item in previews:
+        candidate = item.get("candidate") or {}
+        preview = item.get("preview") or {}
+        print(f"  - {candidate.get('tool_name')}: {preview.get('status')} would_execute={preview.get('would_execute')}", file=stdout)
+        blocking = preview.get("blocking_reasons") or []
+        if blocking:
+            print(f"    blocking_reasons: {', '.join(str(value) for value in blocking)}", file=stdout)
 
 
 def _print_tool_preview_response(response: dict, stdout: TextIO) -> None:
@@ -321,6 +715,78 @@ def _print_tool_preview_response(response: dict, stdout: TextIO) -> None:
     warnings = preview.get("warnings") or []
     if warnings:
         print(f"  warnings: {', '.join(str(item) for item in warnings)}", file=stdout)
+
+
+def _print_session_summary(summary: dict[str, Any], stdout: TextIO) -> None:
+    print("Session>", file=stdout)
+    print(f"  task_type: {summary.get('task_type')}", file=stdout)
+    print(f"  instrument: {summary.get('instrument')}", file=stdout)
+    print(f"  history_messages: {summary.get('history_message_count')}", file=stdout)
+    print(f"  history_turns: {summary.get('history_turn_count')}", file=stdout)
+    print(f"  trace_export_enabled: {summary.get('trace_export_enabled')}", file=stdout)
+    print(f"  last_trace_id: {summary.get('last_trace_id')}", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
+
+
+def _print_context_preview(payload: dict[str, Any], stdout: TextIO, *, full: bool = False) -> None:
+    if full:
+        print(json.dumps(payload, ensure_ascii=False, indent=2), file=stdout)
+        return
+    summary = payload.get("summary") or {}
+    print("ContextPacket>", file=stdout)
+    print(f"  task_type: {payload.get('task_type')}", file=stdout)
+    print(f"  instrument: {payload.get('instrument')}", file=stdout)
+    print(f"  context_runtime_version: {summary.get('context_runtime_version')}", file=stdout)
+    print(f"  selected_layers: {', '.join(summary.get('selected_context_layers') or [])}", file=stdout)
+    print(f"  allowed_tools: {', '.join(summary.get('allowed_tools') or [])}", file=stdout)
+    print(f"  output_schema: {summary.get('output_schema')}", file=stdout)
+    print("  provider_call_enabled: False", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
+
+
+def _print_profile_manifest(payload: dict[str, Any], stdout: TextIO) -> None:
+    print(f"ContextProfiles> current_task_type: {payload.get('current_task_type')}", file=stdout)
+    profiles = payload.get("profiles") or {}
+    for task_type in sorted(profiles):
+        profile = profiles[task_type]
+        tools = profile.get("allowed_tools") or []
+        print(f"  - {task_type}: schema={profile.get('output_schema')} llm_required={profile.get('llm_required')} tools={','.join(tools)}", file=stdout)
+
+
+def _print_current_profile(payload: dict[str, Any], stdout: TextIO) -> None:
+    profile = payload.get("profile") or {}
+    print(f"CurrentProfile> {payload.get('task_type')}", file=stdout)
+    print(f"  output_schema: {profile.get('output_schema')}", file=stdout)
+    print(f"  llm_required: {profile.get('llm_required')}", file=stdout)
+    print(f"  deterministic_fallback: {profile.get('deterministic_fallback')}", file=stdout)
+    print(f"  allowed_tools: {', '.join(profile.get('allowed_tools') or [])}", file=stdout)
+
+
+def _print_task_type_switch(payload: dict[str, Any], stdout: TextIO) -> None:
+    if not payload.get("ok"):
+        _print_command_error(payload, stdout)
+        available = payload.get("available_task_types") or []
+        if available:
+            print(f"  available_task_types: {', '.join(available)}", file=stdout)
+        return
+    print(f"TaskType> {payload.get('previous_task_type')} -> {payload.get('task_type')}", file=stdout)
+    print(f"  history_cleared: {payload.get('history_cleared')}", file=stdout)
+    print(f"  output_schema: {(payload.get('profile') or {}).get('output_schema')}", file=stdout)
+
+
+def _print_instrument_update(payload: dict[str, Any], stdout: TextIO) -> None:
+    if not payload.get("ok"):
+        _print_command_error(payload, stdout)
+        return
+    print(f"Instrument> {payload.get('previous_instrument')} -> {payload.get('instrument')}", file=stdout)
+
+
+def _print_reset_response(payload: dict[str, Any], stdout: TextIO) -> None:
+    print("SessionReset>", file=stdout)
+    print(f"  history_messages_cleared: {payload.get('history_messages_cleared')}", file=stdout)
+    print(f"  task_type: {payload.get('task_type')}", file=stdout)
+    print(f"  instrument: {payload.get('instrument')}", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
 
 
 def _print_command_error(response: dict[str, Any], stdout: TextIO) -> None:
@@ -362,14 +828,29 @@ def _print_recent_traces(session: TerminalChatSession, stdout: TextIO) -> None:
 
 def _print_help(stdout: TextIO) -> None:
     print("Commands:", file=stdout)
+    print("  setup        # shell subcommand: create local LLM config", file=stdout)
+    print("  doctor       # shell subcommand: inspect provider config", file=stdout)
+    print("  config-path  # shell subcommand: print default config path", file=stdout)
     print("  /help", file=stdout)
+    print("  /session", file=stdout)
+    print("  /context [full|--full|json|--json]", file=stdout)
+    print("  /profiles", file=stdout)
+    print("  /profile [task_type]", file=stdout)
+    print("  /task-type [task_type]", file=stdout)
+    print("  /instrument [instrument]", file=stdout)
+    print("  /reset", file=stdout)
     print("  /tools", file=stdout)
     print('  /tool-preview <tool_name> [json_object_arguments]', file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
+    print("Use `jammate-agent-chat setup` once to avoid repeated shell exports.", file=stdout)
+    print("Use --config-file <path> to load a specific local LLM config.", file=stdout)
     print("Use --trace-dir <dir> to export terminal chat/tool-preview traces as JSON.", file=stdout)
+    print("Use `python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list|show` to inspect exported traces.", file=stdout)
+    print("Context controls rebuild preview packets only; they never call the provider, execute tools, or call engine workflows.", file=stdout)
     print("Tool preview validates only; it never executes tools or engine workflows.", file=stdout)
+    print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 
 
 def main() -> int:

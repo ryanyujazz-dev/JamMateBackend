@@ -46,12 +46,12 @@ def test_terminal_session_tool_preview_reuses_context_allow_list_without_executi
         "agent_playback_prepare",
         {"userInput": "练 Blue Bossa 20分钟", "durationMinutes": 20},
     )
-    assert response["terminal_chat_version"] == "v2_4_7"
+    assert response["terminal_chat_version"] == "v2_4_12"
     assert response["command"] == "/tool-preview"
     assert response["tool_execution_enabled"] is False
     assert response["would_execute"] is False
     preview = response["preview"]
-    assert preview["preview_version"] == "v2_4_7"
+    assert preview["preview_version"] == "v2_4_12"
     assert preview["tool_name"] == "agent_playback_prepare"
     assert preview["known_tool"] is True
     assert preview["allowed_by_context"] is True
@@ -120,7 +120,7 @@ def test_normal_once_chat_still_uses_provider_and_history() -> None:
     session = TerminalChatSession(task_type="coach_qa", provider=EchoProvider())
     response = session.respond("解释一下 guide tones")
     assert response["ok"] is True
-    assert response["terminal_chat_version"] == "v2_4_7"
+    assert response["terminal_chat_version"] == "v2_4_12"
     assert response["content"] == "normal chat"
     assert len(session.history) == 2
 

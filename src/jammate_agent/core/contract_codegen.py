@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-CONTRACT_VERSION = "v2_4_7"
+CONTRACT_VERSION = "v2_4_12"
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class GeneratedContractFile:
 
 
 AGENT_TYPES_ETS = r'''
-// JamMate Agent API Types v2_4_7
+// JamMate Agent API Types v2_4_12
 // Copy target: entry/src/main/ets/features/jammateAgent/model/AgentTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 
@@ -223,11 +223,19 @@ export interface AgentResponse {
 }
 
 export interface AgentTraceSummary {
+  traceContractVersion: string
+  traceSchemaVersion: string
   traceId: string
   taskType: string
-  userInput?: string
+  requestId?: string | null
+  userInputPreview?: string
   createdAt?: string
+  updatedAt?: string
   validationResult?: string | null
+  stepCount: number
+  steps?: number
+  hasContextPacketSummary: boolean
+  hasFinalResponseSummary: boolean
 }
 
 export interface AgentTraceStep {
@@ -236,11 +244,38 @@ export interface AgentTraceStep {
   at?: string
 }
 
-export interface AgentTraceDetail extends AgentTraceSummary {
+export interface AgentTraceDetail {
+  traceContractVersion: string
+  traceSchemaVersion: string
+  traceId: string
+  taskType: string
   requestId?: string | null
-  contextPacketSummary?: Record<string, unknown>
+  userInput: string
+  contextPacketSummary: Record<string, unknown>
   steps: AgentTraceStep[]
-  finalResponseSummary?: Record<string, unknown>
+  validationResult?: string | null
+  finalResponseSummary: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AgentTraceListResponse {
+  ok: boolean
+  traceContractVersion: string
+  traces: AgentTraceSummary[]
+}
+
+export interface AgentTraceDetailResponse {
+  ok: boolean
+  traceContractVersion: string
+  trace?: AgentTraceDetail | null
+  errorCode?: 'TRACE_NOT_FOUND' | string | null
+  message?: string | null
+}
+
+export interface AgentTraceApiSpecResponse {
+  ok: boolean
+  spec: Record<string, unknown>
 }
 
 export interface AgentCapabilitiesResponse {
@@ -266,23 +301,23 @@ export interface AgentContractFilesResponse {
 
 
 
-PRACTICE_TYPES_ETS = "\n// JamMate Practice Domain Types v2_4_7\n// Copy target: entry/src/main/ets/features/practice/model/PracticeTypes.ets\n// Client-domain types are camelCase. Backend raw snake_case payloads should be mapped by CaseAdapter.ets.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type ExerciseBlockType =\n  | 'technique'\n  | 'time_feel'\n  | 'ear_training'\n  | 'guide_tone'\n  | 'voicing'\n  | 'comping'\n  | 'improvisation'\n  | 'transcription'\n  | 'repertoire'\n  | 'review'\n  | 'custom'\n  | string\n\nexport type ExerciseBlockStatus = 'pending' | 'active' | 'completed' | 'skipped' | string\nexport type PracticeSessionStatus = 'planned' | 'active' | 'paused' | 'completed' | 'abandoned' | string\nexport type SyncStatus = 'local_only' | 'pending' | 'synced' | 'conflict' | 'failed' | string\n\nexport interface PracticeMaterial {\n  type: string\n  tune?: string | null\n  section?: string | null\n  key?: string | null\n  progression?: string | null\n  bars?: number | null\n  raw?: Record<string, unknown>\n}\n\nexport interface AccompanimentPracticeConfig {\n  enabled: boolean\n  style: JamMateStyle | string\n  tempo: number\n  loopCount?: number | null\n  durationMinutes?: number | null\n  sectionLoop: boolean\n  mutedRoles: Array<'piano' | 'bass' | 'drums' | 'melody' | string>\n  countIn: boolean\n  harmonicExpansionEnabled: boolean\n  density: string\n  practiceRole: string\n  outputFormat: 'midi_base64' | 'asset_id'\n  arrangementIntent: Record<string, unknown>\n}\n\nexport interface ExerciseBlock {\n  blockId: string\n  type: ExerciseBlockType\n  title: string\n  intent: string\n  durationMinutes: number\n  material?: PracticeMaterial | null\n  tempo?: number | null\n  style?: string | null\n  accompanimentConfig?: AccompanimentPracticeConfig | null\n  successCriteria: string[]\n  reviewPrompt?: string | null\n  status: ExerciseBlockStatus\n}\n\nexport interface PracticePlan {\n  planId: string\n  title: string\n  durationMinutes: number\n  mainFocus: string\n  blocks: ExerciseBlock[]\n  estimatedDifficulty: string\n  explanation?: string | null\n  source: 'rule_based' | 'llm' | 'template' | 'hybrid' | string\n}\n\nexport interface PracticeSession {\n  sessionId: string\n  planId?: string | null\n  startedAt?: string | null\n  endedAt?: string | null\n  status: PracticeSessionStatus\n  totalPlannedMinutes?: number | null\n  totalActualMinutes: number\n  currentBlockId?: string | null\n  blocks: ExerciseBlock[]\n  syncStatus: SyncStatus\n}\n\nexport interface StuckPoint {\n  material?: string | null\n  issue: string\n}\n\nexport interface SessionReview {\n  sessionId?: string\n  completed?: boolean\n  difficulty?: 'too_easy' | 'easy' | 'good_challenge' | 'too_hard' | string\n  focusScore?: number | null\n  timeFeel?: 'stable' | 'rushing' | 'dragging' | 'unsure' | string | null\n  tempoResult?: Record<string, unknown> | null\n  stuckPoints?: StuckPoint[]\n  notes?: string | null\n  nextActionPreference?: string | null\n}\n\nexport interface NextStepRecommendation {\n  recommendationId: string\n  source: 'rule_based' | 'llm' | 'hybrid' | string\n  summary: string\n  actions: Array<Record<string, unknown>>\n}\n".strip() + "\n"
+PRACTICE_TYPES_ETS = "\n// JamMate Practice Domain Types v2_4_12\n// Copy target: entry/src/main/ets/features/practice/model/PracticeTypes.ets\n// Client-domain types are camelCase. Backend raw snake_case payloads should be mapped by CaseAdapter.ets.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type ExerciseBlockType =\n  | 'technique'\n  | 'time_feel'\n  | 'ear_training'\n  | 'guide_tone'\n  | 'voicing'\n  | 'comping'\n  | 'improvisation'\n  | 'transcription'\n  | 'repertoire'\n  | 'review'\n  | 'custom'\n  | string\n\nexport type ExerciseBlockStatus = 'pending' | 'active' | 'completed' | 'skipped' | string\nexport type PracticeSessionStatus = 'planned' | 'active' | 'paused' | 'completed' | 'abandoned' | string\nexport type SyncStatus = 'local_only' | 'pending' | 'synced' | 'conflict' | 'failed' | string\n\nexport interface PracticeMaterial {\n  type: string\n  tune?: string | null\n  section?: string | null\n  key?: string | null\n  progression?: string | null\n  bars?: number | null\n  raw?: Record<string, unknown>\n}\n\nexport interface AccompanimentPracticeConfig {\n  enabled: boolean\n  style: JamMateStyle | string\n  tempo: number\n  loopCount?: number | null\n  durationMinutes?: number | null\n  sectionLoop: boolean\n  mutedRoles: Array<'piano' | 'bass' | 'drums' | 'melody' | string>\n  countIn: boolean\n  harmonicExpansionEnabled: boolean\n  density: string\n  practiceRole: string\n  outputFormat: 'midi_base64' | 'asset_id'\n  arrangementIntent: Record<string, unknown>\n}\n\nexport interface ExerciseBlock {\n  blockId: string\n  type: ExerciseBlockType\n  title: string\n  intent: string\n  durationMinutes: number\n  material?: PracticeMaterial | null\n  tempo?: number | null\n  style?: string | null\n  accompanimentConfig?: AccompanimentPracticeConfig | null\n  successCriteria: string[]\n  reviewPrompt?: string | null\n  status: ExerciseBlockStatus\n}\n\nexport interface PracticePlan {\n  planId: string\n  title: string\n  durationMinutes: number\n  mainFocus: string\n  blocks: ExerciseBlock[]\n  estimatedDifficulty: string\n  explanation?: string | null\n  source: 'rule_based' | 'llm' | 'template' | 'hybrid' | string\n}\n\nexport interface PracticeSession {\n  sessionId: string\n  planId?: string | null\n  startedAt?: string | null\n  endedAt?: string | null\n  status: PracticeSessionStatus\n  totalPlannedMinutes?: number | null\n  totalActualMinutes: number\n  currentBlockId?: string | null\n  blocks: ExerciseBlock[]\n  syncStatus: SyncStatus\n}\n\nexport interface StuckPoint {\n  material?: string | null\n  issue: string\n}\n\nexport interface SessionReview {\n  sessionId?: string\n  completed?: boolean\n  difficulty?: 'too_easy' | 'easy' | 'good_challenge' | 'too_hard' | string\n  focusScore?: number | null\n  timeFeel?: 'stable' | 'rushing' | 'dragging' | 'unsure' | string | null\n  tempoResult?: Record<string, unknown> | null\n  stuckPoints?: StuckPoint[]\n  notes?: string | null\n  nextActionPreference?: string | null\n}\n\nexport interface NextStepRecommendation {\n  recommendationId: string\n  source: 'rule_based' | 'llm' | 'hybrid' | string\n  summary: string\n  actions: Array<Record<string, unknown>>\n}\n".strip() + "\n"
 
 
 
-PLAYBACK_TYPES_ETS = "\n// JamMate Playback / Accompaniment Types v2_4_7\n// Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets\n// Client-domain types are camelCase. Duration is a practice-timer concern.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type AssetLoopMode = 'loop_until_target_duration' | string\n\nexport interface JamMateChordEventV2 {\n  beat: number\n  symbol: string\n  beats?: number | null\n  metadata?: Record<string, unknown>\n}\n\nexport interface JamMateBarV2 {\n  chords: JamMateChordEventV2[]\n  timeSignature?: { numerator: number; denominator: number }\n  metadata?: Record<string, unknown>\n}\n\nexport interface JamMateSectionV2 {\n  id?: string\n  label?: string\n  phrase?: string\n  role?: string\n  bars: JamMateBarV2[]\n  metadata?: Record<string, unknown>\n}\n\nexport type JamMateWrittenFormItemV2 =\n  | string\n  | { section: string; repeat?: number; times?: number; label?: string | null; metadata?: Record<string, unknown> }\n  | Record<string, unknown>\n\nexport interface JamMateLeadsheetV2 {\n  schema_version: 'jammate_leadsheet_v2'\n  title: string\n  key?: string\n  default_time_signature?: { numerator: number; denominator: number }\n  sections: Record<string, JamMateSectionV2> | JamMateSectionV2[]\n  written_form: JamMateWrittenFormItemV2[]\n  metadata?: Record<string, unknown>\n}\n\nexport interface DirectAccompanimentGenerateRequest {\n  // Preferred HarmonyOS path: inline jammate_leadsheet_v2 with sections + written_form.\n  leadsheet?: JamMateLeadsheetV2 | Record<string, unknown> | null\n  // Optional fallback only; do not depend on tune for user-custom charts.\n  tune?: string | null\n  style?: JamMateStyle\n  tempo?: number\n  choruses?: number\n  seed?: number\n  outputPath?: string | null\n  ensemble?: Record<string, unknown>\n  voicingOverride?: Record<string, unknown>\n  outputFormat?: 'midi_base64'\n}\n\nexport interface AccompanimentAsset {\n  assetId?: string\n  format: 'midi_base64'\n  midiBase64: string\n  midiPath?: string | null\n  durationSeconds?: number | null\n  cacheKey?: string | null\n  debugSummary?: Record<string, unknown>\n}\n\nexport interface PlaybackInstruction {\n  autoStart: boolean\n  targetDurationMinutes: number\n  clientLoopUntilTargetDuration: boolean\n  assetLoopMode?: AssetLoopMode\n  stopCondition?: string\n  requiresLocalTimer?: boolean\n  cachePolicy?: {\n    cacheKey?: string | null\n    scope?: string\n    reuseWhenRequestSignatureMatches?: boolean\n  }\n}\n\nexport interface PlaybackState {\n  status: 'idle' | 'preparing_remote_asset' | 'ready_cached' | 'playing' | 'paused' | 'completed' | 'failed'\n  cacheKey?: string | null\n  assetId?: string | null\n  targetDurationMinutes?: number | null\n  elapsedSeconds: number\n  errorMessage?: string | null\n}\n\nexport interface DirectAccompanimentGenerateResponse {\n  ok: boolean\n  asset?: AccompanimentAsset\n  errorCode?: string\n  message?: string\n  options?: Array<Record<string, unknown>>\n}\n".strip() + "\n"
+PLAYBACK_TYPES_ETS = "\n// JamMate Playback / Accompaniment Types v2_4_12\n// Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets\n// Client-domain types are camelCase. Duration is a practice-timer concern.\n\nimport type { JamMateStyle } from '../../jammateAgent/model/AgentTypes'\n\nexport type AssetLoopMode = 'loop_until_target_duration' | string\n\nexport interface JamMateChordEventV2 {\n  beat: number\n  symbol: string\n  beats?: number | null\n  metadata?: Record<string, unknown>\n}\n\nexport interface JamMateBarV2 {\n  chords: JamMateChordEventV2[]\n  timeSignature?: { numerator: number; denominator: number }\n  metadata?: Record<string, unknown>\n}\n\nexport interface JamMateSectionV2 {\n  id?: string\n  label?: string\n  phrase?: string\n  role?: string\n  bars: JamMateBarV2[]\n  metadata?: Record<string, unknown>\n}\n\nexport type JamMateWrittenFormItemV2 =\n  | string\n  | { section: string; repeat?: number; times?: number; label?: string | null; metadata?: Record<string, unknown> }\n  | Record<string, unknown>\n\nexport interface JamMateLeadsheetV2 {\n  schema_version: 'jammate_leadsheet_v2'\n  title: string\n  key?: string\n  default_time_signature?: { numerator: number; denominator: number }\n  sections: Record<string, JamMateSectionV2> | JamMateSectionV2[]\n  written_form: JamMateWrittenFormItemV2[]\n  metadata?: Record<string, unknown>\n}\n\nexport interface DirectAccompanimentGenerateRequest {\n  // Preferred HarmonyOS path: inline jammate_leadsheet_v2 with sections + written_form.\n  leadsheet?: JamMateLeadsheetV2 | Record<string, unknown> | null\n  // Optional fallback only; do not depend on tune for user-custom charts.\n  tune?: string | null\n  style?: JamMateStyle\n  tempo?: number\n  choruses?: number\n  seed?: number\n  outputPath?: string | null\n  ensemble?: Record<string, unknown>\n  voicingOverride?: Record<string, unknown>\n  outputFormat?: 'midi_base64'\n}\n\nexport interface AccompanimentAsset {\n  assetId?: string\n  format: 'midi_base64'\n  midiBase64: string\n  midiPath?: string | null\n  durationSeconds?: number | null\n  cacheKey?: string | null\n  debugSummary?: Record<string, unknown>\n}\n\nexport interface PlaybackInstruction {\n  autoStart: boolean\n  targetDurationMinutes: number\n  clientLoopUntilTargetDuration: boolean\n  assetLoopMode?: AssetLoopMode\n  stopCondition?: string\n  requiresLocalTimer?: boolean\n  cachePolicy?: {\n    cacheKey?: string | null\n    scope?: string\n    reuseWhenRequestSignatureMatches?: boolean\n  }\n}\n\nexport interface PlaybackState {\n  status: 'idle' | 'preparing_remote_asset' | 'ready_cached' | 'playing' | 'paused' | 'completed' | 'failed'\n  cacheKey?: string | null\n  assetId?: string | null\n  targetDurationMinutes?: number | null\n  elapsedSeconds: number\n  errorMessage?: string | null\n}\n\nexport interface DirectAccompanimentGenerateResponse {\n  ok: boolean\n  asset?: AccompanimentAsset\n  errorCode?: string\n  message?: string\n  options?: Array<Record<string, unknown>>\n}\n".strip() + "\n"
 
 
 
-CASE_ADAPTER_ETS = "\n// JamMate Case Adapter v2_4_7\n// Copy target: entry/src/main/ets/features/jammateAgent/api/CaseAdapter.ets\n// Backend canonical response: snake_case. Client-domain model: camelCase.\n\nimport type { AgentResponse } from '../model/AgentTypes'\nimport type { DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'\n\nfunction snakeToCamelKey(key: string): string {\n  return key.replace(/_([a-zA-Z0-9])/g, (_match: string, letter: string): string => letter.toUpperCase())\n}\n\nfunction camelToSnakeKey(key: string): string {\n  return key.replace(/[A-Z]/g, (letter: string): string => `_${letter.toLowerCase()}`)\n}\n\nexport function deepSnakeToCamel(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepSnakeToCamel(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[snakeToCamelKey(key)] = deepSnakeToCamel((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function deepCamelToSnake(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepCamelToSnake(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[camelToSnakeKey(key)] = deepCamelToSnake((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function mapAgentResponse(raw: Record<string, unknown>): AgentResponse {\n  return deepSnakeToCamel(raw) as AgentResponse\n}\n\nexport function mapDirectAccompanimentResponse(raw: Record<string, unknown>): DirectAccompanimentGenerateResponse {\n  return deepSnakeToCamel(raw) as DirectAccompanimentGenerateResponse\n}\n".strip() + "\n"
+CASE_ADAPTER_ETS = "\n// JamMate Case Adapter v2_4_12\n// Copy target: entry/src/main/ets/features/jammateAgent/api/CaseAdapter.ets\n// Backend canonical response: snake_case. Client-domain model: camelCase.\n\nimport type { AgentResponse } from '../model/AgentTypes'\nimport type { DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'\n\nfunction snakeToCamelKey(key: string): string {\n  return key.replace(/_([a-zA-Z0-9])/g, (_match: string, letter: string): string => letter.toUpperCase())\n}\n\nfunction camelToSnakeKey(key: string): string {\n  return key.replace(/[A-Z]/g, (letter: string): string => `_${letter.toLowerCase()}`)\n}\n\nexport function deepSnakeToCamel(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepSnakeToCamel(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[snakeToCamelKey(key)] = deepSnakeToCamel((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function deepCamelToSnake(value: unknown): unknown {\n  if (Array.isArray(value)) {\n    return value.map((item: unknown): unknown => deepCamelToSnake(item))\n  }\n  if (value !== null && typeof value === 'object') {\n    const output: Record<string, unknown> = {}\n    Object.keys(value as Record<string, unknown>).forEach((key: string): void => {\n      output[camelToSnakeKey(key)] = deepCamelToSnake((value as Record<string, unknown>)[key])\n    })\n    return output\n  }\n  return value\n}\n\nexport function mapAgentResponse(raw: Record<string, unknown>): AgentResponse {\n  return deepSnakeToCamel(raw) as AgentResponse\n}\n\nexport function mapDirectAccompanimentResponse(raw: Record<string, unknown>): DirectAccompanimentGenerateResponse {\n  return deepSnakeToCamel(raw) as DirectAccompanimentGenerateResponse\n}\n".strip() + "\n"
 
 
 API_CLIENT_EXAMPLE_ETS = r'''
-// JamMate API Client Sketch v2_4_7
+// JamMate API Client Sketch v2_4_12
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 
-import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse } from '../model/AgentTypes'
+import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse, AgentTraceApiSpecResponse, AgentTraceDetailResponse, AgentTraceListResponse } from '../model/AgentTypes'
 import type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'
 import { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
 
@@ -316,6 +351,21 @@ export class JamMateApiClient {
   async previewAgentToolInvocation(request: AgentToolInvocationPreviewRequest): Promise<AgentToolInvocationPreviewResponse> {
     const raw = await this.post('/agent/tools/invocation/preview', request as Record<string, unknown>)
     return deepSnakeToCamel(raw) as AgentToolInvocationPreviewResponse
+  }
+
+  async getAgentTraceSpec(): Promise<AgentTraceApiSpecResponse> {
+    const raw = await this.get('/agent/traces/spec')
+    return deepSnakeToCamel(raw) as AgentTraceApiSpecResponse
+  }
+
+  async listAgentTraces(limit: number = 20): Promise<AgentTraceListResponse> {
+    const raw = await this.get(`/agent/traces?limit=${limit}`)
+    return deepSnakeToCamel(raw) as AgentTraceListResponse
+  }
+
+  async getAgentTrace(traceId: string): Promise<AgentTraceDetailResponse> {
+    const raw = await this.get(`/agent/traces/${traceId}`)
+    return deepSnakeToCamel(raw) as AgentTraceDetailResponse
   }
 
   async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {
@@ -735,7 +785,8 @@ def harmonyos_api_smoke_pack() -> dict[str, Any]:
             {"name": "agent_tool_registry", "method": "GET", "path": "/agent/tools/registry", "expect": {"ok": True, "registry.execution_status.autonomous_tool_execution_enabled": False}},
             {"name": "agent_tool_invocation_preview", "method": "POST", "path": "/agent/tools/invocation/preview", "request": tool_invocation_preview_request, "expect": {"ok": True, "preview.would_execute": False}},
             {"name": "session_review", "method": "POST", "path": "/agent/session/review", "request": session_review_request, "expect": {"ok": True, "recommendation.summary": "non_empty"}},
-            {"name": "trace_list", "method": "GET", "path": "/agent/traces", "expect": {"ok": True}},
+            {"name": "trace_spec", "method": "GET", "path": "/agent/traces/spec", "expect": {"ok": True, "spec.trace_contract_version": CONTRACT_VERSION}},
+            {"name": "trace_list", "method": "GET", "path": "/agent/traces", "expect": {"ok": True, "trace_contract_version": CONTRACT_VERSION}},
         ],
         "requests": {
             "directAccompanimentBlueBossa": direct_request,
@@ -791,6 +842,12 @@ curl -s -X POST "${{BASE_URL}}/agent/context/runtime/preview" \
 
 echo "6 optional) GET /agent/tools/registry"
 curl -s "${{BASE_URL}}/agent/tools/registry" | python -m json.tool
+
+echo "7 optional) GET /agent/traces/spec"
+curl -s "${{BASE_URL}}/agent/traces/spec" | python -m json.tool
+
+echo "8 optional) GET /agent/traces"
+curl -s "${{BASE_URL}}/agent/traces" | python -m json.tool
 '''
     readme = f'''# JamMate HarmonyOS API Smoke Pack {CONTRACT_VERSION}
 

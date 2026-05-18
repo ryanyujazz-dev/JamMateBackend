@@ -28,3 +28,9 @@ curl -s -X POST "${BASE_URL}/agent/context/runtime/preview"   -H "Content-Type: 
 
 echo "6 optional) GET /agent/tools/registry"
 curl -s "${BASE_URL}/agent/tools/registry" | python -m json.tool
+
+echo "7 optional) GET /agent/traces/spec"
+curl -s "${BASE_URL}/agent/traces/spec" | python -m json.tool
+
+echo "8 optional) GET /agent/traces"
+curl -s "${BASE_URL}/agent/traces" | python -m json.tool

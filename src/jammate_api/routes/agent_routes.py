@@ -30,7 +30,7 @@ from jammate_agent.core.contracts import (
 )
 from jammate_agent.core.jammate_agent import JamMateAgent
 from jammate_agent.core.tool_invocation import ToolInvocationProposal, preview_tool_invocation
-from jammate_agent.core.trace import JsonTraceStore, TraceLogger
+from jammate_agent.core.trace import TRACE_API_CONTRACT_VERSION, JsonTraceStore, TraceLogger, trace_api_contract
 from jammate_api.schemas import AgentContextRuntimePreviewRequest, AgentMessageRequest, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentToolInvocationPreviewRequest, SessionReviewRequest
 
 router = APIRouter(prefix="/agent", tags=["jammate-agent"])
@@ -179,17 +179,28 @@ def get_playback_integration_spec() -> dict:
     return {"ok": True, "spec": harmonyos_playback_contract()}
 
 
+@router.get("/traces/spec")
+def get_agent_trace_api_spec() -> dict:
+    return {"ok": True, "spec": trace_api_contract()}
+
+
 @router.get("/traces")
 def list_agent_traces(limit: int = 20) -> dict:
-    return {"ok": True, "traces": build_agent().list_recent_traces(limit=limit)}
+    return {"ok": True, "trace_contract_version": TRACE_API_CONTRACT_VERSION, "traces": build_agent().list_recent_traces(limit=limit)}
 
 
 @router.get("/traces/{trace_id}")
 def get_agent_trace(trace_id: str) -> dict:
     trace = build_agent().get_trace(trace_id)
     if not trace:
-        return {"ok": False, "error_code": "TRACE_NOT_FOUND", "message": f"Trace not found: {trace_id}"}
-    return {"ok": True, "trace": trace}
+        return {
+            "ok": False,
+            "trace_contract_version": TRACE_API_CONTRACT_VERSION,
+            "error_code": "TRACE_NOT_FOUND",
+            "message": f"Trace not found: {trace_id}",
+            "trace": None,
+        }
+    return {"ok": True, "trace_contract_version": TRACE_API_CONTRACT_VERSION, "trace": trace.to_detail_dict()}
 
 
 @router.post("/message")

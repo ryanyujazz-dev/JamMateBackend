@@ -1,6 +1,6 @@
 # JamMate API Contract V2
 
-Current baseline: `v2_4_7`.
+Current baseline: `v2_4_12`.
 
 This document records the stable API contract shape. Detailed version-specific API delivery notes live in separate `docs/*V2_x_x*.md` files.
 
@@ -43,7 +43,7 @@ Expected response:
 {
   "ok": true,
   "service": "jammate-api",
-  "engine_version": "v2_4_7",
+  "engine_version": "v2_4_12",
   "agent_version": "v0_1"
 }
 ```
@@ -185,7 +185,7 @@ GET  /agent/llm/provider/spec
 GET  /agent/tools/registry
 ```
 
-Use this on `feature/agent-workflow` to inspect the task-scoped context packet, provider-neutral request envelope summary, and bounded runloop envelope that a future LLM provider would receive. `v2_4_7` does not call an LLM and does not execute autonomous tools.
+Use this on `feature/agent-workflow` to inspect the task-scoped context packet, provider-neutral request envelope summary, and bounded runloop envelope that a future LLM provider would receive. `v2_4_12` does not call an LLM and does not execute autonomous tools.
 
 Example request:
 
@@ -212,14 +212,14 @@ Expected response shape:
   "ok": true,
   "task_type": "immediate_practice_playback",
   "context_packet": {
-    "context_runtime_version": "v2_4_7",
+    "context_runtime_version": "v2_4_12",
     "task_type": "immediate_practice_playback",
     "allowed_tools": ["chart_resolve", "agent_playback_prepare"],
     "runtime_policy": {
       "tool_loop_mode": "bounded_preview",
       "llm_call_mode": "provider_boundary_preview_only",
       "llm_provider_configured": false,
-      "llm_provider_boundary_version": "v2_4_7"
+      "llm_provider_boundary_version": "v2_4_12"
     }
   },
   "runloop_preview": {
@@ -270,14 +270,14 @@ Expected response shape:
 {
   "ok": true,
   "preview": {
-    "preview_version": "v2_4_7",
+    "preview_version": "v2_4_12",
     "status": "preview_only_blocked_by_execution_guard",
     "known_tool": true,
     "allowed_by_context": true,
     "execution_enabled": false,
     "autonomous_execution_enabled": false,
     "would_execute": false,
-    "blocking_reasons": ["tool_execution_disabled_in_v2_4_7"]
+    "blocking_reasons": ["tool_execution_disabled_in_v2_4_12"]
   },
   "context_packet_summary": {}
 }
@@ -297,7 +297,7 @@ Rules:
 GET /agent/tools/registry
 ```
 
-Returns descriptor-only Agent tool/workflow contracts for HarmonyOS diagnostics and future bounded LLM tool planning. `v2_4_7` does not execute tools from the runloop. Deterministic API routes remain the only execution path.
+Returns descriptor-only Agent tool/workflow contracts for HarmonyOS diagnostics and future bounded LLM tool planning. `v2_4_12` does not execute tools from the runloop. Deterministic API routes remain the only execution path.
 
 Minimum response shape:
 
@@ -305,7 +305,7 @@ Minimum response shape:
 {
   "ok": true,
   "registry": {
-    "version": "v2_4_7",
+    "version": "v2_4_12",
     "execution_status": {
       "tool_execution_enabled": false,
       "autonomous_tool_execution_enabled": false,
@@ -333,8 +333,8 @@ Expected response shape:
 {
   "ok": true,
   "spec": {
-    "version": "v2_4_7",
-    "boundary_version": "v2_4_7",
+    "version": "v2_4_12",
+    "boundary_version": "v2_4_12",
     "route": "GET /agent/llm/provider/spec",
     "status": {
       "provider_name": "none",
@@ -364,6 +364,7 @@ JAMMATE_LLM_CHAT_COMPLETIONS_PATH
 JAMMATE_LLM_MAX_PROMPT_CHARS
 JAMMATE_LLM_MAX_OUTPUT_TOKENS
 JAMMATE_LLM_TEMPERATURE
+JAMMATE_AGENT_LLM_CONFIG_FILE
 ```
 
 
@@ -373,7 +374,21 @@ JAMMATE_LLM_TEMPERATURE
 PYTHONPATH=src python -m jammate_agent.cli.terminal_chat
 ```
 
-The CLI is a developer/operator debugging surface, not a HarmonyOS API contract. It uses the same context packet and provider boundary as the Agent runtime preview. It may call an OpenAI-compatible chat-completions provider only when provider, model, API key, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS=true` are explicitly configured. It does not execute tools.
+The CLI is a developer/operator debugging surface, not a HarmonyOS API contract. It uses the same context packet and provider boundary as the Agent runtime preview. It may call an OpenAI-compatible chat-completions provider only when provider, model, API key, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS=true` are explicitly configured through env vars or a local config file. It does not execute tools. Successful assistant replies are scanned for explicit JSON tool-call candidates; candidates are previewed only. `v2_4_12` adds `setup`, `doctor`, and `config-path` so developers do not need to manually export provider settings before every terminal chat session.
+
+Setup and doctor examples:
+
+```bash
+jammate-agent-chat setup
+jammate-agent-chat doctor
+jammate-agent-chat config-path
+```
+
+Specific config-file example:
+
+```bash
+jammate-agent-chat --config-file ~/.jammate/agent_config.env
+```
 
 One-shot example:
 
@@ -397,6 +412,13 @@ Interactive slash commands:
 
 ```text
 /help
+/session
+/context [full|--full|json|--json]
+/profiles
+/profile [task_type]
+/task-type [task_type]
+/instrument [instrument]
+/reset
 /tools
 /tool-preview <tool_name> [json_object_arguments]
 /trace
@@ -404,7 +426,96 @@ Interactive slash commands:
 /exit
 ```
 
-`/tool-preview` returns terminal text for the same validation-only preview contract as `POST /agent/tools/invocation/preview`; it does not execute tools, routes, adapters, or engine workflows. `--trace-dir <dir>` explicitly exports normal chat and tool-preview turns as `AgentTrace` JSON via the existing `TraceLogger` / `JsonTraceStore` owner; no traces are written by default.
+`/context`, `/profiles`, `/profile`, `/task-type`, `/instrument`, `/session`, and `/reset` are local terminal debugging controls for ContextPacket/profile/session state. They do not call the provider and do not execute tools. `/tool-preview` returns terminal text for the same validation-only preview contract as `POST /agent/tools/invocation/preview`; it does not execute tools, routes, adapters, or engine workflows. Extracted terminal tool-call candidates use the same preview contract and never execute. `--trace-dir <dir>` explicitly exports normal chat and tool-preview turns as `AgentTrace` JSON via the existing `TraceLogger` / `JsonTraceStore` owner; no traces are written by default.
+
+---
+
+### Agent trace API
+
+```text
+GET /agent/traces/spec
+GET /agent/traces?limit=20
+GET /agent/traces/{trace_id}
+```
+
+`v2_4_12` makes trace inspection a stable contract rather than a raw debug dump. The API returns backend canonical `snake_case`; HarmonyOS maps to camelCase through the generated `CaseAdapter.ets`.
+
+List response shape:
+
+```json
+{
+  "ok": true,
+  "trace_contract_version": "v2_4_12",
+  "traces": [
+    {
+      "trace_contract_version": "v2_4_12",
+      "trace_schema_version": "agent_trace_summary_v1",
+      "trace_id": "trace_...",
+      "task_type": "llm_context_runtime_preview",
+      "request_id": "optional_request_id",
+      "user_input_preview": "解释一下 guide tones",
+      "validation_result": "passed",
+      "created_at": "2026-05-18T...",
+      "updated_at": "2026-05-18T...",
+      "step_count": 2,
+      "has_context_packet_summary": true,
+      "has_final_response_summary": true
+    }
+  ]
+}
+```
+
+Detail response shape:
+
+```json
+{
+  "ok": true,
+  "trace_contract_version": "v2_4_12",
+  "trace": {
+    "trace_contract_version": "v2_4_12",
+    "trace_schema_version": "agent_trace_detail_v1",
+    "trace_id": "trace_...",
+    "task_type": "llm_context_runtime_preview",
+    "request_id": "optional_request_id",
+    "user_input": "解释一下 guide tones",
+    "context_packet_summary": {},
+    "steps": [
+      { "name": "context_runtime_packet_built", "payload": {}, "at": "2026-05-18T..." }
+    ],
+    "validation_result": "passed",
+    "final_response_summary": {},
+    "created_at": "2026-05-18T...",
+    "updated_at": "2026-05-18T..."
+  }
+}
+```
+
+Not-found response shape:
+
+```json
+{
+  "ok": false,
+  "trace_contract_version": "v2_4_12",
+  "error_code": "TRACE_NOT_FOUND",
+  "message": "Trace not found: trace_missing",
+  "trace": null
+}
+```
+
+Trace APIs are inspection-only. They do not call the LLM provider, execute tools, dispatch deterministic workflows, or call the engine adapter.
+
+
+### Local terminal trace viewer
+
+This is not an HTTP endpoint. It is a read-only local CLI for backend debugging against the same JSON trace files used by terminal `--trace-dir` export and Trace API storage:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir demos/agent_traces list
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir demos/agent_traces show <trace_id>
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer spec
+```
+
+The CLI returns the same trace summary/detail contract fields as the API when `--json` is used. It is read-only: no tools, no LLM provider calls, no deterministic workflows, no engine adapter calls.
 
 ---
 
@@ -442,6 +553,7 @@ GET /agent/contracts/case-policy
 GET /agent/contracts/smoke-pack
 GET /agent/contracts/smoke-pack/files
 GET /agent/contracts/fixtures
+GET /agent/traces/spec
 GET /agent/traces
 GET /agent/traces/{trace_id}
 ```
