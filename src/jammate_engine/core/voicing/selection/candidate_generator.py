@@ -28,6 +28,7 @@ from ..disposition.models import (
 from ..disposition.projection import project_source_to_disposition
 from ..disposition.spread import guard_ballad_spread_pilot_runtime_enablement
 from ..policy import ContentFamily, Disposition, RootSupportPolicy, VoicingPolicy, harmonic_expansion_allowed
+from ..density_policy import density_disposition_decision
 from ..runtime.texture_plan import derive_voicing_texture_plan, derive_voicing_texture_state
 from .content_placement import place_content_recipe_for_projection
 from .register_variants import (
@@ -112,6 +113,14 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
         texture_debug = texture_plan.to_debug_dict()
         canonical_debug = canonical_source.to_debug_dict()
         for disposition in dispositions:
+            density_disposition = density_disposition_decision(
+                disposition=disposition,
+                density=recipe.density,
+                functional_grouping=recipe.functional_grouping,
+                policy=policy,
+            )
+            if not density_disposition.allowed:
+                continue
             open_method_pool = _open_projection_methods_for_disposition(disposition, policy)
             for open_method_index, open_method in enumerate(open_method_pool):
                 projection_policy = _policy_with_active_open_projection_method(policy, disposition, open_method, open_method_pool)
@@ -221,6 +230,8 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                                 **closed_voicing_compactness_metadata(variant_notes, projection_policy, disposition),
                                 "content_recipe": recipe_debug,
                                 "density_recipe": recipe.to_debug_dict(),
+                                "density_disposition_decision": density_disposition.to_debug_dict(),
+                                "voicing_density_disposition_policy_version": density_disposition.version,
                                 "canonical_closed_source": canonical_debug,
                                 "voicing_texture_plan": texture_debug,
                                 "voicing_texture_family": texture_debug["primary_disposition_family"],

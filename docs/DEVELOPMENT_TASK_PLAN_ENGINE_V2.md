@@ -130,22 +130,24 @@ Completed scope:
 - kept voicing candidate output contract and projection metadata intact;
 - did not change style voicing policies, source weights, expression, pattern, API, Agent, or shared version files.
 
+## v2_6_9 Completed — Engine Voicing SPREAD Projection Core Split
+
+Completed behavior-preserving split:
+
+- added `src/jammate_engine/core/voicing/disposition/spread_projection_core.py`;
+- moved notes-only lower+upper SPREAD projection orchestration behind this owner;
+- kept lower groups, upper source adaptation, and register/gap/span legality in their existing v2_6_6/v2_6_7/v2_6_8 owners;
+- preserved public import compatibility through `spread.py` and `jammate_engine.core.voicing.disposition`;
+- preserved v2_6_5 frozen SPREAD behavior signatures;
+- generated a three-chorus Misty Jazz Ballad demo for full-runtime listening smoke verification.
+
 ## Recommended Next Engine Task
 
 ```text
-v2_6_9_engine_voicing_spread_projection_core_behavior_preserving_split
+v2_6_10_engine_voicing_spread_groupwise_voice_leading_behavior_preserving_split
 ```
 
-Goal: continue the SPREAD split by extracting the remaining core lower+upper projection orchestration while preserving lower-group, upper-source, and register-guard owners plus all v2_6_5/v2_6_6/v2_6_7/v2_6_8 behavior signatures.
-
-Expected scope:
-
-- keep lower groups in `spread_lower_groups.py`;
-- keep upper source adaptation in `spread_upper_sources.py`;
-- keep register/gap/span legality in `spread_register_guards.py`;
-- move only notes-only projection orchestration helpers if behavior signatures remain stable;
-- keep groupwise voice-leading, runtime gate, Ballad runtime pilot, and candidate adapter logic in place for later passes;
-- preserve `jammate_engine.core.voicing.disposition.spread` import compatibility.
+Goal: extract SPREAD groupwise voice-leading scoring/ranking from `spread.py` while preserving notes-only SPREAD projection behavior and public import compatibility.
 
 Forbidden scope:
 
@@ -159,9 +161,38 @@ Forbidden scope:
 
 ## Near-Term Engine Queue
 
-1. `v2_6_9_engine_voicing_spread_projection_core_behavior_preserving_split`
-2. `v2_6_10_engine_voicing_spread_runtime_gate_and_adapter_cleanup`
-3. `v2_6_11_engine_voicing_spread_ballad_runtime_pilot_isolation_cleanup`
-4. `v2_6_12_engine_jazz_ballad_bass_anchor_path_policy`
+1. `v2_6_10_engine_voicing_spread_groupwise_voice_leading_behavior_preserving_split`
+2. `v2_6_11_engine_voicing_spread_runtime_gate_and_adapter_cleanup`
+3. `v2_6_12_engine_voicing_spread_ballad_runtime_pilot_isolation_cleanup`
+4. `v2_6_13_engine_jazz_ballad_bass_anchor_path_policy`
 
 Each task should produce either a focused audit summary or a three-chorus standard-tune listening demo when music output changes.
+
+## Completed: v2_6_10_engine_voicing_spread_density_system_reset
+
+This pass is a voicing-only density/disposition routing reset.
+
+### Result
+
+- Default SPREAD no longer emits 4-note `1+3` / `2+2` groupings.
+- Jazz Ballad grouped SPREAD now uses active 5+ density contracts instead of falling back to ordinary 4-note SPREAD projection.
+- Normal Ballad comping is centered on `spread_2plus3_contract`; fuller 6/7-note contracts remain available for chorus lift and ending/climax contexts.
+- The fix is expressed through `core.voicing.density_policy` and Ballad grouped-spread runtime routing, not through selector score patching.
+
+### Next recommended voicing-only task
+
+`v2_6_11_engine_voicing_spread_groupwise_voice_leading_behavior_preserving_split`
+
+Split SPREAD groupwise voice-leading / ranking ownership while keeping the v2_6_10 density reset behavior stable.
+
+## v2_6_11 Completed — Engine Voicing Ballad Safe Extension Color Gate
+
+Completed voicing-only color-gate pass:
+
+- Jazz Ballad default `style_safe_extensions` for plain maj7 now prefers `9` and `13`;
+- unnotated maj7 `#11` is gated behind explicit chart notation or harmonic-color intent metadata;
+- explicit `maj7#11` chart symbols remain faithful;
+- v2_6_10 grouped SPREAD density behavior remains the baseline;
+- no Pattern / Anticipation / Expression / Gesture / MIDI behavior was moved into voicing or vice versa.
+
+Next recommended voicing-only task: `v2_6_12_engine_voicing_spread_groupwise_voice_leading_behavior_preserving_split`.

@@ -145,6 +145,16 @@ from .policy import (
 )
 from .taxonomy.projection_map import ABSTRACT_GROUP_KEYS, build_projection_map, group_indices_for_projection
 from .taxonomy.recipes import VoicingRecipe, build_recipe_id, describe_density_recipe, group_roles_for_grouping, infer_functional_grouping
+from .density_policy import (
+    VOICING_DENSITY_DISPOSITION_POLICY_VERSION,
+    SPREAD_ACTIVE_RUNTIME_CONTRACT_IDS,
+    SPREAD_DEFAULT_BALLAD_RUNTIME_CONTRACT_IDS,
+    SPREAD_RETIRED_FOUR_NOTE_GROUPINGS,
+    density_disposition_decision,
+    should_skip_source_disposition_candidate,
+    spread_density_runtime_contract_ids,
+    voicing_density_disposition_policy_debug,
+)
 from .runtime.request import VoicingRequest
 from .selection.scorer import VoicingScoreBreakdown, score_candidate
 from .sources.source_balance import SOURCE_BALANCE_CONTRACT_VERSION, score_source_balance, source_balance_key, source_gate_mode
@@ -321,6 +331,14 @@ __all__ = [
     "RootSupportPolicy",
     "VoicingGroupRole",
     "VoicingRecipe",
+    "VOICING_DENSITY_DISPOSITION_POLICY_VERSION",
+    "SPREAD_ACTIVE_RUNTIME_CONTRACT_IDS",
+    "SPREAD_DEFAULT_BALLAD_RUNTIME_CONTRACT_IDS",
+    "SPREAD_RETIRED_FOUR_NOTE_GROUPINGS",
+    "density_disposition_decision",
+    "should_skip_source_disposition_candidate",
+    "spread_density_runtime_contract_ids",
+    "voicing_density_disposition_policy_debug",
     "VOICING_CONTRACT_VERSION",
     "VOICING_CORE_PIPELINE",
     "VoicedNote",

@@ -368,3 +368,40 @@ Before any SPREAD implementation split, preserve the v2_6_5 behavior signatures 
 - The lower group owner remains notes-only and does not own Pattern, Anticipation, Expression, Gesture, MIDI writer, velocity, duration, or pedal decisions.
 - v2_6_5 frozen behavior signatures for lower recipe ids and representative SPREAD candidates are preserved.
 
+
+## v2_6_9 Engine Voicing SPREAD Projection Core Split
+
+- No music-generation rule changed in this pass.
+- `spread_projection_core.py` now owns notes-only lower+upper SPREAD projection orchestration.
+- Lower group recipes remain in `spread_lower_groups.py`; upper source adaptation remains in `spread_upper_sources.py`; register/gap/span legality remains in `spread_register_guards.py`.
+- SPREAD projection core must not own Pattern, Anticipation, Expression, Gesture, Pedal, MIDI, style pattern vocabulary, or style-level voicing preference selection.
+- Existing imports from `jammate_engine.core.voicing.disposition.spread` and `jammate_engine.core.voicing.disposition` must remain compatible.
+- v2_6_5 frozen behavior signatures for representative SPREAD candidates remain preserved.
+
+## Voicing Rule Update: v2_6_10 SPREAD Density Reset
+
+Jazz Ballad SPREAD no longer treats 4-note `1+3` / `2+2` as normal runtime SPREAD. Those contracts are retired from default output because 4-note voicings belong to ordinary closed/open/rooted-color paths, while SPREAD should represent lower/upper functional grouping.
+
+Active default SPREAD contracts:
+
+```text
+1+4  -> 5-note
+2+3  -> 5-note, normal Ballad body
+2+4  -> 6-note, fuller support/lift
+3+3  -> 6-note, fuller support/lift/climax
+3+4  -> 7-note, ending/climax only
+```
+
+Boundary rule: Pattern, Anticipation, Expression, Gesture, and MIDI do not choose voicing density, source, or disposition. The density/disposition gate belongs to `core.voicing.density_policy`; Ballad only declares grouped-spread preferences through its voicing policy metadata.
+
+## Voicing Rule Update: v2_6_11 Ballad Safe Extension Color Gate
+
+Jazz Ballad safe harmonic expansion now treats plain major-seventh chords as warm 9/13 targets by default. `#11` is no longer part of the ordinary unnotated maj7 safe-extension pool.
+
+```text
+Ebmaj7 + default Ballad expansion -> 9 / 13 priority, no automatic #11
+Ebmaj7#11 written in chart -> #11 preserved faithfully
+Ebmaj7 + harmonic_color_intent=lydian/bright/modern -> #11 may enter the source pool
+```
+
+This rule belongs to core voicing source/color permission. Pattern, Anticipation, Expression, Gesture, Pedal, and MIDI do not choose or suppress maj7#11.

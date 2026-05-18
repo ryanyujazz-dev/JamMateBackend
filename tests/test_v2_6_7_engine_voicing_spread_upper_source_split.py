@@ -127,9 +127,9 @@ def test_v2_6_7_upper_source_symbols_have_single_owner_and_public_compatibility(
 
     # The compatibility wrapper still accepts the historic string ref API.
     ref = public_upper_source_ref(
-        ref_id="test_upper_2note",
-        note_count=2,
-        kind=next(ref.kind for ref in [adapt_spread_upper_source("Cmaj7", "upper_2note_existing_guide_shell_source_ref").upper_source_ref]),
+        ref_id="test_upper_3note",
+        note_count=3,
+        kind=next(ref.kind for ref in [adapt_spread_upper_source("Cmaj7", "upper_3note_existing_content_source_ref").upper_source_ref]),
         reusable_owner_paths=("core.voicing.sources.content_planner",),
     )
     direct = adapt_spread_upper_source_from_ref("Cmaj7", ref)
@@ -185,23 +185,17 @@ def test_v2_6_7_upper_adapter_behavior_signatures_are_unchanged() -> None:
     assert debug["no_expression_or_pedal"] is True
 
 
-def test_v2_6_7_spread_projection_behavior_signature_still_matches_v2_6_5_freeze() -> None:
+def test_v2_6_7_spread_projection_behavior_signature_matches_v2_6_10_active_spread_freeze() -> None:
     expected_subset = {
         "Cmaj7": (
-            ("spread_1plus3_contract", 4, ((36, 52, 55, 59), ("R", "3", "5", "7"), "closed_upper_stack", 4, 16, True, True)),
-            ("spread_2plus2_contract", 8, ((48, 52, 59, 64), ("R", "3", "7", "3"), "closed_upper_stack", 4, 7, True, True)),
             ("spread_1plus4_contract", 2, ((36, 55, 64, 71, 72), ("R", "5", "3", "7", "R"), "drop3", 5, 19, True, True)),
         ),
         "G7b9": (
-            ("spread_1plus3_contract", 12, ((43, 50, 53, 59), ("R", "5", "b7", "3"), "closed_upper_stack", 4, 7, True, True)),
-            ("spread_2plus2_contract", 8, ((43, 47, 53, 59), ("R", "3", "b7", "3"), "closed_upper_stack", 4, 6, True, True)),
             ("spread_1plus4_contract", 2, ((43, 55, 65, 68, 71), ("R", "R", "b7", "b9", "3"), "drop3", 5, 12, True, True)),
         ),
         "Bm7b5": (
-            ("spread_1plus3_contract", 6, ((47, 53, 57, 62), ("R", "b5", "b7", "b3"), "closed_upper_stack", 4, 6, True, True)),
-            ("spread_2plus2_contract", 0, None),
             ("spread_1plus4_contract", 2, ((47, 57, 65, 71, 74), ("R", "b7", "b5", "R", "b3"), "drop3", 5, 10, True, True)),
         ),
     }
     for chord, expected_prefix in expected_subset.items():
-        assert _first_legal_signature(chord)[:3] == expected_prefix
+        assert _first_legal_signature(chord)[:1] == expected_prefix

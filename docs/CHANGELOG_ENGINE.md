@@ -82,3 +82,27 @@ This file records engine-track changes to reduce conflicts in the global `docs/C
 
 - `INNER_MOVEMENT` projects only requested inner/color voices.
 - Foundation/common tones remain held through partial reattack.
+
+## v2_6_9 — Engine Voicing SPREAD Projection Core Split
+
+- Behavior-preserving voicing/SPREAD cleanup; no style voicing policy, source-weight, expression, pattern, API, Agent, or shared version change.
+- Added `src/jammate_engine/core/voicing/disposition/spread_projection_core.py` as the notes-only lower+upper SPREAD projection orchestration owner.
+- Re-exported `project_basic_spread_contract`, `project_basic_spread_candidates`, and `basic_spread_projection_debug` through the existing `spread.py` and package-level compatibility surfaces.
+- Preserved v2_6_5 frozen SPREAD candidate signatures for `Cmaj7`, `G7b9`, and `Bm7b5`.
+- Added a three-chorus Misty Jazz Ballad listening demo for a full-runtime smoke check after the split.
+
+## v2_6_10_engine_voicing_spread_density_system_reset
+
+- Retired default 4-note SPREAD groupings `1+3` and `2+2`; they remain explicit audit/compatibility references only.
+- Added `core.voicing.density_policy` as the density/disposition compatibility gate so this is a taxonomy/routing fix rather than a scorer bonus.
+- Promoted Jazz Ballad grouped SPREAD runtime to active 5+/6-note contracts, centered on `spread_2plus3_contract` for normal comping and reserving `2+4`/`3+3`/`3+4` for lift and climax contexts.
+- Added `docs/ENGINE_VOICING_SPREAD_DENSITY_SYSTEM_RESET_V2_6_10.md` and `tests/test_v2_6_10_engine_voicing_spread_density_system_reset.py`.
+- No Pattern / Anticipation / Expression / Gesture / MIDI behavior was moved into voicing or vice versa.
+
+## v2_6_11 — Engine Voicing Ballad Safe Extension Color Gate
+
+- Voicing-only color-gate adjustment; no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared version change.
+- Updated major-seventh style-safe expansion so Jazz Ballad defaults prefer `9` / `13` and do not treat unnotated `#11` as ordinary warm Ballad color.
+- Preserved explicit chart fidelity: `maj7#11` still produces #11 voicing sources.
+- Added policy/LLM intent hooks for unnotated maj7#11 via Lydian/bright/modern harmonic-color metadata.
+- Added `docs/ENGINE_VOICING_BALLAD_SAFE_EXTENSION_COLOR_GATE_V2_6_11.md` and `tests/test_v2_6_11_engine_voicing_ballad_safe_extension_color_gate.py`.

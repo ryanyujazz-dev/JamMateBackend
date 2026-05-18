@@ -1400,13 +1400,83 @@ def _expansion_color_candidates(chord: ParsedChord, material: ChordMaterial, pol
     elif chord.quality == "minor":
         preferred = ["9", "11", "13"]
     elif chord.has_major_seventh:
-        preferred = ["9", "13", "#11"]
+        preferred = _major_seventh_safe_extension_preference(chord, policy)
     else:
         preferred = ["9", "13", "11", "#11"]
     colors = [degree for degree in preferred if degree in available]
     # Keep the candidate pool small so low-weight 1/5 alternatives can still be
     # sampled occasionally rather than buried behind too many equivalent colors.
     return _dedupe(colors)[:3] or ([available[0]] if available else ["9"])
+
+
+def _major_seventh_safe_extension_preference(chord: ParsedChord, policy: VoicingPolicy) -> list[str]:
+    """Return style-safe color order for ordinary major-seventh expansion.
+
+    In warm Ballad/default ``style_safe_extensions`` mode, a plain maj7 chord
+    should expand toward 9/13 first.  Unnotated #11 is a Lydian/bright color and
+    therefore requires an explicit chart symbol, rich reharm mode, or clear
+    policy/LLM harmonic-color intent.  Explicit Cmaj7#11 is handled before this
+    helper through the chord-symbol color path and remains fully faithful.
+    """
+
+    mode = getattr(policy.color_policy_mode, "value", str(policy.color_policy_mode))
+    if mode == "rich_reharm_color":
+        return ["9", "13", "#11"]
+    if _major_seventh_sharp11_harmonic_color_intent_enabled(policy):
+        return ["9", "13", "#11"]
+    return ["9", "13"]
+
+
+def _major_seventh_sharp11_harmonic_color_intent_enabled(policy: VoicingPolicy | None) -> bool:
+    """Return whether unnotated maj7#11 has explicit harmonic-color intent."""
+
+    metadata = dict(getattr(policy, "metadata", {}) or {}) if policy is not None else {}
+    truthy_flags = (
+        "allow_unnotated_major_seventh_sharp11",
+        "allow_unnotated_maj7_sharp11",
+        "major_seventh_sharp11_enabled",
+        "maj7_sharp11_enabled",
+        "lydian_major_color_enabled",
+        "bright_major_color_enabled",
+    )
+    if any(bool(metadata.get(flag)) for flag in truthy_flags):
+        return True
+
+    nested = metadata.get("safe_extension_color_gate") or metadata.get("major_seventh_color_gate") or {}
+    if isinstance(nested, dict):
+        if any(bool(nested.get(flag)) for flag in truthy_flags):
+            return True
+        policy_value = str(
+            nested.get("maj7_sharp11")
+            or nested.get("major_seventh_sharp11")
+            or nested.get("unnotated_maj7_sharp11")
+            or ""
+        ).strip().lower()
+        if policy_value in {"allow", "enabled", "on", "intent", "lydian", "bright", "low_frequency", "occasional"}:
+            return True
+
+    textual_values = {
+        str(metadata.get("harmonic_color_intent", "")).strip().lower(),
+        str(metadata.get("major_color_intent", "")).strip().lower(),
+        str(metadata.get("scale_mode", "")).strip().lower(),
+        str(metadata.get("modal_context", "")).strip().lower(),
+        str(metadata.get("harmony_context", "")).strip().lower(),
+    }
+    intent_tokens = {
+        "lydian",
+        "lydian_major",
+        "lydian-major",
+        "maj7#11",
+        "major#11",
+        "sharp11",
+        "sharp_11",
+        "#11",
+        "bright",
+        "brighter",
+        "modern",
+        "modern_bright",
+    }
+    return bool(textual_values & intent_tokens)
 
 def trim_content_degrees(degrees: list[tuple[str, int]], policy: VoicingPolicy) -> list[tuple[str, int]]:
     """Apply the legacy density limit while preserving required root support."""

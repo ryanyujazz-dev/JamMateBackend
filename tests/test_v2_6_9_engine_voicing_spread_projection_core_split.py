@@ -4,29 +4,29 @@ import ast
 from pathlib import Path
 
 from jammate_engine.core.voicing.disposition import (
-    SPREAD_REGISTER_GUARD_SPLIT_VERSION as package_register_guard_split_version,
-    SpreadProjectionRegisterPolicy as package_register_policy,
-    basic_spread_register_policy as package_basic_register_policy,
-    spread_register_guard_debug as package_register_guard_debug,
+    SPREAD_PROJECTION_CORE_SPLIT_VERSION as package_projection_core_split_version,
+    basic_spread_projection_debug as package_basic_projection_debug,
+    project_basic_spread_candidates as package_project_candidates,
+    project_basic_spread_contract as package_project_contract,
 )
 from jammate_engine.core.voicing.disposition.spread import (
-    SPREAD_REGISTER_GUARD_SPLIT_VERSION as public_register_guard_split_version,
-    SpreadProjectionRegisterPolicy as public_register_policy,
-    basic_spread_register_policy as public_basic_register_policy,
-    project_basic_spread_candidates,
-    spread_register_guard_debug as public_register_guard_debug,
+    SPREAD_PROJECTION_CORE_SPLIT_VERSION as public_projection_core_split_version,
+    basic_spread_projection_debug as public_basic_projection_debug,
+    project_basic_spread_candidates as public_project_candidates,
+    project_basic_spread_contract as public_project_contract,
 )
-from jammate_engine.core.voicing.disposition.spread_register_guards import (
-    SPREAD_REGISTER_GUARD_SPLIT_VERSION as owner_register_guard_split_version,
-    SpreadProjectionRegisterPolicy as owner_register_policy,
-    basic_spread_register_policy as owner_basic_register_policy,
-    spread_register_guard_debug as owner_register_guard_debug,
+from jammate_engine.core.voicing.disposition.spread_projection_core import (
+    SPREAD_PROJECTION_CORE_SPLIT_VERSION as owner_projection_core_split_version,
+    basic_spread_projection_debug as owner_basic_projection_debug,
+    project_basic_spread_candidates as owner_project_candidates,
+    project_basic_spread_contract as owner_project_contract,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "ENGINE_VOICING_SPREAD_REGISTER_GUARD_SPLIT_V2_6_8.md"
+DOC = ROOT / "docs" / "ENGINE_VOICING_SPREAD_PROJECTION_CORE_SPLIT_V2_6_9.md"
 SPREAD = ROOT / "src" / "jammate_engine" / "core" / "voicing" / "disposition" / "spread.py"
-SPREAD_REGISTER_GUARDS = ROOT / "src" / "jammate_engine" / "core" / "voicing" / "disposition" / "spread_register_guards.py"
+SPREAD_PROJECTION_CORE = ROOT / "src" / "jammate_engine" / "core" / "voicing" / "disposition" / "spread_projection_core.py"
+DEMO = ROOT / "demos" / "v2_6_9_misty_jazz_ballad_voicing_spread_projection_core_demo.mid"
 
 
 def _defined_symbols(path: Path) -> set[str]:
@@ -52,7 +52,7 @@ def _imported_modules(path: Path) -> set[str]:
 
 def _first_legal_signature(chord: str) -> tuple[tuple[object, ...], ...]:
     signature = []
-    for result in project_basic_spread_candidates(chord):
+    for result in public_project_candidates(chord):
         legal = [candidate for candidate in result.candidates if candidate.is_legal]
         if not legal:
             first = None
@@ -71,68 +71,50 @@ def _first_legal_signature(chord: str) -> tuple[tuple[object, ...], ...]:
     return tuple(signature)
 
 
-def test_v2_6_8_register_guard_split_doc_exists_and_states_boundary() -> None:
+def test_v2_6_9_projection_core_doc_exists_and_states_voicing_only_boundary() -> None:
     text = DOC.read_text(encoding="utf-8")
     required = [
-        "v2_6_8_engine_voicing_spread_register_guard_behavior_preserving_split",
+        "v2_6_9_engine_voicing_spread_projection_core_behavior_preserving_split",
         "behavior-preserving split",
-        "spread_register_guards.py",
-        "SpreadProjectionRegisterPolicy",
-        "basic_spread_register_policy",
-        "basic_spread_projection_legality",
-        "low_register_density_guard_passed",
-        "rooted_bass_anchor_passed",
+        "spread_projection_core.py",
+        "project_basic_spread_contract",
+        "project_basic_spread_candidates",
+        "basic_spread_projection_debug",
         "Public API Compatibility Rule",
-        "lower register window",
-        "upper register window",
-        "group gap min/max",
-        "overall span max",
-        "notes-only and voicing-only",
+        "jammate_engine.core.voicing.disposition.spread_projection_core",
         "does not own pattern",
         "does not own expression",
         "does not own MIDI",
-        "v2_6_9_engine_voicing_spread_projection_core_behavior_preserving_split",
+        "notes-only lower+upper projection construction",
+        "v2_6_9_misty_jazz_ballad_voicing_spread_projection_core_demo.mid",
+        "v2_6_10_engine_voicing_spread_groupwise_voice_leading_behavior_preserving_split",
     ]
     for token in required:
         assert token in text
 
 
-def test_v2_6_8_register_guard_symbols_have_single_owner_and_public_compatibility() -> None:
-    owner_symbols = _defined_symbols(SPREAD_REGISTER_GUARDS)
+def test_v2_6_9_projection_core_symbols_have_single_owner_and_public_compatibility() -> None:
+    owner_symbols = _defined_symbols(SPREAD_PROJECTION_CORE)
     spread_symbols = _defined_symbols(SPREAD)
-
     extracted_symbols = {
-        "SpreadProjectionRegisterPolicy",
-        "basic_spread_register_policy",
-        "spread_register_policy_for_contract",
-        "lower_group_register_window",
-        "basic_spread_projection_legality",
-        "low_register_density_guard_passed",
-        "root_bass_note_from_lower",
-        "rooted_bass_anchor_passed",
-        "root_anchor_tail_span_guard_enabled",
-        "root_anchor_tail_span_guard_passed",
-        "upper_structure_root_shell_tail_gate_passed",
-        "spread_register_guard_debug",
+        "project_basic_spread_contract",
+        "project_basic_spread_candidates",
+        "basic_spread_projection_debug",
     }
-    missing_from_owner = sorted(extracted_symbols - owner_symbols)
-    assert missing_from_owner == []
+    assert sorted(extracted_symbols - owner_symbols) == []
+    assert extracted_symbols & spread_symbols == set()
 
-    # The public spread.py surface should re-export these, not define them itself.
-    forbidden_direct_defs = extracted_symbols & spread_symbols
-    assert forbidden_direct_defs == set()
-
-    assert public_register_policy is owner_register_policy
-    assert package_register_policy is owner_register_policy
-    assert public_basic_register_policy is owner_basic_register_policy
-    assert package_basic_register_policy is owner_basic_register_policy
-    assert public_register_guard_debug is owner_register_guard_debug
-    assert package_register_guard_debug is owner_register_guard_debug
-    assert public_register_guard_split_version == owner_register_guard_split_version == package_register_guard_split_version == "v2_6_8"
+    assert public_project_contract is owner_project_contract
+    assert public_project_candidates is owner_project_candidates
+    assert public_basic_projection_debug is owner_basic_projection_debug
+    assert package_project_contract is owner_project_contract
+    assert package_project_candidates is owner_project_candidates
+    assert package_basic_projection_debug is owner_basic_projection_debug
+    assert public_projection_core_split_version == owner_projection_core_split_version == package_projection_core_split_version == "v2_6_9"
 
 
-def test_v2_6_8_register_guard_owner_does_not_import_non_voicing_layers() -> None:
-    imports = _imported_modules(SPREAD_REGISTER_GUARDS)
+def test_v2_6_9_projection_core_owner_does_not_import_non_voicing_layers() -> None:
+    imports = _imported_modules(SPREAD_PROJECTION_CORE)
     forbidden_prefixes = (
         "jammate_engine.styles",
         "jammate_engine.generation",
@@ -145,7 +127,7 @@ def test_v2_6_8_register_guard_owner_does_not_import_non_voicing_layers() -> Non
     forbidden = [module for module in imports if module.startswith(forbidden_prefixes)]
     assert forbidden == []
 
-    text = SPREAD_REGISTER_GUARDS.read_text(encoding="utf-8")
+    text = SPREAD_PROJECTION_CORE.read_text(encoding="utf-8")
     forbidden_tokens = [
         "PatternEvent",
         "EventExpression",
@@ -159,23 +141,17 @@ def test_v2_6_8_register_guard_owner_does_not_import_non_voicing_layers() -> Non
     assert hits == []
 
 
-def test_v2_6_8_register_policy_debug_is_owned_by_register_guard_module() -> None:
-    policy = public_basic_register_policy()
-    assert isinstance(policy, owner_register_policy)
-    assert policy.lower_low == 36
-    assert policy.upper_high == 84
-    assert policy.min_group_gap == 5
-    assert policy.max_overall_span == 48
-
-    debug = public_register_guard_debug()
-    assert debug["spread_register_guard_split_version"] == "v2_6_8"
-    assert debug["owner"] == "core.voicing.disposition.spread_register_guards"
+def test_v2_6_9_projection_debug_is_owned_by_projection_core_module() -> None:
+    debug = public_basic_projection_debug("Cmaj7")
+    assert debug["spread_projection_core_split_version"] == "v2_6_9"
+    assert debug["owner"] == "core.voicing.disposition.spread_projection_core"
     assert debug["notes_only"] is True
-    assert debug["no_pattern_expression_pedal_or_midi"] is True
-    assert debug["register_policy"]["spread_register_guard_split_version"] == "v2_6_8"
+    assert debug["no_expression_or_pedal"] is True
+    assert debug["no_pattern_anticipation_gesture_or_midi"] is True
+    assert len(debug["results"]) == 5
 
 
-def test_v2_6_8_spread_projection_behavior_signature_matches_v2_6_10_active_spread_freeze() -> None:
+def test_v2_6_9_spread_projection_behavior_signature_matches_v2_6_10_active_spread_freeze() -> None:
     expected = {
         "Cmaj7": (
             ("spread_1plus4_contract", 2, ((36, 55, 64, 71, 72), ("R", "5", "3", "7", "R"), "drop3", 5, 19, True, True)),
@@ -201,3 +177,10 @@ def test_v2_6_8_spread_projection_behavior_signature_matches_v2_6_10_active_spre
     }
     for chord, signature in expected.items():
         assert _first_legal_signature(chord) == signature
+
+
+def test_v2_6_9_misty_demo_exists_and_is_midi_file_when_generated() -> None:
+    if not DEMO.exists():
+        return
+    assert DEMO.read_bytes()[:4] == b"MThd"
+    assert DEMO.stat().st_size > 1000

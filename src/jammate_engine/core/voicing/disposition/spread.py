@@ -669,25 +669,29 @@ class BalladSpreadGroupingMixScene(str, Enum):
 
 BALLAD_SPREAD_GROUPING_MIX_DEFAULT_WEIGHTS: dict[str, dict[str, int]] = {
     BalladSpreadGroupingMixScene.NORMAL_COMPING.value: {
-        "spread_1plus4_contract": 40,
-        "spread_2plus3_contract": 25,
-        "spread_2plus4_contract": 30,
-        "spread_3plus3_contract": 5,
+        # v2_6_10: ordinary Ballad comping should no longer collapse to old
+        # 4-note SPREAD, but it also should not become constantly huge.  The
+        # 5-note 2+3 contract is the default grouped-spread body; 2+4/3+3 are
+        # reserved for lift/climax or occasional fuller support.
+        "spread_1plus4_contract": 18,
+        "spread_2plus3_contract": 56,
+        "spread_2plus4_contract": 22,
+        "spread_3plus3_contract": 4,
         "spread_3plus4_contract": 0,
     },
     BalladSpreadGroupingMixScene.CHORUS_LIFT.value: {
-        "spread_1plus4_contract": 30,
-        "spread_2plus3_contract": 20,
-        "spread_2plus4_contract": 30,
-        "spread_3plus3_contract": 15,
-        "spread_3plus4_contract": 5,
+        "spread_1plus4_contract": 10,
+        "spread_2plus3_contract": 38,
+        "spread_2plus4_contract": 36,
+        "spread_3plus3_contract": 14,
+        "spread_3plus4_contract": 2,
     },
     BalladSpreadGroupingMixScene.ENDING_CLIMAX.value: {
-        "spread_1plus4_contract": 10,
-        "spread_2plus3_contract": 5,
-        "spread_2plus4_contract": 25,
-        "spread_3plus3_contract": 25,
-        "spread_3plus4_contract": 35,
+        "spread_1plus4_contract": 5,
+        "spread_2plus3_contract": 12,
+        "spread_2plus4_contract": 35,
+        "spread_3plus3_contract": 35,
+        "spread_3plus4_contract": 13,
     },
 }
 
@@ -923,31 +927,38 @@ def _ballad_spread_grouping_texture_state(
     seed = sum(ord(ch) for ch in scope_key) % 100
 
     if scene == BalladSpreadGroupingMixScene.NORMAL_COMPING:
-        if seed < 45:
-            family = "root_plus_upper4_phrase"
-            compatible = ("spread_1plus4_contract", "spread_2plus4_contract")
-            primary = "spread_1plus4_contract"
-        elif seed < 80:
-            family = "rooted_medium_phrase"
+        # v2_6_10: choose a phrase-level density lane first.  Normal Ballad
+        # comping is centered on 5-note 2+3 SPREAD; 6-note lanes are controlled
+        # lift options, not the default fix for retiring 4-note 1+3/2+2.
+        if seed < 70:
+            family = "rooted_5note_phrase"
+            compatible = ("spread_2plus3_contract", "spread_1plus4_contract")
+            primary = "spread_2plus3_contract"
+        elif seed < 92:
+            family = "rooted_5_to_6_support_phrase"
             compatible = ("spread_2plus3_contract", "spread_2plus4_contract")
-            primary = "spread_2plus4_contract"
+            primary = "spread_2plus3_contract"
         else:
-            family = "medium_full_phrase"
+            family = "controlled_full_phrase"
             compatible = ("spread_2plus4_contract", "spread_3plus3_contract")
             primary = "spread_2plus4_contract"
     elif scene == BalladSpreadGroupingMixScene.CHORUS_LIFT:
-        if seed < 55:
-            family = "lift_2plus4_3plus3_phrase"
+        if seed < 45:
+            family = "lift_5_to_6_phrase"
+            compatible = ("spread_2plus3_contract", "spread_2plus4_contract")
+            primary = "spread_2plus3_contract"
+        elif seed < 85:
+            family = "lift_6note_support_phrase"
             compatible = ("spread_2plus4_contract", "spread_3plus3_contract")
             primary = "spread_2plus4_contract"
         else:
-            family = "lift_upper4_phrase"
+            family = "lift_upper4_climax_hint"
             compatible = ("spread_1plus4_contract", "spread_2plus4_contract", "spread_3plus4_contract")
             primary = "spread_2plus4_contract"
     else:
         family = "ending_climax_phrase"
         compatible = ("spread_2plus4_contract", "spread_3plus3_contract", "spread_3plus4_contract")
-        primary = "spread_3plus4_contract"
+        primary = "spread_3plus3_contract"
 
     weights = {contract: 0 for contract in base_weights}
     for contract in compatible:
@@ -1950,152 +1961,12 @@ def spread_upper_source_adapter_debug(chord_symbol: str = "Cmaj7", policy: Any |
     }
 
 
-def project_basic_spread_contract(
-    chord_symbol: str,
-    contract: SpreadRecipeContract | str,
-    policy: Any | None = None,
-    *,
-    max_upper_options: int = 12,
-) -> SpreadProjectionResult:
-    """Project one SPREAD recipe contract into lower/upper placed candidates.
-
-    v2_2_40 deliberately stays outside runtime selection.  It combines the
-    v2_2_38 lower inventory with the v2_2_39 upper source adapter, applies
-    basic register/gap/span guards, and returns notes-only candidates.
-    """
-
-    recipe_contract = spread_recipe_contract_by_id(contract) if isinstance(contract, str) else contract
-    runtime_policy = None if isinstance(policy, SpreadProjectionRegisterPolicy) else policy
-    runtime_policy = _spread_runtime_policy_for_contract(recipe_contract, runtime_policy)
-    # Build the register policy after contract-local runtime metadata has been
-    # resolved, so guards such as the v2_2_83 low-register density guard can be
-    # owned by the regular SPREAD projection contract rather than by demo code.
-    register_source_policy = policy if isinstance(policy, SpreadProjectionRegisterPolicy) else runtime_policy
-    register_policy = _spread_register_policy_for_contract(recipe_contract, basic_spread_register_policy(register_source_policy))
-    upper_result = adapt_spread_upper_source(chord_symbol, recipe_contract.upper_source, runtime_policy)
-    lower_recipe_ids = _lower_recipe_ids_for_contract(recipe_contract, runtime_policy, chord_symbol=chord_symbol)
-    candidates: list[SpreadProjectionCandidate] = []
-    chord = parse_chord(chord_symbol)
-    for lower_recipe_id in lower_recipe_ids:
-        lower_low, lower_high, lower_target, lower_min_top = _lower_group_register_window(recipe_contract, register_policy)
-        lower = place_lower_group_recipe(
-            chord.symbol,
-            lower_recipe_id,
-            lower_low,
-            lower_high,
-            target_low=lower_target,
-            min_top_note=lower_min_top,
-            root_bass_anchor_enabled=(
-                bool(register_policy.rooted_bass_anchor_enabled)
-                and int(recipe_contract.lower_group.note_count) in {2, 3}
-                and lower_recipe_id != LowerGroupRecipeId.THIRD_SEVENTH
-            ),
-            root_bass_anchor_low=int(register_policy.root_bass_anchor_low),
-            root_bass_anchor_high=int(register_policy.root_bass_anchor_high),
-            allow_rooted_anchor_upper3_compression=_is_spread_3plus4_contract(recipe_contract),
-            upper3_compression_root_threshold=44,
-        )
-        if not lower.is_legal:
-            continue
-        upper_options = _filter_upper_options_for_spread_contract(
-            upper_result.options,
-            recipe_contract,
-            runtime_policy,
-        )[: max(1, int(max_upper_options))]
-        prefer_expanded_upper_3note = bool(
-            dict(getattr(runtime_policy, "metadata", None) or {}).get("spread_upper_3note_expanded_color_only")
-        )
-        for upper_option in upper_options:
-            for upper_placed, method, upper_metadata in _place_upper_source_for_spread(
-                chord.root_pc,
-                upper_option,
-                register_policy,
-                runtime_policy,
-            ):
-                is_legal, reason = _basic_spread_projection_legality(lower, upper_placed, register_policy, recipe_contract)
-                candidates.append(
-                    SpreadProjectionCandidate(
-                        chord_symbol=chord.symbol,
-                        recipe_contract=recipe_contract,
-                        lower=lower,
-                        upper_source=upper_option,
-                        upper_placed=tuple(upper_placed),
-                        upper_projection_method=method,
-                        upper_projection_metadata=upper_metadata,
-                        register_policy=register_policy,
-                        is_legal=is_legal,
-                        legality_reason=reason,
-                    )
-                )
-    metadata = dict(getattr(runtime_policy, "metadata", None) or {})
-    if bool(metadata.get("spread_upper_3note_expanded_color_only")):
-        expanded_upper_candidates = [
-            candidate for candidate in candidates
-            if candidate.is_legal and _is_expanded_upper_3note_color(candidate.upper_source)
-        ]
-        if expanded_upper_candidates:
-            candidates = expanded_upper_candidates
-    if bool(metadata.get("spread_upper_4note_expanded_color_only")):
-        expanded_upper_candidates = [
-            candidate for candidate in candidates
-            if candidate.is_legal and _is_expanded_upper_4note_color(candidate.upper_source)
-        ]
-        if expanded_upper_candidates:
-            candidates = expanded_upper_candidates
-    candidates = _prefer_rootless_upper_color_for_spread_3plus4(candidates, recipe_contract)
-    preferred_lower_recipe = _preferred_lower_recipe_id_from_policy(recipe_contract, runtime_policy)
-    if preferred_lower_recipe is not None:
-        preferred_candidates = [
-            candidate for candidate in candidates
-            if candidate.is_legal and candidate.lower.instance.recipe.recipe_id == preferred_lower_recipe
-        ]
-        if preferred_candidates:
-            candidates = preferred_candidates
-    # Keep debug payload compact and deterministic while preserving one option
-    # per lower recipe / upper source / projection method combination.
-    candidates = _dedupe_spread_projection_candidates(candidates)
-    return SpreadProjectionResult(
-        chord_symbol=chord.symbol,
-        recipe_contract=recipe_contract,
-        candidates=tuple(candidates),
-        register_policy=register_policy,
-    )
-
-
-def project_basic_spread_candidates(
-    chord_symbol: str,
-    policy: Any | None = None,
-    *,
-    contract_ids: tuple[str, ...] | None = None,
-    max_upper_options: int = 12,
-) -> tuple[SpreadProjectionResult, ...]:
-    """Project all or selected SPREAD recipe contracts for one chord symbol."""
-
-    contracts = spread_recipe_contract_skeleton()
-    if contract_ids is not None:
-        wanted = {str(item) for item in contract_ids}
-        contracts = tuple(contract for contract in contracts if contract.recipe_id in wanted)
-    return tuple(
-        project_basic_spread_contract(chord_symbol, contract, policy, max_upper_options=max_upper_options)
-        for contract in contracts
-    )
-
-
-def basic_spread_projection_debug(chord_symbol: str = "Cmaj7", policy: Any | None = None) -> dict[str, object]:
-    """Return a v2_2_40 debug payload for basic SPREAD projection."""
-
-    results = project_basic_spread_candidates(chord_symbol, policy)
-    return {
-        "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-        "basic_spread_projection_version": BASIC_SPREAD_PROJECTION_VERSION,
-        "layer": "core.voicing.disposition.spread",
-        "purpose": "Basic SPREAD Projection: lower inventory + upper source adapter + register/gap/span guards",
-        "runtime_enabled": False,
-        "notes_only": True,
-        "no_expression_or_pedal": True,
-        "final_placed_closed_open_result_reuse_allowed": False,
-        "results": [result.to_debug_dict() for result in results],
-    }
+from .spread_projection_core import (
+    SPREAD_PROJECTION_CORE_SPLIT_VERSION,
+    basic_spread_projection_debug,
+    project_basic_spread_candidates,
+    project_basic_spread_contract,
+)
 
 
 def score_spread_groupwise_voice_leading(
@@ -5163,11 +5034,13 @@ def spread_recipe_reuse_audit() -> tuple[SpreadReuseAuditItem, ...]:
     )
 
 
-def spread_recipe_contract_skeleton() -> tuple[SpreadRecipeContract, ...]:
-    """Return the v2_2_38 SPREAD grouping/source contract skeleton.
+def spread_recipe_contract_skeleton(*, include_retired_four_note: bool = False) -> tuple[SpreadRecipeContract, ...]:
+    """Return the active SPREAD grouping/source contract skeleton.
 
-    This does not enumerate the lower inventory or build runtime candidates.  It
-    only fixes the reusable boundaries that later passes must follow.
+    v2_6_10 retires the old 4-note 1+3 / 2+2 SPREAD contracts from the
+    default skeleton.  Explicit legacy audits may request them with
+    ``include_retired_four_note=True``, but ordinary runtime SPREAD now starts
+    at 5-note grouped contracts.
     """
 
     lower_1 = LowerGroupRecipeContract(
@@ -5204,15 +5077,20 @@ def spread_recipe_contract_skeleton() -> tuple[SpreadRecipeContract, ...]:
         reusable_owner_paths=("core.voicing.content_planner", "core.voicing.four_note_sources", "core.voicing.disposition.open"),
         projection_methods=("DROP2", "DROP3"),
     )
-    return (
-        SpreadRecipeContract("spread_1plus3_contract", SpreadGrouping.ONE_PLUS_THREE, 4, lower_1, upper_3),
-        SpreadRecipeContract("spread_2plus2_contract", SpreadGrouping.TWO_PLUS_TWO, 4, lower_2, upper_2),
+    active = (
         SpreadRecipeContract("spread_1plus4_contract", SpreadGrouping.ONE_PLUS_FOUR, 5, lower_1, upper_4),
         SpreadRecipeContract("spread_2plus3_contract", SpreadGrouping.TWO_PLUS_THREE, 5, lower_2, upper_3),
         SpreadRecipeContract("spread_2plus4_contract", SpreadGrouping.TWO_PLUS_FOUR, 6, lower_2, upper_4),
         SpreadRecipeContract("spread_3plus3_contract", SpreadGrouping.THREE_PLUS_THREE, 6, lower_3, upper_3),
         SpreadRecipeContract("spread_3plus4_contract", SpreadGrouping.THREE_PLUS_FOUR, 7, lower_3, upper_4),
     )
+    if not include_retired_four_note:
+        return active
+    retired = (
+        SpreadRecipeContract("spread_1plus3_contract", SpreadGrouping.ONE_PLUS_THREE, 4, lower_1, upper_3),
+        SpreadRecipeContract("spread_2plus2_contract", SpreadGrouping.TWO_PLUS_TWO, 4, lower_2, upper_2),
+    )
+    return (*retired, *active)
 
 
 def spread_recipe_contract_debug() -> dict[str, object]:
@@ -5229,6 +5107,9 @@ def spread_recipe_contract_debug() -> dict[str, object]:
         "lower_group_inventory": [recipe.to_debug_dict() for recipe in lower_group_recipe_inventory()],
         "upper_source_adapter_version": UPPER_SOURCE_ADAPTER_VERSION,
         "upper_source_refs": [ref.to_debug_dict() for ref in spread_upper_source_refs()],
+        "active_contract_ids": list(SPREAD_ACTIVE_CONTRACT_IDS),
+        "retired_four_note_contract_ids": list(SPREAD_RETIRED_FOUR_NOTE_CONTRACT_IDS),
+        "four_note_spread_groupings_retired": True,
         "recipe_contracts": [contract.to_debug_dict() for contract in spread_recipe_contract_skeleton()],
     }
 

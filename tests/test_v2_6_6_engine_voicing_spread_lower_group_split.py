@@ -184,8 +184,6 @@ def test_v2_6_6_lower_group_inventory_and_placement_behavior_is_unchanged() -> N
 def test_v2_6_6_spread_projection_behavior_signature_matches_v2_6_5_freeze() -> None:
     expected = {
         "Cmaj7": (
-            ("spread_1plus3_contract", 4, ((36, 52, 55, 59), ("R", "3", "5", "7"), "closed_upper_stack", 4, 16, True, True)),
-            ("spread_2plus2_contract", 8, ((48, 52, 59, 64), ("R", "3", "7", "3"), "closed_upper_stack", 4, 7, True, True)),
             ("spread_1plus4_contract", 2, ((36, 55, 64, 71, 72), ("R", "5", "3", "7", "R"), "drop3", 5, 19, True, True)),
             ("spread_2plus3_contract", 11, ((47, 48, 55, 59, 64), ("7", "R", "5", "7", "3"), "closed_upper_stack", 5, 7, True, True)),
             ("spread_2plus4_contract", 3, ((48, 52, 59, 64, 67, 72), ("R", "3", "7", "3", "5", "R"), "drop2", 6, 7, True, True)),
@@ -193,8 +191,6 @@ def test_v2_6_6_spread_projection_behavior_signature_matches_v2_6_5_freeze() -> 
             ("spread_3plus4_contract", 3, ((36, 47, 52, 57, 64, 71, 74), ("R", "7", "3", "13", "3", "7", "9"), "drop3", 7, 5, True, True)),
         ),
         "G7b9": (
-            ("spread_1plus3_contract", 12, ((43, 50, 53, 59), ("R", "5", "b7", "3"), "closed_upper_stack", 4, 7, True, True)),
-            ("spread_2plus2_contract", 8, ((43, 47, 53, 59), ("R", "3", "b7", "3"), "closed_upper_stack", 4, 6, True, True)),
             ("spread_1plus4_contract", 2, ((43, 55, 65, 68, 71), ("R", "R", "b7", "b9", "3"), "drop3", 5, 12, True, True)),
             ("spread_2plus3_contract", 24, ((43, 47, 53, 56, 59), ("R", "3", "b7", "b9", "3"), "closed_upper_stack", 5, 6, True, True)),
             ("spread_2plus4_contract", 4, ((43, 47, 55, 65, 68, 71), ("R", "3", "R", "b7", "b9", "3"), "drop3", 6, 8, True, True)),
@@ -202,8 +198,6 @@ def test_v2_6_6_spread_projection_behavior_signature_matches_v2_6_5_freeze() -> 
             ("spread_3plus4_contract", 0, None),
         ),
         "Bm7b5": (
-            ("spread_1plus3_contract", 6, ((47, 53, 57, 62), ("R", "b5", "b7", "b3"), "closed_upper_stack", 4, 6, True, True)),
-            ("spread_2plus2_contract", 0, None),
             ("spread_1plus4_contract", 2, ((47, 57, 65, 71, 74), ("R", "b7", "b5", "R", "b3"), "drop3", 5, 10, True, True)),
             ("spread_2plus3_contract", 11, ((45, 47, 53, 57, 62), ("b7", "R", "b5", "b7", "b3"), "closed_upper_stack", 5, 6, True, True)),
             ("spread_2plus4_contract", 4, ((47, 50, 57, 65, 71, 74), ("R", "b3", "b7", "b5", "R", "b3"), "drop3", 6, 7, True, True)),

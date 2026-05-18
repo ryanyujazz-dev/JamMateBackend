@@ -3,7 +3,21 @@ from __future__ import annotations
 from enum import Enum
 
 
-SPREAD_RECIPE_CONTRACT_VERSION = "v2_2_40"
+SPREAD_RECIPE_CONTRACT_VERSION = "v2_6_10"
+
+
+SPREAD_RETIRED_FOUR_NOTE_CONTRACT_IDS: tuple[str, ...] = (
+    "spread_1plus3_contract",
+    "spread_2plus2_contract",
+)
+
+SPREAD_ACTIVE_CONTRACT_IDS: tuple[str, ...] = (
+    "spread_1plus4_contract",
+    "spread_2plus3_contract",
+    "spread_2plus4_contract",
+    "spread_3plus3_contract",
+    "spread_3plus4_contract",
+)
 
 
 class SpreadGrouping(str, Enum):
