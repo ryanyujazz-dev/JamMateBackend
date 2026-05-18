@@ -1,7 +1,7 @@
 [project]
 name = "jammate-engine"
-version = "2.4.7"
-description = "JamMatePyEngineV2 Agent Terminal Trace Export"
+version = "2.4.11"
+description = "JamMatePyEngineV2 Agent Terminal Chat Context Controls"
 requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.110",
@@ -18,3 +18,4 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 jammate-agent-chat = "jammate_agent.cli.terminal_chat:main"
+jammate-agent-traces = "jammate_agent.cli.trace_viewer:main"

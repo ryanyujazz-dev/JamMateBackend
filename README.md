@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_4_7`.
+Current package version: `v2_4_11`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -83,6 +83,7 @@ Patterns live in styles. Voicing and expression are core-level shared systems.
 - Exposes a provider-neutral LLM config/status boundary without provider SDK imports or network calls.
 - Exposes a descriptor-only Agent tool registry for future bounded LLM tool planning.
 - Exposes a terminal chat CLI for optional provider-backed LLM conversation during backend debugging.
+- Scans successful terminal LLM replies for explicit JSON tool-call candidates and previews them without execution.
 - Exposes a bounded runloop preview contract for future tool workflows.
 - Maintains trace logging for Agent steps.
 - Exposes capability and contract manifests for HarmonyOS integration.
@@ -308,9 +309,19 @@ Interactive commands:
 /exit
 ```
 
+Read-only trace viewing is available separately from chat:
+
+```bash
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir tmp/terminal_traces list
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer --trace-dir tmp/terminal_traces show <trace_id>
+PYTHONPATH=src python -m jammate_agent.cli.trace_viewer spec
+```
+
+The trace viewer never executes tools, calls an LLM provider, dispatches workflows, or imports the engine. Terminal context controls rebuild ContextPacket previews only; they do not call the provider or execute tools.
+
 ## Current Development Status
 
-`v2_4_7` is the Agent terminal trace export foundation for `feature/agent-workflow`. It preserves the terminal chat and explicit `/tool-preview` preview contract from previous v2_4_x work, then adds explicit `--trace-dir` JSON trace export plus `/trace` and `/traces` inspection commands. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch all remain disabled from the terminal boundary. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_11` is the Agent terminal tool-call candidate extraction baseline for `feature/agent-workflow`. It preserves terminal chat, optional provider-backed conversation, validation-only `/tool-preview`, explicit `--trace-dir` export, read-only trace viewer, and context/profile/session controls, then adds JSON-only extraction of candidate tool calls from successful terminal LLM replies. Extracted candidates are previewed against the current ContextPacket allow-list and never executed. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch remain disabled. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ```text
 Current active window -> feature/agent-workflow

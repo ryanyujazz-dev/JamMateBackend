@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_4_7`.
+Current version: `v2_4_11`.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -132,4 +132,4 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_4_7_agent_terminal_trace_export` is the active `feature/agent-workflow` baseline. It exposes explicit terminal `--trace-dir` JSON trace export for normal chat and `/tool-preview`, reusing `TraceLogger` / `JsonTraceStore` / `AgentTrace` instead of creating a second tracing stack. The API runloop remains preview-only, autonomous/tool execution remains disabled, deterministic workflow dispatch is not allowed from terminal or API tool preview, terminal trace export is explicit-only, and HarmonyOS `/accompaniment/generate` inline leadsheet behavior remains the direct playback contract. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_11_agent_terminal_tool_call_candidate_extraction` is the active `feature/agent-workflow` baseline. It keeps terminal chat, explicit `--trace-dir` JSON trace export, validation-only `/tool-preview`, versioned Trace API list/detail contracts, read-only trace viewer CLI, and terminal context/profile/session controls, then adds JSON-only extraction of candidate tool calls from successful terminal LLM replies. Extracted candidates are sent through the same preview contract and never execute tools, dispatch workflows, call adapters, or call `jammate_engine`. HarmonyOS `/accompaniment/generate` inline leadsheet behavior remains the direct playback contract. Runtime music generation behavior is unchanged from `v2_3_17`.

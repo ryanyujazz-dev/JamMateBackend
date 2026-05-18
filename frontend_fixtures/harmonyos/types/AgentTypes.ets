@@ -1,4 +1,4 @@
-// JamMate Agent API Types v2_4_7
+// JamMate Agent API Types v2_4_11
 // Copy target: entry/src/main/ets/features/jammateAgent/model/AgentTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 
@@ -198,11 +198,19 @@ export interface AgentResponse {
 }
 
 export interface AgentTraceSummary {
+  traceContractVersion: string
+  traceSchemaVersion: string
   traceId: string
   taskType: string
-  userInput?: string
+  requestId?: string | null
+  userInputPreview?: string
   createdAt?: string
+  updatedAt?: string
   validationResult?: string | null
+  stepCount: number
+  steps?: number
+  hasContextPacketSummary: boolean
+  hasFinalResponseSummary: boolean
 }
 
 export interface AgentTraceStep {
@@ -211,11 +219,38 @@ export interface AgentTraceStep {
   at?: string
 }
 
-export interface AgentTraceDetail extends AgentTraceSummary {
+export interface AgentTraceDetail {
+  traceContractVersion: string
+  traceSchemaVersion: string
+  traceId: string
+  taskType: string
   requestId?: string | null
-  contextPacketSummary?: Record<string, unknown>
+  userInput: string
+  contextPacketSummary: Record<string, unknown>
   steps: AgentTraceStep[]
-  finalResponseSummary?: Record<string, unknown>
+  validationResult?: string | null
+  finalResponseSummary: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AgentTraceListResponse {
+  ok: boolean
+  traceContractVersion: string
+  traces: AgentTraceSummary[]
+}
+
+export interface AgentTraceDetailResponse {
+  ok: boolean
+  traceContractVersion: string
+  trace?: AgentTraceDetail | null
+  errorCode?: 'TRACE_NOT_FOUND' | string | null
+  message?: string | null
+}
+
+export interface AgentTraceApiSpecResponse {
+  ok: boolean
+  spec: Record<string, unknown>
 }
 
 export interface AgentCapabilitiesResponse {

@@ -11,7 +11,7 @@ from jammate_agent.core.context import ContextBuilder
 from jammate_agent.core.guardrails import PracticePlanGuardrails
 from jammate_agent.core.intent_classifier import AgentIntentType, IntentClassifier
 from jammate_agent.core.runloop import BoundedAgentRunLoop
-from jammate_agent.core.trace import TraceLogger
+from jammate_agent.core.trace import AgentTrace, TraceLogger
 
 
 @dataclass
@@ -138,9 +138,8 @@ class JamMateAgent:
             trace_id=trace.trace_id,
         )
 
-    def get_trace(self, trace_id: str) -> dict[str, Any] | None:
-        trace = self.trace_logger.get(trace_id)
-        return trace.to_dict() if trace else None
+    def get_trace(self, trace_id: str) -> AgentTrace | None:
+        return self.trace_logger.get(trace_id)
 
     def list_recent_traces(self, limit: int = 20) -> list[dict[str, Any]]:
         return self.trace_logger.list_recent(limit=limit)

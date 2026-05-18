@@ -6,12 +6,17 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, TextIO
 
-from jammate_agent.core.context import ContextBuilder
+from jammate_agent.core.context import CONTEXT_PROFILES, ContextBuilder
 from jammate_agent.core.llm_provider import LLMProvider, build_llm_provider_from_env, build_request_envelope
-from jammate_agent.core.tool_invocation import ToolInvocationProposal, preview_tool_invocation
+from jammate_agent.core.tool_invocation import (
+    TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+    ToolInvocationProposal,
+    extract_tool_call_candidates,
+    preview_tool_invocation,
+)
 from jammate_agent.core.trace import AgentTrace, JsonTraceStore, TraceLogger
 
-TERMINAL_CHAT_VERSION = "v2_4_7"
+TERMINAL_CHAT_VERSION = "v2_4_11"
 
 
 @dataclass
@@ -25,6 +30,14 @@ class TerminalChatSession:
     `/tool-preview` is an explicit terminal command that validates a proposed
     tool call against the same ContextPacket allow-list and preview contract.
     It never dispatches deterministic workflows or engine adapters.
+
+    v2_4_11 adds explicit terminal context/session controls so developers can
+    switch task profiles, inspect ContextPacket summaries, reset local chat
+    history, and change instrument hints without restarting the CLI.
+
+    v2_4_11 additionally scans successful assistant text for explicit JSON
+    tool-call candidates and sends them through the preview contract. Extracted
+    candidates never execute tools or engine workflows.
     """
 
     task_type: str = "coach_qa"
@@ -78,13 +91,62 @@ class TerminalChatSession:
                 "tool_execution_enabled": False,
             },
         )
+        extraction_payload: dict[str, Any] = {
+            "extraction_version": TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
+            "ok": True,
+            "candidate_count": 0,
+            "candidates": [],
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+        }
+        candidate_previews: list[dict[str, Any]] = []
         if result.ok and result.content:
+            extraction = extract_tool_call_candidates(result.content)
+            extraction_payload = extraction.to_dict()
+            self._add_trace_step(trace, "terminal_tool_call_candidates_extracted", extraction_payload)
+            for candidate in extraction.candidates:
+                proposal = candidate.to_proposal(
+                    task_type=packet.task_type,
+                    user_input=user_input,
+                    client_context={
+                        "entry_point": "terminal_chat_cli",
+                        "source": "assistant_text_candidate_extraction",
+                    },
+                )
+                preview = preview_tool_invocation(proposal, allowed_tools=packet.allowed_tools)
+                preview_payload = preview.to_dict()
+                candidate_previews.append({
+                    "candidate": candidate.to_dict(),
+                    "preview": preview_payload,
+                    "would_execute": False,
+                })
+            if candidate_previews:
+                self._add_trace_step(
+                    trace,
+                    "terminal_tool_call_candidates_previewed",
+                    {
+                        "candidate_preview_count": len(candidate_previews),
+                        "previews": candidate_previews,
+                        "tool_execution_enabled": False,
+                    },
+                )
             self.history.append({"role": "user", "content": user_input})
             self.history.append({"role": "assistant", "content": result.content})
+        response["tool_call_candidate_extraction_version"] = TOOL_CALL_CANDIDATE_EXTRACTION_VERSION
+        response["tool_call_candidate_extraction"] = extraction_payload
+        response["tool_call_candidate_previews"] = candidate_previews
+        response["tool_call_candidate_preview_count"] = len(candidate_previews)
         self._finish_trace(
             trace,
             "passed" if result.ok else "guarded",
-            {"ok": result.ok, "task_type": packet.task_type, "terminal_chat_version": TERMINAL_CHAT_VERSION, "tool_execution_enabled": False},
+            {
+                "ok": result.ok,
+                "task_type": packet.task_type,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "tool_execution_enabled": False,
+                "tool_call_candidate_count": extraction_payload.get("candidate_count", 0),
+                "tool_call_candidate_preview_count": len(candidate_previews),
+            },
         )
         response["trace_id"] = self.last_trace_id
         response["trace_path"] = self.last_trace_path
@@ -127,6 +189,7 @@ class TerminalChatSession:
             "would_execute": False,
             "preview": preview_payload,
             "context_packet_summary": packet.summary(),
+            "session_summary": self.session_summary(),
             "trace_id": self.last_trace_id,
             "trace_path": self.last_trace_path,
         }
@@ -139,6 +202,119 @@ class TerminalChatSession:
             client_context={"entry_point": "terminal_chat_cli", "terminal_command": "/tools"},
         )
         return list(packet.allowed_tools)
+
+    def context_packet_preview(self, *, full: bool = False, user_input: str = "Terminal context preview") -> dict[str, Any]:
+        """Build the current task-scoped ContextPacket without calling the provider."""
+
+        packet = self.context_builder.build(
+            self.task_type,
+            user_input,
+            instrument=self.instrument,
+            client_context={"entry_point": "terminal_chat_cli", "terminal_command": "/context"},
+        )
+        payload = {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context",
+            "task_type": packet.task_type,
+            "instrument": self.instrument,
+            "summary": packet.summary(),
+            "tool_execution_enabled": False,
+            "provider_call_enabled": False,
+        }
+        if full:
+            payload["context_packet"] = packet.to_dict()
+        return payload
+
+    def profile_manifest(self) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "current_task_type": self.task_type,
+            "profiles": self.context_builder.profile_manifest(),
+        }
+
+    def current_profile(self) -> dict[str, Any]:
+        profile = CONTEXT_PROFILES.get(self.task_type)
+        return {
+            "ok": profile is not None,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "task_type": self.task_type,
+            "profile": profile.to_dict() if profile else None,
+        }
+
+    def switch_task_type(self, task_type: str) -> dict[str, Any]:
+        normalized = task_type.strip()
+        if normalized not in CONTEXT_PROFILES:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "error_code": "UNKNOWN_CONTEXT_PROFILE",
+                "message": f"Unknown task_type: {normalized}",
+                "available_task_types": sorted(CONTEXT_PROFILES.keys()),
+                "task_type": self.task_type,
+            }
+        previous = self.task_type
+        history_messages_before = len(self.history)
+        self.task_type = normalized
+        self.history.clear()
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/task-type",
+            "previous_task_type": previous,
+            "task_type": self.task_type,
+            "history_cleared": True,
+            "history_messages_cleared": history_messages_before,
+            "profile": CONTEXT_PROFILES[self.task_type].to_dict(),
+        }
+
+    def set_instrument(self, instrument: str) -> dict[str, Any]:
+        normalized = instrument.strip()
+        if not normalized:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "error_code": "INSTRUMENT_REQUIRED",
+                "message": "Usage: /instrument <instrument>",
+                "instrument": self.instrument,
+            }
+        previous = self.instrument
+        self.instrument = normalized
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/instrument",
+            "previous_instrument": previous,
+            "instrument": self.instrument,
+        }
+
+    def reset_session(self) -> dict[str, Any]:
+        cleared = len(self.history)
+        self.history.clear()
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/reset",
+            "history_messages_cleared": cleared,
+            "task_type": self.task_type,
+            "instrument": self.instrument,
+            "tool_execution_enabled": False,
+        }
+
+    def session_summary(self) -> dict[str, Any]:
+        return {
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "task_type": self.task_type,
+            "instrument": self.instrument,
+            "history_message_count": len(self.history),
+            "history_turn_count": len(self.history) // 2,
+            "trace_export_enabled": self.trace_export_enabled(),
+            "last_trace_id": self.last_trace_id,
+            "last_trace_path": self.last_trace_path,
+            "tool_execution_enabled": False,
+            "autonomous_tool_execution_enabled": False,
+        }
 
     def trace_export_enabled(self) -> bool:
         return self.trace_logger is not None
@@ -158,6 +334,7 @@ class TerminalChatSession:
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
             "cli_task_type": self.task_type,
             "instrument": self.instrument,
+            "history_message_count": len(self.history),
             "tool_execution_enabled": False,
             "autonomous_tool_execution_enabled": False,
         }
@@ -241,6 +418,40 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             print(f"  - {tool}", file=stdout)
         print("Tool execution remains disabled; use /tool-preview to validate a proposed call.", file=stdout)
         return True
+    if user_input == "/session":
+        _print_session_summary(session.session_summary(), stdout)
+        return True
+    if user_input.startswith("/context"):
+        full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
+        _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
+        return True
+    if user_input == "/profiles":
+        _print_profile_manifest(session.profile_manifest(), stdout)
+        return True
+    if user_input.startswith("/profile"):
+        rest = user_input[len("/profile") :].strip()
+        if not rest:
+            _print_current_profile(session.current_profile(), stdout)
+            return True
+        _print_task_type_switch(session.switch_task_type(rest), stdout)
+        return True
+    if user_input.startswith("/task-type"):
+        rest = user_input[len("/task-type") :].strip()
+        if not rest:
+            _print_current_profile(session.current_profile(), stdout)
+            return True
+        _print_task_type_switch(session.switch_task_type(rest), stdout)
+        return True
+    if user_input.startswith("/instrument"):
+        rest = user_input[len("/instrument") :].strip()
+        if not rest:
+            print(f"Instrument> {session.instrument}", file=stdout)
+            return True
+        _print_instrument_update(session.set_instrument(rest), stdout)
+        return True
+    if user_input == "/reset":
+        _print_reset_response(session.reset_session(), stdout)
+        return True
     if user_input == "/trace":
         _print_trace_status(session, stdout)
         return True
@@ -302,8 +513,25 @@ def _print_provider_status(status: dict, stdout: TextIO) -> None:
 def _print_response(response: dict, stdout: TextIO) -> None:
     if response.get("ok"):
         print(f"JamMate> {response.get('content', '')}", file=stdout)
+        _print_candidate_preview_summary(response, stdout)
         return
     print(f"JamMate[guarded]> {response.get('error_code')}: {response.get('message')}", file=stdout)
+
+
+def _print_candidate_preview_summary(response: dict, stdout: TextIO) -> None:
+    previews = response.get("tool_call_candidate_previews") or []
+    extraction = response.get("tool_call_candidate_extraction") or {}
+    candidate_count = extraction.get("candidate_count", 0)
+    if not candidate_count:
+        return
+    print(f"ToolCandidateExtraction> {candidate_count} candidate(s); execution disabled", file=stdout)
+    for item in previews:
+        candidate = item.get("candidate") or {}
+        preview = item.get("preview") or {}
+        print(f"  - {candidate.get('tool_name')}: {preview.get('status')} would_execute={preview.get('would_execute')}", file=stdout)
+        blocking = preview.get("blocking_reasons") or []
+        if blocking:
+            print(f"    blocking_reasons: {', '.join(str(value) for value in blocking)}", file=stdout)
 
 
 def _print_tool_preview_response(response: dict, stdout: TextIO) -> None:
@@ -321,6 +549,78 @@ def _print_tool_preview_response(response: dict, stdout: TextIO) -> None:
     warnings = preview.get("warnings") or []
     if warnings:
         print(f"  warnings: {', '.join(str(item) for item in warnings)}", file=stdout)
+
+
+def _print_session_summary(summary: dict[str, Any], stdout: TextIO) -> None:
+    print("Session>", file=stdout)
+    print(f"  task_type: {summary.get('task_type')}", file=stdout)
+    print(f"  instrument: {summary.get('instrument')}", file=stdout)
+    print(f"  history_messages: {summary.get('history_message_count')}", file=stdout)
+    print(f"  history_turns: {summary.get('history_turn_count')}", file=stdout)
+    print(f"  trace_export_enabled: {summary.get('trace_export_enabled')}", file=stdout)
+    print(f"  last_trace_id: {summary.get('last_trace_id')}", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
+
+
+def _print_context_preview(payload: dict[str, Any], stdout: TextIO, *, full: bool = False) -> None:
+    if full:
+        print(json.dumps(payload, ensure_ascii=False, indent=2), file=stdout)
+        return
+    summary = payload.get("summary") or {}
+    print("ContextPacket>", file=stdout)
+    print(f"  task_type: {payload.get('task_type')}", file=stdout)
+    print(f"  instrument: {payload.get('instrument')}", file=stdout)
+    print(f"  context_runtime_version: {summary.get('context_runtime_version')}", file=stdout)
+    print(f"  selected_layers: {', '.join(summary.get('selected_context_layers') or [])}", file=stdout)
+    print(f"  allowed_tools: {', '.join(summary.get('allowed_tools') or [])}", file=stdout)
+    print(f"  output_schema: {summary.get('output_schema')}", file=stdout)
+    print("  provider_call_enabled: False", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
+
+
+def _print_profile_manifest(payload: dict[str, Any], stdout: TextIO) -> None:
+    print(f"ContextProfiles> current_task_type: {payload.get('current_task_type')}", file=stdout)
+    profiles = payload.get("profiles") or {}
+    for task_type in sorted(profiles):
+        profile = profiles[task_type]
+        tools = profile.get("allowed_tools") or []
+        print(f"  - {task_type}: schema={profile.get('output_schema')} llm_required={profile.get('llm_required')} tools={','.join(tools)}", file=stdout)
+
+
+def _print_current_profile(payload: dict[str, Any], stdout: TextIO) -> None:
+    profile = payload.get("profile") or {}
+    print(f"CurrentProfile> {payload.get('task_type')}", file=stdout)
+    print(f"  output_schema: {profile.get('output_schema')}", file=stdout)
+    print(f"  llm_required: {profile.get('llm_required')}", file=stdout)
+    print(f"  deterministic_fallback: {profile.get('deterministic_fallback')}", file=stdout)
+    print(f"  allowed_tools: {', '.join(profile.get('allowed_tools') or [])}", file=stdout)
+
+
+def _print_task_type_switch(payload: dict[str, Any], stdout: TextIO) -> None:
+    if not payload.get("ok"):
+        _print_command_error(payload, stdout)
+        available = payload.get("available_task_types") or []
+        if available:
+            print(f"  available_task_types: {', '.join(available)}", file=stdout)
+        return
+    print(f"TaskType> {payload.get('previous_task_type')} -> {payload.get('task_type')}", file=stdout)
+    print(f"  history_cleared: {payload.get('history_cleared')}", file=stdout)
+    print(f"  output_schema: {(payload.get('profile') or {}).get('output_schema')}", file=stdout)
+
+
+def _print_instrument_update(payload: dict[str, Any], stdout: TextIO) -> None:
+    if not payload.get("ok"):
+        _print_command_error(payload, stdout)
+        return
+    print(f"Instrument> {payload.get('previous_instrument')} -> {payload.get('instrument')}", file=stdout)
+
+
+def _print_reset_response(payload: dict[str, Any], stdout: TextIO) -> None:
+    print("SessionReset>", file=stdout)
+    print(f"  history_messages_cleared: {payload.get('history_messages_cleared')}", file=stdout)
+    print(f"  task_type: {payload.get('task_type')}", file=stdout)
+    print(f"  instrument: {payload.get('instrument')}", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
 
 
 def _print_command_error(response: dict[str, Any], stdout: TextIO) -> None:
@@ -363,13 +663,23 @@ def _print_recent_traces(session: TerminalChatSession, stdout: TextIO) -> None:
 def _print_help(stdout: TextIO) -> None:
     print("Commands:", file=stdout)
     print("  /help", file=stdout)
+    print("  /session", file=stdout)
+    print("  /context [full|--full|json|--json]", file=stdout)
+    print("  /profiles", file=stdout)
+    print("  /profile [task_type]", file=stdout)
+    print("  /task-type [task_type]", file=stdout)
+    print("  /instrument [instrument]", file=stdout)
+    print("  /reset", file=stdout)
     print("  /tools", file=stdout)
     print('  /tool-preview <tool_name> [json_object_arguments]', file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
     print("Use --trace-dir <dir> to export terminal chat/tool-preview traces as JSON.", file=stdout)
+    print("Use `python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list|show` to inspect exported traces.", file=stdout)
+    print("Context controls rebuild preview packets only; they never call the provider, execute tools, or call engine workflows.", file=stdout)
     print("Tool preview validates only; it never executes tools or engine workflows.", file=stdout)
+    print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 
 
 def main() -> int:

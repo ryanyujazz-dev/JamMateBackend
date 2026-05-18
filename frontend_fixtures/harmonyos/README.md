@@ -1,4 +1,4 @@
-# JamMate HarmonyOS Frontend Fixture Pack v2_4_7
+# JamMate HarmonyOS Frontend Fixture Pack v2_4_11
 
 This folder is a copy-friendly frontend contract pack for HarmonyOS development.
 

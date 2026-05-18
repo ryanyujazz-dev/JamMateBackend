@@ -1,5 +1,44 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_4_11 — Agent Terminal Tool Call Candidate Extraction
+
+- Added explicit JSON-only tool-call candidate extraction from successful terminal LLM replies.
+- Reused `core/tool_invocation.py` as the owner for candidate extraction and validation-only preview; no second parser/tool subsystem was added.
+- Terminal chat now sends extracted candidates through `preview_tool_invocation(...)` using the current task-scoped `ContextPacket.allowed_tools`.
+- Supported candidate shapes include `tool_name`/`toolName`, `tool_call`, `function_call`, and `tool_calls` JSON objects/lists, either as full assistant messages or fenced JSON blocks.
+- Extracted candidates never execute tools, dispatch workflows, call adapters, call API routes, or call the engine.
+- Runtime music generation behavior is unchanged.
+
+## v2_4_10 — Agent Terminal Chat Context Controls
+
+- Added explicit terminal chat context/profile/session controls: `/context`, `/profiles`, `/profile`, `/task-type`, `/instrument`, `/session`, and `/reset`.
+- Reused the existing `terminal_chat.py` owner and `ContextBuilder`; no parallel chat CLI or context subsystem was added.
+- `/context` and `/context full` build ContextPacket previews only; they do not call the provider, execute tools, dispatch workflows, or call the engine.
+- `/profile` and `/task-type` switch the active task profile and clear local terminal history to avoid cross-profile conversation leakage.
+- `/instrument` updates the instrument hint used by future ContextPacket builds; `/reset` clears local chat history.
+- Existing `/tool-preview`, trace export, read-only trace viewer, and HarmonyOS `/accompaniment/generate` contracts remain intact.
+- Runtime music generation behavior is unchanged.
+
+## v2_4_9 — Agent Trace Viewer CLI
+
+- Added a read-only local terminal trace viewer: `python -m jammate_agent.cli.trace_viewer`.
+- Added console script `jammate-agent-traces`.
+- Viewer supports `list`, `show <trace_id>`, and `spec`, with optional `--json` output.
+- Viewer reuses `JsonTraceStore` and `AgentTrace` summary/detail contracts; no second tracing subsystem was added.
+- Viewer is inspection-only: no tool execution, no deterministic workflow dispatch, no provider call, no adapter/engine call.
+- Updated README, agent harness, architecture/API/task-plan docs, and focused regression tests.
+
+
+## v2_4_8 — Agent Trace API Contract Hardening
+
+- Added `GET /agent/traces/spec` as the machine-readable Trace API contract route.
+- Hardened `GET /agent/traces` responses with `trace_contract_version`, stable summary fields, `step_count`, and context/final-summary flags.
+- Hardened `GET /agent/traces/{trace_id}` responses with versioned detail payloads and a stable `TRACE_NOT_FOUND` shape.
+- Reused the existing `TraceLogger` / `JsonTraceStore` / `AgentTrace` owner; no second tracing subsystem was introduced.
+- Updated ArkTS types, API client sketch, smoke pack, README, API contract, architecture, task plan, and harness references.
+- Trace APIs remain inspection-only: no autonomous tools, no deterministic workflow dispatch, no adapter dispatch, no engine call, and no provider call.
+- Runtime music generation behavior is unchanged.
+
 ## v2_4_7 — Agent Terminal Trace Export
 
 - Added explicit terminal trace export through `--trace-dir <dir>` on `python -m jammate_agent.cli.terminal_chat` and the `jammate-agent-chat` console script.

@@ -7,7 +7,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-LLM_PROVIDER_BOUNDARY_VERSION = "v2_4_7"
+LLM_PROVIDER_BOUNDARY_VERSION = "v2_4_11"
 
 _TRUTHY = {"1", "true", "yes", "on"}
 _SUPPORTED_CHAT_PROVIDERS = {"openai", "openai_compatible"}

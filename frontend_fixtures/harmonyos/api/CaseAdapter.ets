@@ -1,4 +1,4 @@
-// JamMate Case Adapter v2_4_7
+// JamMate Case Adapter v2_4_11
 // Copy target: entry/src/main/ets/features/jammateAgent/api/CaseAdapter.ets
 // Backend canonical response: snake_case. Client-domain model: camelCase.
 

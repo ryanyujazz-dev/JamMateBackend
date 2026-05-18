@@ -8,6 +8,18 @@ from typing import Any
 
 from jammate_agent.capabilities.practice.models import new_id
 
+TRACE_API_CONTRACT_VERSION = "v2_4_11"
+TRACE_DETAIL_SCHEMA_VERSION = "agent_trace_detail_v1"
+TRACE_SUMMARY_SCHEMA_VERSION = "agent_trace_summary_v1"
+TRACE_NOT_FOUND_ERROR_CODE = "TRACE_NOT_FOUND"
+
+
+def _preview_text(value: str | None, max_chars: int = 120) -> str:
+    text = (value or "").strip()
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1] + "…"
+
 
 @dataclass
 class AgentTrace:
@@ -23,14 +35,60 @@ class AgentTrace:
     updated_at: datetime = field(default_factory=datetime.now)
 
     def to_dict(self) -> dict[str, Any]:
+        """Legacy/raw JSON representation kept for persisted trace compatibility."""
         payload = asdict(self)
         payload["created_at"] = self.created_at.isoformat()
         payload["updated_at"] = self.updated_at.isoformat()
         return payload
 
+    def to_summary_dict(self) -> dict[str, Any]:
+        """Stable list-item contract for GET /agent/traces."""
+        step_count = len(self.steps)
+        return {
+            "trace_contract_version": TRACE_API_CONTRACT_VERSION,
+            "trace_schema_version": TRACE_SUMMARY_SCHEMA_VERSION,
+            "trace_id": self.trace_id,
+            "task_type": self.task_type,
+            "request_id": self.request_id,
+            "user_input_preview": _preview_text(self.user_input),
+            "validation_result": self.validation_result,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+            "step_count": step_count,
+            "steps": step_count,  # Backward-compatible alias for older diagnostics.
+            "has_context_packet_summary": bool(self.context_packet_summary),
+            "has_final_response_summary": bool(self.final_response_summary),
+        }
+
+    def to_detail_dict(self) -> dict[str, Any]:
+        """Stable detail contract for GET /agent/traces/{trace_id}."""
+        return {
+            "trace_contract_version": TRACE_API_CONTRACT_VERSION,
+            "trace_schema_version": TRACE_DETAIL_SCHEMA_VERSION,
+            "trace_id": self.trace_id,
+            "task_type": self.task_type,
+            "request_id": self.request_id,
+            "user_input": self.user_input,
+            "context_packet_summary": dict(self.context_packet_summary),
+            "steps": [dict(step) for step in self.steps],
+            "validation_result": self.validation_result,
+            "final_response_summary": dict(self.final_response_summary),
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
+
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "AgentTrace":
         data = dict(payload)
+        # Persisted v2_4_11+ detail payloads include schema fields that are not
+        # dataclass constructor inputs. Keep loading tolerant for API-exported
+        # details copied back into a trace directory.
+        for key in ("trace_contract_version", "trace_schema_version", "step_count", "has_context_packet_summary", "has_final_response_summary"):
+            data.pop(key, None)
+        if "user_input_preview" in data and "user_input" not in data:
+            data["user_input"] = data.pop("user_input_preview") or ""
+        else:
+            data.pop("user_input_preview", None)
         if isinstance(data.get("created_at"), str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
         if isinstance(data.get("updated_at"), str):
@@ -63,18 +121,10 @@ class JsonTraceStore:
         items: list[dict[str, Any]] = []
         for path in files[:limit]:
             try:
-                trace = json.loads(path.read_text(encoding="utf-8"))
+                trace = AgentTrace.from_dict(json.loads(path.read_text(encoding="utf-8")))
             except Exception:
                 continue
-            items.append(
-                {
-                    "trace_id": trace.get("trace_id"),
-                    "task_type": trace.get("task_type"),
-                    "validation_result": trace.get("validation_result"),
-                    "created_at": trace.get("created_at"),
-                    "steps": len(trace.get("steps", [])),
-                }
-            )
+            items.append(trace.to_summary_dict())
         return items
 
 
@@ -114,17 +164,75 @@ class TraceLogger:
         if self.trace_store:
             return self.trace_store.list_recent(limit=limit)
         traces = sorted(self._traces.values(), key=lambda t: t.updated_at, reverse=True)
-        return [
-            {
-                "trace_id": trace.trace_id,
-                "task_type": trace.task_type,
-                "validation_result": trace.validation_result,
-                "created_at": trace.created_at.isoformat(),
-                "steps": len(trace.steps),
-            }
-            for trace in traces[:limit]
-        ]
+        return [trace.to_summary_dict() for trace in traces[:limit]]
 
     def _persist(self, trace: AgentTrace) -> None:
         if self.trace_store:
             self.trace_store.save(trace)
+
+
+def trace_api_contract() -> dict[str, Any]:
+    """Stable Agent trace API contract for HarmonyOS and terminal debugging."""
+    return {
+        "version": TRACE_API_CONTRACT_VERSION,
+        "trace_contract_version": TRACE_API_CONTRACT_VERSION,
+        "routes": {
+            "spec": "GET /agent/traces/spec",
+            "list": "GET /agent/traces?limit=20",
+            "detail": "GET /agent/traces/{trace_id}",
+        },
+        "storage": {
+            "default_trace_dir": "demos/agent_traces",
+            "terminal_trace_export_enabled_by": "--trace-dir <dir>",
+            "terminal_trace_viewer": "python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list|show|spec",
+            "format": "JSON files named trace_<id>.json",
+        },
+        "list_response_schema": {
+            "ok": "boolean",
+            "trace_contract_version": TRACE_API_CONTRACT_VERSION,
+            "traces": "AgentTraceSummary[]",
+        },
+        "detail_response_schema": {
+            "ok": "boolean",
+            "trace_contract_version": TRACE_API_CONTRACT_VERSION,
+            "trace": "AgentTraceDetail | null",
+            "error_code": f"{TRACE_NOT_FOUND_ERROR_CODE} | null",
+        },
+        "summary_fields": [
+            "trace_contract_version",
+            "trace_schema_version",
+            "trace_id",
+            "task_type",
+            "request_id",
+            "user_input_preview",
+            "validation_result",
+            "created_at",
+            "updated_at",
+            "step_count",
+            "has_context_packet_summary",
+            "has_final_response_summary",
+        ],
+        "detail_fields": [
+            "trace_contract_version",
+            "trace_schema_version",
+            "trace_id",
+            "task_type",
+            "request_id",
+            "user_input",
+            "context_packet_summary",
+            "steps",
+            "validation_result",
+            "final_response_summary",
+            "created_at",
+            "updated_at",
+        ],
+        "guards": {
+            "trace_api_executes_tools": False,
+            "trace_api_calls_llm_provider": False,
+            "trace_api_calls_engine_adapter": False,
+            "trace_viewer_executes_tools": False,
+            "trace_viewer_calls_llm_provider": False,
+            "trace_viewer_calls_engine_adapter": False,
+            "raw_trace_file_path_exposed_by_api": False,
+        },
+    }

@@ -12,7 +12,7 @@ def test_arkts_source_contract_endpoint_exposes_copyable_interfaces() -> None:
     payload = response.json()
     assert payload["ok"] is True
     contract = payload["contract"]
-    assert contract["version"] == "v2_4_7"
+    assert contract["version"] == "v2_4_11"
     assert contract["filename_suggestion"] == "AgentTypes.ets"
     assert "export interface AgentResponse" in contract["source"]
     assert "export interface PlaybackInstruction" in contract["source"]
@@ -24,7 +24,7 @@ def test_playback_spec_documents_client_loop_and_cache_policy() -> None:
     response = client.get("/agent/playback/spec")
     assert response.status_code == 200
     spec = response.json()["spec"]
-    assert spec["version"] == "v2_4_7"
+    assert spec["version"] == "v2_4_11"
     assert spec["playback_instruction_contract"]["client_loop_until_target_duration"]
     assert spec["playback_instruction_contract"]["requires_local_timer"] is True
     assert spec["asset_cache_policy"]["canonical_field"] == "asset.cache_key"

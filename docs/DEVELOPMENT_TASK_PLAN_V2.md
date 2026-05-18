@@ -1,8 +1,8 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_4_7`.
+Current baseline: `v2_4_11`.
 
-`v2_4_7_agent_terminal_trace_export` adds explicit `--trace-dir` JSON export for terminal chat and `/tool-preview` on `feature/agent-workflow`. It reuses TraceLogger, JsonTraceStore, ContextBuilder, provider boundary, descriptor-only tool registry, and the validation-only tool invocation preview contract; it does not dispatch workflows, routes, adapters, or engine code. Runtime music generation behavior is unchanged from `v2_3_17`; HarmonyOS direct `/accompaniment/generate` contract from `v2_4_1` remains intact.
+`v2_4_11_agent_terminal_tool_call_candidate_extraction` adds JSON-only candidate extraction from successful terminal LLM replies on top of the existing terminal chat, `/tool-preview`, trace export, read-only trace viewer, and context controls. It reuses `core/tool_invocation.py` and the existing preview contract; extracted candidates are previewed against the current ContextPacket allow-list and never execute tools, dispatch workflows, call adapters, call API routes, or call engine code. Runtime music generation behavior is unchanged from `v2_3_17`; HarmonyOS direct `/accompaniment/generate` contract from `v2_4_1` remains intact.
 
 ---
 
@@ -26,7 +26,7 @@ Scope:
 Suggested next task:
 
 ```text
-v2_4_8_agent_trace_api_contract_hardening
+v2_4_12_agent_tool_call_preview_trace_contract
 ```
 
 ### Engine branch

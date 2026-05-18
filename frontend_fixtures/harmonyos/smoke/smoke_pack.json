@@ -1,5 +1,5 @@
 {
-  "version": "v2_4_7",
+  "version": "v2_4_11",
   "purpose": "Minimal HarmonyOS-to-Python smoke validation pack.",
   "base_url_examples": {
     "local_mac": "http://127.0.0.1:8000",
@@ -228,11 +228,21 @@
       }
     },
     {
+      "name": "trace_spec",
+      "method": "GET",
+      "path": "/agent/traces/spec",
+      "expect": {
+        "ok": true,
+        "spec.trace_contract_version": "v2_4_11"
+      }
+    },
+    {
       "name": "trace_list",
       "method": "GET",
       "path": "/agent/traces",
       "expect": {
-        "ok": true
+        "ok": true,
+        "trace_contract_version": "v2_4_11"
       }
     }
   ],
