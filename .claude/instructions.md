@@ -207,18 +207,33 @@ main 只通过 PR 更新。GitHub 保护分支已开启作为硬约束。
 
 这是正常的。
 
-### 3. 两个分支都可能改版本文件
+### 3. 文档归属规则（防止并行开发冲突）
 
-容易冲突的文件：
-- `VERSION`
-- `pyproject.toml`
+各分支只能修改自己归属的文档，共享文档只在合入 main 时统一更新。
+
+**共享文档（仅 main / integration 分支改）：**
 - `README.md`
 - `agent.md`
-- `docs/API_CONTRACT_V2.md`
+- `VERSION`
+- `pyproject.toml`
 - `docs/ARCHITECTURE_V2.md`
+- `docs/API_CONTRACT_V2.md`
 - `docs/DEVELOPMENT_TASK_PLAN_V2.md`
+- `docs/CHANGELOG.md`
+- `frontend_fixtures/harmonyos/`
 
-遇到冲突时，不要简单覆盖。需要根据 main 和当前分支内容合并保留双方有效信息。
+**Engine 线专属文档（仅 feature/engine-deepening 改）：**
+- `docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md`
+- `docs/CHANGELOG_ENGINE.md`
+- `docs/GENERATION_RULES_SUMMARY_V2.md`
+- `docs/STYLE_RULE_BASELINE_V2.md`
+
+**Agent 线专属文档（仅 feature/agent-workflow 改）：**
+- `docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md`
+- `docs/CHANGELOG_AGENT.md`
+- `docs/AGENT*.md`
+
+收到 zip 后，如果 ChatGPT 的全量包修改了不属于当前分支的共享文档，rsync 覆盖后要在 commit 前检查：属于另一分支归属的文档改动应被忽略或备注。合入 main 时再统一同步共享文档。
 
 ### 4. 不要提交无关本地文件
 
