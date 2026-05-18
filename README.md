@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_4_11`.
+Current package version: `v2_4_12`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -83,6 +83,7 @@ Patterns live in styles. Voicing and expression are core-level shared systems.
 - Exposes a provider-neutral LLM config/status boundary without provider SDK imports or network calls.
 - Exposes a descriptor-only Agent tool registry for future bounded LLM tool planning.
 - Exposes a terminal chat CLI for optional provider-backed LLM conversation during backend debugging.
+- Provides terminal LLM setup/doctor/config-path helpers so local provider settings can be reused without repeated shell exports.
 - Scans successful terminal LLM replies for explicit JSON tool-call candidates and previews them without execution.
 - Exposes a bounded runloop preview contract for future tool workflows.
 - Maintains trace logging for Agent steps.
@@ -290,7 +291,20 @@ The terminal-first LLM chat entry point remains available for backend debugging:
 PYTHONPATH=src python -m jammate_agent.cli.terminal_chat
 ```
 
-The CLI is guarded by explicit provider env vars and does not execute Agent tools. Default behavior is disabled/guarded unless `JAMMATE_LLM_PROVIDER`, `JAMMATE_LLM_MODEL`, API key, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS=true` are configured. The API runloop preview remains preview-only.
+The CLI no longer requires manual shell exports every time. You can create a local provider config once:
+
+```bash
+jammate-agent-chat setup
+jammate-agent-chat doctor
+```
+
+Then start chat directly, or point at a specific config file:
+
+```bash
+jammate-agent-chat --config-file ~/.jammate/agent_config.env
+```
+
+Config precedence is explicit env vars, `JAMMATE_AGENT_LLM_CONFIG_FILE`, repo-local `.jammate_agent.env`, then `~/.jammate/agent_config.env`. API key values are masked from setup/doctor/status/trace output. The CLI can call a configured provider for terminal debugging only; it does not execute Agent tools. The API runloop preview remains preview-only.
 
 Terminal tool-call validation is also available without execution:
 
@@ -302,6 +316,13 @@ Interactive commands:
 
 ```text
 /help
+/session
+/context [full|--full|json|--json]
+/profiles
+/profile [task_type]
+/task-type [task_type]
+/instrument [instrument]
+/reset
 /tools
 /tool-preview <tool_name> [json_object_arguments]
 /trace
@@ -321,7 +342,7 @@ The trace viewer never executes tools, calls an LLM provider, dispatches workflo
 
 ## Current Development Status
 
-`v2_4_11` is the Agent terminal tool-call candidate extraction baseline for `feature/agent-workflow`. It preserves terminal chat, optional provider-backed conversation, validation-only `/tool-preview`, explicit `--trace-dir` export, read-only trace viewer, and context/profile/session controls, then adds JSON-only extraction of candidate tool calls from successful terminal LLM replies. Extracted candidates are previewed against the current ContextPacket allow-list and never executed. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch remain disabled. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
+`v2_4_12` is the Agent terminal LLM config wizard baseline for `feature/agent-workflow`. It preserves terminal chat, optional provider-backed conversation, validation-only `/tool-preview`, explicit `--trace-dir` export, read-only trace viewer, context/profile/session controls, and JSON-only tool-call candidate extraction, then adds `setup` / `doctor` / `config-path` plus local `.env`-style config loading. Extracted candidates are previewed against the current ContextPacket allow-list and never executed. Autonomous tool execution, runloop-driven tool execution, deterministic workflow dispatch, provider guard bypass, and engine adapter dispatch remain disabled. HarmonyOS `/accompaniment/generate` inline leadsheet behavior from `v2_4_1` remains intact. Runtime music generation behavior is unchanged from `v2_3_17`.
 
 ```text
 Current active window -> feature/agent-workflow

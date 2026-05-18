@@ -10,6 +10,9 @@ __pycache__/
 venv/
 .env
 .env.*
+.jammate_agent.env
+.jammate_agent.env.*
+agent_config.env
 
 # OS/editor noise
 .DS_Store

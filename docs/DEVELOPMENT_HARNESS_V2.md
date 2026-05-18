@@ -1,6 +1,6 @@
 # Development Harness V2
 
-Current version: `v2_4_11`.
+Current version: `v2_4_12`.
 
 This document expands the root `agent.md` harness. The root file is the active short checklist; this file explains the same rules for future maintainers.
 
@@ -182,11 +182,23 @@ Do not claim full test success if only targeted tests were run. State exactly wh
 
 Non-immediate ideas belong in `docs/FUTURE_IDEAS_BACKLOG_V2.md`; do not expand active scope during a focused delivery.
 
-## v2_4_11 Terminal Chat Context Controls Rule
+## v2_4_12 Terminal Chat Context Controls Rule
 
 Terminal chat context/profile/session controls must stay local and preview-only. `/context`, `/profiles`, `/profile`, `/task-type`, `/instrument`, `/session`, and `/reset` may rebuild ContextPacket previews and mutate terminal session state, but must not call LLM providers, execute tools, dispatch deterministic workflows, import adapters, or call `jammate_engine`.
 
-## v2_4_11 Agent Trace API / Viewer Rule
+## v2_4_12 Terminal LLM Config Rule
+
+Terminal LLM config work must stay local, explicit, and secret-safe. `setup`, `doctor`, `config-path`, `--config-file`, repo-local `.jammate_agent.env`, and user-level `~/.jammate/agent_config.env` may improve terminal developer ergonomics, but must not change API runloop behavior or tool execution policy.
+
+Rules:
+
+- env vars remain highest precedence.
+- API key values must never be printed, traced, documented, committed, or packaged.
+- `.jammate_agent.env`, `.jammate_agent.env.*`, and `agent_config.env` must be ignored/cleaned.
+- terminal provider calls still require explicit provider/model/API-key/network-gate config.
+- setup/doctor must not call LLM providers, tools, adapters, API routes, or `jammate_engine`.
+
+## v2_4_12 Agent Trace API / Viewer Rule
 
 Agent trace work must reuse `src/jammate_agent/core/trace.py` as the tracing owner. Do not create a second trace subsystem for API, terminal, or HarmonyOS debugging.
 
@@ -209,6 +221,6 @@ Forbidden in trace API work:
 - importing `jammate_engine` from `jammate_agent/cli/trace_viewer.py`
 
 
-## v2_4_11 Terminal Tool-Call Candidate Extraction Rule
+## v2_4_12 Terminal Tool-Call Candidate Extraction Rule
 
 Terminal chat may scan successful assistant replies for explicit JSON tool-call candidates, but extraction must remain in `jammate_agent.core.tool_invocation` and must be preview-only. Extracted candidates must be validated against the current `ContextPacket.allowed_tools`, must not execute tools, and must not dispatch workflows, routes, adapters, provider SDKs, or `jammate_engine`. Plain natural language must not be treated as a tool call.

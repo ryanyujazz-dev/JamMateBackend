@@ -157,10 +157,10 @@ def llm_context_runtime_contract() -> dict[str, Any]:
         },
         "trace_api_boundary": trace_api_contract(),
         "non_goals": [
-            "No real LLM network call from the API runloop preview in v2_4_11.",
-            "No autonomous tool execution in v2_4_11.",
-            "No runloop-driven tool execution in v2_4_11; tools are descriptor-only.",
-            "No runloop-driven tool execution in v2_4_11; tools are descriptor-only and invocation preview is validation-only.",
+            "No real LLM network call from the API runloop preview in v2_4_12.",
+            "No autonomous tool execution in v2_4_12.",
+            "No runloop-driven tool execution in v2_4_12; tools are descriptor-only.",
+            "No runloop-driven tool execution in v2_4_12; tools are descriptor-only and invocation preview is validation-only.",
             "No accompaniment engine generation-rule changes in feature/agent-workflow.",
             "Trace API and terminal trace viewer only shape/read trace list/detail/spec responses; they do not execute tools, call LLM providers, dispatch workflows, or call the engine adapter.",
         ],
@@ -450,7 +450,7 @@ def agent_api_usage_examples() -> dict[str, Any]:
 def arkts_contract_source() -> dict[str, Any]:
     """ArkTS source sketch that HarmonyOS can copy into AgentTypes.ets / PracticeTypes.ets."""
     source = r'''
-// JamMate Agent / Practice API Contract v2_4_11
+// JamMate Agent / Practice API Contract v2_4_12
 // Requests may be sent as camelCase. Current backend responses are canonical snake_case.
 
 export type JamMateStyle = 'medium_swing' | 'bossa_nova' | 'jazz_ballad'

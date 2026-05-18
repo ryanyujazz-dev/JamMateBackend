@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass, field
 from typing import Any, TextIO
 
 from jammate_agent.core.context import CONTEXT_PROFILES, ContextBuilder
-from jammate_agent.core.llm_provider import LLMProvider, build_llm_provider_from_env, build_request_envelope
+from jammate_agent.core.llm_provider import (
+    LLM_CONFIG_FILE_ENV_VAR,
+    LLMProvider,
+    LLMProviderConfig,
+    build_llm_provider_from_env,
+    build_request_envelope,
+    default_user_llm_config_path,
+    write_llm_config_file,
+)
 from jammate_agent.core.tool_invocation import (
     TOOL_CALL_CANDIDATE_EXTRACTION_VERSION,
     ToolInvocationProposal,
@@ -16,7 +25,7 @@ from jammate_agent.core.tool_invocation import (
 )
 from jammate_agent.core.trace import AgentTrace, JsonTraceStore, TraceLogger
 
-TERMINAL_CHAT_VERSION = "v2_4_11"
+TERMINAL_CHAT_VERSION = "v2_4_12"
 
 
 @dataclass
@@ -31,13 +40,17 @@ class TerminalChatSession:
     tool call against the same ContextPacket allow-list and preview contract.
     It never dispatches deterministic workflows or engine adapters.
 
-    v2_4_11 adds explicit terminal context/session controls so developers can
+    v2_4_10 adds explicit terminal context/session controls so developers can
     switch task profiles, inspect ContextPacket summaries, reset local chat
     history, and change instrument hints without restarting the CLI.
 
-    v2_4_11 additionally scans successful assistant text for explicit JSON
+    v2_4_12 additionally scans successful assistant text for explicit JSON
     tool-call candidates and sends them through the preview contract. Extracted
     candidates never execute tools or engine workflows.
+
+    v2_4_12 adds setup/doctor configuration helpers and local config-file
+    loading for terminal LLM use. These helpers do not change tool execution
+    policy and do not expose API keys in status, trace, or response payloads.
     """
 
     task_type: str = "coach_qa"
@@ -358,23 +371,151 @@ class TerminalChatSession:
         return str(self.trace_logger.trace_store.trace_dir / f"{trace_id}.json")
 
 
+
+def _build_provider_with_optional_config(config_file: str | None) -> LLMProvider:
+    if not config_file:
+        return build_llm_provider_from_env()
+    env = dict(os.environ)
+    env[LLM_CONFIG_FILE_ENV_VAR] = config_file
+    return build_llm_provider_from_env(env)
+
+
+def _run_setup_command(argv: list[str], stdin: TextIO, stdout: TextIO) -> int:
+    parser = argparse.ArgumentParser(prog="jammate-agent-chat setup", description="Create a local JamMate Agent LLM config file")
+    parser.add_argument("--config-file", default=str(default_user_llm_config_path()), help="Config file to write. Default: ~/.jammate/agent_config.env")
+    parser.add_argument("--provider", default="openai_compatible", help="Provider name. Default: openai_compatible")
+    parser.add_argument("--model", help="Model name")
+    parser.add_argument("--api-key", help="API key. Stored only in the chosen local config file.")
+    parser.add_argument("--base-url", default="https://api.openai.com/v1", help="OpenAI-compatible base URL")
+    parser.add_argument("--chat-completions-path", default="/chat/completions", help="Chat completions path")
+    parser.add_argument("--enable-network-calls", default="true", choices=["true", "false", "yes", "no"], help="Whether terminal chat may call the provider. Default: true")
+    parser.add_argument("--max-output-tokens", default="1200")
+    parser.add_argument("--temperature", default="0.2")
+    parser.add_argument("--request-timeout-seconds", default="30")
+    parser.add_argument("--yes", action="store_true", help="Non-interactive mode; fail if required values are missing.")
+    args = parser.parse_args(argv)
+
+    model = args.model or _prompt(stdin, stdout, "Model", default="gpt-4o-mini" if not args.yes else None)
+    api_key = args.api_key or _prompt_secret(stdin, stdout, "API key", required=not args.yes)
+    if args.yes and (not model or not api_key):
+        print("SetupError> --model and --api-key are required with --yes.", file=stdout)
+        return 2
+    if not model or not api_key:
+        print("SetupError> model and API key are required.", file=stdout)
+        return 2
+
+    values = {
+        "JAMMATE_LLM_PROVIDER": args.provider,
+        "JAMMATE_LLM_MODEL": model,
+        "JAMMATE_LLM_API_KEY_ENV_VAR": "JAMMATE_LLM_API_KEY",
+        "JAMMATE_LLM_API_KEY": api_key,
+        "JAMMATE_LLM_ENABLE_NETWORK_CALLS": "true" if args.enable_network_calls.lower() in {"true", "yes"} else "false",
+        "JAMMATE_LLM_BASE_URL": args.base_url.rstrip("/"),
+        "JAMMATE_LLM_CHAT_COMPLETIONS_PATH": args.chat_completions_path,
+        "JAMMATE_LLM_MAX_OUTPUT_TOKENS": str(args.max_output_tokens),
+        "JAMMATE_LLM_TEMPERATURE": str(args.temperature),
+        "JAMMATE_LLM_REQUEST_TIMEOUT_SECONDS": str(args.request_timeout_seconds),
+    }
+    path = write_llm_config_file(args.config_file, values)
+    status = LLMProviderConfig.from_env({LLM_CONFIG_FILE_ENV_VAR: str(path)}).to_dict()
+    print("LLMConfigSetup> saved", file=stdout)
+    print(f"  path: {path}", file=stdout)
+    print(f"  provider_name: {status.get('provider_name')}", file=stdout)
+    print(f"  model: {status.get('model')}", file=stdout)
+    print(f"  api_key_configured: {status.get('api_key_configured')}", file=stdout)
+    print(f"  network_calls_enabled: {status.get('network_calls_enabled')}", file=stdout)
+    print("  secret_policy: API key is stored locally and never printed in status/trace output.", file=stdout)
+    print("Next: jammate-agent-chat --config-file <path> or set JAMMATE_AGENT_LLM_CONFIG_FILE=<path>.", file=stdout)
+    return 0
+
+
+def _run_doctor_command(argv: list[str], stdout: TextIO) -> int:
+    parser = argparse.ArgumentParser(prog="jammate-agent-chat doctor", description="Inspect terminal LLM provider configuration")
+    parser.add_argument("--config-file", help="Config file to inspect")
+    parser.add_argument("--json", action="store_true", help="Print machine-readable status")
+    args = parser.parse_args(argv)
+    env = dict(os.environ)
+    if args.config_file:
+        env[LLM_CONFIG_FILE_ENV_VAR] = args.config_file
+    config = LLMProviderConfig.from_env(env)
+    status = config.to_dict()
+    status["ok"] = bool(config.terminal_chat_available)
+    status["terminal_chat_setup_version"] = TERMINAL_CHAT_VERSION
+    status["tool_execution_enabled"] = False
+    status["autonomous_tool_execution_enabled"] = False
+    if args.json:
+        print(json.dumps(status, ensure_ascii=False, indent=2), file=stdout)
+        return 0 if status["ok"] else 1
+    _print_doctor_status(status, stdout)
+    return 0 if status["ok"] else 1
+
+
+def _run_config_path_command(argv: list[str], stdout: TextIO) -> int:
+    parser = argparse.ArgumentParser(prog="jammate-agent-chat config-path", description="Print default local LLM config path")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    path = default_user_llm_config_path()
+    payload = {
+        "ok": True,
+        "terminal_chat_version": TERMINAL_CHAT_VERSION,
+        "default_user_config_path": str(path),
+        "env_override": LLM_CONFIG_FILE_ENV_VAR,
+        "repo_local_filename": ".jammate_agent.env",
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2), file=stdout)
+    else:
+        print(f"Default user LLM config path: {path}", file=stdout)
+        print(f"Override with {LLM_CONFIG_FILE_ENV_VAR}=<path> or --config-file <path>.", file=stdout)
+    return 0
+
+
+def _prompt(stdin: TextIO, stdout: TextIO, label: str, default: str | None = None) -> str:
+    suffix = f" [{default}]" if default else ""
+    print(f"{label}{suffix}: ", end="", file=stdout)
+    stdout.flush()
+    value = stdin.readline().strip()
+    return value or (default or "")
+
+
+def _prompt_secret(stdin: TextIO, stdout: TextIO, label: str, required: bool = True) -> str:
+    # Use stdin/stdout instead of getpass so this remains testable and works in
+    # non-tty IDE terminals. The value is never echoed back by JamMate output.
+    value = _prompt(stdin, stdout, label)
+    if required and not value:
+        return ""
+    return value
+
 def run_interactive_chat(argv: list[str] | None = None, stdin: TextIO | None = None, stdout: TextIO | None = None) -> int:
+    argv_list = list(argv or [])
+    input_stream = stdin or sys.stdin
+    output_stream = stdout or sys.stdout
+    if argv_list and argv_list[0] in {"setup", "doctor", "config-path"}:
+        command = argv_list[0]
+        if command == "setup":
+            return _run_setup_command(argv_list[1:], input_stream, output_stream)
+        if command == "doctor":
+            return _run_doctor_command(argv_list[1:], output_stream)
+        return _run_config_path_command(argv_list[1:], output_stream)
+
     parser = argparse.ArgumentParser(description="JamMate Agent terminal LLM chat CLI")
     parser.add_argument("--task-type", default="coach_qa", help="Context profile task type. Default: coach_qa")
     parser.add_argument("--instrument", default="piano", help="Instrument hint for the context packet. Default: piano")
     parser.add_argument("--once", help="Send one message and exit; useful for smoke tests. Slash commands are supported.")
     parser.add_argument("--show-provider-status", action="store_true", help="Print provider status before chatting.")
     parser.add_argument("--trace-dir", help="Export terminal chat/tool-preview traces as JSON into this directory.")
-    args = parser.parse_args(argv)
+    parser.add_argument("--config-file", help="Read LLM provider settings from this local .env-style config file.")
+    args = parser.parse_args(argv_list)
 
-    input_stream = stdin or sys.stdin
-    output_stream = stdout or sys.stdout
     trace_logger = TraceLogger(JsonTraceStore(args.trace_dir)) if args.trace_dir else None
-    session = TerminalChatSession(task_type=args.task_type, instrument=args.instrument, provider=build_llm_provider_from_env(), trace_logger=trace_logger)
+    provider = _build_provider_with_optional_config(args.config_file)
+    session = TerminalChatSession(task_type=args.task_type, instrument=args.instrument, provider=provider, trace_logger=trace_logger)
     status = session.provider_status()
 
     if args.show_provider_status or not status.get("terminal_chat_enabled"):
         _print_provider_status(status, output_stream)
+        if not status.get("terminal_chat_enabled"):
+            _print_setup_hint(status, output_stream)
 
     if args.once:
         once_input = args.once.strip()
@@ -499,6 +640,31 @@ def _parse_tool_preview_command(command: str) -> dict[str, Any]:
         }
     return {"ok": True, "tool_name": tool_name, "arguments": parsed_args}
 
+
+
+def _print_setup_hint(status: dict, stdout: TextIO) -> None:
+    print("LLM setup hint:", file=stdout)
+    print("  Run `jammate-agent-chat setup` to create a local config file,", file=stdout)
+    print("  or pass `--config-file <path>` / set JAMMATE_AGENT_LLM_CONFIG_FILE.", file=stdout)
+    print("  Until configured, terminal chat stays in guarded preview mode.", file=stdout)
+
+
+def _print_doctor_status(status: dict, stdout: TextIO) -> None:
+    print("LLMConfigDoctor>", file=stdout)
+    print(f"  status: {'ready' if status.get('ok') else 'guarded'}", file=stdout)
+    print(f"  terminal_chat_setup_version: {status.get('terminal_chat_setup_version')}", file=stdout)
+    print(f"  provider_name: {status.get('provider_name')}", file=stdout)
+    print(f"  model: {status.get('model')}", file=stdout)
+    print(f"  api_key_env_var: {status.get('api_key_env_var')}", file=stdout)
+    print(f"  api_key_configured: {status.get('api_key_configured')}", file=stdout)
+    print(f"  network_calls_enabled: {status.get('network_calls_enabled')}", file=stdout)
+    print(f"  base_url: {status.get('base_url')}", file=stdout)
+    print(f"  config_source: {status.get('config_source')}", file=stdout)
+    print(f"  config_file_path: {status.get('config_file_path')}", file=stdout)
+    print(f"  terminal_chat_available: {status.get('terminal_chat_available')}", file=stdout)
+    print(f"  guard_reason: {status.get('guard_reason')}", file=stdout)
+    print("  tool_execution_enabled: False", file=stdout)
+    print("  secret_policy: API key values are not printed, traced, or packaged.", file=stdout)
 
 def _print_provider_status(status: dict, stdout: TextIO) -> None:
     print("Provider status:", file=stdout)
@@ -662,6 +828,9 @@ def _print_recent_traces(session: TerminalChatSession, stdout: TextIO) -> None:
 
 def _print_help(stdout: TextIO) -> None:
     print("Commands:", file=stdout)
+    print("  setup        # shell subcommand: create local LLM config", file=stdout)
+    print("  doctor       # shell subcommand: inspect provider config", file=stdout)
+    print("  config-path  # shell subcommand: print default config path", file=stdout)
     print("  /help", file=stdout)
     print("  /session", file=stdout)
     print("  /context [full|--full|json|--json]", file=stdout)
@@ -675,6 +844,8 @@ def _print_help(stdout: TextIO) -> None:
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
+    print("Use `jammate-agent-chat setup` once to avoid repeated shell exports.", file=stdout)
+    print("Use --config-file <path> to load a specific local LLM config.", file=stdout)
     print("Use --trace-dir <dir> to export terminal chat/tool-preview traces as JSON.", file=stdout)
     print("Use `python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list|show` to inspect exported traces.", file=stdout)
     print("Context controls rebuild preview packets only; they never call the provider, execute tools, or call engine workflows.", file=stdout)

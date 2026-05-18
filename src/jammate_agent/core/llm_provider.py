@@ -2,15 +2,145 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-LLM_PROVIDER_BOUNDARY_VERSION = "v2_4_11"
+LLM_PROVIDER_BOUNDARY_VERSION = "v2_4_12"
+LLM_CONFIG_FILE_VERSION = "v2_4_12"
+LOCAL_LLM_CONFIG_FILENAME = ".jammate_agent.env"
+USER_LLM_CONFIG_RELATIVE_PATH = (".jammate", "agent_config.env")
+LLM_CONFIG_FILE_ENV_VAR = "JAMMATE_AGENT_LLM_CONFIG_FILE"
 
 _TRUTHY = {"1", "true", "yes", "on"}
 _SUPPORTED_CHAT_PROVIDERS = {"openai", "openai_compatible"}
+
+
+def default_llm_config_paths(cwd: str | Path | None = None, home: str | Path | None = None) -> list[Path]:
+    """Return config locations in precedence order after explicit environment variables.
+
+    The repo-local file is useful for a checked-out developer workspace; the
+    user config file is better for long-lived terminal usage across project
+    directories. Neither path should be committed or packaged with secrets.
+    """
+
+    base = Path(cwd) if cwd is not None else Path.cwd()
+    home_base = Path(home) if home is not None else Path.home()
+    return [
+        base / LOCAL_LLM_CONFIG_FILENAME,
+        home_base.joinpath(*USER_LLM_CONFIG_RELATIVE_PATH),
+    ]
+
+
+def default_user_llm_config_path(home: str | Path | None = None) -> Path:
+    home_base = Path(home) if home is not None else Path.home()
+    return home_base.joinpath(*USER_LLM_CONFIG_RELATIVE_PATH)
+
+
+def resolve_llm_config_env(env: dict[str, str] | None = None) -> dict[str, Any]:
+    """Merge optional local config with environment variables.
+
+    Precedence is explicit env > explicit config file > repo-local config >
+    user config. Raw API keys are kept inside the merged dict only; status
+    payloads expose only configured/not-configured booleans.
+    """
+
+    source_env = dict(os.environ if env is None else env)
+    config_values: dict[str, str] = {}
+    config_path: Path | None = None
+    explicit_path = (source_env.get(LLM_CONFIG_FILE_ENV_VAR) or "").strip()
+    candidates = [Path(explicit_path)] if explicit_path else default_llm_config_paths()
+    for candidate in candidates:
+        if candidate.exists():
+            config_path = candidate
+            config_values = load_llm_config_file(candidate)
+            break
+    merged = dict(config_values)
+    for key, value in source_env.items():
+        if value is not None and str(value) != "":
+            merged[key] = value
+    return {
+        "env": merged,
+        "config_file_path": str(config_path) if config_path else None,
+        "config_source": "env+config_file" if config_path else "env",
+    }
+
+
+def load_llm_config_file(path: str | Path) -> dict[str, str]:
+    """Load a small .env-style LLM config file without third-party deps."""
+
+    config_path = Path(path)
+    values: dict[str, str] = {}
+    if not config_path.exists():
+        return values
+    for raw_line in config_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            values[key] = value
+    return values
+
+
+def write_llm_config_file(path: str | Path, values: dict[str, str]) -> Path:
+    """Write a local .env-style provider config with restrictive permissions."""
+
+    config_path = Path(path).expanduser()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    ordered_keys = [
+        "JAMMATE_LLM_PROVIDER",
+        "JAMMATE_LLM_MODEL",
+        "JAMMATE_LLM_API_KEY_ENV_VAR",
+        "JAMMATE_LLM_API_KEY",
+        "JAMMATE_LLM_ENABLE_NETWORK_CALLS",
+        "JAMMATE_LLM_BASE_URL",
+        "JAMMATE_LLM_CHAT_COMPLETIONS_PATH",
+        "JAMMATE_LLM_MAX_OUTPUT_TOKENS",
+        "JAMMATE_LLM_TEMPERATURE",
+        "JAMMATE_LLM_REQUEST_TIMEOUT_SECONDS",
+    ]
+    lines = [
+        "# JamMate Agent terminal LLM config",
+        f"# config_file_version={LLM_CONFIG_FILE_VERSION}",
+        "# Do not commit this file. It may contain secrets.",
+    ]
+    seen: set[str] = set()
+    for key in ordered_keys:
+        if key in values and values[key] not in {None, ""}:
+            lines.append(f"{key}={_quote_env_value(str(values[key]))}")
+            seen.add(key)
+    for key in sorted(set(values) - seen):
+        if values[key] not in {None, ""}:
+            lines.append(f"{key}={_quote_env_value(str(values[key]))}")
+    config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        config_path.chmod(0o600)
+    except OSError:  # pragma: no cover - chmod may be unavailable on some FS.
+        pass
+    return config_path
+
+
+def masked_llm_config(values: dict[str, str]) -> dict[str, Any]:
+    """Return a display-safe config summary."""
+
+    output: dict[str, Any] = {}
+    for key, value in values.items():
+        if "KEY" in key or "TOKEN" in key or "SECRET" in key:
+            output[key] = "configured" if value else "missing"
+        else:
+            output[key] = value
+    return output
+
+
+def _quote_env_value(value: str) -> str:
+    if value == "" or any(ch.isspace() for ch in value) or any(ch in value for ch in ['#', '"', "'"]):
+        return json.dumps(value, ensure_ascii=False)
+    return value
 
 
 @dataclass(frozen=True)
@@ -34,6 +164,9 @@ class LLMProviderConfig:
     max_output_tokens: int = 1200
     temperature: float = 0.2
     request_timeout_seconds: int = 30
+    config_file_path: str | None = None
+    config_source: str = "env"
+    api_key_value: str | None = field(default=None, repr=False, compare=False)
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -72,10 +205,12 @@ class LLMProviderConfig:
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> "LLMProviderConfig":
-        source = env if env is not None else os.environ
+        resolved = resolve_llm_config_env(env)
+        source = resolved["env"]
         provider_name = (source.get("JAMMATE_LLM_PROVIDER") or "none").strip().lower()
         api_key_env_var = (source.get("JAMMATE_LLM_API_KEY_ENV_VAR") or "JAMMATE_LLM_API_KEY").strip()
-        api_key_configured = bool(source.get(api_key_env_var))
+        api_key_value = source.get(api_key_env_var)
+        api_key_configured = bool(api_key_value)
         network_calls_enabled = (source.get("JAMMATE_LLM_ENABLE_NETWORK_CALLS") or "").strip().lower() in _TRUTHY
         return cls(
             provider_name=provider_name,
@@ -89,6 +224,9 @@ class LLMProviderConfig:
             max_output_tokens=_safe_int(source.get("JAMMATE_LLM_MAX_OUTPUT_TOKENS"), 1200),
             temperature=_safe_float(source.get("JAMMATE_LLM_TEMPERATURE"), 0.2),
             request_timeout_seconds=_safe_int(source.get("JAMMATE_LLM_REQUEST_TIMEOUT_SECONDS"), 30),
+            config_file_path=resolved.get("config_file_path"),
+            config_source=resolved.get("config_source") or "env",
+            api_key_value=api_key_value,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -98,6 +236,9 @@ class LLMProviderConfig:
             "model": self.model,
             "api_key_env_var": self.api_key_env_var,
             "api_key_configured": self.api_key_configured,
+            "config_file_path": self.config_file_path,
+            "config_source": self.config_source,
+            "config_file_version": LLM_CONFIG_FILE_VERSION,
             "network_calls_enabled": self.network_calls_enabled,
             "base_url": self.base_url,
             "chat_completions_path": self.chat_completions_path,
@@ -213,7 +354,7 @@ class OpenAICompatibleChatProvider:
     def generate(self, envelope: LLMRequestEnvelope) -> LLMProviderResult:
         if not self.config.terminal_chat_available:
             return DisabledLLMProvider(self.config).generate(envelope)
-        api_key = os.environ.get(self.config.api_key_env_var)
+        api_key = self.config.api_key_value or os.environ.get(self.config.api_key_env_var)
         if not api_key:
             return LLMProviderResult(
                 ok=False,

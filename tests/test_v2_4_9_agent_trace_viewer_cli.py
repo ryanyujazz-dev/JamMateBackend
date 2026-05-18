@@ -28,8 +28,8 @@ def _make_trace(trace_dir: Path) -> str:
 def test_trace_viewer_contract_is_read_only() -> None:
     contract = trace_viewer_contract("tmp/traces")
     assert contract["ok"] is True
-    assert contract["trace_viewer_cli_version"] == "v2_4_11"
-    assert contract["trace_contract_version"] == "v2_4_11"
+    assert contract["trace_viewer_cli_version"] == "v2_4_12"
+    assert contract["trace_contract_version"] == "v2_4_12"
     assert contract["entrypoints"]["module"] == "python -m jammate_agent.cli.trace_viewer"
     assert contract["entrypoints"]["console_script"] == "jammate-agent-traces"
     assert contract["commands"]["list"] == "list [--limit N] [--json]"
@@ -49,15 +49,15 @@ def test_trace_viewer_list_and_show_reuse_trace_store_contract(tmp_path: Path) -
     list_payload = list_trace_summaries(store, limit=5)
     assert list_payload["ok"] is True
     assert list_payload["trace_viewer_cli_version"] == TRACE_VIEWER_CLI_VERSION
-    assert list_payload["trace_contract_version"] == "v2_4_11"
+    assert list_payload["trace_contract_version"] == "v2_4_12"
     assert list_payload["traces"][0]["trace_id"] == trace_id
     assert list_payload["traces"][0]["trace_schema_version"] == "agent_trace_summary_v1"
 
     detail_payload = load_trace_detail(store, trace_id)
     assert detail_payload["ok"] is True
-    assert detail_payload["trace_viewer_cli_version"] == "v2_4_11"
+    assert detail_payload["trace_viewer_cli_version"] == "v2_4_12"
     detail = detail_payload["trace"]
-    assert detail["trace_contract_version"] == "v2_4_11"
+    assert detail["trace_contract_version"] == "v2_4_12"
     assert detail["trace_schema_version"] == "agent_trace_detail_v1"
     assert detail["request_id"] == "viewer_req_001"
     assert detail["final_response_summary"]["tool_execution_enabled"] is False
@@ -67,8 +67,8 @@ def test_trace_viewer_missing_trace_returns_stable_not_found_shape(tmp_path: Pat
     payload = load_trace_detail(JsonTraceStore(tmp_path), "trace_missing")
     assert payload == {
         "ok": False,
-        "trace_viewer_cli_version": "v2_4_11",
-        "trace_contract_version": "v2_4_11",
+        "trace_viewer_cli_version": "v2_4_12",
+        "trace_contract_version": "v2_4_12",
         "error_code": "TRACE_NOT_FOUND",
         "message": "Trace not found: trace_missing",
         "trace": None,
@@ -98,7 +98,7 @@ def test_cli_list_show_spec_and_json_output(tmp_path: Path) -> None:
 
     out = StringIO()
     assert run_trace_viewer(["spec"], stdout=out) == 0
-    assert "JamMate Agent Trace Viewer CLI v2_4_11" in out.getvalue()
+    assert "JamMate Agent Trace Viewer CLI v2_4_12" in out.getvalue()
 
 
 def test_cli_show_missing_trace_exits_nonzero(tmp_path: Path) -> None:
@@ -135,8 +135,8 @@ def test_docs_and_harness_record_trace_viewer_boundary() -> None:
     harness = (ROOT / "docs" / "DEVELOPMENT_HARNESS_V2.md").read_text(encoding="utf-8")
     changelog = (ROOT / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     assert "python -m jammate_agent.cli.trace_viewer" in readme
-    assert "v2_4_11_agent_terminal_tool_call_candidate_extraction" in agent
+    assert "v2_4_12_agent_terminal_llm_config_wizard" in agent
     assert "### Agent Trace Viewer CLI" in architecture
     assert "Agent Trace API / Viewer Rule" in harness
-    assert "## v2_4_11 — Agent Terminal Tool Call Candidate Extraction" in changelog
+    assert "## v2_4_12 — Agent Terminal LLM Config Wizard" in changelog
     assert "## v2_4_9 — Agent Trace Viewer CLI" in changelog

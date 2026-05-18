@@ -7,15 +7,15 @@ from typing import Any
 
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, get_tool_descriptor, validate_allowed_tools
 
-TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_11"
-TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_11"
+TOOL_INVOCATION_PREVIEW_VERSION = "v2_4_12"
+TOOL_CALL_CANDIDATE_EXTRACTION_VERSION = "v2_4_12"
 
 
 @dataclass(frozen=True)
 class ToolInvocationProposal:
     """A future-LLM proposed tool call before any execution is allowed.
 
-    v2_4_11 only validates and previews this proposal. It does not dispatch to
+    v2_4_12 only validates and previews this proposal. It does not dispatch to
     deterministic workflows, API routes, adapters, or engine code.
     """
 
@@ -43,7 +43,7 @@ class ToolCallCandidate:
 
     The candidate is only a parsing artifact. It must still pass
     `preview_tool_invocation()` before any future execution could be considered.
-    v2_4_11 never executes extracted candidates.
+    v2_4_12 never executes extracted candidates.
     """
 
     tool_name: str
@@ -135,7 +135,7 @@ class ToolInvocationPreviewResult:
 
 @dataclass(frozen=True)
 class ToolInvocationPreviewPolicy:
-    """Hard policy for v2_4_11 tool-call previews."""
+    """Hard policy for v2_4_12 tool-call previews."""
 
     mode: str = "preview_validation_only"
     execution_enabled: bool = False
@@ -244,8 +244,8 @@ def preview_tool_invocation(
 
     blocking_reasons.extend(
         [
-            "tool_execution_disabled_in_v2_4_11",
-            "autonomous_tool_execution_disabled_in_v2_4_11",
+            "tool_execution_disabled_in_v2_4_12",
+            "autonomous_tool_execution_disabled_in_v2_4_12",
             "preview_does_not_dispatch_deterministic_workflows",
         ]
     )
@@ -426,7 +426,7 @@ def tool_invocation_preview_contract() -> dict[str, Any]:
             "Preview builds the same task-scoped ContextPacket used by the LLM runtime.",
             "A proposed tool must exist in the registry and be present in ContextPacket.allowed_tools.",
             "Arguments are normalized and shape-checked only; no route, adapter, or engine workflow is called.",
-            "Side-effectful tools can be described, but v2_4_11 always blocks execution.",
+            "Side-effectful tools can be described, but v2_4_12 always blocks execution.",
             "Terminal chat may extract explicit JSON candidates from assistant text and feed them into this same preview contract.",
         ],
     }

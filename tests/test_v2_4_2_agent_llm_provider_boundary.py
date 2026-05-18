@@ -19,8 +19,8 @@ def test_llm_provider_spec_route_is_disabled_by_default_and_has_config_guard() -
     payload = response.json()
     assert payload["ok"] is True
     spec = payload["spec"]
-    assert spec["version"] == "v2_4_11"
-    assert spec["boundary_version"] == "v2_4_11"
+    assert spec["version"] == "v2_4_12"
+    assert spec["boundary_version"] == "v2_4_12"
     assert spec["guards"]["api_runloop_llm_calls_enabled"] is False
     assert spec["guards"]["autonomous_tool_execution_enabled"] is False
     assert spec["status"]["provider_name"] == "none"
@@ -67,7 +67,7 @@ def test_context_packet_embeds_provider_status_but_keeps_preview_only_runtime() 
     data = packet.to_dict()
     runtime_policy = data["runtime_policy"]
     assert runtime_policy["llm_required"] is True
-    assert runtime_policy["llm_provider_boundary_version"] == "v2_4_11"
+    assert runtime_policy["llm_provider_boundary_version"] == "v2_4_12"
     assert runtime_policy["llm_provider_status"]["provider_configured"] is False
     assert runtime_policy["llm_call_mode"] == "provider_boundary_preview_only"
     assert runtime_policy["autonomous_tool_execution_enabled"] is False
@@ -85,7 +85,7 @@ def test_runloop_preview_exposes_provider_status_and_request_envelope_summary() 
     assert preview["runtime_mode"] == "preview_only"
     assert preview["tool_execution_enabled"] is False
     assert preview["next_action"] == "llm_required_but_provider_unavailable"
-    assert preview["llm_provider_status"]["boundary_version"] == "v2_4_11"
+    assert preview["llm_provider_status"]["boundary_version"] == "v2_4_12"
     assert preview["request_envelope_summary"]["message_count"] == 3
     assert preview["request_envelope_summary"]["allowed_tools"] == ["agent_practice_plan", "agent_playback_prepare"]
 

@@ -1,5 +1,14 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_4_12 — Agent Terminal LLM Config Wizard
+
+- Added `jammate-agent-chat setup`, `jammate-agent-chat doctor`, and `jammate-agent-chat config-path` for local terminal LLM configuration.
+- Added `.env`-style config loading with precedence: explicit env vars, `JAMMATE_AGENT_LLM_CONFIG_FILE`, repo-local `.jammate_agent.env`, then `~/.jammate/agent_config.env`.
+- API key values are masked from setup output, doctor output, provider status, config summaries, and traces.
+- Terminal chat can use `--config-file <path>` instead of requiring repeated shell `export` commands.
+- Tool execution, deterministic workflow dispatch, adapter calls, API route dispatch, and engine calls remain disabled from terminal LLM flows.
+- Runtime music generation behavior is unchanged.
+
 ## v2_4_11 — Agent Terminal Tool Call Candidate Extraction
 
 - Added explicit JSON-only tool-call candidate extraction from successful terminal LLM replies.

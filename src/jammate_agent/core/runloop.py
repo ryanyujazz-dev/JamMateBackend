@@ -8,14 +8,14 @@ from jammate_agent.core.llm_provider import LLMProvider, build_llm_provider_from
 from jammate_agent.core.tool_invocation import TOOL_INVOCATION_PREVIEW_VERSION
 from jammate_agent.core.tool_registry import TOOL_REGISTRY_VERSION, validate_allowed_tools
 
-RUNLOOP_CONTRACT_VERSION = "v2_4_11"
+RUNLOOP_CONTRACT_VERSION = "v2_4_12"
 
 
 @dataclass(frozen=True)
 class BoundedRunLoopPolicy:
     """Safety contract for future LLM tool execution.
 
-    v2_4_11 keeps LLM calls preview/config-guarded and does not execute autonomous tools. The policy
+    v2_4_12 keeps LLM calls preview/config-guarded and does not execute autonomous tools. The policy
     is made explicit now so future LLM providers have a deterministic envelope:
     bounded steps, task-scoped tool allow-list, and workflow fallbacks.
     """
@@ -106,7 +106,7 @@ class BoundedAgentRunLoop:
         llm_required = bool(context_packet.runtime_policy.get("llm_required"))
         if llm_required and llm_provider_configured:
             next_action = "llm_provider_configured_but_preview_only"
-            reason = "LLM provider config is present, but v2_4_11 only exposes the provider boundary, request envelope, and tool invocation preview contract; no LLM call is executed."
+            reason = "LLM provider config is present, but v2_4_12 only exposes the provider boundary, request envelope, and tool invocation preview contract; no LLM call is executed."
         elif llm_required:
             next_action = "llm_required_but_provider_unavailable"
             reason = "This task requires an LLM, but the provider boundary is not configured; use deterministic fallback only when available."

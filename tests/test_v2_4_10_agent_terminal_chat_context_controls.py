@@ -44,7 +44,7 @@ def test_session_context_preview_and_profile_manifest_do_not_call_provider() -> 
     session = TerminalChatSession(task_type="coach_qa", instrument="piano", provider=FailingProvider())
     context = session.context_packet_preview()
     assert context["ok"] is True
-    assert context["terminal_chat_version"] == "v2_4_11"
+    assert context["terminal_chat_version"] == "v2_4_12"
     assert context["task_type"] == "coach_qa"
     assert context["instrument"] == "piano"
     assert context["provider_call_enabled"] is False
@@ -52,7 +52,7 @@ def test_session_context_preview_and_profile_manifest_do_not_call_provider() -> 
     assert context["summary"]["allowed_tools"] == ["agent_practice_plan", "agent_playback_prepare"]
 
     manifest = session.profile_manifest()
-    assert manifest["terminal_chat_version"] == "v2_4_11"
+    assert manifest["terminal_chat_version"] == "v2_4_12"
     assert manifest["current_task_type"] == "coach_qa"
     assert "immediate_practice_playback" in manifest["profiles"]
     assert manifest["profiles"]["coach_qa"]["llm_required"] is True
@@ -91,7 +91,7 @@ def test_instrument_and_reset_controls_are_session_only() -> None:
     instrument = session.set_instrument("guitar")
     assert instrument == {
         "ok": True,
-        "terminal_chat_version": "v2_4_11",
+        "terminal_chat_version": "v2_4_12",
         "command": "/instrument",
         "previous_instrument": "piano",
         "instrument": "guitar",
@@ -132,7 +132,7 @@ def test_cli_context_full_outputs_json(monkeypatch) -> None:
     code = run_interactive_chat(["--once", "/context full"], stdout=out)
     text = out.getvalue()
     assert code == 0
-    assert '"terminal_chat_version": "v2_4_11"' in text
+    assert '"terminal_chat_version": "v2_4_12"' in text
     assert '"context_packet"' in text
     assert '"provider_call_enabled": false' in text
 

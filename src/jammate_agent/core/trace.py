@@ -8,7 +8,7 @@ from typing import Any
 
 from jammate_agent.capabilities.practice.models import new_id
 
-TRACE_API_CONTRACT_VERSION = "v2_4_11"
+TRACE_API_CONTRACT_VERSION = "v2_4_12"
 TRACE_DETAIL_SCHEMA_VERSION = "agent_trace_detail_v1"
 TRACE_SUMMARY_SCHEMA_VERSION = "agent_trace_summary_v1"
 TRACE_NOT_FOUND_ERROR_CODE = "TRACE_NOT_FOUND"
@@ -80,7 +80,7 @@ class AgentTrace:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "AgentTrace":
         data = dict(payload)
-        # Persisted v2_4_11+ detail payloads include schema fields that are not
+        # Persisted v2_4_12+ detail payloads include schema fields that are not
         # dataclass constructor inputs. Keep loading tolerant for API-exported
         # details copied back into a trace directory.
         for key in ("trace_contract_version", "trace_schema_version", "step_count", "has_context_packet_summary", "has_final_response_summary"):

@@ -1,6 +1,6 @@
-# v2_4_11 — Agent Terminal Tool Call Candidate Extraction
+# v2_4_12 — Agent Terminal Tool Call Candidate Extraction
 
-`v2_4_11_agent_terminal_tool_call_candidate_extraction` stays inside `feature/agent-workflow` and does not deepen accompaniment generation.
+`v2_4_12_agent_terminal_llm_config_wizard` stays inside `feature/agent-workflow` and does not deepen accompaniment generation.
 
 ## Goal
 
@@ -54,7 +54,7 @@ JSON may be the entire assistant message or appear inside fenced code blocks suc
 - Candidate preview does not call adapters or `jammate_engine`.
 - Unknown tools are rejected.
 - Known tools outside the current ContextPacket allow-list are rejected.
-- Allowed tools are still blocked by `tool_execution_disabled_in_v2_4_11`.
+- Allowed tools are still blocked by `tool_execution_disabled_in_v2_4_12`.
 
 ## Terminal Behavior
 

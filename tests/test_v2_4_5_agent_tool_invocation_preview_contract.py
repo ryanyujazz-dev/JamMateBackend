@@ -22,7 +22,7 @@ def test_tool_invocation_preview_contract_spec_route_is_validation_only() -> Non
     payload = client.get("/agent/tools/invocation/spec").json()
     assert payload["ok"] is True
     spec = payload["spec"]
-    assert spec["version"] == "v2_4_11"
+    assert spec["version"] == "v2_4_12"
     assert spec["route"] == "POST /agent/tools/invocation/preview"
     assert spec["execution_status"]["tool_execution_enabled"] is False
     assert spec["execution_status"]["deterministic_workflow_dispatch_enabled"] is False
@@ -45,7 +45,7 @@ def test_allowed_tool_call_is_previewed_but_never_executed() -> None:
     payload = response.json()
     assert payload["ok"] is True
     preview = payload["preview"]
-    assert preview["preview_version"] == "v2_4_11"
+    assert preview["preview_version"] == "v2_4_12"
     assert preview["status"] == "preview_only_blocked_by_execution_guard"
     assert preview["known_tool"] is True
     assert preview["allowed_by_context"] is True
@@ -93,7 +93,7 @@ def test_context_and_runloop_surface_tool_invocation_preview_policy() -> None:
     assert runtime_policy["tool_invocation_preview_version"] == TOOL_INVOCATION_PREVIEW_VERSION
     assert runtime_policy["tool_invocation_preview_policy"]["execution_enabled"] is False
     summary = payload["runloop_preview"]["request_envelope_summary"]
-    assert summary["tool_invocation_preview_version"] == "v2_4_11"
+    assert summary["tool_invocation_preview_version"] == "v2_4_12"
     assert summary["tool_invocation_preview_enabled"] is True
 
 
@@ -102,9 +102,9 @@ def test_capability_and_runtime_specs_include_invocation_preview_boundary() -> N
     capability = client.get("/agent/capabilities").json()["manifest"]
     assert "agent_tool_invocation_preview" in [tool["name"] for tool in capability["available_tools"]]
     runtime_spec = client.get("/agent/context/runtime/spec").json()["spec"]
-    assert runtime_spec["tool_invocation_preview_boundary"]["version"] == "v2_4_11"
+    assert runtime_spec["tool_invocation_preview_boundary"]["version"] == "v2_4_12"
     assert runtime_spec["routes"]["tool_invocation_preview"] == "POST /agent/tools/invocation/preview"
-    assert "No runloop-driven tool execution in v2_4_11; tools are descriptor-only and invocation preview is validation-only." in runtime_spec["non_goals"]
+    assert "No runloop-driven tool execution in v2_4_12; tools are descriptor-only and invocation preview is validation-only." in runtime_spec["non_goals"]
 
 
 def test_contract_codegen_and_harmonyos_smoke_include_tool_invocation_preview() -> None:
@@ -132,5 +132,5 @@ def test_tool_invocation_preview_module_does_not_import_engine_or_provider_sdks(
 
 def test_direct_contract_function_remains_pure_spec() -> None:
     spec = tool_invocation_preview_contract()
-    assert spec["version"] == "v2_4_11"
+    assert spec["version"] == "v2_4_12"
     assert spec["execution_status"]["engine_adapter_dispatch_enabled"] is False

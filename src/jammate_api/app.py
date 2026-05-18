@@ -7,7 +7,7 @@ from jammate_api.routes.agent_routes import router as agent_router
 from jammate_api.routes.health_routes import router as health_router
 from jammate_api.routes.practice_routes import router as practice_router
 
-APP_VERSION = "v2_4_11_agent_terminal_chat_context_controls"
+APP_VERSION = "v2_4_12_agent_terminal_chat_context_controls"
 
 app = FastAPI(
     title="JamMate API",

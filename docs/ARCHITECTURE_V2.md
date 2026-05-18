@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Architecture
 
-Current baseline: `v2_4_11`.
+Current baseline: `v2_4_12`.
 
 This document records the canonical architecture. Version-specific delivery notes belong in separate `docs/*V2_x_x*.md` files.
 
@@ -113,7 +113,7 @@ The Agent is currently workflow/rule based. Full LLM integration is a future enh
 
 ### LLM Context Runtime Foundation
 
-`v2_4_11` keeps the existing Agent context/trace/contract owners as a previewable LLM runtime envelope and adds a provider-neutral boundary without enabling real LLM calls:
+`v2_4_12` keeps the existing Agent context/trace/contract owners as a previewable LLM runtime envelope and adds a provider-neutral boundary without enabling real LLM calls:
 
 ```text
 ContextBuilder
@@ -126,7 +126,7 @@ ContextBuilder
 Rules:
 
 - Context packets are task-scoped and should include only current request, client context, relevant learner/session/material summaries, capability manifest, constraints, allowed tools, output contract, and routing hints.
-- `BoundedAgentRunLoop` is preview-only in `v2_4_11`: no API-runloop LLM call and no autonomous tool execution.
+- `BoundedAgentRunLoop` is preview-only in `v2_4_12`: no API-runloop LLM call and no autonomous tool execution.
 - `LLMProviderConfig`, `DisabledLLMProvider`, and the small stdlib OpenAI-compatible chat provider live in `jammate_agent/core/llm_provider.py`.
 - `python -m jammate_agent.cli.terminal_chat` may call a configured provider for terminal debugging only; it still does not execute tools.
 - Future LLM providers must obey the task-specific allowed tool list, request envelope, and bounded step policy.
@@ -135,10 +135,12 @@ Rules:
 
 ### LLM Provider Boundary
 
-`v2_4_11` introduces a thin provider boundary instead of wiring a provider SDK directly into the runloop:
+`v2_4_12` introduces a thin provider boundary instead of wiring a provider SDK directly into the runloop:
 
 ```text
-LLMProviderConfig.from_env()
+jammate-agent-chat setup / doctor
+  -> local .env-style config file
+  -> LLMProviderConfig.from_env()
   -> DisabledLLMProvider or OpenAICompatibleChatProvider
   -> build_request_envelope(ContextPacket)
   -> BoundedAgentRunLoop.preview() or terminal_chat CLI
@@ -146,9 +148,11 @@ LLMProviderConfig.from_env()
 
 Rules:
 
-- `JAMMATE_LLM_PROVIDER`, `JAMMATE_LLM_MODEL`, `JAMMATE_LLM_API_KEY_ENV_VAR`, `JAMMATE_LLM_BASE_URL`, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS` are the provider/config guard surface.
+- `JAMMATE_LLM_PROVIDER`, `JAMMATE_LLM_MODEL`, `JAMMATE_LLM_API_KEY_ENV_VAR`, `JAMMATE_LLM_BASE_URL`, and `JAMMATE_LLM_ENABLE_NETWORK_CALLS` remain the highest-precedence provider/config guard surface.
 - API runloop preview never executes a provider call.
-- Terminal chat may call a provider only when provider, model, API key, and network gate are explicitly configured.
+- Terminal chat may call a provider only when provider, model, API key, and network gate are explicitly configured through env vars or a local config file.
+- Local config loading checks `JAMMATE_AGENT_LLM_CONFIG_FILE`, repo-local `.jammate_agent.env`, then `~/.jammate/agent_config.env`.
+- API key values must never appear in status, trace, setup/doctor output, docs, git, or zip packages.
 - Provider boundary code must not import provider SDKs or `jammate_engine`.
 - Concrete providers must implement `LLMProvider.status()` and `LLMProvider.generate(LLMRequestEnvelope)`.
 
@@ -203,13 +207,14 @@ Python backend should own:
 
 Every package handoff must remove transient caches and keep project entry docs clean. See `docs/DEVELOPMENT_HARNESS_V2.md` and `docs/PROJECT_CLEANUP_AND_README_CONSOLIDATION_V2_3_16.md`.
 
-### Agent Terminal Chat Context Controls and Candidate Extraction CLI
+### Agent Terminal Chat Config, Context Controls, and Candidate Extraction CLI
 
-`v2_4_11` keeps the validation-only tool invocation preview contract, explicit local trace export, and local context/profile/session controls inside terminal chat, then adds JSON-only tool-call candidate extraction from successful assistant replies:
+`v2_4_12` keeps the validation-only tool invocation preview contract, explicit local trace export, local context/profile/session controls, and JSON-only tool-call candidate extraction inside terminal chat, then adds local setup/doctor/config-path support:
 
 ```text
 terminal_chat.py
-  -> --trace-dir <dir>
+  -> setup / doctor / config-path
+  -> --config-file <path> / --trace-dir <dir>
   -> normal chat, /context, /profile, /task-type, /instrument, /reset, or /tool-preview <tool_name> [json_args]
   -> ContextBuilder.build(task_type, ...)
   -> provider.generate(...) when explicitly configured
@@ -231,7 +236,7 @@ POST /agent/tools/invocation/preview
 
 Rules:
 
-- The registry is descriptor-only in `v2_4_11`; it does not execute tools.
+- The registry is descriptor-only in `v2_4_12`; it does not execute tools.
 - `tool_execution_enabled=false` and `autonomous_tool_execution_enabled=false` remain hard runtime guards.
 - A future LLM provider may only see tools from the task-specific `ContextPacket.allowed_tools` allow-list.
 - Registry and invocation-preview code belong in `jammate_agent/core/` and must not import `jammate_engine` or provider SDKs.
@@ -243,7 +248,7 @@ Rules:
 
 ### Agent Trace API Contract Hardening
 
-`v2_4_11` keeps the existing `TraceLogger` / `JsonTraceStore` / `AgentTrace` tracing owner and hardens its API-facing contract:
+`v2_4_12` keeps the existing `TraceLogger` / `JsonTraceStore` / `AgentTrace` tracing owner and hardens its API-facing contract:
 
 ```text
 GET /agent/traces/spec
@@ -264,7 +269,7 @@ Architecture rules:
 
 ### Agent Trace Viewer CLI
 
-`v2_4_11` adds a read-only terminal viewer on top of the same `TraceLogger` / `JsonTraceStore` / `AgentTrace` owner:
+`v2_4_12` adds a read-only terminal viewer on top of the same `TraceLogger` / `JsonTraceStore` / `AgentTrace` owner:
 
 ```text
 python -m jammate_agent.cli.trace_viewer --trace-dir <dir> list
@@ -277,9 +282,9 @@ Architecture rules:
 - The viewer is read-only and may only load local AgentTrace JSON through `JsonTraceStore`.
 - The viewer must not execute tools, dispatch workflows, call the LLM provider, or call engine adapters.
 - The viewer belongs under `jammate_agent/cli/` and must not import `jammate_engine` or provider SDKs.
-- The viewer shares the `v2_4_11` Trace API/list/detail field contract so terminal debugging and HarmonyOS debugging stay aligned.
+- The viewer shares the `v2_4_12` Trace API/list/detail field contract so terminal debugging and HarmonyOS debugging stay aligned.
 
 
-### v2_4_11 Candidate Extraction Boundary
+### v2_4_12 Candidate Extraction Boundary
 
 `extract_tool_call_candidates()` lives in `jammate_agent.core.tool_invocation` because extracted candidates are still tool invocation proposals. It accepts explicit JSON-only shapes from assistant text and ignores natural language. Terminal chat may preview extracted candidates, but execution remains disabled. No engine imports are allowed in this path.
