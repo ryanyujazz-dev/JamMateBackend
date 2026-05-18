@@ -196,3 +196,95 @@ Completed voicing-only color-gate pass:
 - no Pattern / Anticipation / Expression / Gesture / MIDI behavior was moved into voicing or vice versa.
 
 Next recommended voicing-only task: `v2_6_12_engine_voicing_spread_groupwise_voice_leading_behavior_preserving_split`.
+
+## v2_6_12 Completed — Engine Voicing SPREAD Groupwise Voice-Leading Split
+
+Completed behavior-preserving voicing/SPREAD split:
+
+- added `src/jammate_engine/core/voicing/disposition/spread_voice_leading.py` as the groupwise voice-leading / ranking / continuity owner;
+- moved `SpreadGroupwiseVoiceLeadingWeights`, `SpreadGroupwiseVoiceLeadingScore`, scoring, ranking, selection, and debug-path ownership out of `spread.py`;
+- preserved public compatibility through `spread.py` and `jammate_engine.core.voicing.disposition` re-exports;
+- preserved `Cmaj7`, `G7b9`, and `Bm7b5` `spread_2plus3_contract` candidate signatures;
+- preserved v2_6_10 Jazz Ballad 5/6-note SPREAD density reset;
+- preserved v2_6_11 maj7 safe-extension gate where default Ballad maj7 favors 9/13 and does not auto-enable unnotated #11;
+- did not change Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared docs.
+
+Next recommended voicing-only task: `v2_6_13_engine_voicing_spread_runtime_gate_and_adapter_cleanup`.
+
+
+## v2_6_13 Completed — Engine Voicing Ballad Six-Note Ratio Lift
+
+Completed voicing-only listening calibration:
+
+- added a gentle selected-6-note contract intent bias in the SPREAD groupwise voice-leading owner;
+- kept the 5-note `2+3` lane as the Jazz Ballad SPREAD body;
+- raised 6-note grouped SPREAD appearances in the three-chorus Misty audit from 8 to 12;
+- kept 4-note SPREAD at zero;
+- kept unnotated maj7#11 at zero;
+- did not touch Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared docs.
+
+Next recommended voicing-only task: `v2_6_14_engine_voicing_spread_runtime_gate_and_adapter_cleanup`.
+
+## v2_6_14 Completed — Engine Voicing Ballad SPREAD 5-to-6 Ratio Calibration
+
+Completed voicing-only listening calibration:
+
+- adjusted the existing selected-6-note contract intent bias from `0.20` to `5.0`;
+- moved the Misty three-chorus Jazz Ballad audit toward `5-note:6-note ~= 6:4`;
+- kept 4-note SPREAD retired at zero;
+- kept 7-note as rare ending/climax thickness;
+- kept unnotated maj7#11 at zero;
+- did not touch Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared docs.
+
+Reference audit:
+
+```text
+5-note: 118
+6-note: 76
+7-note: 2
+4-note: 0
+```
+
+Next recommended voicing-only task: `v2_6_15_engine_voicing_spread_runtime_gate_and_adapter_cleanup`.
+
+## v2_6_15 Completed — Engine Voicing SPREAD Runtime Gate / Adapter Cleanup
+
+Completed behavior-preserving voicing/SPREAD boundary cleanup:
+
+- added `spread_runtime_gate.py` as the SPREAD notes-only runtime enablement / selector gate owner;
+- added `spread_runtime_adapter.py` as the `SpreadProjectionCandidate -> VoicingCandidate` field-mapping owner;
+- kept `spread.py` as a compatibility facade, not a growing implementation file;
+- preserved Jazz Ballad `5-note:6-note ~= 6:4` behavior;
+- preserved retired 4-note SPREAD defaults and default maj7#11 gate;
+- did not touch Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared docs.
+
+Next recommended voicing-only task: `v2_6_16_engine_voicing_content_planner_boundary_split_plan`.
+
+## v2_6_16 Completed — Engine Voicing Content Planner Boundary Split Plan
+
+Completed documentation/test planning pass:
+
+- audited the current `core.voicing.sources` boundary;
+- kept `content_planner.py` behavior unchanged in this pass;
+- documented future split owners:
+  - `content_family_router.py` for family-choice / chord-quality normalization;
+  - `content_source_inventory.py` for family-to-degree source option inventory;
+  - existing `color_permission.py` for color admission gates;
+  - existing `source_balance.py` for source-family scoring only;
+  - existing `upper_structure.py` for source-only upper-structure recipes;
+- froze the principle that Upper Structure reuses existing closed / inversion / DROP projection and must not reimplement projection;
+- preserved v2_6_14/v2_6_15 Misty density/color guardrails.
+
+Next recommended voicing-only task: `v2_6_17_engine_voicing_content_family_router_behavior_preserving_split`.
+
+## v2_6_17 Completed — Engine Voicing Content Family Router Behavior-Preserving Split
+
+Completed voicing-only source-boundary split:
+
+- added `content_family_router.py` as the owner of content-family routing / chord-quality normalization;
+- kept `content_planner.py` as public compatibility facade and source inventory orchestration for now;
+- preserved `content_planner.choose_content_families(...)` as a wrapper to avoid breaking historical imports;
+- did not move source inventory, color permission, source balance, upper structure, disposition, register, projection, pattern, expression, gesture, MIDI, API, or Agent behavior;
+- preserved Jazz Ballad `5-note:6-note ~= 6:4`, zero default 4-note SPREAD, low-frequency 7-note, and zero unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_18_engine_voicing_content_source_inventory_behavior_preserving_split`.

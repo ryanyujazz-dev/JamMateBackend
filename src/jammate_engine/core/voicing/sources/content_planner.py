@@ -8,6 +8,12 @@ from jammate_engine.core.harmony.material import ChordMaterial, chord_material, 
 from jammate_engine.core.harmony.scale_resolver import resolve_functional_degree_role
 
 from .chord_tone_resolver import content_degrees, content_degree_names, triad_family_for_chord
+from .content_family_router import (
+    ROOTLESS_FAMILIES,
+    ROOTED_FAMILIES,
+    TRIAD_FAMILIES,
+    choose_content_families as _route_content_families,
+)
 from .color_permission import (
     ALTERED_DOMINANT_PALETTE,
     ColorPermissionContext,
@@ -27,24 +33,11 @@ from ..policy import (
     RootSupportPolicy,
     VoicingPolicy,
     altered_dominant_source_weight_bias,
-    color_is_chord_symbol_specified,
     harmonic_expansion_allowed,
     resolve_altered_dominant_policy,
 )
 from ..taxonomy.recipes import VoicingRecipe, describe_density_recipe
 
-
-ROOTLESS_FAMILIES = {ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B, ContentFamily.GUIDE_TONE, ContentFamily.SHELL, ContentFamily.SHELL_PLUS_5, ContentFamily.SHELL_PLUS_COLOR}
-ROOTED_FAMILIES = {ContentFamily.SEVENTH_BASIC, ContentFamily.ROOTED_COLOR}
-TRIAD_FAMILIES = {
-    ContentFamily.MAJOR_TRIAD,
-    ContentFamily.MINOR_TRIAD,
-    ContentFamily.DIMINISHED_TRIAD,
-    ContentFamily.AUGMENTED_TRIAD,
-    ContentFamily.SUS2_TRIAD,
-    ContentFamily.SUS4_TRIAD,
-    ContentFamily.POWER_CHORD_5TH,
-}
 
 GLOBAL_SEVENTH_CHORD_EXPANSION_SOURCE_INTEGRITY_GATE_VERSION = "v2_2_54"
 
@@ -93,38 +86,15 @@ class VoicingContentRecipe:
 
 
 def choose_content_families(symbol: str, policy: VoicingPolicy) -> list[ContentFamily]:
-    """Return chord-quality-valid content families allowed by a style policy.
+    """Compatibility facade for content-family routing.
 
-    Styles can intentionally send broad families such as major/minor triads or
-    rootless options.  Core normalizes those preferences against the parsed
-    chord quality so debug metadata and selected voicings remain musically
-    truthful.
+    The implementation owner is ``content_family_router.py``.  Keep this
+    wrapper so historical imports from ``content_planner`` remain stable while
+    family-choice / chord-quality normalization no longer lives in the source
+    inventory planner.
     """
 
-    chord = parse_chord(symbol)
-    if policy.allowed_content:
-        families = list(policy.allowed_content)
-    elif policy.preferred_content:
-        families = [policy.preferred_content]
-    else:
-        triad = triad_family_for_chord(chord)
-        if policy.root_support == RootSupportPolicy.ROOTLESS_PREFERRED and chord.has_seventh:
-            families = [ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B, ContentFamily.GUIDE_TONE]
-        elif policy.root_support == RootSupportPolicy.ROOTLESS_ALLOWED and chord.has_seventh:
-            families = [ContentFamily.ROOTLESS_A, ContentFamily.SEVENTH_BASIC, triad]
-        elif chord.has_seventh:
-            families = [ContentFamily.SEVENTH_BASIC, ContentFamily.ROOTED_COLOR, triad]
-        else:
-            families = [triad]
-
-    if policy.root_support in {RootSupportPolicy.ROOT_REQUIRED, RootSupportPolicy.BASS_ROOT_REQUIRED}:
-        rooted = [family for family in families if family not in {ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B, ContentFamily.GUIDE_TONE}]
-        if rooted:
-            families = rooted
-        elif ContentFamily.SEVENTH_BASIC not in families:
-            families = [ContentFamily.SEVENTH_BASIC, *families]
-
-    return _normalize_content_families_for_chord(chord, _dedupe(families), policy)
+    return _route_content_families(symbol, policy)
 
 
 def plan_content_recipes(symbol: str, policy: VoicingPolicy) -> list[VoicingContentRecipe]:
@@ -1490,136 +1460,6 @@ def trim_content_degrees(degrees: list[tuple[str, int]], policy: VoicingPolicy) 
         root = next((item for item in degrees if item[0] == "R"), ("R", 0))
         trimmed = [root, *trimmed]
     return trimmed[: policy.max_density]
-
-
-def _normalize_content_families_for_chord(chord: ParsedChord, families: list[ContentFamily], policy: VoicingPolicy | None = None) -> list[ContentFamily]:
-    actual_triad = triad_family_for_chord(chord)
-    supports_rootless = chord.has_seventh or chord.has_sixth or chord.is_dominant or _is_half_diminished_like(chord)
-    normalized: list[ContentFamily] = []
-    saw_triad_family = False
-
-    altered_dominant = _is_altered_dominant_for_rooted_color(chord)
-    for family in families:
-        if family in TRIAD_FAMILIES:
-            saw_triad_family = True
-            if altered_dominant:
-                continue
-            if family == ContentFamily.POWER_CHORD_5TH:
-                normalized.append(family)
-            elif family == actual_triad:
-                normalized.append(family)
-            continue
-        if family in ROOTLESS_FAMILIES and not supports_rootless:
-            if _is_three_note_closed_request(families, policy) and family in {ContentFamily.SHELL_PLUS_5, ContentFamily.SHELL_PLUS_COLOR}:
-                # v2_1_39: a density-3 closed audit preset may intentionally ask
-                # the shell-tuning family to inspect plain triads/add9/sus symbols.
-                # Do not drop it as "rootless" just because the chord has no
-                # seventh; the family will emit rooted triad/add/sus functional
-                # sources such as root-third-fifth or root-third-ninth.
-                normalized.append(family)
-                continue
-            continue
-        if family == ContentFamily.SEVENTH_BASIC:
-            if altered_dominant:
-                # Altered dominant material is no longer modeled as conservative
-                # seventh-basic compatibility. It must live in rooted/rootless
-                # altered color families so SEVENTH_BASIC can remain literal
-                # root-third-fifth-seventh chord-symbol material.
-                continue
-            if not (chord.has_seventh or chord.has_sixth):
-                continue
-        if family == ContentFamily.ROOTED_COLOR and chord.is_suspended and not chord.has_seventh:
-            # No-seventh sus symbols are triad-family material at density 4:
-            # sus2 -> root-second-fifth-root / second-fifth-root-second /
-            # fifth-root-second-fifth, and sus4 mirrors that with fourth.  Do
-            # not reinterpret a bare sus chord as a rooted color source just
-            # because the parser exposes sus as 9/11-like explicit material.
-            continue
-        if (
-            family == ContentFamily.ROOTED_COLOR
-            and not (chord.has_seventh or chord.has_sixth)
-            and not _explicit_symbol_color_degrees(chord)
-            and harmonic_expansion_allowed(policy, chord)
-        ):
-            # Plain-triad expansion is handled by the triad family so it can
-            # expose the low-order set together: root-third-fifth-seventh,
-            # root-third-fifth-sixth, root-third-fifth-ninth, plus the doubled
-            # triad fallback.  Do not collapse it into rooted-color 1359 only.
-            continue
-        if family in {ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B, ContentFamily.ROOTED_COLOR}:
-            if not _four_note_color_gate_open(chord, family, policy):
-                continue
-        normalized.append(family)
-
-    if saw_triad_family and actual_triad not in normalized and not altered_dominant:
-        normalized.append(actual_triad)
-    if altered_dominant and ContentFamily.ROOTED_COLOR not in normalized and not _is_three_note_closed_request(families, policy):
-        # Migration fallback for legacy callers that requested only
-        # SEVENTH_BASIC on altered dominants.  Keep a rooted altered source
-        # available without putting altered material back into SEVENTH_BASIC.
-        # 3-note closed isolation is explicit source work and must stay in
-        # functional 3-note sources such as third-seventh-altered-color instead
-        # of leaking a 4-note rooted_color family trimmed down to 3 notes.
-        normalized.append(ContentFamily.ROOTED_COLOR)
-    if not normalized:
-        if chord.has_seventh or chord.has_sixth or _is_half_diminished_like(chord):
-            normalized.append(ContentFamily.SEVENTH_BASIC)
-        else:
-            normalized.append(actual_triad)
-    return _dedupe(normalized)
-
-
-
-def _is_three_note_closed_request(families: list[ContentFamily], policy: VoicingPolicy | None) -> bool:
-    if policy is None:
-        return False
-    if int(getattr(policy, "max_density", 99) or 99) > 3:
-        return False
-    metadata = dict(getattr(policy, "metadata", {}) or {})
-    if metadata.get("closed_3note_per_source_minimum_motion"):
-        return True
-    three_note_families = {ContentFamily.SHELL_PLUS_COLOR, ContentFamily.SHELL_PLUS_5, ContentFamily.SHELL, ContentFamily.GUIDE_TONE}
-    return bool(set(families).intersection(three_note_families)) and not {ContentFamily.ROOTED_COLOR, ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B}.intersection(families)
-
-def _four_note_color_gate_open(chord: ParsedChord, family: ContentFamily, policy: VoicingPolicy | None) -> bool:
-    """Return whether a 4-note color family may enter the candidate pool.
-
-    This is the central v2.1.24 gate audit contract.  Basic chord-symbol-only
-    harmony should not silently enter color-bearing rooted/rootless sources for
-    plain Cmaj7/Dm7/G7.  The gate opens only when the chart explicitly writes a
-    color/alteration/suspension that the source can honor, or when global
-    HarmonicExpansionPolicy allows unnotated color for the current context.
-    """
-
-    if family in {ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B}:
-        explicit = _rootless_ab_explicit_color_degrees(chord)
-    elif family == ContentFamily.ROOTED_COLOR:
-        explicit = _explicit_symbol_color_degrees(chord)
-    else:
-        return True
-    if color_is_chord_symbol_specified(explicit):
-        return True
-    return bool(harmonic_expansion_allowed(policy, chord) and _family_expansion_target_allowed(family, policy))
-
-
-def _family_expansion_target_allowed(family: ContentFamily, policy: VoicingPolicy | None) -> bool:
-    """Return whether style-level expansion is allowed to open this family.
-
-    If no metadata target is supplied, expansion remains global.  A style may
-    narrow the target to keep a baseline texture stable; Jazz Ballad currently
-    opens expansion for rooted_color while leaving rootless sources available for
-    explicit chart colors or future dedicated tuning.
-    """
-
-    metadata = dict(getattr(policy, "metadata", {}) or {}) if policy is not None else {}
-    raw = metadata.get("harmonic_expansion_target_families", metadata.get("color_expansion_target_families"))
-    if not raw:
-        return True
-    if isinstance(raw, str):
-        targets = {raw}
-    else:
-        targets = {str(item) for item in raw}
-    return family.value in targets or family.name in targets
 
 
 def _content_validity_notes(chord: ParsedChord, family: ContentFamily, degree_names: tuple[str, ...], policy: VoicingPolicy | None = None) -> tuple[str, ...]:

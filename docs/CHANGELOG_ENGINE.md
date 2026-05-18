@@ -1,3 +1,14 @@
+
+## v2_6_15_engine_voicing_spread_runtime_gate_and_adapter_cleanup
+
+- Added dedicated SPREAD runtime-boundary owners:
+  - `src/jammate_engine/core/voicing/disposition/spread_runtime_gate.py`
+  - `src/jammate_engine/core/voicing/disposition/spread_runtime_adapter.py`
+- Kept `spread.py` as public compatibility facade while moving runtime gate/adapter definitions out of the facade body.
+- Preserved v2_6_14 Ballad/SPREAD 5-note:6-note ~= 6:4 density calibration.
+- Preserved 4-note SPREAD default exclusion and default maj7#11 safe-extension gate.
+- Added `tests/test_v2_6_15_engine_voicing_spread_runtime_gate_adapter_cleanup.py`.
+
 # Engine Track Changelog
 
 Current baseline: `v2_6_1`; latest engine-track task: `v2_6_8_engine_voicing_spread_register_guard_behavior_preserving_split` (shared VERSION intentionally unchanged).
@@ -106,3 +117,57 @@ This file records engine-track changes to reduce conflicts in the global `docs/C
 - Preserved explicit chart fidelity: `maj7#11` still produces #11 voicing sources.
 - Added policy/LLM intent hooks for unnotated maj7#11 via Lydian/bright/modern harmonic-color metadata.
 - Added `docs/ENGINE_VOICING_BALLAD_SAFE_EXTENSION_COLOR_GATE_V2_6_11.md` and `tests/test_v2_6_11_engine_voicing_ballad_safe_extension_color_gate.py`.
+
+## v2_6_12 — Engine Voicing SPREAD Groupwise Voice-Leading Split
+
+- Voicing-only behavior-preserving split; no listening retune and no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared-version change.
+- Added `src/jammate_engine/core/voicing/disposition/spread_voice_leading.py` as the owner of SPREAD groupwise voice-leading / ranking / continuity.
+- Kept public compatibility by re-exporting the existing v2_2_41 scorer API through `spread.py` and the package-level disposition facade.
+- Preserved `Cmaj7`, `G7b9`, and `Bm7b5` `spread_2plus3_contract` signatures.
+- Added `docs/ENGINE_VOICING_SPREAD_GROUPWISE_VOICE_LEADING_SPLIT_V2_6_12.md` and `tests/test_v2_6_12_engine_voicing_spread_groupwise_voice_leading_split.py`.
+
+
+## v2_6_13 — Engine Voicing Ballad Six-Note Ratio Lift
+
+- Voicing-only listening calibration; no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared-version change.
+- Added a small notes-only selected 6-note contract bias owned by `core.voicing.disposition.spread_voice_leading`.
+- Raised the Misty Jazz Ballad three-chorus 6-note SPREAD count from the v2_6_12 audit baseline of 8 to 12, while keeping 5-note `2+3` as the dominant body.
+- Preserved v2_6_10 guardrails: 4-note SPREAD `1+3` / `2+2` remain retired from default Ballad runtime.
+- Preserved v2_6_11 color gate: unnotated Ballad maj7#11 remains off by default.
+- Added `docs/ENGINE_VOICING_BALLAD_SIX_NOTE_RATIO_LIFT_V2_6_13.md` and `tests/test_v2_6_13_engine_voicing_ballad_six_note_ratio_lift.py`.
+
+## v2_6_14 — Engine Voicing Ballad SPREAD 5-to-6 Ratio Calibration
+
+- Voicing-only listening calibration; no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared-version change.
+- Raised the existing selected 6-note SPREAD contract bias from `0.20` to `5.0` so Jazz Ballad grouped SPREAD approaches the requested `5-note:6-note ~= 6:4` mix.
+- Reference Misty three-chorus audit now reports `5-note: 118`, `6-note: 76`, `7-note: 2`, `4-note: 0`.
+- Preserved v2_6_10 guardrails: retired 4-note SPREAD `1+3` / `2+2` do not return.
+- Preserved v2_6_11 color gate: unnotated Ballad maj7#11 remains off by default.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_5_TO_6_RATIO_CALIBRATION_V2_6_14.md` and `tests/test_v2_6_14_engine_voicing_ballad_spread_5_to_6_ratio_calibration.py`.
+
+## v2_6_15 — Engine Voicing SPREAD Runtime Gate / Adapter Cleanup
+
+- Voicing-only behavior-preserving boundary cleanup; no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared-version change.
+- Added `spread_runtime_gate.py` as the owner for SPREAD notes-only runtime enablement / selector gate decisions.
+- Added `spread_runtime_adapter.py` as the owner for explicit `SpreadProjectionCandidate -> VoicingCandidate` adapter field mapping.
+- Kept `spread.py` as the public compatibility facade while removing the major runtime gate / adapter implementation owners from it.
+- Preserved v2_6_14 Jazz Ballad 5-note:6-note ratio calibration and v2_6_11 unnotated maj7#11 gate.
+- Added `docs/ENGINE_VOICING_SPREAD_RUNTIME_GATE_ADAPTER_CLEANUP_V2_6_15.md` and `tests/test_v2_6_15_engine_voicing_spread_runtime_gate_adapter_cleanup.py`.
+
+## v2_6_16 — Engine Voicing Content Planner Boundary Split Plan
+
+- Documentation/test planning pass; no generation behavior changed.
+- Audited `core.voicing.sources.content_planner` and clarified future owners for content family routing, source inventory, color permission, source balance, and upper-structure source planning.
+- Established that the next code split should move family-choice / normalization first into `content_family_router.py`, while leaving source inventory in place for a later pass.
+- Reaffirmed that Upper Structure remains source-only and must reuse existing closed / inversion / DROP projection capabilities instead of reimplementing disposition projection.
+- Preserved v2_6_14 / v2_6_15 Jazz Ballad density and color guardrails: 4-note SPREAD remains zero, 5-note:6-note remains near 6:4, and unnotated maj7#11 remains off by default.
+- Added `docs/ENGINE_VOICING_CONTENT_PLANNER_BOUNDARY_SPLIT_PLAN_V2_6_16.md` and `tests/test_v2_6_16_engine_voicing_content_planner_boundary_split_plan.py`.
+
+## v2_6_17 — Engine Voicing Content Family Router Split
+
+- Behavior-preserving voicing source boundary cleanup; no pattern, anticipation, expression, gesture, MIDI, API, Agent, or shared-version change.
+- Added `src/jammate_engine/core/voicing/sources/content_family_router.py` as the owner for content-family routing and chord-quality normalization.
+- Kept `content_planner.py` as the public compatibility facade and source-inventory orchestration surface for this pass.
+- Preserved historical `content_planner.choose_content_families(...)` imports through a thin wrapper.
+- Preserved v2_6_14/v2_6_15 Jazz Ballad `5-note:6-note ~= 6:4`, retired 4-note SPREAD defaults, and default maj7#11 gate.
+- Added `docs/ENGINE_VOICING_CONTENT_FAMILY_ROUTER_SPLIT_V2_6_17.md` and `tests/test_v2_6_17_engine_voicing_content_family_router_split.py`.

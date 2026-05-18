@@ -66,6 +66,48 @@ from .spread_register_guards import (
     upper_structure_root_shell_tail_gate_passed as _upper_structure_root_shell_tail_gate_passed,
 )
 
+from .spread_voice_leading import (
+    GROUPWISE_SPREAD_VOICE_LEADING_VERSION,
+    SPREAD_GROUPWISE_VOICE_LEADING_SPLIT_VERSION,
+    SpreadGroupwiseVoiceLeadingScore,
+    SpreadGroupwiseVoiceLeadingWeights,
+    compute_groupwise_motion_score,
+    lower_group_motion_distance,
+    rank_spread_candidates_by_group_motion,
+    rank_spread_candidates_by_groupwise_voice_leading,
+    score_spread_groupwise_voice_leading,
+    select_spread_candidate_by_groupwise_voice_leading,
+    spread_groupwise_voice_leading_path_debug,
+    spread_voice_leading_debug,
+    top_voice_continuity_distance,
+    upper_group_motion_distance,
+)
+
+
+from .spread_runtime_gate import (
+    SPREAD_RUNTIME_GATE_ADAPTER_CLEANUP_VERSION,
+    SpreadRuntimeGateDecision,
+    SpreadCandidateSelectorRequest,
+    SpreadCandidateSelectorResult,
+    spread_runtime_gate_from_policy,
+    select_spread_candidate_with_runtime_gate,
+    spread_candidate_selector_contract_debug,
+)
+
+from .spread_runtime_adapter import (
+    SpreadRuntimeAdapterStatus,
+    SpreadRuntimeAdapterFieldMapping,
+    SpreadRuntimeAdapterResult,
+    _spread_runtime_adapter_field_mappings,
+    _spread_runtime_adapter_values,
+    _spread_runtime_adapter_conversion_requested,
+    _spread_runtime_content_family,
+    _spread_runtime_root_support,
+    _spread_runtime_bass_relation,
+    _spread_runtime_interval_structure,
+    _spread_runtime_root_support_decision,
+    spread_runtime_adapter_owner_debug,
+)
 
 @dataclass(frozen=True)
 class SpreadReuseAuditItem:
@@ -152,7 +194,6 @@ class SpreadRecipeContract:
         }
 
 
-GROUPWISE_SPREAD_VOICE_LEADING_VERSION = "v2_2_41"
 SPREAD_SELECTOR_RUNTIME_GATE_VERSION = "v2_2_42"
 BALLAD_SPREAD_RUNTIME_ENTRY_CONTRACT_VERSION = "v2_2_43"
 BALLAD_SPREAD_RUNTIME_SAFE_DRY_RUN_VERSION = "v2_2_44"
@@ -390,235 +431,6 @@ class SpreadProjectionResult:
 
 
 @dataclass(frozen=True)
-class SpreadGroupwiseVoiceLeadingWeights:
-    """Weights for notes-only SPREAD group-wise continuity scoring.
-
-    Lower and upper groups are scored separately so SPREAD does not collapse
-    back into a single all-notes total-motion heuristic.  Smaller penalties are
-    better.  The scorer is a debug/ranking helper only in v2_2_41 and does not
-    enable SPREAD in runtime selection.
-    """
-
-    lower_group_motion: float = 1.25
-    upper_group_motion: float = 1.0
-    top_voice_motion: float = 0.9
-    group_gap_stability: float = 0.55
-    span_penalty: float = 0.35
-    register_penalty: float = 0.4
-    legality_penalty: float = 10000.0
-    runtime_enabled: bool = False
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "groupwise_spread_voice_leading_version": GROUPWISE_SPREAD_VOICE_LEADING_VERSION,
-            "lower_group_motion": float(self.lower_group_motion),
-            "upper_group_motion": float(self.upper_group_motion),
-            "top_voice_motion": float(self.top_voice_motion),
-            "group_gap_stability": float(self.group_gap_stability),
-            "span_penalty": float(self.span_penalty),
-            "register_penalty": float(self.register_penalty),
-            "legality_penalty": float(self.legality_penalty),
-            "runtime_enabled": self.runtime_enabled,
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-        }
-
-
-@dataclass(frozen=True)
-class SpreadGroupwiseVoiceLeadingScore:
-    """A component score for one current SPREAD candidate.
-
-    The score preserves separate lower/upper/top/gap/span/register components so
-    future selectors can inspect why a candidate ranked well.  It intentionally
-    references ``SpreadProjectionCandidate`` rather than converting to a runtime
-    voicing candidate.
-    """
-
-    current: SpreadProjectionCandidate
-    previous: SpreadProjectionCandidate | None
-    lower_group_motion: int
-    upper_group_motion: int
-    top_voice_motion: int
-    group_gap_change: int
-    span_penalty: int
-    register_penalty: int
-    legality_penalty: float
-    weighted_penalty: float
-    weights: SpreadGroupwiseVoiceLeadingWeights
-    runtime_enabled: bool = False
-
-    @property
-    def total_motion(self) -> int:
-        return int(self.lower_group_motion + self.upper_group_motion)
-
-    @property
-    def continuity_score(self) -> float:
-        return max(0.0, 1000.0 - float(self.weighted_penalty))
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "basic_spread_projection_version": BASIC_SPREAD_PROJECTION_VERSION,
-            "groupwise_spread_voice_leading_version": GROUPWISE_SPREAD_VOICE_LEADING_VERSION,
-            "layer": "core.voicing.disposition.spread",
-            "current_chord_symbol": self.current.chord_symbol,
-            "previous_chord_symbol": self.previous.chord_symbol if self.previous is not None else None,
-            "current_recipe_id": self.current.recipe_contract.recipe_id,
-            "previous_recipe_id": self.previous.recipe_contract.recipe_id if self.previous is not None else None,
-            "current_grouping": self.current.recipe_contract.grouping.value,
-            "previous_grouping": self.previous.recipe_contract.grouping.value if self.previous is not None else None,
-            "current_lower_group_notes": list(self.current.lower_notes),
-            "previous_lower_group_notes": list(self.previous.lower_notes) if self.previous is not None else [],
-            "current_upper_group_notes": list(self.current.upper_notes),
-            "previous_upper_group_notes": list(self.previous.upper_notes) if self.previous is not None else [],
-            "current_top_voice": max(self.current.notes) if self.current.notes else None,
-            "previous_top_voice": max(self.previous.notes) if self.previous is not None and self.previous.notes else None,
-            "lower_group_motion": int(self.lower_group_motion),
-            "upper_group_motion": int(self.upper_group_motion),
-            "top_voice_motion": int(self.top_voice_motion),
-            "group_gap_change": int(self.group_gap_change),
-            "span_penalty": int(self.span_penalty),
-            "register_penalty": int(self.register_penalty),
-            "legality_penalty": float(self.legality_penalty),
-            "total_motion": self.total_motion,
-            "weighted_penalty": float(self.weighted_penalty),
-            "continuity_score": float(self.continuity_score),
-            "weights": self.weights.to_debug_dict(),
-            "scored_groupwise_not_total_motion_only": True,
-            "runtime_enabled": self.runtime_enabled,
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-        }
-
-
-
-@dataclass(frozen=True)
-class SpreadRuntimeGateDecision:
-    """Safety gate for future SPREAD runtime use.
-
-    The gate may be opened only by explicit policy metadata plus a SPREAD
-    texture-family request.  Even when open, v2_2_42 does not wire SPREAD into
-    style runtime candidate generation and does not convert a selected
-    ``SpreadProjectionCandidate`` into a runtime ``VoicingCandidate``.
-    """
-
-    selector_gate_open: bool
-    reason: str
-    explicit_request: bool
-    spread_family_requested: bool
-    primary_family: str | None = None
-    allowed_families: tuple[str, ...] = ()
-    source: str = "policy_metadata"
-    style_runtime_wiring_enabled: bool = False
-    candidate_conversion_allowed: bool = False
-    notes_only: bool = True
-    runtime_enabled: bool = False
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "spread_selector_runtime_gate_version": SPREAD_SELECTOR_RUNTIME_GATE_VERSION,
-            "selector_gate_open": bool(self.selector_gate_open),
-            "reason": self.reason,
-            "explicit_request": bool(self.explicit_request),
-            "spread_family_requested": bool(self.spread_family_requested),
-            "primary_family": self.primary_family,
-            "allowed_families": list(self.allowed_families),
-            "source": self.source,
-            "style_runtime_wiring_enabled": bool(self.style_runtime_wiring_enabled),
-            "candidate_conversion_allowed": bool(self.candidate_conversion_allowed),
-            "runtime_enabled": bool(self.runtime_enabled),
-            "notes_only": bool(self.notes_only),
-            "no_expression_or_pedal": True,
-            "does_not_change_default_style_runtime": True,
-        }
-
-
-@dataclass(frozen=True)
-class SpreadCandidateSelectorRequest:
-    """Selector request contract for notes-only SPREAD candidates.
-
-    This is intentionally smaller than a style runtime request.  It declares
-    which SPREAD contracts may be projected and ranked while leaving expression,
-    pedal, duration, and final instrument realization outside this layer.
-    """
-
-    chord_symbol: str
-    contract_ids: tuple[str, ...] = ()
-    max_upper_options: int = 12
-    legal_only: bool = True
-    source: str = "explicit_policy_gate"
-    runtime_enabled: bool = False
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "spread_selector_runtime_gate_version": SPREAD_SELECTOR_RUNTIME_GATE_VERSION,
-            "chord_symbol": self.chord_symbol,
-            "contract_ids": list(self.contract_ids),
-            "max_upper_options": int(self.max_upper_options),
-            "legal_only": bool(self.legal_only),
-            "source": self.source,
-            "runtime_enabled": bool(self.runtime_enabled),
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-        }
-
-
-@dataclass(frozen=True)
-class SpreadCandidateSelectorResult:
-    """Result of the SPREAD selector contract / runtime gate skeleton.
-
-    The selected object remains a notes-only ``SpreadProjectionCandidate``.
-    Runtime conversion and style wiring are explicitly forbidden in v2_2_42.
-    """
-
-    request: SpreadCandidateSelectorRequest
-    gate: SpreadRuntimeGateDecision
-    projected_results: tuple[SpreadProjectionResult, ...]
-    ranked_scores: tuple[SpreadGroupwiseVoiceLeadingScore, ...]
-    selected: SpreadProjectionCandidate | None
-    selected_score: SpreadGroupwiseVoiceLeadingScore | None
-    runtime_enabled: bool = False
-
-    @property
-    def projected_result_count(self) -> int:
-        return len(self.projected_results)
-
-    @property
-    def candidate_count(self) -> int:
-        return sum(len(result.candidates) for result in self.projected_results)
-
-    @property
-    def legal_candidate_count(self) -> int:
-        return sum(result.legal_candidate_count for result in self.projected_results)
-
-    @property
-    def ranked_score_count(self) -> int:
-        return len(self.ranked_scores)
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-            "basic_spread_projection_version": BASIC_SPREAD_PROJECTION_VERSION,
-            "groupwise_spread_voice_leading_version": GROUPWISE_SPREAD_VOICE_LEADING_VERSION,
-            "spread_selector_runtime_gate_version": SPREAD_SELECTOR_RUNTIME_GATE_VERSION,
-            "layer": "core.voicing.disposition.spread",
-            "purpose": "SPREAD Candidate Selector Contract / Runtime Gate Skeleton",
-            "request": self.request.to_debug_dict(),
-            "gate": self.gate.to_debug_dict(),
-            "projected_result_count": self.projected_result_count,
-            "candidate_count": self.candidate_count,
-            "legal_candidate_count": self.legal_candidate_count,
-            "ranked_score_count": self.ranked_score_count,
-            "selected_candidate": self.selected.to_debug_dict() if self.selected is not None else None,
-            "selected_score": self.selected_score.to_debug_dict() if self.selected_score is not None else None,
-            "selected_candidate_runtime_enabled": bool(self.selected.runtime_enabled) if self.selected is not None else False,
-            "candidate_conversion_allowed": False,
-            "style_runtime_wiring_enabled": False,
-            "runtime_enabled": bool(self.runtime_enabled),
-            "notes_only": True,
-            "no_expression_or_pedal": True,
-            "does_not_change_default_style_runtime": True,
-        }
 
 
 class BalladSpreadEntryScene(str, Enum):
@@ -1416,20 +1228,6 @@ class SpreadRuntimeConversionBoundaryStatus(str, Enum):
     BLOCKED_CURRENT_STAGE = "blocked_current_stage"
 
 
-class SpreadRuntimeAdapterStatus(str, Enum):
-    """Status for the v2_2_47 SPREAD runtime adapter skeleton.
-
-    The adapter skeleton can prove a field mapping in an explicit dry-run, but
-    it is not candidate-generator wiring and it is not a style runtime retune.
-    """
-
-    DEFAULT_BLOCKED = "default_blocked"
-    POLICY_BLOCKED = "policy_blocked"
-    INVALID_SOURCE_CANDIDATE = "invalid_source_candidate"
-    UNSUPPORTED_GROUPING = "unsupported_grouping"
-    ADAPTED_SKELETON_ONLY = "adapted_skeleton_only"
-
-
 class BalladSpreadRuntimeCandidatePoolStatus(str, Enum):
     """Status for the explicit v2_2_48 Ballad SPREAD pilot candidate pool.
 
@@ -1475,96 +1273,6 @@ class BalladSpreadPilotRuntimeEnablementGuardStatus(str, Enum):
     CANDIDATE_POOL_NOT_READY = "candidate_pool_not_ready"
     FALLBACK_AUDIT_BLOCKED = "fallback_audit_blocked"
     ENABLED_FOR_LISTENING_ISOLATION = "enabled_for_listening_isolation"
-
-
-@dataclass(frozen=True)
-class SpreadRuntimeAdapterFieldMapping:
-    """One explicit source-to-runtime field mapping for the adapter skeleton."""
-
-    source_field: str
-    target_field: str
-    copied: bool
-    reason: str
-    source_owner_path: str = "core.voicing.disposition.spread.SpreadProjectionCandidate"
-    target_owner_path: str = "core.voicing.candidate.VoicingCandidate"
-
-    def to_debug_dict(self) -> dict[str, object]:
-        return {
-            "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
-            "source_field": self.source_field,
-            "target_field": self.target_field,
-            "copied": bool(self.copied),
-            "reason": self.reason,
-            "source_owner_path": self.source_owner_path,
-            "target_owner_path": self.target_owner_path,
-        }
-
-
-@dataclass(frozen=True)
-class SpreadRuntimeAdapterResult:
-    """Result of the explicit SPREAD -> VoicingCandidate adapter skeleton.
-
-    By default this result is blocked and contains no runtime candidate.  When
-    explicitly allowed for a dry-run, it may hold a ``VoicingCandidate`` object
-    that preserves SPREAD metadata, but generator/style wiring still remains
-    disabled.
-    """
-
-    source_candidate: SpreadProjectionCandidate | None
-    adapted_candidate: Any | None
-    status: SpreadRuntimeAdapterStatus
-    field_mappings: tuple[SpreadRuntimeAdapterFieldMapping, ...]
-    conversion_requested: bool
-    conversion_allowed: bool
-    reason: str
-    candidate_generator_wiring_allowed: bool = False
-    style_runtime_wiring_enabled: bool = False
-    runtime_enabled: bool = False
-
-    @property
-    def converted(self) -> bool:
-        return self.adapted_candidate is not None and self.status == SpreadRuntimeAdapterStatus.ADAPTED_SKELETON_ONLY
-
-    def to_debug_dict(self) -> dict[str, object]:
-        adapted_debug = None
-        if self.adapted_candidate is not None and hasattr(self.adapted_candidate, "to_debug_dict"):
-            adapted_debug = self.adapted_candidate.to_debug_dict()
-        source_summary = None
-        if self.source_candidate is not None:
-            source_summary = {
-                "chord_symbol": self.source_candidate.chord_symbol,
-                "recipe_id": self.source_candidate.recipe_contract.recipe_id,
-                "grouping": self.source_candidate.recipe_contract.grouping.value,
-                "density": self.source_candidate.density,
-                "notes": list(self.source_candidate.notes),
-                "degrees": list(self.source_candidate.degrees),
-                "is_legal": bool(self.source_candidate.is_legal),
-                "notes_only": True,
-                "runtime_enabled": bool(self.source_candidate.runtime_enabled),
-            }
-        return {
-            "spread_runtime_adapter_skeleton_version": SPREAD_RUNTIME_ADAPTER_SKELETON_VERSION,
-            "layer": "core.voicing.disposition.spread",
-            "purpose": "SPREAD Runtime Adapter Skeleton",
-            "source_candidate_type": "SpreadProjectionCandidate",
-            "target_candidate_type": "VoicingCandidate",
-            "source_candidate_summary": source_summary,
-            "adapted_candidate_debug": adapted_debug,
-            "status": self.status.value,
-            "converted": bool(self.converted),
-            "reason": self.reason,
-            "field_mapping_count": len(self.field_mappings),
-            "field_mappings": [item.to_debug_dict() for item in self.field_mappings],
-            "candidate_conversion_requested": bool(self.conversion_requested),
-            "candidate_conversion_allowed": bool(self.conversion_allowed),
-            "candidate_generator_wiring_allowed": bool(self.candidate_generator_wiring_allowed),
-            "style_runtime_wiring_enabled": bool(self.style_runtime_wiring_enabled),
-            "runtime_enabled": bool(self.runtime_enabled),
-            "adapter_skeleton_only": True,
-            "notes_only_source": True,
-            "no_expression_or_pedal": True,
-            "does_not_change_default_style_runtime": True,
-        }
 
 
 @dataclass(frozen=True)
@@ -1967,282 +1675,6 @@ from .spread_projection_core import (
     project_basic_spread_candidates,
     project_basic_spread_contract,
 )
-
-
-def score_spread_groupwise_voice_leading(
-    current: SpreadProjectionCandidate,
-    previous: SpreadProjectionCandidate | None = None,
-    weights: SpreadGroupwiseVoiceLeadingWeights | None = None,
-) -> SpreadGroupwiseVoiceLeadingScore:
-    """Score one SPREAD candidate with lower/upper group-wise continuity.
-
-    This is the v2_2_41 scorer boundary.  It works on notes-only SPREAD
-    projection candidates and does not enable any style runtime path.
-    """
-
-    scoring_weights = weights or SpreadGroupwiseVoiceLeadingWeights()
-    lower_motion = _paired_note_motion(previous.lower_notes if previous is not None else (), current.lower_notes)
-    upper_motion = _paired_note_motion(previous.upper_notes if previous is not None else (), current.upper_notes)
-    top_motion = _top_voice_motion(previous, current)
-    gap_change = _group_gap_change(previous, current)
-    span_penalty = _spread_span_penalty(current)
-    register_penalty = _spread_register_penalty(current)
-    legality_penalty = 0.0 if current.is_legal else float(scoring_weights.legality_penalty)
-    weighted_penalty = (
-        float(lower_motion) * float(scoring_weights.lower_group_motion)
-        + float(upper_motion) * float(scoring_weights.upper_group_motion)
-        + float(top_motion) * float(scoring_weights.top_voice_motion)
-        + float(gap_change) * float(scoring_weights.group_gap_stability)
-        + float(span_penalty) * float(scoring_weights.span_penalty)
-        + float(register_penalty) * float(scoring_weights.register_penalty)
-        + legality_penalty
-    )
-    return SpreadGroupwiseVoiceLeadingScore(
-        current=current,
-        previous=previous,
-        lower_group_motion=int(lower_motion),
-        upper_group_motion=int(upper_motion),
-        top_voice_motion=int(top_motion),
-        group_gap_change=int(gap_change),
-        span_penalty=int(span_penalty),
-        register_penalty=int(register_penalty),
-        legality_penalty=float(legality_penalty),
-        weighted_penalty=float(weighted_penalty),
-        weights=scoring_weights,
-    )
-
-
-def rank_spread_candidates_by_groupwise_voice_leading(
-    candidates: tuple[SpreadProjectionCandidate, ...] | list[SpreadProjectionCandidate],
-    previous: SpreadProjectionCandidate | None = None,
-    weights: SpreadGroupwiseVoiceLeadingWeights | None = None,
-    *,
-    legal_only: bool = True,
-) -> tuple[SpreadGroupwiseVoiceLeadingScore, ...]:
-    """Rank SPREAD projection candidates by group-wise voice-leading penalty."""
-
-    usable = [candidate for candidate in candidates if (candidate.is_legal or not legal_only)]
-    scores = [score_spread_groupwise_voice_leading(candidate, previous, weights) for candidate in usable]
-    scores.sort(
-        key=lambda score: (
-            float(score.weighted_penalty),
-            score.lower_group_motion,
-            score.upper_group_motion,
-            score.top_voice_motion,
-            score.current.group_gap_semitones if score.current.group_gap_semitones is not None else 999,
-            score.current.notes,
-        )
-    )
-    return tuple(scores)
-
-
-def select_spread_candidate_by_groupwise_voice_leading(
-    candidates: tuple[SpreadProjectionCandidate, ...] | list[SpreadProjectionCandidate],
-    previous: SpreadProjectionCandidate | None = None,
-    weights: SpreadGroupwiseVoiceLeadingWeights | None = None,
-    *,
-    legal_only: bool = True,
-) -> SpreadProjectionCandidate | None:
-    """Return the best candidate from the notes-only group-wise scorer."""
-
-    ranked = rank_spread_candidates_by_groupwise_voice_leading(candidates, previous, weights, legal_only=legal_only)
-    return ranked[0].current if ranked else None
-
-
-def spread_groupwise_voice_leading_path_debug(
-    chord_symbols: tuple[str, ...] = ("Dm7", "G7", "Cmaj7"),
-    *,
-    contract_id: str = "spread_2plus3_contract",
-    policy: Any | None = None,
-    weights: SpreadGroupwiseVoiceLeadingWeights | None = None,
-    max_upper_options: int = 12,
-) -> dict[str, object]:
-    """Greedy notes-only debug path for SPREAD group-wise voice-leading."""
-
-    selected: list[SpreadProjectionCandidate] = []
-    score_path: list[SpreadGroupwiseVoiceLeadingScore] = []
-    previous: SpreadProjectionCandidate | None = None
-    for symbol in chord_symbols:
-        result = project_basic_spread_contract(symbol, contract_id, policy, max_upper_options=max_upper_options)
-        ranked = rank_spread_candidates_by_groupwise_voice_leading(result.candidates, previous, weights)
-        if not ranked:
-            continue
-        score = ranked[0]
-        score_path.append(score)
-        selected.append(score.current)
-        previous = score.current
-    return {
-        "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-        "basic_spread_projection_version": BASIC_SPREAD_PROJECTION_VERSION,
-        "groupwise_spread_voice_leading_version": GROUPWISE_SPREAD_VOICE_LEADING_VERSION,
-        "layer": "core.voicing.disposition.spread",
-        "purpose": "Group-wise SPREAD voice-leading scorer debug path",
-        "contract_id": contract_id,
-        "chord_symbols": list(chord_symbols),
-        "selected_candidate_count": len(selected),
-        "selected_lower_group_path": [list(candidate.lower_notes) for candidate in selected],
-        "selected_upper_group_path": [list(candidate.upper_notes) for candidate in selected],
-        "selected_top_voice_path": [max(candidate.notes) if candidate.notes else None for candidate in selected],
-        "scores": [score.to_debug_dict() for score in score_path],
-        "scored_groupwise_not_total_motion_only": True,
-        "runtime_enabled": False,
-        "notes_only": True,
-        "no_expression_or_pedal": True,
-    }
-
-
-def spread_runtime_gate_from_policy(
-    policy: Any | None = None,
-    *,
-    texture_state: Any | None = None,
-    explicit_enable: bool | None = None,
-) -> SpreadRuntimeGateDecision:
-    """Resolve the v2_2_42 safety gate for SPREAD candidate selection.
-
-    The default is closed.  Opening the selector gate requires an explicit
-    metadata request and a SPREAD texture-family request.  This helper still
-    does not wire SPREAD into the style runtime or convert candidates.
-    """
-
-    values = _spread_selector_gate_values(policy)
-    if explicit_enable is not None:
-        values["explicit_enable_argument"] = bool(explicit_enable)
-    explicit_request = _spread_bool_any(
-        values,
-        (
-            "explicit_enable_argument",
-            "spread_candidate_selector_enabled",
-            "spread_selector_enabled",
-            "spread_runtime_gate_enabled",
-            "spread_runtime_enabled",
-            "enable_spread_runtime",
-            "use_spread_voicing_runtime",
-        ),
-        default=False,
-    )
-    primary_family, allowed_families = _spread_requested_families(values, texture_state)
-    family_values = {value for value in (*allowed_families, primary_family or "") if value}
-    spread_family_requested = "spread" in family_values
-
-    if not explicit_request:
-        reason = "explicit_spread_runtime_gate_not_requested"
-        gate_open = False
-    elif not spread_family_requested:
-        reason = "explicit_request_without_spread_texture_family"
-        gate_open = False
-    else:
-        reason = "explicit_policy_requested_spread_selector_gate"
-        gate_open = True
-
-    return SpreadRuntimeGateDecision(
-        selector_gate_open=gate_open,
-        reason=reason,
-        explicit_request=explicit_request,
-        spread_family_requested=spread_family_requested,
-        primary_family=primary_family,
-        allowed_families=allowed_families,
-        source="explicit_argument" if explicit_enable is not None else "policy_metadata",
-        style_runtime_wiring_enabled=False,
-        candidate_conversion_allowed=False,
-        notes_only=True,
-        runtime_enabled=False,
-    )
-
-
-def select_spread_candidate_with_runtime_gate(
-    chord_symbol: str,
-    policy: Any | None = None,
-    *,
-    previous: SpreadProjectionCandidate | None = None,
-    texture_state: Any | None = None,
-    contract_ids: tuple[str, ...] | list[str] | None = None,
-    weights: SpreadGroupwiseVoiceLeadingWeights | None = None,
-    max_upper_options: int = 12,
-    legal_only: bool = True,
-    explicit_enable: bool | None = None,
-) -> SpreadCandidateSelectorResult:
-    """Select a notes-only SPREAD candidate through the v2_2_42 gate.
-
-    This is a selector contract, not style runtime wiring.  When the gate is
-    closed, it returns no candidates.  When the gate is open, it projects and
-    ranks ``SpreadProjectionCandidate`` objects only.
-    """
-
-    requested_contracts = tuple(str(item) for item in (contract_ids or ()))
-    request = SpreadCandidateSelectorRequest(
-        chord_symbol=str(chord_symbol),
-        contract_ids=requested_contracts,
-        max_upper_options=int(max_upper_options),
-        legal_only=bool(legal_only),
-    )
-    gate = spread_runtime_gate_from_policy(policy, texture_state=texture_state, explicit_enable=explicit_enable)
-    if not gate.selector_gate_open:
-        return SpreadCandidateSelectorResult(
-            request=request,
-            gate=gate,
-            projected_results=(),
-            ranked_scores=(),
-            selected=None,
-            selected_score=None,
-        )
-
-    projected = project_basic_spread_candidates(
-        chord_symbol,
-        policy,
-        contract_ids=requested_contracts or None,
-        max_upper_options=max_upper_options,
-    )
-    all_candidates: list[SpreadProjectionCandidate] = []
-    for result in projected:
-        all_candidates.extend(result.candidates)
-    ranked = rank_spread_candidates_by_groupwise_voice_leading(
-        all_candidates,
-        previous,
-        weights,
-        legal_only=legal_only,
-    )
-    selected_score = ranked[0] if ranked else None
-    return SpreadCandidateSelectorResult(
-        request=request,
-        gate=gate,
-        projected_results=tuple(projected),
-        ranked_scores=tuple(ranked),
-        selected=selected_score.current if selected_score is not None else None,
-        selected_score=selected_score,
-    )
-
-
-def spread_candidate_selector_contract_debug(
-    chord_symbol: str = "Cmaj7",
-    policy: Any | None = None,
-    *,
-    contract_ids: tuple[str, ...] | list[str] | None = None,
-    explicit_enable: bool | None = None,
-) -> dict[str, object]:
-    """Return v2_2_42 SPREAD selector/gate debug metadata."""
-
-    result = select_spread_candidate_with_runtime_gate(
-        chord_symbol,
-        policy,
-        contract_ids=contract_ids,
-        explicit_enable=explicit_enable,
-    )
-    return {
-        "contract_version": SPREAD_RECIPE_CONTRACT_VERSION,
-        "basic_spread_projection_version": BASIC_SPREAD_PROJECTION_VERSION,
-        "groupwise_spread_voice_leading_version": GROUPWISE_SPREAD_VOICE_LEADING_VERSION,
-        "spread_selector_runtime_gate_version": SPREAD_SELECTOR_RUNTIME_GATE_VERSION,
-        "layer": "core.voicing.disposition.spread",
-        "purpose": "SPREAD Candidate Selector Contract / Runtime Gate Skeleton",
-        "result": result.to_debug_dict(),
-        "default_gate_closed_without_explicit_policy": not result.gate.selector_gate_open,
-        "candidate_conversion_allowed": False,
-        "style_runtime_wiring_enabled": False,
-        "runtime_enabled": False,
-        "notes_only": True,
-        "no_expression_or_pedal": True,
-    }
-
 
 
 def ballad_spread_runtime_entry_contract(
@@ -3830,18 +3262,6 @@ def ballad_spread_runtime_adapter_skeleton_debug(
     }
 
 
-def _spread_runtime_adapter_field_mappings() -> tuple[SpreadRuntimeAdapterFieldMapping, ...]:
-    return (
-        SpreadRuntimeAdapterFieldMapping("candidate.notes", "VoicingCandidate.notes", True, "MIDI notes are copied verbatim from the legal SPREAD projection candidate"),
-        SpreadRuntimeAdapterFieldMapping("candidate.degrees", "VoicingCandidate.degrees", True, "degree labels are copied verbatim so lower/upper metadata remains auditable"),
-        SpreadRuntimeAdapterFieldMapping("candidate.recipe_contract.grouping", "VoicingCandidate.functional_grouping", True, "grouping is coerced through core FunctionalGrouping, including 1+4"),
-        SpreadRuntimeAdapterFieldMapping("candidate.recipe_contract.grouping", "VoicingCandidate.group_roles", True, "group roles are derived through core recipes.group_roles_for_grouping rather than hand semantics"),
-        SpreadRuntimeAdapterFieldMapping("candidate.upper_source.source_family", "VoicingCandidate.content_family", True, "content family is reused from the upper source adapter when it matches core ContentFamily"),
-        SpreadRuntimeAdapterFieldMapping("candidate.metadata", "VoicingCandidate.metadata", True, "SPREAD projection metadata is preserved and marked adapter_skeleton_only"),
-        SpreadRuntimeAdapterFieldMapping("candidate.runtime_enabled", "candidate_generator runtime pool", False, "candidate-generator wiring remains disabled in v2_2_47"),
-    )
-
-
 def _ballad_spread_candidate_pool_values(policy: Any | None) -> dict[str, object]:
     try:
         metadata = dict(getattr(policy, "metadata", None) or {})
@@ -4082,103 +3502,6 @@ def _spread_float_value(values: dict[str, object], key: str, *, default: float) 
         return float(default)
 
 
-def _spread_runtime_adapter_values(policy: Any | None) -> dict[str, object]:
-    try:
-        metadata = dict(getattr(policy, "metadata", None) or {})
-    except Exception:
-        metadata = dict(policy or {}) if isinstance(policy, dict) else {}
-    nested = metadata.get("spread_runtime_adapter") or metadata.get("spread_runtime_adapter_skeleton") or {}
-    if not isinstance(nested, dict):
-        nested = {"adapter_conversion_allowed": nested}
-    return {**metadata, **nested}
-
-
-def _spread_runtime_adapter_conversion_requested(policy: Any | None, allow_conversion: bool | None) -> bool:
-    if allow_conversion is not None:
-        return bool(allow_conversion)
-    values = _spread_runtime_adapter_values(policy)
-    return _spread_bool_any(
-        values,
-        (
-            "adapter_conversion_allowed",
-            "spread_runtime_adapter_conversion_allowed",
-            "spread_projection_candidate_to_voicing_candidate_adapter_enabled",
-            "allow_spread_runtime_adapter_conversion",
-        ),
-        default=False,
-    )
-
-
-def _spread_runtime_content_family(candidate: SpreadProjectionCandidate, policy: Any | None, content_family_enum: Any) -> Any | None:
-    for value in (
-        getattr(getattr(candidate, "upper_source", None), "source_family", None),
-        getattr(policy, "preferred_content", None),
-    ):
-        if value is None:
-            continue
-        if isinstance(value, content_family_enum):
-            return value
-        try:
-            return content_family_enum(str(value))
-        except ValueError:
-            continue
-    return None
-
-
-def _spread_runtime_root_support(candidate: SpreadProjectionCandidate, policy: Any | None, root_support_enum: Any) -> Any:
-    requested = getattr(policy, "root_support", None)
-    if isinstance(requested, root_support_enum):
-        return requested
-    try:
-        if requested is not None:
-            return root_support_enum(str(requested))
-    except ValueError:
-        pass
-    if "R" in candidate.degrees:
-        return root_support_enum.ROOT_PREFERRED
-    return root_support_enum.ROOTLESS_ALLOWED
-
-
-def _spread_runtime_bass_relation(candidate: SpreadProjectionCandidate, bass_relation_enum: Any) -> Any:
-    if candidate.degrees and candidate.degrees[0] == "R":
-        return bass_relation_enum.ROOT_POSITION
-    if "R" not in candidate.degrees:
-        return bass_relation_enum.BASS_OMITTED
-    return bass_relation_enum.ROOT_POSITION
-
-
-def _spread_runtime_interval_structure(policy: Any | None, interval_structure_enum: Any) -> Any:
-    requested = getattr(policy, "interval_structure", None)
-    if isinstance(requested, interval_structure_enum):
-        return requested
-    try:
-        if requested is not None:
-            return interval_structure_enum(str(requested))
-    except ValueError:
-        pass
-    return interval_structure_enum.MIXED
-
-
-def _spread_runtime_root_support_decision(policy: Any | None) -> dict[str, object]:
-    try:
-        metadata = dict(getattr(policy, "metadata", None) or {})
-    except Exception:
-        metadata = {}
-    decision = metadata.get("root_support_decision")
-    return dict(decision) if isinstance(decision, dict) else {}
-
-
-def _spread_selector_gate_values(policy: Any | None) -> dict[str, object]:
-    try:
-        metadata = dict(getattr(policy, "metadata", None) or {})
-    except Exception:
-        metadata = dict(policy or {}) if isinstance(policy, dict) else {}
-    nested = metadata.get("spread_selector") or metadata.get("spread_runtime_gate") or metadata.get("spread_runtime") or {}
-    if not isinstance(nested, dict):
-        nested = {"spread_candidate_selector_enabled": nested}
-    return {**metadata, **nested}
-
-
 def _spread_bool_any(values: dict[str, object], keys: tuple[str, ...], *, default: bool = False) -> bool:
     for key in keys:
         if key in values:
@@ -4199,58 +3522,6 @@ def _spread_coerce_bool(value: object, *, default: bool = False) -> bool:
     if text in {"0", "false", "no", "n", "off", "disabled", "disable", "closed"}:
         return False
     return bool(default)
-
-
-def _spread_requested_families(values: dict[str, object], texture_state: Any | None) -> tuple[str | None, tuple[str, ...]]:
-    primary = _spread_family_value(
-        getattr(texture_state, "primary_family", None)
-        or values.get("primary_family")
-        or values.get("voicing_texture_primary_family")
-        or values.get("primary_texture_family")
-    )
-    allowed_raw = (
-        getattr(texture_state, "allowed_families", None)
-        or values.get("allowed_families")
-        or values.get("voicing_texture_allowed_families")
-        or values.get("allowed_texture_families")
-    )
-    allowed = _spread_family_tuple(allowed_raw)
-    if primary and primary not in allowed:
-        allowed = (primary, *allowed)
-    return primary, allowed
-
-
-def _spread_family_tuple(value: object) -> tuple[str, ...]:
-    if value is None:
-        return ()
-    if isinstance(value, str):
-        values = [part.strip() for part in value.replace(";", ",").split(",") if part.strip()]
-    elif isinstance(value, (list, tuple, set)):
-        values = list(value)
-    else:
-        values = [value]
-    out: list[str] = []
-    for item in values:
-        normalized = _spread_family_value(item)
-        if normalized and normalized not in out:
-            out.append(normalized)
-    return tuple(out)
-
-
-def _spread_family_value(value: object) -> str | None:
-    raw = getattr(value, "value", value)
-    if raw is None:
-        return None
-    text = str(raw).strip().lower().replace("-", "_")
-    aliases = {
-        "two_hand_spread": "spread",
-        "spread_ballad": "spread",
-        "rooted_spread": "spread",
-        "wide_warm_ballad": "spread",
-    }
-    return aliases.get(text, text) if text else None
-
-
 
 
 def _ballad_spread_dry_run_values(policy: Any | None) -> dict[str, object]:
@@ -4940,55 +4211,6 @@ def _dedupe_spread_projection_candidates(candidates: list[SpreadProjectionCandid
         )
     )
     return out
-
-
-def _paired_note_motion(previous_notes: tuple[int, ...] | list[int], current_notes: tuple[int, ...] | list[int]) -> int:
-    previous_values = tuple(sorted(int(note) for note in previous_notes))
-    current_values = tuple(sorted(int(note) for note in current_notes))
-    if not previous_values:
-        return 0
-    if not current_values:
-        return int(len(previous_values) * 3)
-    from jammate_engine.core.voicing.selection.voice_leading import set_based_voice_leading_distance
-
-    return int(round(set_based_voice_leading_distance(previous_values, current_values, birth_death_penalty=3.0).distance))
-
-
-def _top_voice_motion(previous: SpreadProjectionCandidate | None, current: SpreadProjectionCandidate) -> int:
-    if previous is None or not previous.notes or not current.notes:
-        return 0
-    return int(abs(max(previous.notes) - max(current.notes)))
-
-
-def _group_gap_change(previous: SpreadProjectionCandidate | None, current: SpreadProjectionCandidate) -> int:
-    if previous is None:
-        return 0
-    if previous.group_gap_semitones is None or current.group_gap_semitones is None:
-        return 0
-    return int(abs(int(previous.group_gap_semitones) - int(current.group_gap_semitones)))
-
-
-def _spread_span_penalty(candidate: SpreadProjectionCandidate) -> int:
-    max_span = int(candidate.register_policy.max_overall_span)
-    return int(max(0, candidate.overall_span_semitones - max_span))
-
-
-def _outside_register_distance(notes: tuple[int, ...], low: int, high: int) -> int:
-    penalty = 0
-    for note in notes:
-        if int(note) < int(low):
-            penalty += int(low) - int(note)
-        elif int(note) > int(high):
-            penalty += int(note) - int(high)
-    return int(penalty)
-
-
-def _spread_register_penalty(candidate: SpreadProjectionCandidate) -> int:
-    policy = candidate.register_policy
-    return int(
-        _outside_register_distance(candidate.lower_notes, int(policy.lower_low), int(policy.lower_high))
-        + _outside_register_distance(candidate.upper_notes, int(policy.upper_low), int(policy.upper_high))
-    )
 
 
 def spread_recipe_reuse_audit() -> tuple[SpreadReuseAuditItem, ...]:

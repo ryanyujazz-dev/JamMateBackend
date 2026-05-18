@@ -4,6 +4,7 @@ import math
 import random
 from dataclasses import replace
 
+from ..disposition.spread_voice_leading import spread_grouping_mix_contract_intent_cost
 from .candidate import VoicingCandidate
 from ..policy import VoicingPolicy
 from .scorer import score_candidate
@@ -381,12 +382,14 @@ def _spread_groupwise_realization_cost(
         current_gap_cost = _spread_current_group_gap_cost(candidate, policy)
         whole_cost = _spread_whole_voicing_cost(candidate, policy)
         top_weight = float(dict(policy.metadata or {}).get("spread_top_voice_continuity_weight", 2.2) or 2.2)
+        grouping_mix_contract_intent_cost = spread_grouping_mix_contract_intent_cost(candidate, policy)
         primary = (
             lower_motion * 1.05
             + upper_motion * 0.85
             + top_continuity_cost * top_weight
             + recipe_change_cost
             + current_gap_cost
+            + grouping_mix_contract_intent_cost
         )
         # v2_2_82: full top-line continuity is an explicit sort key.  It is
         # deliberately independent of lower/upper note count, so 3-note ↔
@@ -394,6 +397,7 @@ def _spread_groupwise_realization_cost(
         return (primary, top_continuity_cost, gap_change * 0.25, whole_cost, tuple(candidate.notes))
 
     return (_spread_whole_voicing_cost(candidate, policy), _spread_span_cost(candidate), -float(candidate.score), 0.0, tuple(candidate.notes))
+
 
 
 def _previous_group_notes(state: VoicingState, group: str) -> tuple[int, ...]:
