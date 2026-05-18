@@ -1,3 +1,14 @@
+## v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls
+
+- Added terminal-only persisted context memory controls for today-practice guidance testing.
+- Added `/persisted-context-load [json_payload]`, `/persisted-context-show`, and `/persisted-context-clear`.
+- Loaded memory is session-only and can inject recovered user profile / active plan / routine history context into the next ordinary `今天该练什么？` turn.
+- Explicit command arguments still win over terminal memory to avoid hidden debug overrides.
+- Added `today_practice_guidance_persisted_context_terminal_memory_controls_contract()` and context/runtime manifest entries.
+- Preserved all no-side-effect guards: no backend/local write, no SQLite connection/table/row, no LLM call from memory commands, no tool/Engine/Routine/MIDI/playback side effects.
+
+Next recommended task: `v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture`.
+
 ## v2_8_10_agent_context_persistence_real_storage_adapter_design
 
 - Added design-only Context Persistence Storage Adapter contract.
@@ -387,3 +398,31 @@ v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_opt_in
 - Added terminal command `/context-persistence-dev-fixture-readback-replay`.
 - Added `docs/AGENT_CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_V2_8_15.md`.
 - Read-only preview only: no SQLite connection, no SQLite rows, no backend write, no HarmonyOS local write, no LLM/tool/Engine call.
+
+## v2_8_16_agent_context_persistence_profile_plan_history_snapshot_context_intake
+
+- Added profile / active-plan / routine-history snapshot context intake contract.
+- Added `ContextPersistenceProfilePlanHistorySnapshotContextIntakePayload`, summary builder, and contract spec.
+- Added API routes:
+  - `GET /agent/context/persistence-snapshot-context-intake/spec`
+  - `POST /agent/context/persistence-snapshot-context-intake/preview`
+- Added terminal command `/context-persistence-snapshot-context-intake [json_payload]`.
+- Added `docs/AGENT_CONTEXT_PERSISTENCE_SNAPSHOT_CONTEXT_INTAKE_V2_8_16.md`.
+- Added ContextBuilder support for injecting `context_persistence_snapshot_context_intake` into `learner_context`.
+- Converts v2_8_15 dev fixture read-back snapshots into ContextPacket-ready user profile, active plan, routine history, and assembled practice context sections.
+- Preserves strict no-side-effect guards: no database write, no HarmonyOS local write, no LLM/tool execution, no Routine start, no Engine call, no MIDI, no playback, no post-session recommendation card.
+
+Recommended next Agent task:
+
+```text
+v2_8_17_agent_today_practice_guidance_persisted_context_recovery_e2e
+```
+
+## v2_8_17_agent_today_practice_guidance_persisted_context_recovery_e2e
+
+- Added persisted-context recovery E2E for today-practice guidance.
+- Added `GET /agent/context/today-practice-guidance/persisted-context-recovery/spec`.
+- Added `POST /agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview`.
+- Added CLI `/today-practice-guidance-persisted-context-recovery`.
+- Added `docs/AGENT_TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_V2_8_17.md`.
+- Guardrails remain: no storage writes, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.

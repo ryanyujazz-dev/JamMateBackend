@@ -56,6 +56,8 @@ from jammate_agent.core.contracts import (
     context_persistence_dev_sqlite_fixture_write_dry_run_contract,
     context_persistence_dev_sqlite_fixture_store_contract,
     context_persistence_dev_fixture_readback_replay_contract,
+    context_persistence_profile_plan_history_snapshot_context_intake_contract,
+    today_practice_guidance_persisted_context_recovery_e2e_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -103,6 +105,10 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_dev_sqlite_fixture_store_summary,
     build_context_persistence_dev_fixture_readback_replay_payload,
     build_context_persistence_dev_fixture_readback_replay_summary,
+    build_context_persistence_profile_plan_history_snapshot_context_intake_payload,
+    build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
+    build_today_practice_guidance_persisted_context_recovery_e2e_payload,
+    build_today_practice_guidance_persisted_context_recovery_e2e_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -761,6 +767,104 @@ def preview_today_practice_guidance_profile_aware_e2e_request(request: dict) -> 
         "engine_adapter_called": False,
         "midi_asset_created": False,
         "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/persisted-context-recovery/spec")
+def get_today_practice_guidance_persisted_context_recovery_e2e_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_persisted_context_recovery_e2e_contract()}
+
+
+@router.post("/context/today-practice-guidance/persisted-context-recovery/e2e-preview")
+def preview_today_practice_guidance_persisted_context_recovery_e2e_request(request: dict) -> dict:
+    """Recover persisted snapshot context into display-only today-practice guidance.
+
+    This route is a read/preview bridge only. It can consume a dev fixture
+    read-back snapshot or embedded snapshot context intake payload, then passes
+    recovered profile/plan/history context to the profile-aware guidance chain.
+    It does not write storage, start Routine, call /accompaniment/generate, call
+    engine adapters, create MIDI assets, or start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_persisted_context_recovery_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_persisted_context_recovery_e2e",
+    )
+    summary = build_today_practice_guidance_persisted_context_recovery_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_persisted_context_recovery_e2e_version": today_practice_guidance_persisted_context_recovery_e2e_contract()["version"],
+        "today_practice_guidance_persisted_context_recovery_e2e_payload": payload.to_dict(),
+        "today_practice_guidance_persisted_context_recovery_e2e_summary": summary,
+        "llm_called": payload.llm_called,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "durable_backend_write_executed": False,
+        "fixture_write_executed": False,
+        "transaction_committed": False,
+        "replay_execution_committed": False,
+        "future_executor_implemented": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/persistence-snapshot-context-intake/spec")
+def get_context_persistence_profile_plan_history_snapshot_context_intake_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_profile_plan_history_snapshot_context_intake_contract()}
+
+
+@router.post("/context/persistence-snapshot-context-intake/preview")
+def preview_context_persistence_profile_plan_history_snapshot_context_intake_request(request: dict) -> dict:
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_profile_plan_history_snapshot_context_intake_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_profile_plan_history_snapshot_context_intake",
+    )
+    summary = build_context_persistence_profile_plan_history_snapshot_context_intake_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_profile_plan_history_snapshot_context_intake_version": context_persistence_profile_plan_history_snapshot_context_intake_contract()["version"],
+        "context_persistence_profile_plan_history_snapshot_context_intake_payload": payload.to_dict(),
+        "context_persistence_profile_plan_history_snapshot_context_intake_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "durable_backend_write_executed": False,
+        "fixture_write_executed": False,
+        "transaction_committed": False,
+        "replay_execution_committed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
         "accompaniment_generate_call_enabled": False,
         "routine_start_enabled": False,
     }

@@ -29,6 +29,9 @@ from jammate_agent.core.tool_invocation import (
     CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
     CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_VERSION,
     CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
+    CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -72,6 +75,9 @@ class CapabilityManifest:
     supports_context_persistence_dev_sqlite_fixture_write_dry_run: bool = True
     supports_context_persistence_dev_sqlite_fixture_store: bool = True
     supports_context_persistence_dev_fixture_readback_replay: bool = True
+    supports_context_persistence_profile_plan_history_snapshot_context_intake: bool = True
+    supports_today_practice_guidance_persisted_context_recovery_e2e: bool = True
+    supports_today_practice_guidance_persisted_context_terminal_memory_controls: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -107,6 +113,9 @@ class CapabilityManifest:
             "supports_context_persistence_dev_sqlite_fixture_write_dry_run": self.supports_context_persistence_dev_sqlite_fixture_write_dry_run,
             "supports_context_persistence_dev_sqlite_fixture_store": self.supports_context_persistence_dev_sqlite_fixture_store,
             "supports_context_persistence_dev_fixture_readback_replay": self.supports_context_persistence_dev_fixture_readback_replay,
+            "supports_context_persistence_profile_plan_history_snapshot_context_intake": self.supports_context_persistence_profile_plan_history_snapshot_context_intake,
+            "supports_today_practice_guidance_persisted_context_recovery_e2e": self.supports_today_practice_guidance_persisted_context_recovery_e2e,
+            "supports_today_practice_guidance_persisted_context_terminal_memory_controls": self.supports_today_practice_guidance_persisted_context_terminal_memory_controls,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -251,10 +260,17 @@ class ContextBuilder:
         constraints = self._build_constraints(kwargs, client_context)
         allowed_tools = list(profile.allowed_tools)
         tool_descriptors = summarize_tools_for_names(allowed_tools)
+        snapshot_context_intake = self._context_persistence_snapshot_context_intake(kwargs, client_context)
         routine_history_context = self._routine_history_context(kwargs, client_context)
         active_practice_plan_context = self._active_practice_plan_context(kwargs, client_context)
         user_practice_profile_context = self._user_practice_profile_context(kwargs, client_context)
+        if snapshot_context_intake:
+            routine_history_context = routine_history_context or self._clean_dict(snapshot_context_intake.get("routine_history_context") or {})
+            active_practice_plan_context = active_practice_plan_context or self._clean_dict(snapshot_context_intake.get("active_practice_plan_context") or {})
+            user_practice_profile_context = user_practice_profile_context or self._clean_dict(snapshot_context_intake.get("user_practice_profile_context") or {})
         assembled_practice_context = self._assembled_practice_context(kwargs, client_context, routine_history_context, active_practice_plan_context, user_practice_profile_context)
+        if snapshot_context_intake and snapshot_context_intake.get("assembled_practice_context") and not assembled_practice_context:
+            assembled_practice_context = self._clean_dict(snapshot_context_intake.get("assembled_practice_context") or {})
         learner_context = self._clean_dict(kwargs.get("learner_context") or {"recent_focus": [], "recent_weak_points": [], "note": "P0 placeholder; replace with LearnerModel summary."})
         selected_layers = [*profile.required_context_layers, *profile.optional_context_layers]
         if active_practice_plan_context:
@@ -273,6 +289,10 @@ class ContextBuilder:
             learner_context["assembled_practice_context"] = assembled_practice_context
             if "assembled_practice_context" not in selected_layers:
                 selected_layers.append("assembled_practice_context")
+        if snapshot_context_intake:
+            learner_context["context_persistence_snapshot_context_intake"] = snapshot_context_intake
+            if "context_persistence_snapshot_context_intake" not in selected_layers:
+                selected_layers.append("context_persistence_snapshot_context_intake")
         context = ContextPacket(
             task_type=profile.task_type,
             user_request={"text": user_input, **self._request_metadata(kwargs)},
@@ -313,6 +333,10 @@ class ContextBuilder:
                 "context_persistence_dev_sqlite_fixture_write_dry_run_version": CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
                 "context_persistence_dev_sqlite_fixture_store_version": CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_VERSION,
                 "context_persistence_dev_fixture_readback_replay_version": CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
+                "context_persistence_profile_plan_history_snapshot_context_intake_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+                "today_practice_guidance_persisted_context_recovery_e2e_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+                "today_practice_guidance_persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+                "context_persistence_snapshot_context_intake_present": bool(snapshot_context_intake),
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),
                 "user_practice_profile_context_present": bool(user_practice_profile_context),
@@ -361,7 +385,34 @@ class ContextBuilder:
             metadata["assembled_practice_context_supplied"] = True
         if kwargs.get("user_practice_profile_context") or kwargs.get("userPracticeProfileContext") or kwargs.get("user_practice_profile") or kwargs.get("userPracticeProfile"):
             metadata["user_practice_profile_context_supplied"] = True
+        if kwargs.get("context_persistence_snapshot_context_intake") or kwargs.get("contextPersistenceSnapshotContextIntake"):
+            metadata["context_persistence_snapshot_context_intake_supplied"] = True
         return metadata
+
+    def _context_persistence_snapshot_context_intake(self, kwargs: dict[str, Any], client_context: dict[str, Any]) -> dict[str, Any]:
+        direct = kwargs.get("context_persistence_snapshot_context_intake") or kwargs.get("contextPersistenceSnapshotContextIntake")
+        if isinstance(direct, dict):
+            if isinstance(direct.get("context_packet_kwargs"), dict):
+                return self._clean_dict(direct.get("context_packet_kwargs") or {})
+            if isinstance(direct.get("context_packet_section"), dict):
+                section = direct.get("context_packet_section") or {}
+                if isinstance(section.get("context_packet_kwargs"), dict):
+                    return self._clean_dict(section.get("context_packet_kwargs") or {})
+            if isinstance(direct.get("normalized_context_sections"), dict):
+                return self._clean_dict(direct.get("normalized_context_sections") or {})
+            return self._clean_dict(direct)
+        client_direct = client_context.get("context_persistence_snapshot_context_intake") or client_context.get("contextPersistenceSnapshotContextIntake")
+        if isinstance(client_direct, dict):
+            if isinstance(client_direct.get("context_packet_kwargs"), dict):
+                return self._clean_dict(client_direct.get("context_packet_kwargs") or {})
+            if isinstance(client_direct.get("context_packet_section"), dict):
+                section = client_direct.get("context_packet_section") or {}
+                if isinstance(section.get("context_packet_kwargs"), dict):
+                    return self._clean_dict(section.get("context_packet_kwargs") or {})
+            if isinstance(client_direct.get("normalized_context_sections"), dict):
+                return self._clean_dict(client_direct.get("normalized_context_sections") or {})
+            return self._clean_dict(client_direct)
+        return {}
 
     def _routine_history_context(self, kwargs: dict[str, Any], client_context: dict[str, Any]) -> dict[str, Any]:
         direct = kwargs.get("routine_history_context") or kwargs.get("practice_history_context")

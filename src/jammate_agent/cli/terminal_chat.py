@@ -43,6 +43,7 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_PROVIDER_BOUNDARY_E2E_VERSION,
     TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
     TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
     CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
     USER_PRACTICE_PROFILE_CONTEXT_INTAKE_VERSION,
     PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
@@ -118,6 +119,10 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_dev_sqlite_fixture_store_summary,
     build_context_persistence_dev_fixture_readback_replay_payload,
     build_context_persistence_dev_fixture_readback_replay_summary,
+    build_context_persistence_profile_plan_history_snapshot_context_intake_payload,
+    build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
+    build_today_practice_guidance_persisted_context_recovery_e2e_payload,
+    build_today_practice_guidance_persisted_context_recovery_e2e_summary,
     build_context_and_guidance_skeleton_cleanup_payload,
     build_context_and_guidance_skeleton_cleanup_summary,
     detect_today_practice_guidance_intent,
@@ -136,6 +141,9 @@ from jammate_agent.core.tool_invocation import (
     context_persistence_dev_sqlite_fixture_write_dry_run_contract,
     context_persistence_dev_sqlite_fixture_store_contract,
     context_persistence_dev_fixture_readback_replay_contract,
+    context_persistence_profile_plan_history_snapshot_context_intake_contract,
+    today_practice_guidance_persisted_context_recovery_e2e_contract,
+    today_practice_guidance_persisted_context_terminal_memory_controls_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -245,6 +253,7 @@ class TerminalChatSession:
     last_harmonyos_agent_action_card: HarmonyOSAgentActionCard | None = None
     practice_planner: PracticePlanner = field(default_factory=PracticePlanner)
     practice_plan_guardrails: PracticePlanGuardrails = field(default_factory=PracticePlanGuardrails)
+    persisted_context_memory: dict[str, Any] = field(default_factory=dict)
 
     def provider_status(self) -> dict:
         return self.provider.status()
@@ -398,29 +407,54 @@ class TerminalChatSession:
 
         merged_args = dict(arguments or {})
         merged_args.setdefault("userInput", user_input)
+        memory = self._memory_for_guidance_args(merged_args)
+        if memory:
+            merged_args = {**memory, **merged_args}
+            merged_args.setdefault("snapshotContextIntakePayload", memory.get("snapshotContextIntakePayload"))
         trace = self._start_trace("terminal_today_practice_guidance_chat_e2e", user_input)
-        payload = build_today_practice_guidance_terminal_chat_e2e_payload(
-            merged_args,
-            trace_id=trace.trace_id if trace else self.last_trace_id,
-            source="terminal_chat_ordinary_user_turn",
-            provider=self.provider,
-        )
-        payload_dict = payload.to_dict()
-        self._add_trace_step(trace, "terminal_today_practice_guidance_terminal_chat_e2e_payload_built", payload_dict)
-        summary = build_today_practice_guidance_terminal_chat_e2e_summary(payload=payload, source="terminal_chat_cli")
-        self._add_trace_step(trace, "terminal_today_practice_guidance_terminal_chat_e2e_summary_recorded", summary)
-        terminal_response = payload_dict.get("terminal_response") if isinstance(payload_dict.get("terminal_response"), dict) else {}
-        content = str(terminal_response.get("content") or "Today-practice guidance is unavailable until the provider returns a valid structured response.")
+        if memory:
+            payload = build_today_practice_guidance_persisted_context_recovery_e2e_payload(
+                merged_args,
+                trace_id=trace.trace_id if trace else self.last_trace_id,
+                source="terminal_chat_loaded_persisted_context_memory",
+                provider=self.provider,
+            )
+            payload_dict = payload.to_dict()
+            self._add_trace_step(trace, "terminal_today_practice_guidance_persisted_context_memory_payload_built", payload_dict)
+            summary = build_today_practice_guidance_persisted_context_recovery_e2e_summary(payload=payload, source="terminal_chat_cli_with_memory")
+            self._add_trace_step(trace, "terminal_today_practice_guidance_persisted_context_memory_summary_recorded", summary)
+            action_payload = payload_dict.get("guidance_payload", {}).get("action_card_payload", {}) if isinstance(payload_dict.get("guidance_payload"), dict) else {}
+            card = action_payload.get("action_card") if isinstance(action_payload.get("action_card"), dict) else {}
+            sections = card.get("display_sections") if isinstance(card.get("display_sections"), dict) else {}
+            content = str(card.get("description") or sections.get("summary") or "Today-practice guidance is unavailable until the provider returns a valid structured response.")
+            payload_kind = "persisted_context_recovery_e2e"
+        else:
+            payload = build_today_practice_guidance_terminal_chat_e2e_payload(
+                merged_args,
+                trace_id=trace.trace_id if trace else self.last_trace_id,
+                source="terminal_chat_ordinary_user_turn",
+                provider=self.provider,
+            )
+            payload_dict = payload.to_dict()
+            self._add_trace_step(trace, "terminal_today_practice_guidance_terminal_chat_e2e_payload_built", payload_dict)
+            summary = build_today_practice_guidance_terminal_chat_e2e_summary(payload=payload, source="terminal_chat_cli")
+            self._add_trace_step(trace, "terminal_today_practice_guidance_terminal_chat_e2e_summary_recorded", summary)
+            terminal_response = payload_dict.get("terminal_response") if isinstance(payload_dict.get("terminal_response"), dict) else {}
+            content = str(terminal_response.get("content") or "Today-practice guidance is unavailable until the provider returns a valid structured response.")
+            payload_kind = "terminal_chat_e2e"
         self.history.append({"role": "user", "content": user_input})
         self.history.append({"role": "assistant", "content": content})
+        guidance_card_ready = bool(summary.get("action_card_is_valid") or summary.get("guidance_action_card_is_valid"))
+        detected_or_memory = bool(summary.get("detected_today_practice_guidance_intent") or memory)
         self._finish_trace(
             trace,
-            "today_practice_guidance_action_card_ready" if summary.get("action_card_is_valid") else "today_practice_guidance_guarded",
+            "today_practice_guidance_action_card_ready" if guidance_card_ready else "today_practice_guidance_guarded",
             {
-                "ok": bool(summary.get("detected_today_practice_guidance_intent")),
+                "ok": detected_or_memory,
                 "command": "ordinary_terminal_chat",
                 "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
                 "today_practice_guidance_terminal_chat_e2e_summary": summary,
+                "persisted_context_terminal_memory_used": bool(memory),
                 "tool_executed": False,
                 "routine_start_enabled": False,
                 "route_called": False,
@@ -436,10 +470,14 @@ class TerminalChatSession:
             "task_type": "today_practice_guidance",
             "ordinary_terminal_chat_guidance_e2e": True,
             "today_practice_guidance_terminal_chat_e2e_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
-            "today_practice_guidance_terminal_chat_e2e_payload": payload_dict,
+            "today_practice_guidance_terminal_chat_e2e_payload": payload_dict if not memory else None,
             "today_practice_guidance_terminal_chat_e2e_summary": summary,
-            "today_practice_guidance_action_card_payload": payload_dict.get("action_card_payload"),
-            "today_practice_guidance_action_card_summary": payload_dict.get("action_card_summary"),
+            "today_practice_guidance_persisted_context_recovery_e2e_payload": payload_dict if memory else None,
+            "today_practice_guidance_action_card_payload": payload_dict.get("action_card_payload") if not memory else (payload_dict.get("guidance_payload") or {}).get("action_card_payload"),
+            "today_practice_guidance_action_card_summary": payload_dict.get("action_card_summary") if not memory else (payload_dict.get("guidance_summary")),
+            "persisted_context_terminal_memory_used": bool(memory),
+            "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "payload_kind": payload_kind,
             "llm_called": payload.llm_called,
             "tool_execution_enabled": False,
             "tool_executed": False,
@@ -451,6 +489,107 @@ class TerminalChatSession:
             "routine_start_enabled": False,
             "trace_id": self.last_trace_id,
             "trace_path": self.last_trace_path,
+        }
+
+    def _memory_for_guidance_args(self, explicit_args: dict[str, Any]) -> dict[str, Any]:
+        if not self.persisted_context_memory.get("loaded"):
+            return {}
+        explicit_keys = {
+            "userPracticeProfile", "user_practice_profile", "user_practice_profile_context", "userPracticeProfileContext",
+            "practicePlan", "practice_plan", "active_practice_plan_context", "activePracticePlanContext",
+            "routineHistoryRecords", "routine_history_records", "routine_history_context", "routineHistoryContext",
+            "context_persistence_snapshot_context_intake", "contextPersistenceSnapshotContextIntake",
+            "snapshotContextIntakePayload", "snapshot_context_intake_payload",
+        }
+        if any(key in explicit_args for key in explicit_keys):
+            return {}
+        memory_args = self.persisted_context_memory.get("guidance_arguments")
+        return dict(memory_args) if isinstance(memory_args, dict) else {}
+
+    def persisted_context_load(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_persisted_context_memory_load", "/persisted-context-load")
+        payload = build_context_persistence_profile_plan_history_snapshot_context_intake_payload(
+            arguments or {},
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_persisted_context_memory_load",
+        )
+        payload_dict = payload.to_dict()
+        summary = build_context_persistence_profile_plan_history_snapshot_context_intake_summary(payload=payload, source="terminal_chat_memory_load")
+        validation = payload_dict.get("validation") if isinstance(payload_dict.get("validation"), dict) else {}
+        section = payload_dict.get("context_packet_section") if isinstance(payload_dict.get("context_packet_section"), dict) else {}
+        kwargs = section.get("context_packet_kwargs") if isinstance(section.get("context_packet_kwargs"), dict) else {}
+        accepted = bool(validation.get("accepted")) and bool(kwargs)
+        if accepted:
+            self.persisted_context_memory = {
+                "loaded": True,
+                "version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+                "snapshot_context_intake_payload": payload_dict,
+                "guidance_arguments": {
+                    "snapshotContextIntakePayload": payload_dict,
+                    **kwargs,
+                    **{k: v for k, v in (arguments or {}).items() if k in {"providerResult", "provider_result", "availableMinutes", "available_minutes", "callProvider", "call_provider"}},
+                },
+                "summary": summary,
+            }
+        self._add_trace_step(trace, "terminal_persisted_context_memory_load_payload_built", payload_dict)
+        self._finish_trace(trace, "persisted_context_memory_loaded" if accepted else "persisted_context_memory_load_blocked", {"ok": accepted, "summary": summary, "storage_written": False})
+        return {
+            "ok": accepted,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/persisted-context-load",
+            "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "memory_loaded": bool(self.persisted_context_memory.get("loaded")),
+            "summary": summary,
+            "snapshot_context_intake_payload": payload_dict,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "llm_called": False,
+            "tool_executed": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def persisted_context_show(self) -> dict[str, Any]:
+        loaded = bool(self.persisted_context_memory.get("loaded"))
+        summary = self.persisted_context_memory.get("summary") if isinstance(self.persisted_context_memory.get("summary"), dict) else {}
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/persisted-context-show",
+            "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "memory_loaded": loaded,
+            "summary": summary,
+            "will_inject_into_next_today_practice_guidance_turn": loaded,
+            "session_memory_only": True,
+            "storage_written": False,
+            "llm_called": False,
+            "tool_executed": False,
+            "routine_start_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+        }
+
+    def persisted_context_clear(self) -> dict[str, Any]:
+        was_loaded = bool(self.persisted_context_memory.get("loaded"))
+        self.persisted_context_memory = {}
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/persisted-context-clear",
+            "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "memory_was_loaded": was_loaded,
+            "memory_loaded": False,
+            "session_memory_only": True,
+            "storage_written": False,
+            "llm_called": False,
+            "tool_executed": False,
+            "routine_start_enabled": False,
+            "accompaniment_generate_call_enabled": False,
         }
 
     def preview_tool_call(self, tool_name: str, arguments: dict[str, Any] | None = None, user_input: str | None = None) -> dict:
@@ -1443,6 +1582,91 @@ class TerminalChatSession:
         }
 
 
+    def today_practice_guidance_persisted_context_recovery(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_today_practice_guidance_persisted_context_recovery", "/today-practice-guidance-persisted-context-recovery")
+        payload = build_today_practice_guidance_persisted_context_recovery_e2e_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_today_practice_guidance_persisted_context_recovery",
+            provider=self.provider,
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_today_practice_guidance_persisted_context_recovery_payload_built", payload_dict)
+        summary = build_today_practice_guidance_persisted_context_recovery_e2e_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_today_practice_guidance_persisted_context_recovery_summary_recorded", summary)
+        self._finish_trace(trace, "today_practice_guidance_persisted_context_recovery_previewed", {"ok": True, "command": "/today-practice-guidance-persisted-context-recovery", "summary": summary, "storage_written": False, "engine_adapter_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/today-practice-guidance-persisted-context-recovery",
+            "today_practice_guidance_persisted_context_recovery_e2e_version": today_practice_guidance_persisted_context_recovery_e2e_contract()["version"],
+            "today_practice_guidance_persisted_context_recovery_e2e_payload": payload_dict,
+            "today_practice_guidance_persisted_context_recovery_e2e_summary": summary,
+            "llm_called": payload.llm_called,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "durable_backend_write_executed": False,
+            "fixture_write_executed": False,
+            "transaction_committed": False,
+            "replay_execution_committed": False,
+            "future_executor_implemented": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_profile_plan_history_snapshot_context_intake(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_profile_plan_history_snapshot_context_intake", "/context-persistence-snapshot-context-intake")
+        payload = build_context_persistence_profile_plan_history_snapshot_context_intake_payload(arguments or {}, trace_id=self.last_trace_id, source="terminal_context_persistence_profile_plan_history_snapshot_context_intake")
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_profile_plan_history_snapshot_context_intake_payload_built", payload_dict)
+        summary = build_context_persistence_profile_plan_history_snapshot_context_intake_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_profile_plan_history_snapshot_context_intake_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_profile_plan_history_snapshot_context_intake_previewed", {"ok": True, "command": "/context-persistence-snapshot-context-intake", "summary": summary, "storage_written": False, "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-snapshot-context-intake",
+            "context_persistence_profile_plan_history_snapshot_context_intake_version": context_persistence_profile_plan_history_snapshot_context_intake_contract()["version"],
+            "context_persistence_profile_plan_history_snapshot_context_intake_payload": payload_dict,
+            "context_persistence_profile_plan_history_snapshot_context_intake_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "durable_backend_write_executed": False,
+            "fixture_write_executed": False,
+            "transaction_committed": False,
+            "replay_execution_committed": False,
+            "future_executor_implemented": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
     def context_persistence_storage_adapter_design(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         trace = self._start_trace("terminal_context_persistence_storage_adapter_design", "/context-persistence-storage-adapter")
         payload = build_context_persistence_storage_adapter_design_payload(
@@ -2157,6 +2381,8 @@ class TerminalChatSession:
             "has_last_controlled_workflow_execution_result": self.last_controlled_workflow_execution_result is not None,
             "last_controlled_workflow_execution_status": self.last_controlled_workflow_execution_result.status if self.last_controlled_workflow_execution_result else None,
             "has_last_harmonyos_agent_action_card": self.last_harmonyos_agent_action_card is not None,
+            "persisted_context_memory_loaded": bool(self.persisted_context_memory.get("loaded")),
+            "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
             "last_harmonyos_agent_action_status": self.last_harmonyos_agent_action_card.execution_status if self.last_harmonyos_agent_action_card else None,
             "agent_runtime_skeleton_cleanup_version": AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
         }
@@ -2384,6 +2610,19 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
     if user_input == "/help":
         _print_help(stdout)
         return True
+    if user_input.startswith("/persisted-context-load"):
+        parsed = _parse_json_payload_command(user_input, "/persisted-context-load")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_persisted_context_memory(session.persisted_context_load(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input == "/persisted-context-show":
+        _print_persisted_context_memory(session.persisted_context_show(), stdout)
+        return True
+    if user_input == "/persisted-context-clear":
+        _print_persisted_context_memory(session.persisted_context_clear(), stdout)
+        return True
     if user_input == "/runtime-skeleton":
         _print_agent_runtime_skeleton(session.agent_runtime_skeleton_status(), stdout)
         return True
@@ -2404,7 +2643,7 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             return True
         _print_context_guidance_skeleton_cleanup(session.context_guidance_skeleton_cleanup(parsed.get("arguments") or {}), stdout)
         return True
-    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop", "/context-persistence-storage-adapter", "/context-persistence-sqlite-dev-preview", "/context-persistence-dev-sqlite-write-gate", "/context-persistence-dev-sqlite-fixture-write-dry-run", "/context-persistence-dev-sqlite-fixture-store", "/context-persistence-dev-fixture-readback-replay")):
+    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop", "/context-persistence-storage-adapter", "/context-persistence-sqlite-dev-preview", "/context-persistence-dev-sqlite-write-gate", "/context-persistence-dev-sqlite-fixture-write-dry-run", "/context-persistence-dev-sqlite-fixture-store", "/context-persistence-dev-fixture-readback-replay", "/context-persistence-snapshot-context-intake")):
         full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
         _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
         return True
@@ -2526,6 +2765,14 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         return True
 
 
+    if user_input.startswith("/context-persistence-snapshot-context-intake"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-snapshot-context-intake")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_profile_plan_history_snapshot_context_intake(session.context_persistence_profile_plan_history_snapshot_context_intake(parsed.get("arguments") or {}), stdout)
+        return True
+
     if user_input.startswith("/context-persistence-dev-fixture-readback-replay"):
         parsed = _parse_json_payload_command(user_input, "/context-persistence-dev-fixture-readback-replay")
         if not parsed["ok"]:
@@ -2633,6 +2880,15 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         user_text = str(arguments.get("userInput") or arguments.get("user_input") or "今天该练什么？")
         _print_response(session.respond_today_practice_guidance(user_text, arguments), stdout)
         return True
+
+    if user_input.startswith("/today-practice-guidance-persisted-context-recovery"):
+        parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-persisted-context-recovery")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_today_practice_guidance_persisted_context_recovery(session.today_practice_guidance_persisted_context_recovery(parsed.get("arguments") or {}), stdout)
+        return True
+
     if user_input.startswith("/today-practice-guidance-profile-aware"):
         parsed = _parse_json_payload_command(user_input, "/today-practice-guidance-profile-aware")
         if not parsed["ok"]:
@@ -3133,6 +3389,62 @@ def _print_context_persistence_dev_sqlite_fixture_store(response: dict[str, Any]
         print(f"  warnings: {summary.get('warnings')}", file=stdout)
 
 
+
+def _print_today_practice_guidance_persisted_context_recovery(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("TodayPracticeGuidancePersistedContextRecoveryE2E failed.", file=stdout)
+        return
+    summary = response.get("today_practice_guidance_persisted_context_recovery_e2e_summary") or {}
+    print("TodayPracticeGuidancePersistedContextRecoveryE2E>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_persisted_context_recovery_e2e_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  profile_context_recovered: {summary.get('profile_context_recovered')}", file=stdout)
+    print(f"  active_plan_context_recovered: {summary.get('active_plan_context_recovered')}", file=stdout)
+    print(f"  routine_history_context_recovered: {summary.get('routine_history_context_recovered')}", file=stdout)
+    print(f"  guidance_action_card_is_valid: {summary.get('guidance_action_card_is_valid')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print(f"  llm_called: {summary.get('llm_called')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+def _print_context_persistence_profile_plan_history_snapshot_context_intake(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceProfilePlanHistorySnapshotContextIntake failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_profile_plan_history_snapshot_context_intake_summary") or {}
+    print("ContextPersistenceProfilePlanHistorySnapshotContextIntake>", file=stdout)
+    print(f"  version: {response.get('context_persistence_profile_plan_history_snapshot_context_intake_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  snapshot_source: {summary.get('snapshot_source')}", file=stdout)
+    print(f"  profile_context_present: {summary.get('profile_context_present')}", file=stdout)
+    print(f"  active_plan_context_present: {summary.get('active_plan_context_present')}", file=stdout)
+    print(f"  routine_history_context_present: {summary.get('routine_history_context_present')}", file=stdout)
+    print(f"  assembled_practice_context_present: {summary.get('assembled_practice_context_present')}", file=stdout)
+    print(f"  context_builder_can_accept_section: {summary.get('context_builder_can_accept_section')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
 def _print_context_persistence_dev_fixture_readback_replay(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):
         print("ContextPersistenceDevFixtureReadbackReplay failed.", file=stdout)
@@ -3615,12 +3927,34 @@ def _print_recent_traces(session: TerminalChatSession, stdout: TextIO) -> None:
         print(f"  - {item.get('trace_id')} {item.get('task_type')} {item.get('validation_result')}", file=stdout)
 
 
+def _print_persisted_context_memory(response: dict[str, Any], stdout: TextIO) -> None:
+    print("PersistedContextTerminalMemory>", file=stdout)
+    print(f"  version: {response.get('persisted_context_terminal_memory_controls_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  memory_loaded: {str(response.get('memory_loaded')).lower()}", file=stdout)
+    summary = response.get("summary") if isinstance(response.get("summary"), dict) else {}
+    if summary:
+        print(f"  profile_context_present: {summary.get('profile_context_present')}", file=stdout)
+        print(f"  active_plan_context_present: {summary.get('active_plan_context_present')}", file=stdout)
+        print(f"  routine_history_context_present: {summary.get('routine_history_context_present')}", file=stdout)
+        print(f"  assembled_practice_context_present: {summary.get('assembled_practice_context_present')}", file=stdout)
+        print(f"  context_builder_can_accept_section: {summary.get('context_builder_can_accept_section')}", file=stdout)
+    if response.get("will_inject_into_next_today_practice_guidance_turn") is not None:
+        print(f"  will_inject_into_next_today_practice_guidance_turn: {str(response.get('will_inject_into_next_today_practice_guidance_turn')).lower()}", file=stdout)
+    print(f"  storage_written: {str(response.get('storage_written', False)).lower()}", file=stdout)
+    print(f"  llm_called: {str(response.get('llm_called', False)).lower()}", file=stdout)
+    print(f"  routine_start_enabled: {str(response.get('routine_start_enabled', False)).lower()}", file=stdout)
+
+
 def _print_help(stdout: TextIO) -> None:
     print("Commands:", file=stdout)
     print("  setup        # shell subcommand: create local LLM config", file=stdout)
     print("  doctor       # shell subcommand: inspect provider config", file=stdout)
     print("  config-path  # shell subcommand: print default config path", file=stdout)
     print("  /help", file=stdout)
+    print("  /persisted-context-load {json}", file=stdout)
+    print("  /persisted-context-show", file=stdout)
+    print("  /persisted-context-clear", file=stdout)
     print("  /session", file=stdout)
     print("  /context [full|--full|json|--json]", file=stdout)
     print("  /profiles", file=stdout)

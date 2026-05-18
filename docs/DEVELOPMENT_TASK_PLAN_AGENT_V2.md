@@ -1,3 +1,14 @@
+## v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls
+
+- Added terminal-only persisted context memory controls for today-practice guidance testing.
+- Added `/persisted-context-load [json_payload]`, `/persisted-context-show`, and `/persisted-context-clear`.
+- Loaded memory is session-only and can inject recovered user profile / active plan / routine history context into the next ordinary `今天该练什么？` turn.
+- Explicit command arguments still win over terminal memory to avoid hidden debug overrides.
+- Added `today_practice_guidance_persisted_context_terminal_memory_controls_contract()` and context/runtime manifest entries.
+- Preserved all no-side-effect guards: no backend/local write, no SQLite connection/table/row, no LLM call from memory commands, no tool/Engine/Routine/MIDI/playback side effects.
+
+Next recommended task: `v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture`.
+
 ## v2_8_10_agent_context_persistence_real_storage_adapter_design
 
 - Added design-only Context Persistence Storage Adapter contract.
@@ -790,3 +801,78 @@ tests/test_v2_8_14_agent_context_persistence_dev_sqlite_fixture_store_explicit_o
 ```text
 v2_8_15_agent_context_persistence_dev_fixture_readback_and_replay_preview
 ```
+
+## v2_8_16_agent_context_persistence_profile_plan_history_snapshot_context_intake
+
+Status: completed in Agent track.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-snapshot-context-intake/spec
+POST /agent/context/persistence-snapshot-context-intake/preview
+CLI  /context-persistence-snapshot-context-intake [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SNAPSHOT_CONTEXT_INTAKE_V2_8_16.md
+tests/test_v2_8_16_agent_context_persistence_profile_plan_history_snapshot_context_intake.py
+```
+
+ContextBuilder now accepts:
+
+```text
+context_persistence_snapshot_context_intake=<context_packet_section>
+```
+
+and can inject recovered sections into:
+
+```text
+learner_context.user_practice_profile_context
+learner_context.active_practice_plan_context
+learner_context.routine_history_context
+learner_context.assembled_practice_context
+learner_context.context_persistence_snapshot_context_intake
+```
+
+Boundary:
+
+```text
+No backend database write.
+No HarmonyOS local write.
+No SQLite connection/table/row.
+No LLM call.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No post-session recommendation card.
+```
+
+Next recommended task:
+
+```text
+v2_8_17_agent_today_practice_guidance_persisted_context_recovery_e2e
+```
+
+## v2_8_17_agent_today_practice_guidance_persisted_context_recovery_e2e
+
+Status: completed in this package.
+
+Goal: bridge recovered persisted snapshot context into the profile-aware TodayPracticeGuidance E2E chain.
+
+Scope:
+- read-only snapshot/context recovery preview
+- ContextBuilder-ready profile / active plan / routine history sections
+- display-only guidance/action-card output
+- terminal and API preview surfaces
+
+Out of scope:
+- real database persistence
+- HarmonyOS local writes
+- Routine start
+- accompaniment generation
+- engine adapter dispatch
+- MIDI asset creation
+- playback
+
+Recommended next task: `v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls`.

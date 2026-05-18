@@ -50,6 +50,9 @@ CONTEXT_PERSISTENCE_DEV_SQLITE_WRITE_GATE_VERSION = "v2_8_12"
 CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION = "v2_8_13"
 CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_VERSION = "v2_8_14"
 CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION = "v2_8_15"
+CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION = "v2_8_16"
+TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION = "v2_8_17"
+TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION = "v2_8_18"
 
 
 @dataclass(frozen=True)
@@ -7760,6 +7763,643 @@ def context_persistence_dev_fixture_readback_replay_contract() -> dict[str, Any]
             "context_persistence_dev_sqlite_fixture_store": CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_STORE_VERSION,
         },
         "next_task_hint": "v2_8_16_agent_context_persistence_profile_plan_history_snapshot_context_intake",
+    }
+
+
+@dataclass(frozen=True)
+class ContextPersistenceProfilePlanHistorySnapshotContextIntakePayload:
+    payload_contract_version: str
+    source: str
+    snapshot_intake_id: str
+    snapshot_source: str
+    requested_entities: list[str]
+    readback_summary: dict[str, Any]
+    normalized_context_sections: dict[str, Any]
+    context_packet_section: dict[str, Any]
+    context_builder_injection_preview: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    durable_backend_write_executed: bool = False
+    fixture_write_executed: bool = False
+    transaction_committed: bool = False
+    replay_execution_committed: bool = False
+    future_executor_implemented: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "snapshot_intake_id": self.snapshot_intake_id,
+            "snapshot_source": self.snapshot_source,
+            "requested_entities": list(self.requested_entities),
+            "readback_summary": _redact_sensitive_values(self.readback_summary),
+            "normalized_context_sections": _redact_sensitive_values(self.normalized_context_sections),
+            "context_packet_section": _redact_sensitive_values(self.context_packet_section),
+            "context_builder_injection_preview": _redact_sensitive_values(self.context_builder_injection_preview),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "durable_backend_write_executed": self.durable_backend_write_executed,
+            "fixture_write_executed": self.fixture_write_executed,
+            "transaction_committed": self.transaction_committed,
+            "replay_execution_committed": self.replay_execution_committed,
+            "future_executor_implemented": self.future_executor_implemented,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+        }
+
+
+def _snapshot_readback_payload(args: dict[str, Any], trace_id: str | None) -> tuple[dict[str, Any], str]:
+    for key in ("readback_payload", "readbackPayload", "context_persistence_dev_fixture_readback_replay_payload", "contextPersistenceDevFixtureReadbackReplayPayload"):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return value, "embedded_readback_payload"
+    if _first_present(args, "fixture_store_path", "fixtureStorePath", "fixture_path", "fixturePath"):
+        return build_context_persistence_dev_fixture_readback_replay_payload(args, trace_id=trace_id, source="snapshot_context_intake_readback_bridge").to_dict(), "dev_fixture_readback_bridge"
+    snapshot = _first_present(args, "context_snapshot_preview", "contextSnapshotPreview", "snapshotPreview")
+    if isinstance(snapshot, dict):
+        return {"context_snapshot_preview": snapshot, "validation": {"accepted": True, "status": "embedded_snapshot_preview"}}, "embedded_context_snapshot_preview"
+    return {}, "empty_snapshot"
+
+
+def _snapshot_entities(readback_payload: dict[str, Any], fallback: list[str]) -> list[str]:
+    snapshot = readback_payload.get("context_snapshot_preview") if isinstance(readback_payload.get("context_snapshot_preview"), dict) else {}
+    entities = [str(entity) for entity in (snapshot.get("entity_counts") or {})]
+    for entity in snapshot.get("requested_entities") or []:
+        if str(entity) not in entities:
+            entities.append(str(entity))
+    fixture_read = readback_payload.get("fixture_read_result") if isinstance(readback_payload.get("fixture_read_result"), dict) else {}
+    for record in fixture_read.get("matched_records") or []:
+        if isinstance(record, dict):
+            for entity in record.get("entities") or []:
+                if str(entity) not in entities:
+                    entities.append(str(entity))
+    return entities or list(fallback)
+
+
+def _profile_metadata_section(trace_id: str | None, record_count: int, source: str) -> dict[str, Any]:
+    summary = "从 dev fixture snapshot 恢复到用户练习画像占位上下文；当前 snapshot 只包含持久化元数据。"
+    return {"section_name": "user_practice_profile_context", "user_practice_profile_context_intake_version": USER_PRACTICE_PROFILE_CONTEXT_INTAKE_VERSION, "restored_from": source, "profile_status": "restored_snapshot_preview_metadata_only", "profile": {"context_type": "user_practice_profile_context", "profile_status": "restored_snapshot_preview_metadata_only", "summary_for_llm": summary, "persistence_snapshot_trace_id": trace_id, "persistence_snapshot_record_count": record_count, "preferred_styles": [], "focus_areas": [], "comfortable_tempo_ranges": {}, "avoid": []}, "summary_for_llm": summary, "context_usage_policy": {"use_when_user_asks_what_to_practice_next": True, "do_not_start_routine": True, "do_not_call_accompaniment_generate": True}}
+
+
+def _plan_metadata_section(trace_id: str | None, record_count: int, source: str) -> dict[str, Any]:
+    return {"section_name": "active_practice_plan_context", "active_practice_plan_context_intake_version": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION, "restored_from": source, "active_plan": {"plan_status": "restored_snapshot_preview_metadata_only", "persistence_snapshot_trace_id": trace_id, "persistence_snapshot_record_count": record_count}, "plan_blocks": [], "aggregate_summary": {"plan_block_count": 0, "summary_for_llm": "从 dev fixture snapshot 恢复到 active PracticePlan 占位上下文；当前 snapshot 只包含持久化元数据。"}, "context_usage_policy": {"use_when_user_asks_what_to_practice_next": True, "do_not_start_routine": True, "do_not_call_accompaniment_generate": True}}
+
+
+def _history_metadata_section(trace_id: str | None, record_count: int, source: str) -> dict[str, Any]:
+    return {"section_name": "practice_history_context", "routine_history_context_intake_version": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION, "restored_from": source, "recent_practice_history": [], "aggregate_summary": {"session_count": 0, "summary_for_llm": "从 dev fixture snapshot 恢复到 RoutineHistory 占位上下文；当前 snapshot 只包含持久化元数据。"}, "persistence_snapshot_trace_id": trace_id, "persistence_snapshot_record_count": record_count, "context_usage_policy": {"use_when_user_asks_what_to_practice_next": True, "do_not_create_post_session_recommendation_card": True, "do_not_start_routine": True, "do_not_call_accompaniment_generate": True}}
+
+
+def _snapshot_context_sections(args: dict[str, Any], *, entities: list[str], trace_id: str | None, record_count: int, source: str) -> tuple[dict[str, Any], list[str]]:
+    sections: dict[str, Any] = {}
+    warnings: list[str] = []
+    profile_ctx = _first_present(args, "user_practice_profile_context", "userPracticeProfileContext")
+    profile_raw = _first_present(args, "user_practice_profile", "userPracticeProfile")
+    if isinstance(profile_ctx, dict) and profile_ctx.get("section_name"):
+        sections["user_practice_profile_context"] = _redact_sensitive_values(profile_ctx)
+    elif isinstance(profile_raw, dict):
+        sections["user_practice_profile_context"] = build_user_practice_profile_context_intake_payload({"userPracticeProfile": profile_raw}, trace_id=trace_id, source="snapshot_context_intake_explicit_profile").context_packet_section
+    elif "user_practice_profile" in entities:
+        sections["user_practice_profile_context"] = _profile_metadata_section(trace_id, record_count, source); warnings.append("user_practice_profile_restored_as_metadata_only_context")
+    plan_ctx = _first_present(args, "active_practice_plan_context", "activePracticePlanContext")
+    plan_raw = _first_present(args, "active_practice_plan", "activePracticePlan", "practice_plan", "practicePlan")
+    if isinstance(plan_ctx, dict) and plan_ctx.get("section_name"):
+        sections["active_practice_plan_context"] = _redact_sensitive_values(plan_ctx)
+    elif isinstance(plan_raw, dict):
+        sections["active_practice_plan_context"] = build_active_practice_plan_context_intake_payload({"practicePlan": plan_raw}, trace_id=trace_id, source="snapshot_context_intake_explicit_plan").context_packet_section
+    elif "active_practice_plan" in entities or "practice_plan" in entities:
+        sections["active_practice_plan_context"] = _plan_metadata_section(trace_id, record_count, source); warnings.append("active_practice_plan_restored_as_metadata_only_context")
+    history_ctx = _first_present(args, "routine_history_context", "routineHistoryContext", "practice_history_context", "practiceHistoryContext")
+    history_raw = _first_present(args, "routine_history_records", "routineHistoryRecords", "practice_history_records", "practiceHistoryRecords")
+    if isinstance(history_ctx, dict) and history_ctx.get("section_name"):
+        sections["routine_history_context"] = _redact_sensitive_values(history_ctx)
+    elif isinstance(history_raw, list):
+        sections["routine_history_context"] = build_routine_history_context_intake_payload({"routineHistoryRecords": history_raw}, trace_id=trace_id, source="snapshot_context_intake_explicit_history").context_packet_section
+    elif "routine_history_summary" in entities:
+        sections["routine_history_context"] = _history_metadata_section(trace_id, record_count, source); warnings.append("routine_history_summary_restored_as_metadata_only_context")
+    return sections, warnings
+
+
+def build_context_persistence_profile_plan_history_snapshot_context_intake_payload(arguments: dict[str, Any] | None = None, *, trace_id: str | None = None, source: str = "context_persistence_profile_plan_history_snapshot_context_intake") -> ContextPersistenceProfilePlanHistorySnapshotContextIntakePayload:
+    args = dict(arguments or {})
+    snapshot_intake_id = str(_first_present(args, "snapshot_intake_id", "snapshotIntakeId") or f"ctx_snapshot_intake_{uuid4().hex[:12]}")
+    trace_value = trace_id or args.get("trace_id") or args.get("traceId")
+    requested_entities = _normalize_storage_adapter_entities(args)
+    readback_payload, snapshot_source = _snapshot_readback_payload(args, trace_value)
+    readback_validation = readback_payload.get("validation") if isinstance(readback_payload.get("validation"), dict) else {}
+    fixture_read = readback_payload.get("fixture_read_result") if isinstance(readback_payload.get("fixture_read_result"), dict) else {}
+    snapshot_preview = readback_payload.get("context_snapshot_preview") if isinstance(readback_payload.get("context_snapshot_preview"), dict) else {}
+    readback_summary = {"snapshot_source": snapshot_source, "readback_payload_present": bool(readback_payload), "readback_validation_status": readback_validation.get("status"), "readback_accepted": readback_validation.get("accepted", True), "file_exists": fixture_read.get("file_exists", False), "records_read": fixture_read.get("records_read", 0), "matched_record_count": fixture_read.get("matched_record_count", snapshot_preview.get("record_count", 0)), "snapshot_available": snapshot_preview.get("snapshot_available", False)}
+    entities = _snapshot_entities(readback_payload, requested_entities)
+    record_count = int(readback_summary.get("matched_record_count") or 0)
+    sections, warnings = _snapshot_context_sections(args, entities=entities, trace_id=trace_value, record_count=record_count, source=snapshot_source)
+    if sections:
+        sections["assembled_practice_context"] = {"section_name": "assembled_practice_context", "assembled_from": [k for k in ("user_practice_profile_context", "active_practice_plan_context", "routine_history_context") if k in sections], "context_persistence_profile_plan_history_snapshot_context_intake_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION, "aggregate_summary": {"profile_context_present": "user_practice_profile_context" in sections, "active_plan_context_present": "active_practice_plan_context" in sections, "routine_history_context_present": "routine_history_context" in sections, "summary_for_llm": "已从持久化 snapshot preview 恢复可注入的用户画像、长期计划与练习历史上下文；仅作为下一次用户主动询问时的上下文。"}, "decision_inputs": ["user_practice_profile", "active_practice_plan", "routine_history", "persistence_snapshot"], "context_usage_policy": {"use_when_user_asks_what_to_practice_next": True, "do_not_create_post_session_recommendation_card": True, "do_not_start_routine": True, "do_not_call_accompaniment_generate": True}}
+    kwargs = {"user_practice_profile_context": sections.get("user_practice_profile_context"), "active_practice_plan_context": sections.get("active_practice_plan_context"), "routine_history_context": sections.get("routine_history_context"), "assembled_practice_context": sections.get("assembled_practice_context")}
+    kwargs = {k: v for k, v in kwargs.items() if isinstance(v, dict)}
+    context_packet_section = {"section_name": "context_persistence_profile_plan_history_snapshot_context_intake", "context_persistence_profile_plan_history_snapshot_context_intake_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION, "purpose": "Restore profile / active plan / routine history context from a dev persistence snapshot into the next ContextPacket.", "snapshot_source": snapshot_source, "requested_entities": list(entities), "normalized_context_sections": sections, "context_packet_kwargs": kwargs, "context_usage_policy": {"inject_into_context_builder": True, "use_when_user_asks_what_to_practice_next": True, "do_not_create_post_session_recommendation_card": True, "do_not_start_routine": True, "do_not_call_accompaniment_generate": True}}
+    blocked = []
+    if readback_validation.get("accepted") is False: blocked.append("readback_payload_validation_not_accepted")
+    if _has_any_forbidden_context_fields(args): blocked.append("forbidden_context_fields_present")
+    if not sections: warnings.append("no_profile_plan_history_sections_restored")
+    accepted = not blocked
+    validation = {"accepted": accepted, "status": "snapshot_context_intake_ready" if accepted else "snapshot_context_intake_blocked", "warnings": warnings, "blocked_reasons": blocked, "restored_section_count": len([k for k in sections if k != "assembled_practice_context"]), "context_packet_kwargs_ready": bool(kwargs), "storage_written": False, "backend_database_written": False, "local_device_written": False, "sqlite_connection_created": False, "sqlite_tables_created": False, "sqlite_rows_written": False, "llm_called": False, "tool_executed": False, "engine_adapter_called": False, "midi_asset_created": False, "playback_started": False, "routine_start_enabled": False, "post_session_recommendation_card_created": False}
+    injection = {"context_builder_can_accept_section": accepted and bool(kwargs), "injectable_kwargs": sorted(kwargs), "learner_context_sections_to_inject": [k for k in kwargs], "selected_context_layers_expected": [k for k in kwargs], "storage_written": False}
+    guard = {"context_persistence_profile_plan_history_snapshot_context_intake": True, "snapshot_context_intake_only": True, "context_packet_injection_previewed": True, "storage_written": False, "backend_database_written": False, "local_device_written": False, "sqlite_connection_created": False, "sqlite_tables_created": False, "sqlite_rows_written": False, "durable_backend_write_executed": False, "fixture_write_executed": False, "transaction_committed": False, "replay_execution_committed": False, "llm_called": False, "tool_executed": False, "route_called": False, "engine_adapter_called": False, "midi_asset_created": False, "playback_started": False, "routine_start_enabled": False, "post_session_recommendation_card_created": False, "midi_asset_payload_allowed_in_adapter": False, "local_playback_state_allowed_in_context": False, "hidden_chain_of_thought_allowed_in_payload": False}
+    return ContextPersistenceProfilePlanHistorySnapshotContextIntakePayload(CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION, source, snapshot_intake_id, snapshot_source, list(entities), readback_summary, sections, context_packet_section, injection, validation, guard, trace_value)
+
+
+def build_context_persistence_profile_plan_history_snapshot_context_intake_summary(*, payload: ContextPersistenceProfilePlanHistorySnapshotContextIntakePayload | None = None, source: str = "terminal_chat_cli") -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}; validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}; sections = data.get("normalized_context_sections") if isinstance(data.get("normalized_context_sections"), dict) else {}; injection = data.get("context_builder_injection_preview") if isinstance(data.get("context_builder_injection_preview"), dict) else {}
+    return {"context_persistence_profile_plan_history_snapshot_context_intake_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION, "source": source, "has_payload": payload is not None, "validation_status": validation.get("status"), "accepted": validation.get("accepted", False), "snapshot_intake_id": data.get("snapshot_intake_id"), "snapshot_source": data.get("snapshot_source"), "requested_entities": list(data.get("requested_entities") or []), "profile_context_present": "user_practice_profile_context" in sections, "active_plan_context_present": "active_practice_plan_context" in sections, "routine_history_context_present": "routine_history_context" in sections, "assembled_practice_context_present": "assembled_practice_context" in sections, "context_builder_can_accept_section": injection.get("context_builder_can_accept_section", False), "injectable_kwargs": list(injection.get("injectable_kwargs") or []), "storage_written": False, "backend_database_written": False, "local_device_written": False, "sqlite_connection_created": False, "sqlite_tables_created": False, "sqlite_rows_written": False, "durable_backend_write_executed": False, "fixture_write_executed": False, "transaction_committed": False, "replay_execution_committed": False, "future_executor_implemented": False, "llm_called": False, "tool_executed": False, "route_called": False, "engine_adapter_called": False, "midi_asset_created": False, "playback_started": False, "post_session_recommendation_card_created": False, "accompaniment_generate_call_enabled": False, "routine_start_enabled": False, "warnings": list(validation.get("warnings") or []), "blocked_reasons": list(validation.get("blocked_reasons") or [])}
+
+
+def context_persistence_profile_plan_history_snapshot_context_intake_contract() -> dict[str, Any]:
+    return {"version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION, "context_persistence_profile_plan_history_snapshot_context_intake_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION, "spec_route": "GET /agent/context/persistence-snapshot-context-intake/spec", "preview_route": "POST /agent/context/persistence-snapshot-context-intake/preview", "terminal_command": "/context-persistence-snapshot-context-intake", "surface": "Profile / active plan / routine history snapshot context intake contract", "mode": "readback_snapshot_to_context_packet_intake_no_mutation", "execution_status": {"snapshot_context_intake_defined": True, "context_packet_injection_previewed": True, "profile_plan_history_sections_restored": True, "real_sqlite_write_enabled": False, "database_connection_created": False, "database_persistence_implemented": False, "backend_write_enabled": False, "local_device_write_enabled": False, "llm_call_enabled": False, "tool_execution_enabled": False, "routine_start_enabled": False, "post_session_recommendation_card_enabled": False, "playback_execution_enabled": False, "accompaniment_generate_call_enabled": False, "engine_adapter_dispatch_enabled": False, "midi_asset_creation_enabled": False}, "intake_flow": ["accept embedded readback payload or read-only dev fixture snapshot", "detect user_practice_profile / active_practice_plan / routine_history entities", "normalize explicit profile/plan/history data when supplied", "fallback to metadata-only context sections when snapshot has only fixture metadata", "return ContextBuilder-ready context_packet_kwargs without mutating runtime state"], "guards": {"payload_writes_storage": False, "payload_calls_llm": False, "payload_executes_tool": False, "payload_creates_post_session_recommendation_card": False, "payload_calls_accompaniment_generate": False, "payload_calls_engine_adapter": False, "payload_creates_midi_asset": False, "payload_starts_playback": False, "sqlite_connection_created": False, "sqlite_tables_created": False, "sqlite_rows_written": False, "durable_backend_write_executed": False, "fixture_write_executed": False, "transaction_committed": False, "raw_api_key_allowed_in_payload": False, "midi_base64_allowed_in_adapter_payload": False, "local_midi_path_allowed_in_adapter_payload": False, "hidden_chain_of_thought_allowed_in_payload": False}, "uses_contracts": {"user_practice_profile_context_intake": USER_PRACTICE_PROFILE_CONTEXT_INTAKE_VERSION, "active_practice_plan_context_intake": ACTIVE_PRACTICE_PLAN_CONTEXT_INTAKE_VERSION, "routine_history_context_intake": ROUTINE_HISTORY_CONTEXT_INTAKE_VERSION, "context_persistence_dev_fixture_readback_replay": CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION}, "next_task_hint": "v2_8_17_agent_today_practice_guidance_persisted_context_recovery_e2e"}
+
+
+@dataclass(frozen=True)
+class TodayPracticeGuidancePersistedContextRecoveryE2EPayload:
+    """v2_8_17 persisted-context recovery E2E for today-practice guidance.
+
+    This surface bridges the v2_8_15 read-back / v2_8_16 snapshot context
+    intake chain into the existing profile-aware today-practice guidance E2E.
+    It is still display-only and side-effect free: no storage mutation, no
+    Routine start, no /accompaniment/generate call, no engine adapter dispatch,
+    and no MIDI asset creation.
+    """
+
+    payload_contract_version: str
+    source: str
+    recovery_e2e_id: str
+    snapshot_context_intake_payload: dict[str, Any]
+    recovered_context_packet_section: dict[str, Any]
+    recovered_context_summary: dict[str, Any]
+    guidance_payload: dict[str, Any]
+    guidance_summary: dict[str, Any]
+    recovery_bridge: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    durable_backend_write_executed: bool = False
+    fixture_write_executed: bool = False
+    transaction_committed: bool = False
+    replay_execution_committed: bool = False
+    future_executor_implemented: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "recovery_e2e_id": self.recovery_e2e_id,
+            "snapshot_context_intake_payload": _redact_sensitive_values(self.snapshot_context_intake_payload),
+            "recovered_context_packet_section": _redact_sensitive_values(self.recovered_context_packet_section),
+            "recovered_context_summary": _redact_sensitive_values(self.recovered_context_summary),
+            "guidance_payload": _redact_sensitive_values(self.guidance_payload),
+            "guidance_summary": _redact_sensitive_values(self.guidance_summary),
+            "recovery_bridge": _redact_sensitive_values(self.recovery_bridge),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "durable_backend_write_executed": self.durable_backend_write_executed,
+            "fixture_write_executed": self.fixture_write_executed,
+            "transaction_committed": self.transaction_committed,
+            "replay_execution_committed": self.replay_execution_committed,
+            "future_executor_implemented": self.future_executor_implemented,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _extract_snapshot_intake_payload_for_recovery(args: dict[str, Any], trace_id: str | None) -> tuple[dict[str, Any], str]:
+    for key in (
+        "snapshot_context_intake_payload",
+        "snapshotContextIntakePayload",
+        "context_persistence_profile_plan_history_snapshot_context_intake_payload",
+        "contextPersistenceProfilePlanHistorySnapshotContextIntakePayload",
+    ):
+        value = args.get(key)
+        if isinstance(value, dict):
+            return value, "embedded_snapshot_context_intake_payload"
+    section = _first_present(args, "context_persistence_snapshot_context_intake", "contextPersistenceSnapshotContextIntake")
+    if isinstance(section, dict):
+        # Wrap a ready ContextBuilder section in the same payload shape the bridge expects.
+        normalized = section.get("normalized_context_sections") if isinstance(section.get("normalized_context_sections"), dict) else {}
+        kwargs = section.get("context_packet_kwargs") if isinstance(section.get("context_packet_kwargs"), dict) else {}
+        if not normalized:
+            normalized = {k: v for k, v in kwargs.items() if isinstance(v, dict)}
+        return {
+            "payload_contract_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+            "snapshot_source": "embedded_context_packet_section",
+            "normalized_context_sections": normalized,
+            "context_packet_section": section,
+            "context_builder_injection_preview": {"context_builder_can_accept_section": bool(kwargs or normalized), "injectable_kwargs": sorted((kwargs or normalized).keys())},
+            "validation": {"accepted": True, "status": "embedded_context_packet_section"},
+        }, "embedded_context_packet_section"
+    return build_context_persistence_profile_plan_history_snapshot_context_intake_payload(
+        args,
+        trace_id=trace_id,
+        source="persisted_context_recovery_snapshot_context_intake",
+    ).to_dict(), "snapshot_context_intake_builder"
+
+
+def _summarize_recovered_context_sections(snapshot_payload: dict[str, Any]) -> dict[str, Any]:
+    sections = snapshot_payload.get("normalized_context_sections") if isinstance(snapshot_payload.get("normalized_context_sections"), dict) else {}
+    section = snapshot_payload.get("context_packet_section") if isinstance(snapshot_payload.get("context_packet_section"), dict) else {}
+    if not sections and isinstance(section.get("normalized_context_sections"), dict):
+        sections = section.get("normalized_context_sections") or {}
+    profile = sections.get("user_practice_profile_context") if isinstance(sections.get("user_practice_profile_context"), dict) else {}
+    plan = sections.get("active_practice_plan_context") if isinstance(sections.get("active_practice_plan_context"), dict) else {}
+    history = sections.get("routine_history_context") if isinstance(sections.get("routine_history_context"), dict) else {}
+    assembled = sections.get("assembled_practice_context") if isinstance(sections.get("assembled_practice_context"), dict) else {}
+    profile_inner = profile.get("profile") if isinstance(profile.get("profile"), dict) else profile
+    plan_blocks = plan.get("plan_blocks") or plan.get("planBlocks") or []
+    if not isinstance(plan_blocks, list):
+        plan_blocks = []
+    recent_history = history.get("recent_practice_history") or history.get("recentPracticeHistory") or []
+    if not isinstance(recent_history, list):
+        recent_history = []
+    return {
+        "profile_context_present": bool(profile),
+        "active_plan_context_present": bool(plan),
+        "routine_history_context_present": bool(history),
+        "assembled_practice_context_present": bool(assembled),
+        "profile_status": profile.get("profile_status") or profile_inner.get("profile_status"),
+        "profile_summary": profile.get("summary_for_llm") or profile_inner.get("summary_for_llm"),
+        "preferred_styles": list(profile_inner.get("preferred_styles") or []),
+        "focus_areas": list(profile_inner.get("focus_areas") or []),
+        "active_plan_status": (plan.get("active_plan") or {}).get("plan_status") if isinstance(plan.get("active_plan"), dict) else None,
+        "plan_block_count": len(plan_blocks),
+        "routine_history_item_count": len(recent_history),
+        "decision_inputs": list(assembled.get("decision_inputs") or []),
+        "context_is_metadata_only": any(str(v).endswith("metadata_only") for v in (profile.get("profile_status"), (plan.get("active_plan") or {}).get("plan_status") if isinstance(plan.get("active_plan"), dict) else None)),
+    }
+
+
+def build_today_practice_guidance_persisted_context_recovery_e2e_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_persisted_context_recovery_e2e",
+    provider: Any | None = None,
+) -> TodayPracticeGuidancePersistedContextRecoveryE2EPayload:
+    """Recover persisted profile/plan/history snapshot context and run guarded guidance E2E."""
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    recovery_e2e_id = str(_first_present(args, "recovery_e2e_id", "recoveryE2eId") or f"today_guidance_persisted_recovery_{uuid4().hex[:12]}")
+    user_input = str(_first_present(args, "user_input", "userInput", "text") or "今天该练什么？")
+
+    snapshot_payload, snapshot_source = _extract_snapshot_intake_payload_for_recovery(args, trace)
+    snapshot_validation = snapshot_payload.get("validation") if isinstance(snapshot_payload.get("validation"), dict) else {}
+    recovered_section = snapshot_payload.get("context_packet_section") if isinstance(snapshot_payload.get("context_packet_section"), dict) else {}
+    context_packet_kwargs = recovered_section.get("context_packet_kwargs") if isinstance(recovered_section.get("context_packet_kwargs"), dict) else {}
+    if not context_packet_kwargs and isinstance(snapshot_payload.get("normalized_context_sections"), dict):
+        normalized = snapshot_payload.get("normalized_context_sections") or {}
+        context_packet_kwargs = {k: v for k, v in normalized.items() if isinstance(v, dict)}
+    recovered_summary = _summarize_recovered_context_sections(snapshot_payload)
+
+    guidance_args = dict(args)
+    guidance_args.update({k: v for k, v in context_packet_kwargs.items() if isinstance(v, dict)})
+    guidance_args["context_persistence_snapshot_context_intake"] = recovered_section
+    guidance_args["userInput"] = user_input
+    guidance_args.setdefault("callProvider", bool(args.get("callProvider") or args.get("call_provider") or False))
+    if args.get("availableMinutes") is not None:
+        guidance_args["availableMinutes"] = args.get("availableMinutes")
+    if args.get("available_minutes") is not None:
+        guidance_args["available_minutes"] = args.get("available_minutes")
+
+    guidance_obj = build_today_practice_guidance_profile_aware_e2e_payload(
+        guidance_args,
+        trace_id=trace,
+        source="persisted_context_recovery_profile_aware_guidance",
+        provider=provider,
+    )
+    guidance_payload = guidance_obj.to_dict()
+    guidance_summary = build_today_practice_guidance_profile_aware_e2e_summary(payload=guidance_obj, source="persisted_context_recovery_e2e")
+    guidance_validation = guidance_payload.get("validation") if isinstance(guidance_payload.get("validation"), dict) else {}
+
+    blocked_reasons: list[str] = []
+    warnings: list[str] = []
+    if snapshot_validation.get("accepted") is False:
+        blocked_reasons.append("snapshot_context_intake_not_accepted")
+    if not recovered_summary.get("profile_context_present"):
+        warnings.append("recovered_profile_context_missing")
+    if not recovered_summary.get("active_plan_context_present"):
+        warnings.append("recovered_active_plan_context_missing")
+    if not recovered_summary.get("routine_history_context_present"):
+        warnings.append("recovered_routine_history_context_missing")
+    if guidance_validation.get("is_valid") is False:
+        warnings.append("guidance_action_card_not_valid_or_guarded")
+    warnings.extend(list(snapshot_validation.get("warnings") or []))
+    warnings.extend(list(guidance_validation.get("warnings") or []))
+
+    validation_status = "persisted_context_recovery_guidance_ready" if not blocked_reasons else "persisted_context_recovery_guidance_blocked"
+    validation = {
+        "status": validation_status,
+        "accepted": not blocked_reasons,
+        "snapshot_context_intake_accepted": snapshot_validation.get("accepted", False),
+        "persisted_context_recovered": bool(context_packet_kwargs),
+        "profile_context_recovered": recovered_summary.get("profile_context_present", False),
+        "active_plan_context_recovered": recovered_summary.get("active_plan_context_present", False),
+        "routine_history_context_recovered": recovered_summary.get("routine_history_context_present", False),
+        "guidance_action_card_is_valid": bool(guidance_validation.get("is_valid", False)),
+        "display_only": True,
+        "warnings": warnings,
+        "blocked_reasons": blocked_reasons,
+        "llm_called": bool(guidance_obj.llm_called),
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    recovery_bridge = {
+        "recovery_e2e_id": recovery_e2e_id,
+        "snapshot_source": snapshot_source,
+        "context_packet_kwargs_ready": bool(context_packet_kwargs),
+        "context_packet_kwargs_keys": sorted(context_packet_kwargs.keys()),
+        "passes_recovered_context_to_profile_aware_guidance": True,
+        "uses_profile_as_soft_context_not_rule_engine": True,
+        "does_not_create_post_session_recommendation_card": True,
+        "client_decides_presentation": True,
+    }
+    guard = {
+        "today_practice_guidance_persisted_context_recovery_e2e": True,
+        "snapshot_readback_is_read_only": True,
+        "snapshot_context_intake_only": True,
+        "guidance_is_display_only": True,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "durable_backend_write_executed": False,
+        "fixture_write_executed": False,
+        "transaction_committed": False,
+        "replay_execution_committed": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "hidden_chain_of_thought_allowed_in_payload": False,
+        "midi_base64_allowed_in_adapter_payload": False,
+        "local_midi_path_allowed_in_adapter_payload": False,
+    }
+    return TodayPracticeGuidancePersistedContextRecoveryE2EPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+        source=source,
+        recovery_e2e_id=recovery_e2e_id,
+        snapshot_context_intake_payload=snapshot_payload,
+        recovered_context_packet_section=recovered_section,
+        recovered_context_summary=recovered_summary,
+        guidance_payload=guidance_payload,
+        guidance_summary=guidance_summary,
+        recovery_bridge=recovery_bridge,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+        llm_called=bool(guidance_obj.llm_called),
+    )
+
+
+def build_today_practice_guidance_persisted_context_recovery_e2e_summary(
+    *,
+    payload: TodayPracticeGuidancePersistedContextRecoveryE2EPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    recovered = data.get("recovered_context_summary") if isinstance(data.get("recovered_context_summary"), dict) else {}
+    guidance_summary = data.get("guidance_summary") if isinstance(data.get("guidance_summary"), dict) else {}
+    bridge = data.get("recovery_bridge") if isinstance(data.get("recovery_bridge"), dict) else {}
+    return {
+        "today_practice_guidance_persisted_context_recovery_e2e_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "recovery_e2e_id": data.get("recovery_e2e_id"),
+        "snapshot_source": bridge.get("snapshot_source"),
+        "profile_context_recovered": validation.get("profile_context_recovered", False),
+        "active_plan_context_recovered": validation.get("active_plan_context_recovered", False),
+        "routine_history_context_recovered": validation.get("routine_history_context_recovered", False),
+        "persisted_context_recovered": validation.get("persisted_context_recovered", False),
+        "profile_summary": recovered.get("profile_summary"),
+        "preferred_styles": list(recovered.get("preferred_styles") or []),
+        "plan_block_count": recovered.get("plan_block_count", 0),
+        "routine_history_item_count": recovered.get("routine_history_item_count", 0),
+        "guidance_action_card_is_valid": validation.get("guidance_action_card_is_valid", False),
+        "routine_candidate_count": guidance_summary.get("routine_candidate_count", 0),
+        "llm_called": data.get("llm_called", False),
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def today_practice_guidance_persisted_context_recovery_e2e_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+        "today_practice_guidance_persisted_context_recovery_e2e_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/persisted-context-recovery/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview",
+        "terminal_command": "/today-practice-guidance-persisted-context-recovery",
+        "surface": "Persisted context recovery E2E for today-practice guidance",
+        "mode": "dev_fixture_or_snapshot_readback_to_profile_aware_display_guidance_card",
+        "execution_status": {
+            "persisted_context_recovery_enabled": True,
+            "snapshot_context_intake_used": True,
+            "profile_aware_guidance_used": True,
+            "guidance_display_only": True,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "recovery_flow": [
+            "read embedded snapshot context intake payload or dev fixture read-back snapshot",
+            "convert snapshot into ContextBuilder-ready user profile / active plan / routine history sections",
+            "inject recovered context into profile-aware today-practice guidance E2E",
+            "return display-only ActionCard and Routine candidates without starting practice",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "durable_backend_write_executed": False,
+            "fixture_write_executed": False,
+            "raw_api_key_allowed_in_payload": False,
+            "midi_base64_allowed_in_adapter_payload": False,
+            "local_midi_path_allowed_in_adapter_payload": False,
+            "hidden_chain_of_thought_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "context_persistence_profile_plan_history_snapshot_context_intake": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+            "today_practice_guidance_profile_aware_e2e": TODAY_PRACTICE_GUIDANCE_PROFILE_AWARE_E2E_VERSION,
+            "context_persistence_dev_fixture_readback_replay": CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
+        },
+        "next_task_hint": "v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls",
+    }
+
+
+def today_practice_guidance_persisted_context_terminal_memory_controls_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+        "today_practice_guidance_persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+        "terminal_commands": {
+            "load": "/persisted-context-load [json_payload]",
+            "show": "/persisted-context-show",
+            "clear": "/persisted-context-clear",
+        },
+        "surface": "Terminal-only persisted context memory controls",
+        "mode": "temporary_session_memory_for_today_practice_guidance_testing",
+        "execution_status": {
+            "terminal_memory_controls_enabled": True,
+            "session_memory_only": True,
+            "persisted_context_can_be_loaded_for_next_today_guidance_turn": True,
+            "ordinary_today_practice_turn_can_use_loaded_memory": True,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled": False,
+            "llm_call_enabled_by_memory_commands": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "memory_flow": [
+            "load profile / active plan / routine history JSON or snapshot context intake payload into terminal session memory",
+            "show compact memory status without exposing secrets or raw local playback state",
+            "inject loaded memory into the next ordinary today-practice guidance turn",
+            "clear memory explicitly from the terminal session",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "raw_api_key_allowed_in_payload": False,
+            "midi_base64_allowed_in_adapter_payload": False,
+            "local_midi_path_allowed_in_adapter_payload": False,
+            "hidden_chain_of_thought_allowed_in_payload": False,
+        },
+        "uses_contracts": {
+            "context_persistence_profile_plan_history_snapshot_context_intake": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+            "today_practice_guidance_persisted_context_recovery_e2e": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+        },
+        "next_task_hint": "v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture",
     }
 
 def _normalize_storage_adapter_entities(args: dict[str, Any]) -> list[str]:
