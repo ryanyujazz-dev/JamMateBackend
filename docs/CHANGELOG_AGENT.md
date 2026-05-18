@@ -1,10 +1,36 @@
 # Agent Track Changelog
 
-Current baseline: `v2_6_5_agent_first_controlled_tool_execution_e2e`.
+Current baseline: `v2_6_8_agent_practice_plan_action_card_e2e`.
 
 This file records Agent-track changes to reduce conflicts in the global `docs/CHANGELOG.md`.
 
 ---
+
+## v2_6_8 — Agent Practice Plan ActionCard E2E
+
+- Added Routine-facing practice-plan payload for controlled `agent_practice_plan` outputs.
+- Added `routine_practice_plan_payload` under `HarmonyOSAgentActionCard.result_preview`.
+- Payload includes compact plan metadata, Routine blocks, RoutineConfig candidate, next client actions, and client button semantics.
+- Added terminal `/practice-plan-action-card` command.
+- Added `GET /agent/actions/practice-plan/spec` and `POST /agent/actions/practice-plan/execute-controlled`.
+- Opening Routine setup is explicitly separated from playback; no `/accompaniment/generate` call, no engine adapter dispatch, and no MIDI asset creation.
+
+## v2_6_7 — Agent Runtime Skeleton Cleanup
+
+- Added consolidated read-only Agent runtime skeleton contract.
+- Added terminal `/runtime-skeleton` command.
+- Added `GET /agent/runtime/skeleton` API route.
+- Added trace spec entry for runtime skeleton inspection.
+- Kept controlled execution limited to `agent_practice_plan`.
+- No playback execution, no `/accompaniment/generate` call, no engine adapter dispatch, and no MIDI asset creation.
+
+## v2_6_6 — HarmonyOS Agent Action Contract
+
+- Added Routine-facing `HarmonyOSAgentActionCard` contract.
+- Added Agent action spec, preview, and controlled execution API routes.
+- Added terminal `/action-card` command for composing the latest action-card state.
+- Action cards aggregate preview, confirmation, executor dry-run, workflow descriptor, controlled practice-plan output, and `trace_id`.
+- The contract does not call `/accompaniment/generate`, does not call engine adapters, and does not create MIDI assets.
 
 ## v2_6_5 — Agent First Controlled Tool Execution E2E
 

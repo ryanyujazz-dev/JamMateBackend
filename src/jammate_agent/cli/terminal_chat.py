@@ -26,12 +26,20 @@ from jammate_agent.core.tool_invocation import (
     TOOL_EXECUTOR_BOUNDARY_VERSION,
     TOOL_WORKFLOW_DISPATCHER_VERSION,
     CONTROLLED_WORKFLOW_EXECUTION_VERSION,
+    HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+    AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
+    PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
     ToolWorkflowDispatchResult,
     ControlledWorkflowExecutionResult,
+    HarmonyOSAgentActionCard,
     ToolInvocationProposal,
     build_confirmation_envelope,
+    build_harmonyos_agent_action_card,
+    agent_runtime_skeleton_contract,
+    build_harmonyos_agent_action_summary,
+    build_practice_plan_action_card_e2e_summary,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -80,6 +88,9 @@ class TerminalChatSession:
     v2_6_4 adds deterministic workflow descriptor resolution after executor
     dry-run. It maps a tool to its workflow descriptor only and still never
     invokes workflows, routes, or engine adapters.
+
+    v2_6_7 adds a read-only runtime skeleton status command so developers can
+    inspect the full Agent lifecycle before starting concrete Agent features.
     """
 
     task_type: str = "coach_qa"
@@ -94,6 +105,7 @@ class TerminalChatSession:
     last_execution_result: ToolExecutionResult | None = None
     last_workflow_dispatch_result: ToolWorkflowDispatchResult | None = None
     last_controlled_workflow_execution_result: ControlledWorkflowExecutionResult | None = None
+    last_harmonyos_agent_action_card: HarmonyOSAgentActionCard | None = None
     practice_planner: PracticePlanner = field(default_factory=PracticePlanner)
     practice_plan_guardrails: PracticePlanGuardrails = field(default_factory=PracticePlanGuardrails)
 
@@ -386,6 +398,7 @@ class TerminalChatSession:
         self.last_execution_result = result
         self.last_workflow_dispatch_result = None
         self.last_controlled_workflow_execution_result = None
+        self.last_harmonyos_agent_action_card = None
         result_payload = result.to_dict()
         step_name = "terminal_tool_executor_dry_run_completed" if result.ok else "terminal_tool_executor_dry_run_blocked"
         self._add_trace_step(trace, step_name, result_payload)
@@ -519,6 +532,13 @@ class TerminalChatSession:
             workflow_runner=self._run_controlled_agent_workflow,
         )
         self.last_controlled_workflow_execution_result = result
+        self.last_harmonyos_agent_action_card = build_harmonyos_agent_action_card(
+            confirmation=self.pending_confirmation,
+            execution_result=self.last_execution_result,
+            workflow_dispatch_result=self.last_workflow_dispatch_result,
+            controlled_result=result,
+            trace_id=self.last_trace_id,
+        )
         result_payload = result.to_dict()
         step_name = "terminal_controlled_workflow_execution_completed" if result.ok else "terminal_controlled_workflow_execution_blocked"
         self._add_trace_step(trace, step_name, result_payload)
@@ -588,6 +608,142 @@ class TerminalChatSession:
             "engine_adapter_called": False,
             "midi_asset_created": False,
         }
+
+
+    def harmonyos_agent_action_card(self) -> dict[str, Any]:
+        trace = self._start_trace("terminal_harmonyos_agent_action_card", "/action-card")
+        card = build_harmonyos_agent_action_card(
+            confirmation=self.pending_confirmation,
+            execution_result=self.last_execution_result,
+            workflow_dispatch_result=self.last_workflow_dispatch_result,
+            controlled_result=self.last_controlled_workflow_execution_result,
+            trace_id=self.last_trace_id,
+        )
+        self.last_harmonyos_agent_action_card = card
+        payload = card.to_dict()
+        self._add_trace_step(trace, "terminal_harmonyos_agent_action_card_built", payload)
+        summary = build_harmonyos_agent_action_summary(action_card=card, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_harmonyos_agent_action_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "action_card_built",
+            {
+                "ok": True,
+                "command": "/action-card",
+                "harmonyos_agent_action_contract_version": HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+                "harmonyos_agent_action_summary": summary,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/action-card",
+            "harmonyos_agent_action_contract_version": HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+            "action_card": payload,
+            "harmonyos_agent_action_summary": summary,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def practice_plan_action_card_e2e(self) -> dict[str, Any]:
+        """Build the Routine-facing practice-plan ActionCard payload."""
+
+        if self.last_controlled_workflow_execution_result is None:
+            return {
+                "ok": False,
+                "terminal_chat_version": TERMINAL_CHAT_VERSION,
+                "command": "/practice-plan-action-card",
+                "error_code": "NO_CONTROLLED_PRACTICE_PLAN_RESULT",
+                "message": "No controlled practice-plan result is available. Use /tool-preview agent_practice_plan, /confirm, /execute-dry-run, /dispatch-dry-run, and /execute-controlled first.",
+                "practice_plan_action_card_e2e_version": PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            }
+        trace = self._start_trace("terminal_practice_plan_action_card_e2e", "/practice-plan-action-card")
+        card = build_harmonyos_agent_action_card(
+            confirmation=self.pending_confirmation,
+            execution_result=self.last_execution_result,
+            workflow_dispatch_result=self.last_workflow_dispatch_result,
+            controlled_result=self.last_controlled_workflow_execution_result,
+            trace_id=self.last_trace_id,
+        )
+        self.last_harmonyos_agent_action_card = card
+        payload = card.to_dict()
+        self._add_trace_step(trace, "terminal_practice_plan_action_card_payload_built", payload)
+        summary = build_practice_plan_action_card_e2e_summary(action_card=card, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_practice_plan_action_card_summary_recorded", summary)
+        self._finish_trace(
+            trace,
+            "practice_plan_action_card_built",
+            {
+                "ok": True,
+                "command": "/practice-plan-action-card",
+                "practice_plan_action_card_e2e_version": PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+                "practice_plan_action_card_e2e_summary": summary,
+                "route_called": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/practice-plan-action-card",
+            "practice_plan_action_card_e2e_version": PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+            "action_card": payload,
+            "practice_plan_action_card_e2e_summary": summary,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def agent_runtime_skeleton_status(self) -> dict[str, Any]:
+        trace = self._start_trace("terminal_agent_runtime_skeleton", "/runtime-skeleton")
+        snapshot = agent_runtime_skeleton_contract()
+        self._add_trace_step(trace, "terminal_agent_runtime_skeleton_snapshot_built", snapshot)
+        summary = {
+            "agent_runtime_skeleton_cleanup_version": AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
+            "stage_count": snapshot.get("stage_count"),
+            "status": snapshot.get("status"),
+            "controlled_execution_allowed_tools": snapshot.get("controlled_execution_allowed_tools", []),
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        }
+        self._finish_trace(
+            trace,
+            "runtime_skeleton_status_built",
+            {
+                "ok": True,
+                "command": "/runtime-skeleton",
+                "agent_runtime_skeleton_summary": summary,
+            },
+        )
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/runtime-skeleton",
+            "agent_runtime_skeleton_cleanup_version": AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
+            "runtime_skeleton": snapshot,
+            "agent_runtime_skeleton_summary": summary,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
 
     def allowed_tool_names(self) -> list[str]:
         packet = self.context_builder.build(
@@ -692,6 +848,7 @@ class TerminalChatSession:
         self.last_execution_result = None
         self.last_workflow_dispatch_result = None
         self.last_controlled_workflow_execution_result = None
+        self.last_harmonyos_agent_action_card = None
         return {
             "ok": True,
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
@@ -703,6 +860,7 @@ class TerminalChatSession:
             "last_execution_result_cleared": True,
             "last_workflow_dispatch_result_cleared": True,
             "last_controlled_workflow_execution_result_cleared": True,
+            "last_harmonyos_agent_action_card_cleared": True,
             "tool_execution_enabled": False,
         }
 
@@ -726,6 +884,9 @@ class TerminalChatSession:
             "last_workflow_dispatch_status": self.last_workflow_dispatch_result.status if self.last_workflow_dispatch_result else None,
             "has_last_controlled_workflow_execution_result": self.last_controlled_workflow_execution_result is not None,
             "last_controlled_workflow_execution_status": self.last_controlled_workflow_execution_result.status if self.last_controlled_workflow_execution_result else None,
+            "has_last_harmonyos_agent_action_card": self.last_harmonyos_agent_action_card is not None,
+            "last_harmonyos_agent_action_status": self.last_harmonyos_agent_action_card.execution_status if self.last_harmonyos_agent_action_card else None,
+            "agent_runtime_skeleton_cleanup_version": AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
         }
 
     def trace_export_enabled(self) -> bool:
@@ -951,6 +1112,9 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
     if user_input == "/help":
         _print_help(stdout)
         return True
+    if user_input == "/runtime-skeleton":
+        _print_agent_runtime_skeleton(session.agent_runtime_skeleton_status(), stdout)
+        return True
     if user_input == "/tools":
         tools = session.allowed_tool_names()
         print("Allowed tools for this task:", file=stdout)
@@ -1015,6 +1179,12 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         return True
     if user_input == "/execute-controlled":
         _print_controlled_workflow_execution(session.execute_controlled_workflow(), stdout)
+        return True
+    if user_input == "/action-card":
+        _print_harmonyos_agent_action_card(session.harmonyos_agent_action_card(), stdout)
+        return True
+    if user_input == "/practice-plan-action-card":
+        _print_practice_plan_action_card(session.practice_plan_action_card_e2e(), stdout)
         return True
     if user_input.startswith("/tool-preview"):
         result = _parse_tool_preview_command(user_input)
@@ -1221,6 +1391,57 @@ def _print_controlled_workflow_execution(response: dict[str, Any], stdout: TextI
     print("  midi_asset_created: False", file=stdout)
     print("  next_stage_required: HarmonyOSAgentActionContract", file=stdout)
 
+
+
+def _print_harmonyos_agent_action_card(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    card = response.get("action_card") or {}
+    print(f"HarmonyOSAgentActionCard> {card.get('tool_name')}: {card.get('execution_status')}", file=stdout)
+    print(f"  action_id: {card.get('action_id')}", file=stdout)
+    print(f"  title: {card.get('title')}", file=stdout)
+    print(f"  confirmation_status: {card.get('confirmation_status')}", file=stdout)
+    print(f"  requires_user_confirmation: {card.get('requires_user_confirmation')}", file=stdout)
+    print(f"  available_client_actions: {', '.join(card.get('available_client_actions') or [])}", file=stdout)
+    print("  route_called: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  midi_asset_created: False", file=stdout)
+
+
+def _print_practice_plan_action_card(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    card = response.get("action_card") or {}
+    result_preview = card.get("result_preview") or {}
+    payload = result_preview.get("routine_practice_plan_payload") or {}
+    plan = payload.get("plan") or {}
+    print(f"PracticePlanActionCard> {plan.get('title') or card.get('title')}: {card.get('execution_status')}", file=stdout)
+    print(f"  duration_minutes: {plan.get('duration_minutes')}", file=stdout)
+    print(f"  block_count: {plan.get('block_count')}", file=stdout)
+    print(f"  next_client_actions: {', '.join(payload.get('next_client_actions') or [])}", file=stdout)
+    print("  open_routine_setup_enabled: True", file=stdout)
+    print("  playback_started: False", file=stdout)
+    print("  accompaniment_generate_call_enabled: False", file=stdout)
+    print("  engine_adapter_called: False", file=stdout)
+    print("  midi_asset_created: False", file=stdout)
+
+def _print_agent_runtime_skeleton(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok") and response.get("error_code"):
+        _print_command_error(response, stdout)
+        return
+    skeleton = response.get("runtime_skeleton") or {}
+    guards = skeleton.get("no_side_effect_guards") or {}
+    print(f"AgentRuntimeSkeleton> {skeleton.get('status')} ({skeleton.get('version')})", file=stdout)
+    print(f"  stage_count: {skeleton.get('stage_count')}", file=stdout)
+    print(f"  allowed_controlled_tools: {', '.join(skeleton.get('controlled_execution_allowed_tools') or [])}", file=stdout)
+    print(f"  playback_execution_enabled: {guards.get('playback_execution_enabled')}", file=stdout)
+    print(f"  accompaniment_generate_call_enabled: {guards.get('accompaniment_generate_call_enabled')}", file=stdout)
+    print(f"  engine_adapter_dispatch_enabled: {guards.get('engine_adapter_dispatch_enabled')}", file=stdout)
+    print(f"  midi_asset_creation_enabled: {guards.get('midi_asset_creation_enabled')}", file=stdout)
+
+
 def _print_session_summary(summary: dict[str, Any], stdout: TextIO) -> None:
     print("Session>", file=stdout)
     print(f"  task_type: {summary.get('task_type')}", file=stdout)
@@ -1343,6 +1564,7 @@ def _print_help(stdout: TextIO) -> None:
     print("  /task-type [task_type]", file=stdout)
     print("  /instrument [instrument]", file=stdout)
     print("  /reset", file=stdout)
+    print("  /runtime-skeleton", file=stdout)
     print("  /tools", file=stdout)
     print('  /tool-preview <tool_name> [json_object_arguments]', file=stdout)
     print("  /pending", file=stdout)
@@ -1351,6 +1573,8 @@ def _print_help(stdout: TextIO) -> None:
     print("  /execute-dry-run", file=stdout)
     print("  /dispatch-dry-run", file=stdout)
     print("  /execute-controlled", file=stdout)
+    print("  /action-card", file=stdout)
+    print("  /practice-plan-action-card", file=stdout)
     print("  /trace", file=stdout)
     print("  /traces", file=stdout)
     print("  /exit", file=stdout)
@@ -1364,6 +1588,9 @@ def _print_help(stdout: TextIO) -> None:
     print("Tool executor dry-run proves request/result shape only; it never dispatches workflows or engine adapters.", file=stdout)
     print("Workflow dispatch dry-run resolves the workflow descriptor only; it never invokes workflows, routes, or engine adapters.", file=stdout)
     print("Controlled execution is limited to agent_practice_plan in v2_6_5; it never calls routes, engine adapters, or MIDI generation.", file=stdout)
+    print("/action-card builds a HarmonyOS Routine-facing AgentActionCard from the latest terminal action state.", file=stdout)
+    print("/practice-plan-action-card builds the Routine-facing practice-plan ActionCard payload after controlled agent_practice_plan execution.", file=stdout)
+    print("/runtime-skeleton shows the consolidated read-only Agent lifecycle and guard status.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 
 

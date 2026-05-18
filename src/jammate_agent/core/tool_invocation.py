@@ -16,6 +16,9 @@ TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION = "v2_6_2"
 TOOL_EXECUTOR_BOUNDARY_VERSION = "v2_6_3"
 TOOL_WORKFLOW_DISPATCHER_VERSION = "v2_6_4"
 CONTROLLED_WORKFLOW_EXECUTION_VERSION = "v2_6_5"
+HARMONYOS_AGENT_ACTION_CONTRACT_VERSION = "v2_6_6"
+AGENT_RUNTIME_SKELETON_CLEANUP_VERSION = "v2_6_7"
+PRACTICE_PLAN_ACTION_CARD_E2E_VERSION = "v2_6_8"
 
 
 @dataclass(frozen=True)
@@ -170,6 +173,122 @@ class ToolInvocationPreviewPolicy:
 
 
 DEFAULT_TOOL_INVOCATION_PREVIEW_POLICY = ToolInvocationPreviewPolicy()
+
+
+def agent_runtime_no_side_effect_flags() -> dict[str, bool]:
+    """Shared no-side-effect guard flags for Agent runtime skeleton surfaces."""
+
+    return {
+        "llm_autonomous_execution_enabled": False,
+        "real_tool_execution_enabled": False,
+        "real_workflow_dispatch_enabled": False,
+        "playback_execution_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "engine_adapter_dispatch_enabled": False,
+        "route_call_enabled": False,
+        "midi_asset_creation_enabled": False,
+        "raw_api_key_allowed_in_runtime_payloads": False,
+    }
+
+
+@dataclass(frozen=True)
+class AgentRuntimeSkeletonSnapshot:
+    """v2_6_7 consolidated status of the Agent runtime skeleton.
+
+    This snapshot is intentionally read-only. It does not preview, confirm,
+    execute, dispatch, or call any engine/API route. It exists so terminal, API,
+    trace, and HarmonyOS Routine developers can inspect one stable skeleton map
+    before adding concrete Agent features.
+    """
+
+    skeleton_contract_version: str = AGENT_RUNTIME_SKELETON_CLEANUP_VERSION
+    baseline: str = "v2_6_6_harmonyos_agent_action_contract"
+    status: str = "skeleton_ready_for_specific_agent_features"
+    controlled_execution_allowed_tools: tuple[str, ...] = ("agent_practice_plan",)
+    stages: tuple[dict[str, Any], ...] = (
+        {"stage": "context_packet", "version": "v2_4_0", "mode": "task_scoped_context", "side_effects": False},
+        {"stage": "llm_provider_boundary", "version": "v2_4_2", "mode": "explicit_provider_boundary", "side_effects": False},
+        {"stage": "tool_registry", "version": TOOL_REGISTRY_VERSION, "mode": "descriptor_allow_list", "side_effects": False},
+        {"stage": "tool_invocation_preview", "version": TOOL_INVOCATION_PREVIEW_VERSION, "mode": "validation_only", "side_effects": False},
+        {"stage": "tool_execution_confirmation", "version": TOOL_EXECUTION_CONFIRMATION_CONTRACT_VERSION, "mode": "user_approval_record_only", "side_effects": False},
+        {"stage": "tool_executor_boundary", "version": TOOL_EXECUTOR_BOUNDARY_VERSION, "mode": "dry_run_noop", "side_effects": False},
+        {"stage": "deterministic_workflow_dispatcher", "version": TOOL_WORKFLOW_DISPATCHER_VERSION, "mode": "descriptor_resolution_only", "side_effects": False},
+        {"stage": "controlled_workflow_execution", "version": CONTROLLED_WORKFLOW_EXECUTION_VERSION, "mode": "practice_plan_only", "side_effects": False},
+        {"stage": "harmonyos_agent_action_card", "version": HARMONYOS_AGENT_ACTION_CONTRACT_VERSION, "mode": "routine_action_card_contract", "side_effects": False},
+    )
+    terminal_commands: tuple[str, ...] = (
+        "/tool-preview",
+        "/pending",
+        "/confirm",
+        "/reject",
+        "/execute-dry-run",
+        "/dispatch-dry-run",
+        "/execute-controlled",
+        "/action-card",
+        "/runtime-skeleton",
+    )
+    api_routes: tuple[str, ...] = (
+        "GET /agent/runtime/skeleton",
+        "GET /agent/context/runtime/spec",
+        "POST /agent/tools/invocation/preview",
+        "POST /agent/tools/confirmation/preview",
+        "POST /agent/tools/executor/dry-run",
+        "POST /agent/tools/workflows/dispatch-dry-run",
+        "POST /agent/tools/workflows/execute-controlled",
+        "POST /agent/actions/preview",
+        "POST /agent/actions/execute-controlled",
+    )
+    next_recommended_stage: str = "specific_agent_feature_development"
+
+    def to_dict(self) -> dict[str, Any]:
+        guards = agent_runtime_no_side_effect_flags()
+        return {
+            "agent_runtime_skeleton_cleanup_version": self.skeleton_contract_version,
+            "version": self.skeleton_contract_version,
+            "baseline": self.baseline,
+            "status": self.status,
+            "stage_count": len(self.stages),
+            "stages": [dict(stage) for stage in self.stages],
+            "controlled_execution_allowed_tools": list(self.controlled_execution_allowed_tools),
+            "terminal_commands": list(self.terminal_commands),
+            "api_routes": list(self.api_routes),
+            "no_side_effect_guards": guards,
+            "forbidden_until_future_milestone": [
+                "agent_playback_prepare_real_execution",
+                "direct_accompaniment_generate_from_agent_action",
+                "POST /accompaniment/generate from Agent action contract",
+                "engine_adapter dispatch from runtime skeleton",
+                "MIDI asset creation from Agent action card",
+                "autonomous LLM tool execution",
+            ],
+            "cleanup_assertions": {
+                "single_core_owner_for_agent_tool_lifecycle": "src/jammate_agent/core/tool_invocation.py",
+                "terminal_surface_owner": "src/jammate_agent/cli/terminal_chat.py",
+                "api_surface_owner": "src/jammate_api/routes/agent_routes.py",
+                "agent_docs_only": True,
+                "shared_docs_modified_by_agent_branch": False,
+            },
+            "next_recommended_stage": self.next_recommended_stage,
+        }
+
+
+def build_agent_runtime_skeleton_snapshot() -> AgentRuntimeSkeletonSnapshot:
+    return AgentRuntimeSkeletonSnapshot()
+
+
+def agent_runtime_skeleton_contract() -> dict[str, Any]:
+    """Stable v2_6_7 runtime skeleton cleanup contract."""
+
+    snapshot = build_agent_runtime_skeleton_snapshot().to_dict()
+    snapshot.update({
+        "spec_route": "GET /agent/runtime/skeleton",
+        "mode": "read_only_runtime_skeleton_status",
+        "contract_does_not_execute_tools": True,
+        "contract_does_not_dispatch_workflows": True,
+        "contract_does_not_call_engine_adapter": True,
+        "contract_does_not_create_midi_asset": True,
+    })
+    return snapshot
 
 
 @dataclass(frozen=True)
@@ -1338,6 +1457,597 @@ def controlled_workflow_execution_contract() -> dict[str, Any]:
             "raw_api_key_allowed_in_output": False,
         },
     }
+
+
+
+@dataclass(frozen=True)
+class HarmonyOSAgentActionCard:
+    """Routine-facing action-card state for HarmonyOS.
+
+    The card is a presentation/contract envelope. It aggregates existing Agent
+    boundaries for the client: preview, confirmation, dry-run executor,
+    workflow descriptor, and optional controlled execution result. It does not
+    introduce any new high-risk execution path.
+    """
+
+    action_contract_version: str
+    action_id: str
+    proposal_id: str | None
+    tool_name: str
+    title: str
+    description: str
+    arguments_preview: dict[str, Any] = field(default_factory=dict)
+    side_effect_level: str = "unknown"
+    risk_summary: str = "Unknown action risk."
+    requires_user_confirmation: bool = True
+    confirmation_status: str = "not_started"
+    user_approved: bool = False
+    preview_status: str = "not_started"
+    execution_status: str = "not_started"
+    workflow_name: str | None = None
+    result_preview: dict[str, Any] = field(default_factory=dict)
+    trace_id: str | None = None
+    available_client_actions: tuple[str, ...] = ("dismiss",)
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "action_contract_version": self.action_contract_version,
+            "action_id": self.action_id,
+            "proposal_id": self.proposal_id,
+            "tool_name": self.tool_name,
+            "title": self.title,
+            "description": self.description,
+            "arguments_preview": _redact_sensitive_values(self.arguments_preview),
+            "side_effect_level": self.side_effect_level,
+            "risk_summary": self.risk_summary,
+            "requires_user_confirmation": self.requires_user_confirmation,
+            "confirmation_status": self.confirmation_status,
+            "user_approved": self.user_approved,
+            "preview_status": self.preview_status,
+            "execution_status": self.execution_status,
+            "workflow_name": self.workflow_name,
+            "result_preview": _redact_sensitive_values(self.result_preview),
+            "trace_id": self.trace_id,
+            "available_client_actions": list(self.available_client_actions),
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "created_at": self.created_at,
+        }
+
+
+def build_harmonyos_agent_action_card(
+    *,
+    preview: ToolInvocationPreviewResult | None = None,
+    confirmation: ToolExecutionConfirmationEnvelope | None = None,
+    confirmation_result: ToolExecutionConfirmationResult | None = None,
+    execution_result: ToolExecutionResult | None = None,
+    workflow_dispatch_result: ToolWorkflowDispatchResult | None = None,
+    controlled_result: ControlledWorkflowExecutionResult | None = None,
+    trace_id: str | None = None,
+    action_id: str | None = None,
+) -> HarmonyOSAgentActionCard:
+    """Build the Routine-facing card from already-computed Agent boundary results."""
+
+    tool_name = "unknown"
+    if preview is not None:
+        tool_name = preview.tool_name
+    elif confirmation is not None:
+        tool_name = confirmation.tool_name
+    elif confirmation_result is not None:
+        tool_name = confirmation_result.confirmation.tool_name
+    elif execution_result is not None:
+        tool_name = execution_result.request.tool_name
+    elif workflow_dispatch_result is not None:
+        tool_name = workflow_dispatch_result.execution_result.request.tool_name
+    elif controlled_result is not None:
+        tool_name = controlled_result.workflow_dispatch_result.execution_result.request.tool_name
+
+    descriptor = get_tool_descriptor(tool_name)
+    active_confirmation = confirmation_result.confirmation if confirmation_result else confirmation
+    descriptor_from_dispatch = workflow_dispatch_result.workflow_descriptor if workflow_dispatch_result else None
+    if controlled_result is not None:
+        descriptor_from_dispatch = controlled_result.workflow_dispatch_result.workflow_descriptor
+    active_execution = execution_result or (workflow_dispatch_result.execution_result if workflow_dispatch_result else None)
+
+    proposal_id = None
+    if active_confirmation is not None:
+        proposal_id = active_confirmation.proposal_id
+    elif active_execution is not None:
+        proposal_id = active_execution.request.proposal_id
+
+    preview_status = preview.status if preview is not None else "not_started"
+    confirmation_status = active_confirmation.confirmation_status if active_confirmation is not None else "not_started"
+    user_approved = bool(active_confirmation and active_confirmation.user_approved)
+    side_effect_level = (
+        active_confirmation.side_effect_level
+        if active_confirmation is not None
+        else (descriptor.side_effect_level if descriptor is not None else "unknown")
+    )
+    risk_summary = (
+        active_confirmation.risk_summary
+        if active_confirmation is not None
+        else _risk_summary(side_effect_level, confirmable=bool(preview and preview.ok))
+    )
+    arguments_preview: dict[str, Any] = {}
+    if active_confirmation is not None:
+        arguments_preview = dict(active_confirmation.arguments_preview)
+    elif preview is not None:
+        arguments_preview = dict(preview.normalized_arguments)
+    elif active_execution is not None:
+        arguments_preview = dict(active_execution.request.arguments_preview)
+
+    execution_status = _derive_action_execution_status(
+        confirmation=active_confirmation,
+        execution_result=execution_result,
+        workflow_dispatch_result=workflow_dispatch_result,
+        controlled_result=controlled_result,
+    )
+    workflow_name = descriptor_from_dispatch.workflow_name if descriptor_from_dispatch else (descriptor.deterministic_workflow if descriptor else None)
+    result_preview = _build_action_result_preview(controlled_result=controlled_result, workflow_dispatch_result=workflow_dispatch_result, execution_result=execution_result)
+    available_actions = _action_available_client_actions(
+        confirmation=active_confirmation,
+        execution_result=execution_result,
+        workflow_dispatch_result=workflow_dispatch_result,
+        controlled_result=controlled_result,
+    )
+    route_called = bool(controlled_result and controlled_result.route_called)
+    engine_adapter_called = bool(controlled_result and controlled_result.engine_adapter_called)
+    midi_asset_created = bool(controlled_result and controlled_result.midi_asset_created)
+
+    return HarmonyOSAgentActionCard(
+        action_contract_version=HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+        action_id=action_id or f"action_{uuid4().hex[:12]}",
+        proposal_id=proposal_id,
+        tool_name=tool_name,
+        title=descriptor.title if descriptor else tool_name,
+        description=descriptor.description if descriptor else "Unknown Agent action.",
+        arguments_preview=arguments_preview,
+        side_effect_level=side_effect_level,
+        risk_summary=risk_summary,
+        requires_user_confirmation=bool(active_confirmation.requires_user_confirmation) if active_confirmation else True,
+        confirmation_status=confirmation_status,
+        user_approved=user_approved,
+        preview_status=preview_status,
+        execution_status=execution_status,
+        workflow_name=workflow_name,
+        result_preview=result_preview,
+        trace_id=trace_id,
+        available_client_actions=available_actions,
+        route_called=route_called,
+        engine_adapter_called=engine_adapter_called,
+        midi_asset_created=midi_asset_created,
+    )
+
+
+def build_harmonyos_agent_action_summary(
+    *,
+    action_card: HarmonyOSAgentActionCard | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    return {
+        "harmonyos_agent_action_contract_version": HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+        "source": source,
+        "has_action_card": action_card is not None,
+        "action_id": action_card.action_id if action_card else None,
+        "tool_name": action_card.tool_name if action_card else None,
+        "confirmation_status": action_card.confirmation_status if action_card else "none",
+        "execution_status": action_card.execution_status if action_card else "none",
+        "trace_id": action_card.trace_id if action_card else None,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "client_must_confirm_side_effectful_actions": True,
+    }
+
+
+def harmonyos_agent_action_contract() -> dict[str, Any]:
+    return {
+        "version": HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+        "harmonyos_agent_action_contract_version": HARMONYOS_AGENT_ACTION_CONTRACT_VERSION,
+        "spec_route": "GET /agent/actions/spec",
+        "preview_route": "POST /agent/actions/preview",
+        "controlled_execute_route": "POST /agent/actions/execute-controlled",
+        "surface": "HarmonyOS Routine AgentActionCard",
+        "mode": "action_card_contract_and_guarded_practice_plan_execution",
+        "execution_status": {
+            "action_card_enabled": True,
+            "preview_enabled": True,
+            "confirmation_required": True,
+            "controlled_practice_plan_execution_enabled": True,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "autonomous_execution_enabled": False,
+        },
+        "action_card_schema": {
+            "action_contract_version": "string",
+            "action_id": "string",
+            "proposal_id": "string | null",
+            "tool_name": "string",
+            "title": "string",
+            "description": "string",
+            "arguments_preview": "Record<string, unknown>",
+            "side_effect_level": "none | trace_only | creates_midi_asset | string",
+            "risk_summary": "string",
+            "requires_user_confirmation": "boolean",
+            "confirmation_status": "not_started | pending | approved | rejected | not_confirmable",
+            "user_approved": "boolean",
+            "preview_status": "string",
+            "execution_status": "not_started | confirmation_required | ready_for_dry_run | dry_run_completed | workflow_descriptor_resolved | controlled_execution_succeeded | controlled_execution_blocked | rejected | blocked",
+            "workflow_name": "string | null",
+            "result_preview": "Record<string, unknown>",
+            "trace_id": "string | null",
+            "available_client_actions": "string[]",
+            "route_called": "boolean",
+            "engine_adapter_called": "boolean",
+            "midi_asset_created": "boolean",
+        },
+        "client_flow": [
+            "display_llm_reply",
+            "display_action_card",
+            "show_arguments_preview_and_risk_summary",
+            "require_user_confirm_or_reject_before side-effectful or executable actions",
+            "call controlled_execute_route only after explicit approval",
+            "show trace_id for debug/replay",
+        ],
+        "allowed_controlled_actions": ["agent_practice_plan"],
+        "forbidden_actions_in_v2_6_6": [
+            "agent_playback_prepare_real_execution",
+            "direct_accompaniment_generate_from_agent_action",
+            "POST /accompaniment/generate from Agent action contract",
+            "engine_adapter dispatch",
+            "MIDI asset creation",
+        ],
+        "guards": {
+            "action_card_executes_playback": False,
+            "action_card_calls_accompaniment_generate": False,
+            "action_card_calls_engine_adapter": False,
+            "action_card_creates_midi_asset": False,
+            "action_card_allows_autonomous_execution": False,
+            "raw_api_key_allowed_in_action_card": False,
+        },
+    }
+
+
+
+@dataclass(frozen=True)
+class RoutinePracticePlanActionPayload:
+    """v2_6_8 Routine-facing structured payload for practice-plan actions.
+
+    This is a presentation payload for HarmonyOS Routine. It contains enough
+    information for the client to render a plan and prepare a Routine setup
+    screen, but it does not start playback, call /accompaniment/generate, call
+    engine adapters, or create MIDI assets.
+    """
+
+    payload_contract_version: str
+    plan: dict[str, Any]
+    routine_config_candidate: dict[str, Any]
+    routine_blocks: tuple[dict[str, Any], ...]
+    next_client_actions: tuple[str, ...]
+    client_button_semantics: dict[str, Any]
+    trace_id: str | None = None
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    start_requires_separate_routine_confirmation: bool = True
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "plan": _redact_sensitive_values(self.plan),
+            "routine_config_candidate": _redact_sensitive_values(self.routine_config_candidate),
+            "routine_blocks": [_redact_sensitive_values(block) for block in self.routine_blocks],
+            "next_client_actions": list(self.next_client_actions),
+            "client_button_semantics": _redact_sensitive_values(self.client_button_semantics),
+            "trace_id": self.trace_id,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "start_requires_separate_routine_confirmation": self.start_requires_separate_routine_confirmation,
+        }
+
+
+def build_routine_practice_plan_action_payload(
+    controlled_result: ControlledWorkflowExecutionResult,
+    *,
+    trace_id: str | None = None,
+) -> RoutinePracticePlanActionPayload:
+    """Convert a controlled agent_practice_plan result into a Routine payload."""
+
+    output = controlled_result.workflow_output or {}
+    plan = output.get("plan") if isinstance(output, dict) else None
+    if not isinstance(plan, dict):
+        plan = {}
+    blocks = plan.get("blocks") if isinstance(plan.get("blocks"), list) else []
+    routine_blocks = tuple(_routine_block_from_plan_block(block, index) for index, block in enumerate(blocks))
+    total_minutes = sum(int(block.get("duration_minutes") or 0) for block in routine_blocks)
+    duration_minutes = int(plan.get("duration_minutes") or total_minutes or 0)
+    primary_style = _first_non_empty([block.get("style") for block in routine_blocks]) or "medium_swing"
+    primary_tempo = _first_non_empty([block.get("tempo") for block in routine_blocks]) or _style_default_tempo(str(primary_style))
+    tune_title = _first_non_empty([((block.get("material") or {}).get("tune") if isinstance(block.get("material"), dict) else None) for block in routine_blocks])
+    routine_name = str(plan.get("title") or "JamMate Practice Routine")
+    routine_config_candidate = {
+        "routine_name": routine_name,
+        "practice_goal": plan.get("main_focus"),
+        "duration_minutes": duration_minutes,
+        "style": primary_style,
+        "tempo": int(primary_tempo),
+        "tune_title": tune_title,
+        "loop_enabled": True,
+        "count_in_enabled": True,
+        "output_format": "midi_base64",
+        "source": "agent_practice_plan_action_card",
+        "agent_tool_name": "agent_practice_plan",
+        "plan_id": plan.get("plan_id"),
+        "trace_id": trace_id or (output.get("trace_id") if isinstance(output, dict) else None),
+        "requires_user_start_confirmation": True,
+        "accompaniment_generate_call_enabled": False,
+        "playback_execution_enabled": False,
+    }
+    compact_plan = {
+        "plan_id": plan.get("plan_id"),
+        "title": plan.get("title"),
+        "duration_minutes": duration_minutes,
+        "main_focus": plan.get("main_focus"),
+        "estimated_difficulty": plan.get("estimated_difficulty"),
+        "source": plan.get("source"),
+        "block_count": len(routine_blocks),
+        "total_block_minutes": total_minutes,
+    }
+    return RoutinePracticePlanActionPayload(
+        payload_contract_version=PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+        plan=compact_plan,
+        routine_config_candidate=routine_config_candidate,
+        routine_blocks=routine_blocks,
+        next_client_actions=("open_routine_setup", "save_practice_plan", "edit_plan", "dismiss", "view_trace"),
+        client_button_semantics={
+            "primary": {
+                "action": "open_routine_setup",
+                "label": "Open Routine Setup",
+                "does_start_playback": False,
+                "requires_separate_start_confirmation": True,
+            },
+            "secondary": [
+                {"action": "save_practice_plan", "label": "Save Plan", "side_effect_level": "local_only"},
+                {"action": "edit_plan", "label": "Edit Plan", "side_effect_level": "none"},
+                {"action": "view_trace", "label": "View Trace", "side_effect_level": "none"},
+            ],
+        },
+        trace_id=trace_id or (output.get("trace_id") if isinstance(output, dict) else None),
+    )
+
+
+def build_practice_plan_action_card_e2e_summary(
+    *,
+    action_card: HarmonyOSAgentActionCard | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    result_preview = action_card.result_preview if action_card else {}
+    payload = result_preview.get("routine_practice_plan_payload") if isinstance(result_preview, dict) else None
+    plan = payload.get("plan") if isinstance(payload, dict) else {}
+    return {
+        "practice_plan_action_card_e2e_version": PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+        "source": source,
+        "has_action_card": action_card is not None,
+        "has_routine_practice_plan_payload": isinstance(payload, dict),
+        "action_id": action_card.action_id if action_card else None,
+        "tool_name": action_card.tool_name if action_card else None,
+        "plan_title": plan.get("title") if isinstance(plan, dict) else None,
+        "duration_minutes": plan.get("duration_minutes") if isinstance(plan, dict) else None,
+        "block_count": plan.get("block_count") if isinstance(plan, dict) else None,
+        "next_client_actions": payload.get("next_client_actions", []) if isinstance(payload, dict) else [],
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+
+
+def practice_plan_action_card_e2e_contract() -> dict[str, Any]:
+    return {
+        "version": PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+        "practice_plan_action_card_e2e_version": PRACTICE_PLAN_ACTION_CARD_E2E_VERSION,
+        "spec_route": "GET /agent/actions/practice-plan/spec",
+        "execute_controlled_route": "POST /agent/actions/practice-plan/execute-controlled",
+        "terminal_command": "/practice-plan-action-card",
+        "surface": "HarmonyOS Routine practice-plan ActionCard payload",
+        "mode": "controlled_agent_practice_plan_to_routine_payload",
+        "execution_status": {
+            "controlled_practice_plan_execution_enabled": True,
+            "routine_payload_enabled": True,
+            "open_routine_setup_enabled": True,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+            "autonomous_execution_enabled": False,
+        },
+        "payload_schema": {
+            "payload_contract_version": "v2_6_8",
+            "plan": {
+                "plan_id": "string | null",
+                "title": "string | null",
+                "duration_minutes": "number",
+                "main_focus": "string | null",
+                "estimated_difficulty": "string | null",
+                "source": "rule_based | llm | template | hybrid | null",
+                "block_count": "number",
+                "total_block_minutes": "number",
+            },
+            "routine_config_candidate": "RoutineConfig candidate for opening setup only; does not start playback",
+            "routine_blocks": "RoutinePracticeBlock[]",
+            "next_client_actions": "open_routine_setup | save_practice_plan | edit_plan | dismiss | view_trace",
+            "client_button_semantics": "button action metadata for HarmonyOS Routine",
+        },
+        "rules": [
+            "The client may render the returned practice plan and open Routine setup from it.",
+            "Opening Routine setup is not playback execution and does not call /accompaniment/generate.",
+            "Starting a playable Routine remains a separate user-confirmed client action.",
+            "This contract never executes agent_playback_prepare and never creates MIDI assets.",
+        ],
+        "guards": {
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "raw_api_key_allowed_in_payload": False,
+        },
+    }
+
+
+def _routine_block_from_plan_block(block: Any, index: int) -> dict[str, Any]:
+    item = dict(block) if isinstance(block, dict) else {}
+    accompaniment = item.get("accompaniment_config") if isinstance(item.get("accompaniment_config"), dict) else None
+    return {
+        "block_index": index,
+        "block_id": item.get("block_id"),
+        "type": item.get("type"),
+        "title": item.get("title"),
+        "intent": item.get("intent"),
+        "duration_minutes": int(item.get("duration_minutes") or 0),
+        "material": item.get("material") if isinstance(item.get("material"), dict) else None,
+        "style": item.get("style") or (accompaniment or {}).get("style"),
+        "tempo": item.get("tempo") or (accompaniment or {}).get("tempo"),
+        "practice_role": (accompaniment or {}).get("practice_role"),
+        "requires_accompaniment_asset": bool(accompaniment),
+        "accompaniment_request_candidate": _routine_accompaniment_candidate(accompaniment) if accompaniment else None,
+        "status": item.get("status"),
+    }
+
+
+def _routine_accompaniment_candidate(accompaniment: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "style": accompaniment.get("style"),
+        "tempo": accompaniment.get("tempo"),
+        "muted_roles": list(accompaniment.get("muted_roles") or []),
+        "practice_role": accompaniment.get("practice_role"),
+        "loop_enabled": bool(accompaniment.get("section_loop", True)),
+        "count_in_enabled": bool(accompaniment.get("count_in", True)),
+        "output_format": accompaniment.get("output_format") or "midi_base64",
+        "harmonic_expansion_enabled": bool(accompaniment.get("harmonic_expansion_enabled", False)),
+        "density": accompaniment.get("density") or "normal",
+        "call_enabled_now": False,
+        "requires_user_start_confirmation": True,
+    }
+
+
+def _first_non_empty(values: list[Any]) -> Any | None:
+    for value in values:
+        if value is not None and value != "":
+            return value
+    return None
+
+
+def _style_default_tempo(style: str) -> int:
+    if style == "jazz_ballad":
+        return 76
+    if style == "bossa_nova":
+        return 140
+    return 120
+
+def _derive_action_execution_status(
+    *,
+    confirmation: ToolExecutionConfirmationEnvelope | None,
+    execution_result: ToolExecutionResult | None,
+    workflow_dispatch_result: ToolWorkflowDispatchResult | None,
+    controlled_result: ControlledWorkflowExecutionResult | None,
+) -> str:
+    if controlled_result is not None:
+        return "controlled_execution_succeeded" if controlled_result.ok else "controlled_execution_blocked"
+    if workflow_dispatch_result is not None:
+        return "workflow_descriptor_resolved" if workflow_dispatch_result.ok else "blocked"
+    if execution_result is not None:
+        return "dry_run_completed" if execution_result.ok else "blocked"
+    if confirmation is not None:
+        if confirmation.confirmation_status == "pending":
+            return "confirmation_required"
+        if confirmation.confirmation_status == "approved":
+            return "ready_for_dry_run"
+        if confirmation.confirmation_status == "rejected":
+            return "rejected"
+        return "blocked"
+    return "not_started"
+
+
+def _build_action_result_preview(
+    *,
+    controlled_result: ControlledWorkflowExecutionResult | None,
+    workflow_dispatch_result: ToolWorkflowDispatchResult | None,
+    execution_result: ToolExecutionResult | None,
+) -> dict[str, Any]:
+    if controlled_result is not None:
+        output = controlled_result.workflow_output or {}
+        plan = output.get("plan") if isinstance(output, dict) else None
+        preview: dict[str, Any] = {
+            "ok": controlled_result.ok,
+            "status": controlled_result.status,
+            "workflow_invoked": controlled_result.workflow_invoked,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+        }
+        if isinstance(plan, dict):
+            preview["plan"] = {
+                "title": plan.get("title"),
+                "duration_minutes": plan.get("duration_minutes"),
+                "block_count": len(plan.get("blocks") or []),
+            }
+            preview["routine_practice_plan_payload"] = build_routine_practice_plan_action_payload(controlled_result).to_dict()
+            preview["practice_plan_action_card_e2e_version"] = PRACTICE_PLAN_ACTION_CARD_E2E_VERSION
+        return preview
+    if workflow_dispatch_result is not None:
+        descriptor = workflow_dispatch_result.workflow_descriptor
+        return {
+            "ok": workflow_dispatch_result.ok,
+            "status": workflow_dispatch_result.status,
+            "workflow_name": descriptor.workflow_name if descriptor else None,
+            "descriptor_only": True,
+            "workflow_invoked": False,
+        }
+    if execution_result is not None:
+        return {
+            "ok": execution_result.ok,
+            "status": execution_result.status,
+            "dry_run": True,
+            "real_tool_executed": False,
+        }
+    return {}
+
+
+def _action_available_client_actions(
+    *,
+    confirmation: ToolExecutionConfirmationEnvelope | None,
+    execution_result: ToolExecutionResult | None,
+    workflow_dispatch_result: ToolWorkflowDispatchResult | None,
+    controlled_result: ControlledWorkflowExecutionResult | None,
+) -> tuple[str, ...]:
+    if controlled_result is not None:
+        if controlled_result.ok:
+            return ("open_routine_setup", "save_practice_plan", "edit_plan", "dismiss", "view_trace")
+        return ("dismiss", "view_trace")
+    if workflow_dispatch_result is not None and workflow_dispatch_result.ok:
+        return ("execute_controlled", "dismiss", "view_trace")
+    if execution_result is not None and execution_result.ok:
+        return ("dispatch_dry_run", "dismiss", "view_trace")
+    if confirmation is not None:
+        if confirmation.confirmation_status == "pending":
+            return ("confirm", "reject", "dismiss", "view_trace")
+        if confirmation.confirmation_status == "approved":
+            return ("execute_dry_run", "dismiss", "view_trace")
+        return ("dismiss", "view_trace")
+    return ("dismiss",)
 
 def preview_tool_invocation(
     proposal: ToolInvocationProposal,

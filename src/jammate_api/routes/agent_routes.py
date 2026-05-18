@@ -18,6 +18,7 @@ from jammate_agent.core.contract_codegen import (
 from jammate_agent.core.contracts import (
     agent_api_usage_examples,
     agent_capability_manifest,
+    agent_runtime_skeleton_contract,
     arkts_contract_sketch,
     arkts_contract_source,
     context_profile_manifest,
@@ -26,6 +27,8 @@ from jammate_agent.core.contracts import (
     llm_provider_boundary_contract,
     response_case_policy_manifest,
     controlled_workflow_execution_contract,
+    harmonyos_agent_action_contract,
+    practice_plan_action_card_e2e_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
     tool_invocation_preview_contract,
@@ -36,6 +39,9 @@ from jammate_agent.core.jammate_agent import JamMateAgent
 from jammate_agent.core.tool_invocation import (
     ToolInvocationProposal,
     build_controlled_workflow_execution_summary,
+    build_harmonyos_agent_action_card,
+    build_harmonyos_agent_action_summary,
+    build_practice_plan_action_card_e2e_summary,
     build_confirmation_envelope,
     build_tool_executor_summary,
     build_tool_workflow_dispatcher_summary,
@@ -75,6 +81,19 @@ def build_agent() -> JamMateAgent:
 @router.get("/capabilities")
 def get_agent_capabilities() -> dict:
     return {"ok": True, "manifest": agent_capability_manifest()}
+
+
+@router.get("/runtime/skeleton")
+def get_agent_runtime_skeleton_status() -> dict:
+    spec = agent_runtime_skeleton_contract()
+    return {
+        "ok": True,
+        "agent_runtime_skeleton_cleanup_version": spec["agent_runtime_skeleton_cleanup_version"],
+        "runtime_skeleton": spec,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+    }
 
 
 @router.get("/context/profiles")
@@ -353,6 +372,244 @@ def execute_controlled_workflow_request(request: dict) -> dict:
         "controlled_workflow_execution_result": controlled_result.to_dict(),
         "controlled_workflow_execution_summary": summary,
         "context_packet_summary": context.summary(),
+    }
+
+
+@router.get("/actions/spec")
+def get_harmonyos_agent_action_spec() -> dict:
+    return {"ok": True, "spec": harmonyos_agent_action_contract()}
+
+
+@router.post("/actions/preview")
+def preview_harmonyos_agent_action_request(request: dict) -> dict:
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "practice_plan_generation"
+    tool_name = request.get("tool_name") or request.get("toolName") or ""
+    arguments = request.get("arguments") or {}
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput") or arguments.get("user_input") or arguments.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    trace_id = request.get("trace_id") or request.get("traceId")
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"HarmonyOS Agent action preview: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    action_card = build_harmonyos_agent_action_card(preview=preview, confirmation=confirmation, trace_id=trace_id)
+    summary = build_harmonyos_agent_action_summary(action_card=action_card, source="agent_api")
+    return {
+        "ok": preview.ok,
+        "harmonyos_agent_action_contract_version": action_card.action_contract_version,
+        "action_card": action_card.to_dict(),
+        "harmonyos_agent_action_summary": summary,
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "context_packet_summary": context.summary(),
+    }
+
+
+@router.post("/actions/execute-controlled")
+def execute_harmonyos_agent_action_controlled_request(request: dict) -> dict:
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "practice_plan_generation"
+    tool_name = request.get("tool_name") or request.get("toolName") or ""
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput") or arguments.get("user_input") or arguments.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    trace_id = request.get("trace_id") or request.get("traceId")
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"HarmonyOS Agent controlled action: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    workflow_dispatch_result = dispatch_deterministic_workflow_dry_run(execution_result)
+
+    def _runner(tool_name_: str, args_: dict) -> dict:
+        if tool_name_ != "agent_practice_plan":
+            return {
+                "ok": False,
+                "error_code": "CONTROLLED_TOOL_NOT_SUPPORTED",
+                "message": f"v2_6_6 HarmonyOS action contract only supports controlled execution for agent_practice_plan, got {tool_name_}.",
+            }
+        planned_input = str(args_.get("user_input") or args_.get("userInput") or user_input or "Build a balanced JamMate practice plan.")
+        raw_minutes = args_.get("available_minutes", args_.get("availableMinutes", args_.get("durationMinutes", request.get("availableMinutes", 45))))
+        try:
+            available_minutes = int(raw_minutes)
+        except (TypeError, ValueError):
+            available_minutes = 45
+        instrument = str(args_.get("instrument") or request.get("instrument") or "piano")
+        result = agent.generate_practice_plan(planned_input, available_minutes=available_minutes, instrument=instrument, request_id=request_id)
+        return {
+            "ok": result.ok,
+            "intent_type": result.intent_type,
+            "plan": result.plan,
+            "explanation": result.explanation,
+            "error_code": result.error_code,
+            "message": result.message,
+            "trace_id": result.trace_id,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+        }
+
+    controlled_result = execute_controlled_workflow(workflow_dispatch_result, workflow_runner=_runner)
+    action_card = build_harmonyos_agent_action_card(
+        preview=preview,
+        confirmation=confirmation,
+        confirmation_result=confirmation_result,
+        execution_result=execution_result,
+        workflow_dispatch_result=workflow_dispatch_result,
+        controlled_result=controlled_result,
+        trace_id=trace_id or (controlled_result.workflow_output or {}).get("trace_id"),
+    )
+    summary = build_harmonyos_agent_action_summary(action_card=action_card, source="agent_api")
+    return {
+        "ok": controlled_result.ok,
+        "harmonyos_agent_action_contract_version": action_card.action_contract_version,
+        "action_card": action_card.to_dict(),
+        "harmonyos_agent_action_summary": summary,
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "workflow_dispatch_result": workflow_dispatch_result.to_dict(),
+        "controlled_workflow_execution_result": controlled_result.to_dict(),
+        "context_packet_summary": context.summary(),
+    }
+
+
+@router.get("/actions/practice-plan/spec")
+def get_practice_plan_action_card_e2e_spec() -> dict:
+    return {"ok": True, "spec": practice_plan_action_card_e2e_contract()}
+
+
+@router.post("/actions/practice-plan/execute-controlled")
+def execute_practice_plan_action_card_e2e_request(request: dict) -> dict:
+    """Controlled agent_practice_plan execution with Routine payload shaping.
+
+    This route is a narrow Routine-facing convenience surface. It follows the
+    same preview -> confirmation -> executor dry-run -> descriptor -> controlled
+    execution chain as /agent/actions/execute-controlled, then enriches the
+    ActionCard result preview with routine_practice_plan_payload. It does not
+    start playback, call /accompaniment/generate, call engine adapters, or create
+    MIDI assets.
+    """
+
+    agent = build_agent()
+    task_type = request.get("task_type") or request.get("taskType") or "practice_plan_generation"
+    tool_name = request.get("tool_name") or request.get("toolName") or "agent_practice_plan"
+    arguments = request.get("arguments") or {}
+    user_approved = bool(request.get("user_approved", request.get("userApproved", False)))
+    request_id = request.get("request_id") or request.get("requestId")
+    user_input = request.get("user_input") or request.get("userInput") or arguments.get("user_input") or arguments.get("userInput")
+    client_context = request.get("client_context") or request.get("clientContext") or {}
+    trace_id = request.get("trace_id") or request.get("traceId")
+    context = agent.context_builder.build(
+        task_type,
+        user_input or f"Practice plan ActionCard E2E: {tool_name}",
+        request_id=request_id,
+        client_context=client_context,
+    )
+    proposal = ToolInvocationProposal(
+        tool_name=tool_name,
+        arguments=arguments,
+        task_type=context.task_type,
+        request_id=request_id,
+        user_input=user_input,
+        client_context=client_context,
+    )
+    preview = preview_tool_invocation(proposal, allowed_tools=context.allowed_tools)
+    confirmation = build_confirmation_envelope(preview)
+    confirmation_result = confirm_tool_invocation(confirmation, user_approved=True) if user_approved else None
+    execution_input = confirmation_result if confirmation_result else confirmation
+    execution_result = execute_tool_dry_run(execution_input)
+    workflow_dispatch_result = dispatch_deterministic_workflow_dry_run(execution_result)
+
+    def _runner(tool_name_: str, args_: dict) -> dict:
+        if tool_name_ != "agent_practice_plan":
+            return {
+                "ok": False,
+                "error_code": "PRACTICE_PLAN_ACTION_CARD_ONLY_SUPPORTS_AGENT_PRACTICE_PLAN",
+                "message": f"v2_6_8 practice-plan ActionCard E2E only supports agent_practice_plan, got {tool_name_}.",
+            }
+        planned_input = str(args_.get("user_input") or args_.get("userInput") or user_input or "Build a balanced JamMate practice plan.")
+        raw_minutes = args_.get("available_minutes", args_.get("availableMinutes", args_.get("durationMinutes", request.get("availableMinutes", 45))))
+        try:
+            available_minutes = int(raw_minutes)
+        except (TypeError, ValueError):
+            available_minutes = 45
+        instrument = str(args_.get("instrument") or request.get("instrument") or "piano")
+        result = agent.generate_practice_plan(planned_input, available_minutes=available_minutes, instrument=instrument, request_id=request_id)
+        return {
+            "ok": result.ok,
+            "intent_type": result.intent_type,
+            "plan": result.plan,
+            "explanation": result.explanation,
+            "error_code": result.error_code,
+            "message": result.message,
+            "trace_id": result.trace_id,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+        }
+
+    controlled_result = execute_controlled_workflow(workflow_dispatch_result, workflow_runner=_runner)
+    action_card = build_harmonyos_agent_action_card(
+        preview=preview,
+        confirmation=confirmation,
+        confirmation_result=confirmation_result,
+        execution_result=execution_result,
+        workflow_dispatch_result=workflow_dispatch_result,
+        controlled_result=controlled_result,
+        trace_id=trace_id or (controlled_result.workflow_output or {}).get("trace_id"),
+    )
+    action_summary = build_harmonyos_agent_action_summary(action_card=action_card, source="agent_api")
+    practice_plan_summary = build_practice_plan_action_card_e2e_summary(action_card=action_card, source="agent_api")
+    return {
+        "ok": controlled_result.ok,
+        "practice_plan_action_card_e2e_version": practice_plan_action_card_e2e_contract()["version"],
+        "harmonyos_agent_action_contract_version": action_card.action_contract_version,
+        "action_card": action_card.to_dict(),
+        "harmonyos_agent_action_summary": action_summary,
+        "practice_plan_action_card_e2e_summary": practice_plan_summary,
+        "preview": preview.to_dict(),
+        "confirmation": confirmation.to_dict(),
+        "confirmation_result": confirmation_result.to_dict() if confirmation_result else None,
+        "execution_result": execution_result.to_dict(),
+        "workflow_dispatch_result": workflow_dispatch_result.to_dict(),
+        "controlled_workflow_execution_result": controlled_result.to_dict(),
+        "context_packet_summary": context.summary(),
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
     }
 
 
