@@ -1,3 +1,31 @@
+## v2_6_44 Ballad SPREAD Voicing Phase Handoff
+
+The current Jazz Ballad SPREAD reference is frozen as an accepted baseline rather than an area for continued micro-patching.
+
+Accepted Misty / Jazz Ballad / 3-chorus guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower/upper tight gap events: 0
+lower/upper wide gap events: 0
+top_note_max <= 74
+unnotated maj7#11 events: 0
+post-continuity checkpoint: pass
+same-chord reattack checkpoint: pass
+phrase-state boundary warnings: 0
+```
+
+Default Ballad SPREAD remains centered on `2+3` and `2+4`, with `1+4` as a low-frequency color lane and `3+3` as a very low-frequency thick lane. `4-note` and `7-note` SPREAD remain disabled in the default body.
+
+Future Ballad SPREAD changes should be driven by a specific listening regression, not by continued broad scorer changes. The next voicing work should move to a new area such as Medium Swing open/drop method-lock calibration, Bossa voicing-policy boundary, Upper Structure policy-gated runtime expansion, or minor dominant / altered light-gate planning.
+
 ## v2_6_31 Ballad SPREAD Lower/Upper Gap Audit Rule
 
 The piano audit must expose grouped-SPREAD lower/upper gap behavior without reselecting notes.

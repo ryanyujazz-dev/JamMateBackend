@@ -1,3 +1,34 @@
+## v2_6_44 Completed — Engine Ballad SPREAD Voicing Phase Summary and Handoff
+
+Completed behavior-preserving Ballad SPREAD voicing phase handoff.
+
+Implemented:
+
+- added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHASE_SUMMARY_AND_HANDOFF_V2_6_44.md`;
+- added `tests/test_v2_6_44_engine_ballad_spread_voicing_phase_summary_and_handoff.py`;
+- added policy metadata that freezes the accepted Ballad SPREAD guardrails without changing runtime candidate selection;
+- added piano audit fields for the phase summary, completed milestones, frozen guardrails, and next candidate voicing areas;
+- preserved Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS behavior.
+
+Frozen Misty / Jazz Ballad / 3 choruses guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+major_seventh_unnotated_sharp11_events: 0
+```
+
+Next recommended voicing area: `medium_swing_open_drop_method_lock_calibration`.
+
 ## v2_6_33 Completed — Engine Ballad SPREAD Wide Gap Deferred Outlier Strategy
 
 Completed voicing-only deferred strategy for the remaining `2+3 Fm7` wide-gap outliers from v2_6_32.
@@ -445,3 +476,13 @@ Next recommended voicing-only task: `v2_6_33_engine_ballad_spread_wide_gap_defer
 - Confirmed Misty / Jazz Ballad / 3 choruses has major-seventh color counts `{"9": 14, "13": 7}` and `major_seventh_unnotated_sharp11_events: 0`.
 - Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, same-chord continuity passed, and post-continuity checkpoint passed.
 - Added `docs/ENGINE_VOICING_BALLAD_SPREAD_SAFE_EXTENSION_FREQUENCY_CALIBRATION_V2_6_42.md` and `tests/test_v2_6_42_engine_ballad_spread_safe_extension_frequency_calibration.py`.
+
+## v2_6_43 — Engine Ballad SPREAD Lower Foundation Weight / Register Final Pass
+
+- Behavior-preserving voicing-only lower foundation checkpoint on top of `v2_6_42`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer note behavior, MIDI, Agent, API, or HarmonyOS behavior change.
+- Formalized the accepted lower/foundation group profile for Ballad SPREAD: `2+3` stays stable/not too thin, `2+4` carries accepted heavier low-register pressure, `1+4` remains a low-frequency color lane, and `3+3` remains very low frequency without low-register mud.
+- Added Jazz Ballad policy metadata for `ballad_spread_lower_foundation_weight_register_final_pass`.
+- Added piano audit summary fields for lower-foundation final pass profile, recipe profile, density/grouping preservation, low-register threshold, grouping role checks, and checkpoint pass/fail.
+- Confirmed Misty / Jazz Ballad / 3 choruses keeps `lower_foundation_span_violation_events:0`, `lower_foundation_span_max:11`, `lower_foundation_low_register_events_by_grouping:{"2+4":26,"2+3":2}`, and final checkpoint passed.
+- Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, and zero unnotated maj7 #11 events.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_LOWER_FOUNDATION_WEIGHT_REGISTER_FINAL_PASS_V2_6_43.md` and `tests/test_v2_6_43_engine_ballad_spread_lower_foundation_weight_register_final_pass.py`.

@@ -1,3 +1,34 @@
+## v2_6_44 Completed — Engine Ballad SPREAD Voicing Phase Summary and Handoff
+
+Completed behavior-preserving Ballad SPREAD voicing phase handoff.
+
+Implemented:
+
+- added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHASE_SUMMARY_AND_HANDOFF_V2_6_44.md`;
+- added `tests/test_v2_6_44_engine_ballad_spread_voicing_phase_summary_and_handoff.py`;
+- added policy metadata that freezes the accepted Ballad SPREAD guardrails without changing runtime candidate selection;
+- added piano audit fields for the phase summary, completed milestones, frozen guardrails, and next candidate voicing areas;
+- preserved Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS behavior.
+
+Frozen Misty / Jazz Ballad / 3 choruses guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+major_seventh_unnotated_sharp11_events: 0
+```
+
+Next recommended voicing area: `medium_swing_open_drop_method_lock_calibration`.
+
 ## v2_6_33 Completed — Engine Ballad SPREAD Wide Gap Deferred Outlier Strategy
 
 Completed voicing-only deferred strategy for the remaining `2+3 Fm7` wide-gap outliers from v2_6_32.
@@ -982,4 +1013,51 @@ Recommended next task:
 
 ```text
 v2_6_43_engine_ballad_spread_lower_foundation_weight_and_register_final_pass
+```
+
+## v2_6_43_engine_ballad_spread_lower_foundation_weight_and_register_final_pass — Completed
+
+Scope: Engine voicing-only lower foundation weight/register checkpoint.
+
+Accepted Misty / Jazz Ballad / 3-chorus checkpoint:
+
+```text
+lower_foundation_note_min: 41
+lower_foundation_note_max: 58
+lower_foundation_note_average: 49.93
+lower_foundation_span_max: 11
+lower_foundation_span_average: 6.138
+lower_foundation_span_violation_events: 0
+lower_foundation_low_register_events: 28
+lower_foundation_low_register_events_by_grouping: {"2+4": 26, "2+3": 2}
+lower_foundation_weight_register_final_pass_checkpoint_passed: true
+```
+
+Accepted grouping interpretation:
+
+```text
+2+3: stable two-note foundation; not too thin
+2+4: heavier six-note foundation; low-register pressure accepted because gap/span guards pass
+1+4: low-frequency color lane; one-note root foundation preserved
+3+3: very low-frequency thick foundation; no low-register mud
+```
+
+Guardrails preserved:
+
+```text
+5-note: 124
+6-note: 72
+1+4: 10
+4-note: 0
+7-note: 0
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+major_seventh_unnotated_sharp11_events: 0
+```
+
+Recommended next task:
+
+```text
+v2_6_44_engine_ballad_spread_voicing_phase_summary_and_handoff
 ```

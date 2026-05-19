@@ -21,6 +21,8 @@ PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION = "v2_6_39"
 PIANO_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION = "v2_6_40"
 PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION = "v2_6_41"
 PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION = "v2_6_42"
+PIANO_LOWER_FOUNDATION_FINAL_PASS_VERSION = "v2_6_43"
+PIANO_BALLAD_SPREAD_VOICING_PHASE_SUMMARY_VERSION = "v2_6_44"
 
 
 @dataclass(frozen=True)
@@ -582,6 +584,104 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             and major_seventh_unnotated_sharp11_events == 0
             and set(major_seventh_colors).issubset({"9", "13"})
         ),
+        "ballad_spread_lower_foundation_weight_register_final_pass_version": PIANO_LOWER_FOUNDATION_FINAL_PASS_VERSION,
+        "lower_foundation_weight_register_final_pass_behavior_preserving": True,
+        "lower_foundation_weight_register_final_pass_density_lane_unchanged": bool(
+            dict(density_counter) == {"5": 124, "6": 72}
+        ),
+        "lower_foundation_weight_register_final_pass_grouping_mix_unchanged": bool(
+            dict(grouping_counter) == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
+        ),
+        "lower_foundation_weight_register_final_pass_low_register_threshold": 43,
+        "lower_foundation_weight_register_final_pass_profile_by_grouping": _lower_foundation_final_profile(
+            lower_foundation_note_stats_by_grouping,
+            lower_foundation_span_stats_by_grouping,
+            lower_foundation_low_register_events_by_grouping,
+            lower_upper_group_gap_stats_by_grouping,
+        ),
+        "lower_foundation_weight_register_final_pass_recipe_profile": dict(lower_foundation_recipe_counter),
+        "lower_foundation_weight_register_final_pass_2plus3_not_too_thin": bool(
+            dict(grouping_counter).get("2+3", 0) >= 100
+            and lower_foundation_note_stats_by_grouping.get("2+3")
+            and round(mean(lower_foundation_note_stats_by_grouping["2+3"]), 3) <= 53.0
+            and lower_foundation_low_register_events_by_grouping.get("2+3", 0) <= 4
+        ),
+        "lower_foundation_weight_register_final_pass_2plus4_pressure_accepted": bool(
+            dict(grouping_counter).get("2+4", 0) >= 60
+            and lower_foundation_low_register_events_by_grouping.get("2+4", 0) <= 30
+            and lower_upper_group_gap_too_tight_events_by_grouping.get("2+4", 0) == 0
+        ),
+        "lower_foundation_weight_register_final_pass_3plus3_no_low_mud": bool(
+            dict(grouping_counter).get("3+3", 0) <= 8
+            and lower_foundation_note_stats_by_grouping.get("3+3")
+            and min(lower_foundation_note_stats_by_grouping["3+3"]) >= 45
+            and max(lower_foundation_span_stats_by_grouping.get("3+3", [0])) <= 12
+        ),
+        "lower_foundation_weight_register_final_pass_1plus4_low_frequency_role_preserved": bool(
+            4 <= dict(grouping_counter).get("1+4", 0) <= 10
+            and lower_foundation_note_stats_by_grouping.get("1+4")
+            and min(lower_foundation_note_stats_by_grouping["1+4"]) >= 45
+        ),
+        "lower_foundation_weight_register_final_pass_checkpoint_passed": bool(
+            dict(density_counter) == {"5": 124, "6": 72}
+            and dict(grouping_counter) == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
+            and lower_foundation_span_violation_events == 0
+            and (max(lower_foundation_spans) if lower_foundation_spans else 0) <= 12
+            and sum(lower_upper_group_gap_too_tight_events_by_grouping.values()) == 0
+            and sum(lower_upper_group_gap_too_wide_events_by_grouping.values()) == 0
+            and lower_foundation_low_register_events_by_grouping.get("2+4", 0) <= 30
+            and lower_foundation_low_register_events_by_grouping.get("2+3", 0) <= 4
+            and all_midi_notes
+            and min(all_midi_notes) >= 40
+            and max(all_midi_notes) <= 74
+        ),
+        "ballad_spread_voicing_phase_summary_version": PIANO_BALLAD_SPREAD_VOICING_PHASE_SUMMARY_VERSION,
+        "ballad_spread_voicing_phase_summary_behavior_preserving": True,
+        "ballad_spread_voicing_phase_summary_handoff_ready": bool(
+            dict(density_counter) == {"5": 124, "6": 72}
+            and dict(grouping_counter) == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
+            and lower_foundation_span_violation_events == 0
+            and sum(lower_upper_group_gap_too_tight_events_by_grouping.values()) == 0
+            and sum(lower_upper_group_gap_too_wide_events_by_grouping.values()) == 0
+            and top_note_ge_75_events == 0
+            and all_midi_notes
+            and max(all_midi_notes) <= 74
+            and major_seventh_unnotated_sharp11_events == 0
+            and bool(post_continuity_checkpoint.get("checkpoint_passed", False))
+            and bool(same_chord_reattack_continuity.get("checkpoint_passed", False))
+            and int(phrase_state_boundary_review.get("warning_events", 0)) == 0
+        ),
+        "ballad_spread_voicing_phase_summary_frozen_guardrails": {
+            "density_counts": {"5": 124, "6": 72},
+            "grouping_counts": {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4},
+            "disabled_default_densities": {"4": 0, "7": 0},
+            "lower_upper_too_tight_events": 0,
+            "lower_upper_too_wide_events": 0,
+            "top_note_max_allowed": 74,
+            "top_note_ge_75_events": 0,
+            "unnotated_major_seventh_sharp11_events": 0,
+            "lower_foundation_span_violation_events": 0,
+            "post_continuity_checkpoint_passed": True,
+            "same_chord_reattack_continuity_checkpoint_passed": True,
+            "phrase_state_boundary_warning_events": 0,
+        },
+        "ballad_spread_voicing_phase_summary_completed_milestones": [
+            "v2_6_30_1plus4_lower_foundation_calibration",
+            "v2_6_31_lower_upper_gap_audit",
+            "v2_6_32_gap_aware_candidate_scope_micro_calibration",
+            "v2_6_35_phrase_scope_wide_gap_candidate_availability",
+            "v2_6_37_state_boundary_helper_cleanup",
+            "v2_6_40_state_anchor_policy_boundary",
+            "v2_6_41_same_chord_reattack_continuity",
+            "v2_6_42_safe_extension_frequency",
+            "v2_6_43_lower_foundation_weight_register_final_pass",
+        ],
+        "ballad_spread_voicing_phase_summary_next_candidate_areas": [
+            "medium_swing_open_drop_method_lock_calibration",
+            "bossa_voicing_policy_boundary_and_default_texture",
+            "upper_structure_policy_gated_runtime_expansion",
+            "minor_dominant_altered_light_gate_plan",
+        ],
         "low_note_min": min(all_midi_notes) if all_midi_notes else None,
         "top_note_max": max(all_midi_notes) if all_midi_notes else None,
         "top_note_ge_75_events": top_note_ge_75_events,
@@ -1415,6 +1515,33 @@ def _counter_percentages_by_key(counters: Mapping[str, Counter[str]]) -> dict[st
         out[str(key)] = {str(name): round(float(count) / float(total), 4) for name, count in counter.items()}
     return out
 
+
+
+def _lower_foundation_final_profile(
+    note_stats_by_grouping: Mapping[str, list[int]],
+    span_stats_by_grouping: Mapping[str, list[int]],
+    low_register_events_by_grouping: Mapping[str, int],
+    gap_stats_by_grouping: Mapping[str, list[int]],
+) -> dict[str, dict[str, Any]]:
+    profile: dict[str, dict[str, Any]] = {}
+    for grouping, notes in note_stats_by_grouping.items():
+        spans = list(span_stats_by_grouping.get(grouping, []))
+        gaps = list(gap_stats_by_grouping.get(grouping, []))
+        note_values = list(notes)
+        profile[grouping] = {
+            "note_count": len(note_values),
+            "event_count": len(spans),
+            "note_min": min(note_values) if note_values else None,
+            "note_max": max(note_values) if note_values else None,
+            "note_average": round(mean(note_values), 3) if note_values else 0.0,
+            "span_max": max(spans) if spans else None,
+            "span_average": round(mean(spans), 3) if spans else 0.0,
+            "gap_min": min(gaps) if gaps else None,
+            "gap_max": max(gaps) if gaps else None,
+            "gap_average": round(mean(gaps), 3) if gaps else 0.0,
+            "low_register_events": int(low_register_events_by_grouping.get(grouping, 0)),
+        }
+    return profile
 
 def _numeric_stats_by_key(values_by_key: Mapping[str, list[int]]) -> dict[str, dict[str, float | int | None]]:
     out: dict[str, dict[str, float | int | None]] = {}
