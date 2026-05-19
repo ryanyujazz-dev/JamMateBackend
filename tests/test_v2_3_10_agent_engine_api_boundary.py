@@ -61,6 +61,7 @@ def test_direct_accompaniment_route_does_not_require_agent() -> None:
     data = response.json()
     assert data["ok"] is True
     assert data["asset"]["debug_summary"]["path"] == "direct_accompaniment_api"
+    assert data["debug_summary"]["path"] == "direct_accompaniment_api"
     assert len(base64.b64decode(data["asset"]["midi_base64"])) > 8
 
 

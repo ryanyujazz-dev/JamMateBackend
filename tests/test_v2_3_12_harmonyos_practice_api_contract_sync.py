@@ -69,3 +69,4 @@ def test_direct_accompaniment_response_carries_cache_key_without_agent() -> None
     assert payload["ok"] is True
     assert payload["asset"]["cache_key"].startswith("direct_accomp:")
     assert payload["asset"]["debug_summary"]["path"] == "direct_accompaniment_api"
+    assert payload["debug_summary"]["path"] == "direct_accompaniment_api"

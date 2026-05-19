@@ -1,6 +1,6 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_6_1`.
+Current baseline: `v2_8_24`.
 
 This file is now the stable integration index. To reduce Agent/Engine merge conflicts, rolling task plans are split:
 
@@ -19,12 +19,39 @@ Rules:
 ## Current Recommended Next Tasks
 
 ```text
-Engine: v2_6_2_engine_jazz_ballad_bass_anchor_path_policy
-Agent: no required implementation before the next Engine pass
-Integration: only when either track needs shared API/docs/version reconciliation
+Engine: v2_6_31_engine_ballad_spread_lower_upper_gap_and_weight_balance
+Agent: v2_9_x_agent_persistence_implementation planning only after explicit approval
+Integration: verify/refresh shared HarmonyOS fixtures and API docs when either track changes public contracts
 ```
 
 ---
+
+
+## v2_8_24 Integration Agent / Engine Merge
+
+Current integrated baseline: `v2_8_24`.
+
+Merged sources:
+
+```text
+Engine Track: v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration
+Agent Track:  v2_8_23_agent_v2_8_phase_cleanup_regression_handoff
+```
+
+Integration scope:
+
+- Engine generation chain uses the Engine Track package.
+- Agent / LLM / trace / tool-preview / context-guidance contract surfaces use the Agent Track package.
+- Shared files reconciled here: `README.md`, `agent.md`, `VERSION`, `pyproject.toml`, `docs/ARCHITECTURE_V2.md`, `docs/API_CONTRACT_V2.md`, `docs/DEVELOPMENT_TASK_PLAN_V2.md`, `docs/CHANGELOG.md`, and `frontend_fixtures/harmonyos/`.
+- No new Engine music rule, no new Agent feature, and no V1 code migration is part of this merge.
+
+Next split after this integration package:
+
+```text
+Engine: continue voicing/listening work from v2_6_31 on feature/engine-deepening.
+Agent: continue persistence implementation planning on feature/agent-workflow only after explicit approval.
+Integration: only reconcile shared docs/API/fixtures/version when one track changes public contracts.
+```
 
 
 ## v2_5_10 Agent / Engine Integration Merge

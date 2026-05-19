@@ -50,7 +50,9 @@ def test_v2_6_14_doc_exists_and_states_voicing_only_ratio_scope() -> None:
 def test_v2_6_14_policy_bias_targets_selected_six_note_contracts_only() -> None:
     policy = get_voicing_policy()
     assert float(policy.metadata["spread_grouping_mix_selected_6note_contract_bias"]) >= 3.0
-    assert policy.metadata["ballad_spread_5_to_6_density_ratio_target"]["target"] == "5-note:6-note ~= 6:4"
+    # Integration v2_8_24 note: Engine v2_6_30 keeps the ratio target while
+    # adding low-frequency 1+4 restoration wording to the metadata label.
+    assert policy.metadata["ballad_spread_5_to_6_density_ratio_target"]["target"].startswith("5-note:6-note ~= 6:4")
 
     selected_6 = _Candidate("spread_2plus4_contract")
     selected_5_neighbor = _Candidate("spread_2plus3_contract")

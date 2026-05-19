@@ -1,4 +1,4 @@
-// JamMate Practice Domain Types v2_6_1
+// JamMate Practice Domain Types v2_8_24
 // Copy target: entry/src/main/ets/features/practice/model/PracticeTypes.ets
 // Client-domain types are camelCase. Backend raw snake_case payloads should be mapped by CaseAdapter.ets.
 

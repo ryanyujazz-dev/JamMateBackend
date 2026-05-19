@@ -1,5 +1,15 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_8_24 — Integration Agent / Engine Merge
+
+- Merged Engine Track through `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration`.
+- Merged Agent Track through `v2_8_23_agent_v2_8_phase_cleanup_regression_handoff`.
+- Reconciled integration-owned shared files: `README.md`, `agent.md`, `VERSION`, `pyproject.toml`, `docs/ARCHITECTURE_V2.md`, `docs/API_CONTRACT_V2.md`, `docs/DEVELOPMENT_TASK_PLAN_V2.md`, `docs/CHANGELOG.md`, and `frontend_fixtures/harmonyos/`.
+- Preserved and explicitly restored the direct HarmonyOS `/accompaniment/generate` response shape with top-level `ok`, `asset.format`, `asset.midi_base64`, `asset.midi_path`, `asset.cache_key`, and top-level `debug_summary` while retaining the existing `asset.debug_summary` compatibility field.
+- Preserved Agent contract / trace / tool-preview / context-guidance preview boundaries without moving Agent logic into Engine runtime.
+- Preserved V2 Pattern / Gesture / Expression / Voicing / Realization boundaries; no new music-generation rule, Agent/LLM feature, or V1 code migration was added by this integration pass.
+- Aligned stale version/string assertions and historical SPREAD freeze expectations in tests to the active integration/Engine baseline without changing Engine generation runtime behavior.
+
 ## v2_6_1 — Branch Boundary and Track Ownership Hardening
 
 - Added `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md` as the authoritative owner-path and merge-conflict policy for parallel Engine and Agent development.
