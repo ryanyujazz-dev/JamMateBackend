@@ -47,6 +47,8 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
     TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
     TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+    TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
+    AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
     CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
     USER_PRACTICE_PROFILE_CONTEXT_INTAKE_VERSION,
     PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
@@ -132,6 +134,10 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary,
     build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload,
     build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary,
+    build_today_practice_guidance_terminal_product_smoke_polish_payload,
+    build_today_practice_guidance_terminal_product_smoke_polish_summary,
+    build_agent_v2_8_phase_cleanup_regression_handoff_payload,
+    build_agent_v2_8_phase_cleanup_regression_handoff_summary,
     build_context_and_guidance_skeleton_cleanup_payload,
     build_context_and_guidance_skeleton_cleanup_summary,
     detect_today_practice_guidance_intent,
@@ -156,6 +162,7 @@ from jammate_agent.core.tool_invocation import (
     today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract,
     today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract,
     today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract,
+    today_practice_guidance_terminal_product_smoke_polish_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -712,6 +719,81 @@ class TerminalChatSession:
             "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload": payload_dict,
             "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary": summary,
             "memory_loaded": bool(self.persisted_context_memory.get("loaded")),
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+
+    def agent_v2_8_phase_cleanup_regression_handoff(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("agent_v2_8_phase_handoff", "/v2-8-phase-handoff")
+        args = dict(arguments or {})
+        payload = build_agent_v2_8_phase_cleanup_regression_handoff_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_chat_v2_8_phase_handoff",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "agent_v2_8_phase_handoff_payload_built", payload_dict)
+        summary = build_agent_v2_8_phase_cleanup_regression_handoff_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "agent_v2_8_phase_handoff_summary_recorded", summary)
+        self._finish_trace(trace, "agent_v2_8_phase_handoff_previewed", {"ok": True, "summary": summary, "storage_written": False, "llm_called": False, "engine_adapter_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/v2-8-phase-handoff",
+            "agent_v2_8_phase_cleanup_regression_handoff_version": AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+            "agent_v2_8_phase_cleanup_regression_handoff_payload": payload_dict,
+            "agent_v2_8_phase_cleanup_regression_handoff_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def terminal_product_smoke_polish(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_product_smoke_polish", "/terminal-product-smoke")
+        args = dict(arguments or {})
+        payload = build_today_practice_guidance_terminal_product_smoke_polish_payload(
+            args,
+            provider_status=self.provider_status(),
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_chat_product_smoke_polish",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_product_smoke_polish_payload_built", payload_dict)
+        summary = build_today_practice_guidance_terminal_product_smoke_polish_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_product_smoke_polish_summary_recorded", summary)
+        self._finish_trace(trace, "terminal_product_smoke_polish_previewed", {"ok": True, "summary": summary, "storage_written": False, "llm_called": False, "engine_adapter_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/terminal-product-smoke",
+            "today_practice_guidance_terminal_product_smoke_polish_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
+            "today_practice_guidance_terminal_product_smoke_polish_payload": payload_dict,
+            "today_practice_guidance_terminal_product_smoke_polish_summary": summary,
             "llm_called": False,
             "tool_executed": False,
             "storage_written": False,
@@ -2925,6 +3007,26 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         return True
 
 
+
+    if user_input.startswith("/v2-8-phase-handoff"):
+        parsed = _parse_json_payload_command(user_input, "/v2-8-phase-handoff")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_agent_v2_8_phase_cleanup_regression_handoff(session.agent_v2_8_phase_cleanup_regression_handoff(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/terminal-product-smoke"):
+        parsed = _parse_json_payload_command(user_input, "/terminal-product-smoke")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_terminal_product_smoke_polish(session.terminal_product_smoke_polish(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+
     if user_input.startswith("/context-persistence-snapshot-context-intake"):
         parsed = _parse_json_payload_command(user_input, "/context-persistence-snapshot-context-intake")
         if not parsed["ok"]:
@@ -3809,6 +3911,8 @@ def _print_today_practice_terminal_chat_e2e_inline_summary(response: dict[str, A
     print("  display_only: True", file=stdout)
     print("  routine_start_enabled: False", file=stdout)
     print("  accompaniment_generate_call_enabled: False", file=stdout)
+    if summary.get("action_card_is_valid") is False:
+        print("  hint: Guidance was guarded. Run `doctor`, then retry; use /terminal-product-smoke for a quick terminal smoke checklist.", file=stdout)
 
 
 def _print_today_practice_guidance_prompt(response: dict[str, Any], stdout: TextIO) -> None:
@@ -4176,6 +4280,56 @@ def _print_harmonyos_debug_fixture_api_request_pack(response: dict[str, Any], st
     if summary.get("warnings"):
         print(f"  warnings: {summary.get('warnings')}", file=stdout)
 
+
+
+def _print_agent_v2_8_phase_cleanup_regression_handoff(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("agent_v2_8_phase_cleanup_regression_handoff_summary") or {}
+    payload = response.get("agent_v2_8_phase_cleanup_regression_handoff_payload") or {}
+    regression = payload.get("regression_handoff") if isinstance(payload.get("regression_handoff"), dict) else {}
+    persistence = payload.get("persistence_handoff_pack") if isinstance(payload.get("persistence_handoff_pack"), dict) else {}
+    print("AgentV28PhaseHandoff>", file=stdout)
+    print(f"  version: {response.get('agent_v2_8_phase_cleanup_regression_handoff_version')}", file=stdout)
+    print(f"  phase_status: {summary.get('phase_status')}", file=stdout)
+    print(f"  milestone_count: {summary.get('milestone_count')}", file=stdout)
+    print(f"  terminal_smoke_ready: {summary.get('terminal_smoke_ready')}", file=stdout)
+    print(f"  harmonyos_debug_fixture_handoff_ready: {summary.get('harmonyos_debug_fixture_handoff_ready')}", file=stdout)
+    print(f"  persistence_handoff_ready: {summary.get('persistence_handoff_ready')}", file=stdout)
+    print(f"  latest_v2_8_regression_count: {regression.get('latest_reported_v2_8_regression_count')}", file=stdout)
+    print(f"  latest_agent_targeted_count: {regression.get('latest_reported_agent_targeted_count')}", file=stdout)
+    print(f"  recommended_next_phase: {persistence.get('recommended_next_phase')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+
+
+def _print_terminal_product_smoke_polish(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("today_practice_guidance_terminal_product_smoke_polish_summary") or {}
+    payload = response.get("today_practice_guidance_terminal_product_smoke_polish_payload") or {}
+    readiness = payload.get("readiness") if isinstance(payload.get("readiness"), dict) else {}
+    print("TerminalProductSmokePolish>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_terminal_product_smoke_polish_version')}", file=stdout)
+    print(f"  readiness_status: {summary.get('readiness_status')}", file=stdout)
+    print(f"  terminal_chat_provider_ready: {summary.get('terminal_chat_provider_ready')}", file=stdout)
+    print(f"  provider_name: {summary.get('provider_name')}", file=stdout)
+    print(f"  model: {summary.get('model')}", file=stdout)
+    print(f"  passed_checks: {summary.get('passed_check_count')}/{summary.get('check_count')}", file=stdout)
+    print(f"  ordinary_chinese_guidance_route_available: {summary.get('ordinary_chinese_guidance_route_available')}", file=stdout)
+    print(f"  persisted_context_memory_controls_available: {summary.get('persisted_context_memory_controls_available')}", file=stdout)
+    print(f"  json_fallback_smoke_documented: {summary.get('json_fallback_smoke_documented')}", file=stdout)
+    print(f"  next_manual_step: {readiness.get('next_manual_step')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {', '.join(str(item) for item in summary.get('warnings') or [])}", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+
 def _print_help(stdout: TextIO) -> None:
     print("Commands:", file=stdout)
     print("  setup        # shell subcommand: create local LLM config", file=stdout)
@@ -4188,6 +4342,8 @@ def _print_help(stdout: TextIO) -> None:
     print("  /persisted-context-harmonyos-debug-fixture [json_payload]", file=stdout)
     print("  /harmonyos-debug-fixture-roundtrip [json_payload]", file=stdout)
     print("  /harmonyos-debug-fixture-api-request-pack [json_payload]", file=stdout)
+    print("  /terminal-product-smoke [json_payload]", file=stdout)
+    print("  /v2-8-phase-handoff [json_payload]", file=stdout)
     print("  /session", file=stdout)
     print("  /context [full|--full|json|--json]", file=stdout)
     print("  /profiles", file=stdout)
@@ -4261,6 +4417,8 @@ def _print_help(stdout: TextIO) -> None:
     print("/context-engineering shows the consolidated context-engineering skeleton status.", file=stdout)
     print("/context-guidance-skeleton shows the v2_7_3→v2_7_9 context/guidance chain registry and guards.", file=stdout)
     print("/harmonyos-debug-fixture-roundtrip validates the HarmonyOS debug fixture → Agent persisted-context guidance preview roundtrip.", file=stdout)
+    print("/terminal-product-smoke prints a provider/setup/guidance/memory/fallback smoke checklist without calling the LLM.", file=stdout)
+    print("/v2-8-phase-handoff prints the Agent v2.8 phase cleanup/regression/handoff report without new runtime side effects.", file=stdout)
     print("/runtime-skeleton shows the consolidated read-only Agent lifecycle and guard status.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 

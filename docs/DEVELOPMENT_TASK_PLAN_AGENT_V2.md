@@ -971,3 +971,83 @@ CLI  /harmonyos-debug-fixture-api-request-pack [json_payload]
 
 下一步建议：`v2_8_22_agent_terminal_chat_product_smoke_polish`。
 
+
+## v2_8_22_agent_terminal_chat_product_smoke_polish
+
+Status: completed in Agent track.
+
+Goal: polish the real terminal-chat smoke-test experience before v2_8 phase handoff.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/today-practice-guidance/terminal-product-smoke/spec
+POST /agent/context/today-practice-guidance/terminal-product-smoke/preview
+CLI  /terminal-product-smoke [json_payload]
+docs/AGENT_TERMINAL_CHAT_PRODUCT_SMOKE_POLISH_V2_8_22.md
+tests/test_v2_8_22_agent_terminal_chat_product_smoke_polish.py
+```
+
+Boundary:
+
+```text
+No backend database write.
+No HarmonyOS local write by Agent.
+No SQLite connection/table/row.
+No LLM call by smoke preview.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No post-session recommendation card.
+No change to frontend_fixtures/harmonyos.
+```
+
+Next recommended task:
+
+```text
+v2_8_23_agent_v2_8_phase_cleanup_regression_handoff
+```
+
+## v2_8_23_agent_v2_8_phase_cleanup_regression_handoff
+
+Status: completed in Agent track.
+
+Goal: close the Agent v2_8 context/guidance/persistence/HarmonyOS-debug-fixture phase with a handoff report, regression checklist, and next-phase boundary.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/today-practice-guidance/v2-8-phase-handoff/spec
+POST /agent/context/today-practice-guidance/v2-8-phase-handoff/preview
+CLI  /v2-8-phase-handoff [json_payload]
+docs/AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_V2_8_23.md
+tests/test_v2_8_23_agent_v2_8_phase_cleanup_regression_handoff.py
+```
+
+Boundary:
+
+```text
+No backend database write.
+No HarmonyOS local write by Agent.
+No SQLite connection/table/row by handoff preview.
+No LLM call by handoff preview.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No post-session recommendation card.
+No change to frontend_fixtures/harmonyos.
+No Engine music generation change.
+No shared document change in Agent track.
+```
+
+Next phase recommendation:
+
+```text
+Stop expanding v2_8. Move to integration handoff or v2_9_x Agent Persistence Implementation planning.
+```

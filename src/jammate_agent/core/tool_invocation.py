@@ -56,6 +56,8 @@ TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION = "v2
 TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION = "v2_8_19"
 TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION = "v2_8_20"
 TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION = "v2_8_21"
+TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION = "v2_8_22"
+AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION = "v2_8_23"
 
 
 @dataclass(frozen=True)
@@ -12324,6 +12326,555 @@ def today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract() 
         },
         "next_task_hint": "v2_8_22_agent_terminal_chat_product_smoke_polish",
     }
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceTerminalProductSmokePolishPayload:
+    """Terminal chat product smoke polish payload.
+
+    This is a terminal/API preview contract only. It packages the real-world
+    manual smoke path for provider setup, ordinary Chinese today-practice input,
+    persisted-context memory controls, JSON fallback behavior, and no-side-effect
+    guards. It does not call an LLM provider or execute any tool by itself.
+    """
+
+    payload_contract_version: str
+    source: str
+    smoke_id: str
+    provider_status: dict[str, Any]
+    readiness: dict[str, Any]
+    terminal_command_pack: dict[str, Any]
+    ordinary_chat_smoke: dict[str, Any]
+    persisted_context_memory_smoke: dict[str, Any]
+    json_fallback_smoke: dict[str, Any]
+    error_message_smoke: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "smoke_id": self.smoke_id,
+            "provider_status": _redact_sensitive_values(self.provider_status),
+            "readiness": _redact_sensitive_values(self.readiness),
+            "terminal_command_pack": _redact_sensitive_values(self.terminal_command_pack),
+            "ordinary_chat_smoke": _redact_sensitive_values(self.ordinary_chat_smoke),
+            "persisted_context_memory_smoke": _redact_sensitive_values(self.persisted_context_memory_smoke),
+            "json_fallback_smoke": _redact_sensitive_values(self.json_fallback_smoke),
+            "error_message_smoke": _redact_sensitive_values(self.error_message_smoke),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+        }
+
+
+def _provider_terminal_enabled(provider_status: dict[str, Any]) -> bool:
+    return bool(
+        provider_status.get("terminal_chat_enabled")
+        or provider_status.get("terminal_chat_available")
+        or provider_status.get("llm_calls_enabled")
+    )
+
+
+def build_today_practice_guidance_terminal_product_smoke_polish_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    provider_status: dict[str, Any] | None = None,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_terminal_product_smoke_polish",
+) -> TodayPracticeGuidanceTerminalProductSmokePolishPayload:
+    """Build a terminal product smoke checklist without calling the provider.
+
+    The preview intentionally avoids LLM calls. It helps developers verify the
+    terminal UX path before manually typing ordinary Chinese guidance prompts.
+    """
+
+    args = dict(arguments or {})
+    status = dict(provider_status or _first_present(args, "providerStatus", "provider_status") or {})
+    smoke_id = str(_first_present(args, "smoke_id", "smokeId") or f"terminal_product_smoke_{uuid4().hex[:12]}")
+    sample_user_input = str(_first_present(args, "sampleUserInput", "sample_user_input", "userInput", "user_input") or "今天该练什么？")
+    terminal_enabled = _provider_terminal_enabled(status)
+    guard_reason = status.get("guard_reason") or status.get("message") or ("provider_ready" if terminal_enabled else "LLM provider is not configured for terminal chat.")
+    readiness_status = "ready_for_manual_llm_smoke" if terminal_enabled else "configuration_required_but_preview_commands_available"
+    command_pack = {
+        "setup": "PYTHONPATH=src python -m jammate_agent.cli.terminal_chat setup",
+        "doctor": "PYTHONPATH=src python -m jammate_agent.cli.terminal_chat doctor",
+        "start_chat_with_status": "PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --show-provider-status",
+        "load_persisted_context": "/persisted-context-load <profile_plan_history_json>",
+        "show_persisted_context": "/persisted-context-show",
+        "clear_persisted_context": "/persisted-context-clear",
+        "ordinary_today_practice_turn": sample_user_input,
+        "terminal_product_smoke": "/terminal-product-smoke [json_payload]",
+    }
+    ordinary_chat_smoke = {
+        "ordinary_chinese_input_supported": True,
+        "sample_user_input": sample_user_input,
+        "routes_to_guidance_chain": True,
+        "uses_loaded_persisted_context_when_available": True,
+        "display_only_action_card_expected": True,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+    }
+    persisted_context_memory_smoke = {
+        "load_show_clear_commands_available": True,
+        "memory_scope": "terminal_session_only",
+        "injected_into_next_today_practice_guidance_turn": True,
+        "writes_backend_database": False,
+        "writes_harmonyos_local_state": False,
+    }
+    json_fallback_smoke = {
+        "json_only_prompt_contract_expected": True,
+        "plain_text_provider_response_fallback_enabled": True,
+        "partial_json_defaults_enabled": True,
+        "validation_blocked_response_should_show_actionable_hint": True,
+        "fallback_starts_routine": False,
+    }
+    error_message_smoke = {
+        "provider_setup_hint_available": True,
+        "doctor_command_available": True,
+        "unsupported_provider_hint": "Use --provider openai_compatible for OpenAI-compatible Chat Completions services.",
+        "developer_role_compatibility": "network payload normalizes developer/context messages into system/user-compatible roles",
+        "blocked_guidance_hint": "If guidance is blocked, inspect doctor output and retry with /terminal-product-smoke or slash command payload preview.",
+    }
+    checks = {
+        "provider_status_displayed": bool(status) or not terminal_enabled,
+        "setup_command_available": True,
+        "doctor_command_available": True,
+        "ordinary_chinese_guidance_route_available": True,
+        "persisted_context_memory_controls_available": True,
+        "json_fallback_smoke_documented": True,
+        "guarded_error_hint_available": True,
+        "no_side_effects_preserved": True,
+    }
+    warnings: list[str] = []
+    if not terminal_enabled:
+        warnings.append("provider_not_ready_manual_llm_smoke_requires_setup_or_env_config")
+    if status and status.get("api_key_configured") is False:
+        warnings.append("api_key_not_configured")
+    validation = {
+        "accepted": True,
+        "status": "ready" if terminal_enabled else "guarded_preview_ready",
+        "readiness_status": readiness_status,
+        "smoke_id": smoke_id,
+        "check_count": len(checks),
+        "passed_check_count": sum(1 for value in checks.values() if value),
+        "checks": checks,
+        "warnings": warnings,
+        "blocked_reasons": [],
+    }
+    readiness = {
+        "readiness_status": readiness_status,
+        "terminal_chat_provider_ready": terminal_enabled,
+        "provider_name": status.get("provider_name"),
+        "model": status.get("model"),
+        "api_key_configured": status.get("api_key_configured"),
+        "network_calls_enabled": status.get("network_calls_enabled") or status.get("llm_calls_enabled"),
+        "config_source": status.get("config_source"),
+        "config_file_path": status.get("config_file_path"),
+        "guard_reason": guard_reason,
+        "next_manual_step": "type ordinary Chinese prompt" if terminal_enabled else "run setup then doctor before ordinary Chinese prompt",
+    }
+    guard = {
+        "payload_calls_llm": False,
+        "payload_executes_tool": False,
+        "payload_writes_storage": False,
+        "payload_writes_backend_database": False,
+        "payload_writes_harmonyos_local_state": False,
+        "payload_calls_engine_adapter": False,
+        "payload_calls_accompaniment_generate": False,
+        "payload_creates_midi_asset": False,
+        "payload_starts_playback": False,
+        "payload_starts_routine": False,
+        "payload_creates_post_session_recommendation_card": False,
+        "terminal_manual_smoke_may_call_llm_after_user_enters_prompt": bool(terminal_enabled),
+    }
+    return TodayPracticeGuidanceTerminalProductSmokePolishPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
+        source=source,
+        smoke_id=smoke_id,
+        provider_status=status,
+        readiness=readiness,
+        terminal_command_pack=command_pack,
+        ordinary_chat_smoke=ordinary_chat_smoke,
+        persisted_context_memory_smoke=persisted_context_memory_smoke,
+        json_fallback_smoke=json_fallback_smoke,
+        error_message_smoke=error_message_smoke,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace_id,
+    )
+
+
+def build_today_practice_guidance_terminal_product_smoke_polish_summary(
+    *,
+    payload: TodayPracticeGuidanceTerminalProductSmokePolishPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    readiness = data.get("readiness") if isinstance(data.get("readiness"), dict) else {}
+    checks = validation.get("checks") if isinstance(validation.get("checks"), dict) else {}
+    return {
+        "today_practice_guidance_terminal_product_smoke_polish_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "readiness_status": readiness.get("readiness_status"),
+        "terminal_chat_provider_ready": bool(readiness.get("terminal_chat_provider_ready")),
+        "provider_name": readiness.get("provider_name"),
+        "model": readiness.get("model"),
+        "check_count": validation.get("check_count", 0),
+        "passed_check_count": validation.get("passed_check_count", 0),
+        "ordinary_chinese_guidance_route_available": bool(checks.get("ordinary_chinese_guidance_route_available")),
+        "persisted_context_memory_controls_available": bool(checks.get("persisted_context_memory_controls_available")),
+        "json_fallback_smoke_documented": bool(checks.get("json_fallback_smoke_documented")),
+        "guarded_error_hint_available": bool(checks.get("guarded_error_hint_available")),
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def today_practice_guidance_terminal_product_smoke_polish_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
+        "today_practice_guidance_terminal_product_smoke_polish_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/terminal-product-smoke/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/terminal-product-smoke/preview",
+        "terminal_command": "/terminal-product-smoke [json_payload]",
+        "surface": "Terminal chat product smoke polish for provider setup, ordinary guidance turns, persisted context memory, and fallback UX",
+        "mode": "manual_terminal_smoke_pack_without_side_effects",
+        "execution_status": {
+            "terminal_product_smoke_preview_enabled": True,
+            "calls_llm_provider": False,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled_by_agent": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "smoke_checks": [
+            "setup/doctor/config-path entrypoints are reachable",
+            "provider status tells the user exactly why terminal chat is guarded or ready",
+            "ordinary Chinese input routes into guarded today-practice guidance",
+            "loaded persisted-context memory is injected into the next today-practice turn",
+            "JSON fallback/partial-default behavior is documented for real provider output",
+            "blocked guidance prints an actionable terminal hint rather than only internal fields",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_starts_routine": False,
+            "payload_creates_post_session_recommendation_card": False,
+        },
+        "next_task_hint": "v2_8_23_agent_v2_8_phase_cleanup_regression_handoff",
+    }
+
+
+@dataclass(frozen=True)
+class AgentV28PhaseCleanupRegressionHandoffPayload:
+    payload_contract_version: str
+    source: str
+    phase_id: str
+    phase_status: str
+    completed_milestones: list[dict[str, Any]]
+    terminal_smoke_handoff: dict[str, Any]
+    harmonyos_handoff_pack: dict[str, Any]
+    persistence_handoff_pack: dict[str, Any]
+    regression_handoff: dict[str, Any]
+    boundary_audit: dict[str, Any]
+    next_phase_recommendation: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "phase_id": self.phase_id,
+            "phase_status": self.phase_status,
+            "completed_milestones": list(self.completed_milestones),
+            "terminal_smoke_handoff": dict(self.terminal_smoke_handoff),
+            "harmonyos_handoff_pack": dict(self.harmonyos_handoff_pack),
+            "persistence_handoff_pack": dict(self.persistence_handoff_pack),
+            "regression_handoff": dict(self.regression_handoff),
+            "boundary_audit": dict(self.boundary_audit),
+            "next_phase_recommendation": dict(self.next_phase_recommendation),
+            "validation": dict(self.validation),
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "accompaniment_generate_call_enabled": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.trace_id,
+        }
+
+
+def _agent_v2_8_completed_milestones() -> list[dict[str, Any]]:
+    return [
+        {"version": "v2_8_1", "name": "user_profile_context_intake", "status": "complete", "summary": "UserPracticeProfileContext intake with camelCase/snake_case normalization and redaction."},
+        {"version": "v2_8_2", "name": "practice_context_storage_boundary", "status": "complete", "summary": "Local/backend/request/trace/never-store context ownership map."},
+        {"version": "v2_8_3", "name": "profile_aware_guidance_e2e", "status": "complete", "summary": "Profile context participates as soft guidance context."},
+        {"version": "v2_8_4", "name": "terminal_llm_provider_compatibility_hotfix", "status": "complete", "summary": "CLI argv and OpenAI-compatible role normalization fixed."},
+        {"version": "v2_8_5", "name": "terminal_guidance_json_contract_hotfix", "status": "complete", "summary": "JSON-only prompting plus safe plain-text/partial-JSON fallback."},
+        {"version": "v2_8_6", "name": "practice_plan_persistence_candidate", "status": "complete", "summary": "Save/update PracticePlan candidate preview; no storage write."},
+        {"version": "v2_8_7", "name": "routine_history_persistence_candidate", "status": "complete", "summary": "RoutineHistory summary save/upload candidate preview; no post-session recommendation card."},
+        {"version": "v2_8_8", "name": "context_persistence_confirmation_boundary", "status": "complete", "summary": "Unified user-decision boundary for persistence candidates."},
+        {"version": "v2_8_9", "name": "context_persistence_executor_noop", "status": "complete", "summary": "Confirmed-candidate executor skeleton with idempotency/trace/storage guard report."},
+        {"version": "v2_8_10", "name": "storage_adapter_design", "status": "complete", "summary": "Future storage adapter methods and backend entity boundary."},
+        {"version": "v2_8_11", "name": "sqlite_dev_preview", "status": "complete", "summary": "SQLite schema/idempotency/trace/read snapshot preview only."},
+        {"version": "v2_8_12", "name": "dev_sqlite_write_gate", "status": "complete", "summary": "Explicit dev-only write gate contract without actual DB write."},
+        {"version": "v2_8_13", "name": "fixture_write_dry_run", "status": "complete", "summary": "Dry-run transaction/idempotency/trace/read-back writer shape."},
+        {"version": "v2_8_14", "name": "fixture_store_explicit_opt_in", "status": "complete", "summary": "Dev-only explicit opt-in JSONL fixture store; no SQLite/backend write."},
+        {"version": "v2_8_15", "name": "fixture_readback_replay", "status": "complete", "summary": "Read-only JSONL fixture read-back and replay preview."},
+        {"version": "v2_8_16", "name": "snapshot_context_intake", "status": "complete", "summary": "Read-back snapshot restored into profile/active-plan/routine-history context sections."},
+        {"version": "v2_8_17", "name": "persisted_context_recovery_guidance_e2e", "status": "complete", "summary": "Recovered persisted context participates in today-practice guidance."},
+        {"version": "v2_8_18", "name": "terminal_memory_controls", "status": "complete", "summary": "Terminal load/show/clear controls for temporary recovered context memory."},
+        {"version": "v2_8_19", "name": "terminal_memory_to_harmonyos_debug_fixture", "status": "complete", "summary": "Terminal memory exported as HarmonyOS debug fixture preview."},
+        {"version": "v2_8_20", "name": "harmonyos_debug_fixture_roundtrip", "status": "complete", "summary": "Debug fixture request roundtrips into persisted-context guidance preview."},
+        {"version": "v2_8_21", "name": "harmonyos_api_request_pack", "status": "complete", "summary": "Frontend联调用 API request pack with curl/ArkTS sketch."},
+        {"version": "v2_8_22", "name": "terminal_chat_product_smoke_polish", "status": "complete", "summary": "Terminal setup/doctor/guidance/memory/fallback smoke polish."},
+    ]
+
+
+def build_agent_v2_8_phase_cleanup_regression_handoff_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "agent_v2_8_phase_handoff",
+) -> AgentV28PhaseCleanupRegressionHandoffPayload:
+    args = dict(arguments or {})
+    requested_regression = args.get("regressionResults") or args.get("regression_results") or {}
+    completed_milestones = _agent_v2_8_completed_milestones()
+    phase_id = str(args.get("phaseId") or args.get("phase_id") or "agent_v2_8_context_guidance_persistence_harmonyos_debug_phase")
+    terminal_smoke_handoff = {
+        "primary_command": "PYTHONPATH=src python -m jammate_agent.cli.terminal_chat --show-provider-status",
+        "setup_command": "PYTHONPATH=src python -m jammate_agent.cli.terminal_chat setup",
+        "doctor_command": "PYTHONPATH=src python -m jammate_agent.cli.terminal_chat doctor",
+        "smoke_command": "/terminal-product-smoke",
+        "context_memory_commands": ["/persisted-context-load {json}", "/persisted-context-show", "/persisted-context-clear"],
+        "ordinary_prompt_smoke": "今天该练什么？",
+        "expected_terminal_behavior": "display-only guidance/action-card preview; no Routine start or Engine call",
+    }
+    harmonyos_handoff_pack = {
+        "debug_fixture_request_pack_route": "POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/preview",
+        "build_fixture_route": "POST /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview",
+        "persisted_recovery_route": "POST /agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview",
+        "roundtrip_route": "POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview",
+        "frontend_fixture_files_modified_in_agent_line": False,
+        "frontend_contract_status": "debug_payload_preview_only_in_agent_line; real frontend fixture edits stay on integration track",
+    }
+    persistence_handoff_pack = {
+        "implemented_scope": "candidate → confirmation → executor no-op → adapter design → dev fixture store/readback/recovery preview",
+        "real_backend_database_write_enabled": False,
+        "sqlite_backend_write_enabled": False,
+        "dev_fixture_jsonl_store_available_with_explicit_opt_in": True,
+        "recommended_next_phase": "v2_9_x_agent_persistence_implementation",
+        "required_before_real_storage": [
+            "choose backend storage owner and schema migration policy",
+            "keep user confirmation, idempotency, trace-link, redaction and storage-boundary checks mandatory",
+            "separate HarmonyOS local runtime state from backend durable learner context",
+        ],
+    }
+    regression_handoff = {
+        "recommended_commands": [
+            "PYTHONPATH=src python -m compileall -q src tests tools examples/scripts",
+            "PYTHONPATH=src python tools/check_development_harness.py",
+            "PYTHONPATH=src python -m pytest -q tests/test_v2_8_*.py",
+            "PYTHONPATH=src python -m pytest -q tests/test_v2_4_*agent*.py tests/test_v2_6_*agent*.py tests/test_v2_7_*agent*.py tests/test_v2_8_*.py",
+        ],
+        "latest_reported_v2_8_regression_count": requested_regression.get("v2_8_regression_count", 163),
+        "latest_reported_agent_targeted_count": requested_regression.get("agent_targeted_regression_count", 391),
+        "phase_handoff_test_added": True,
+        "full_pytest_status_note": "Full historical suite may still include older shared-doc/version assertions outside this Agent-line scope; use targeted Agent regression for this handoff.",
+    }
+    boundary_audit = {
+        "agent_line_allowed_paths": [
+            "src/jammate_agent/",
+            "src/jammate_api/routes/agent_routes.py",
+            "tests/test_v*_agent_*.py",
+            "docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md",
+            "docs/CHANGELOG_AGENT.md",
+            "docs/AGENT*.md",
+        ],
+        "no_engine_music_generation_changes": True,
+        "no_pattern_voicing_expression_pedal_changes": True,
+        "no_demo_midi_generation_required": True,
+        "shared_docs_modified_by_this_handoff": False,
+        "harmonyos_fixture_modified_by_this_handoff": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "engine_adapter_called": False,
+        "accompaniment_generate_call_enabled": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+    next_phase_recommendation = {
+        "phase_status_after_v2_8_23": "ready_for_integration_or_v2_9_persistence_implementation_planning",
+        "do_not_continue_expanding_v2_8": True,
+        "recommended_next_tracks": [
+            "integration branch: merge Agent v2_8 handoff with shared docs/API contract if needed",
+            "v2_9_x Agent Persistence Implementation: real storage adapter/migrations behind explicit config and tests",
+            "Engine track can resume independently without Agent storage changes touching music-generation boundaries",
+        ],
+    }
+    validation = {
+        "accepted": True,
+        "status": "phase_handoff_ready",
+        "milestone_count": len(completed_milestones),
+        "blocked_reasons": [],
+        "warnings": [],
+        "no_new_runtime_capability_added": True,
+    }
+    return AgentV28PhaseCleanupRegressionHandoffPayload(
+        payload_contract_version=AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+        source=source,
+        phase_id=phase_id,
+        phase_status="phase_handoff_ready",
+        completed_milestones=completed_milestones,
+        terminal_smoke_handoff=terminal_smoke_handoff,
+        harmonyos_handoff_pack=harmonyos_handoff_pack,
+        persistence_handoff_pack=persistence_handoff_pack,
+        regression_handoff=regression_handoff,
+        boundary_audit=boundary_audit,
+        next_phase_recommendation=next_phase_recommendation,
+        validation=validation,
+        trace_id=trace_id,
+    )
+
+
+def build_agent_v2_8_phase_cleanup_regression_handoff_summary(
+    *,
+    payload: AgentV28PhaseCleanupRegressionHandoffPayload | None = None,
+    source: str = "agent_v2_8_phase_handoff",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    boundary = data.get("boundary_audit") if isinstance(data.get("boundary_audit"), dict) else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "agent_v2_8_phase_cleanup_regression_handoff_version": AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+        "source": source,
+        "phase_status": data.get("phase_status"),
+        "accepted": bool(validation.get("accepted")),
+        "milestone_count": validation.get("milestone_count", 0),
+        "terminal_smoke_ready": bool(data.get("terminal_smoke_handoff")),
+        "harmonyos_debug_fixture_handoff_ready": bool(data.get("harmonyos_handoff_pack")),
+        "persistence_handoff_ready": bool(data.get("persistence_handoff_pack")),
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": bool(boundary.get("engine_adapter_called", False)),
+        "accompaniment_generate_call_enabled": bool(boundary.get("accompaniment_generate_call_enabled", False)),
+        "midi_asset_created": bool(boundary.get("midi_asset_created", False)),
+        "playback_started": bool(boundary.get("playback_started", False)),
+        "routine_start_enabled": bool(boundary.get("routine_start_enabled", False)),
+        "post_session_recommendation_card_created": bool(boundary.get("post_session_recommendation_card_created", False)),
+        "recommended_next_phase": (data.get("next_phase_recommendation") or {}).get("phase_status_after_v2_8_23"),
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def agent_v2_8_phase_cleanup_regression_handoff_contract() -> dict[str, Any]:
+    return {
+        "version": AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+        "agent_v2_8_phase_cleanup_regression_handoff_version": AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/v2-8-phase-handoff/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/v2-8-phase-handoff/preview",
+        "terminal_command": "/v2-8-phase-handoff [json_payload]",
+        "surface": "Agent v2.8 phase cleanup, regression checklist, boundary audit, and handoff package",
+        "mode": "handoff_report_without_new_runtime_capability",
+        "execution_status": {
+            "phase_handoff_preview_enabled": True,
+            "calls_llm_provider": False,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled_by_agent": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "handoff_scope": [
+            "summarize v2_8_1 through v2_8_22 completed Agent context/guidance/persistence/debug fixture work",
+            "record terminal smoke and HarmonyOS debug fixture handoff commands/routes",
+            "record persistence implementation boundary for future v2_9_x",
+            "confirm no Engine music generation, shared docs, frontend fixtures, MIDI demos, storage writes, or Routine start",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_starts_routine": False,
+            "payload_creates_post_session_recommendation_card": False,
+        },
+        "next_task_hint": "Stop expanding v2_8; move to integration handoff or v2_9 persistence implementation planning.",
+    }
+
 
 def build_today_practice_guidance_terminal_chat_e2e_payload(
     arguments: dict[str, Any] | None = None,

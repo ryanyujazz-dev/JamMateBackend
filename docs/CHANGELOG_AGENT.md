@@ -469,3 +469,36 @@ v2_8_21_agent_harmonyos_debug_fixture_api_request_pack
 - 新增终端命令 `/harmonyos-debug-fixture-api-request-pack [json_payload]`。
 - 只生成 endpoint / request body / response path / curl example / terminal command preview，不调用 route、不写库、不调用 LLM、不启动 Routine、不调用 Engine。
 
+
+## v2_8_22_agent_terminal_chat_product_smoke_polish
+
+- 新增终端真实对话体验 smoke polish contract。
+- 新增 `GET /agent/context/today-practice-guidance/terminal-product-smoke/spec`。
+- 新增 `POST /agent/context/today-practice-guidance/terminal-product-smoke/preview`。
+- 新增终端命令 `/terminal-product-smoke [json_payload]`。
+- 增强普通“今天该练什么”终端输出：当 ActionCard validation guarded 时，额外提示 `doctor` 与 `/terminal-product-smoke`，避免只显示内部字段。
+- 覆盖 provider setup / doctor、普通中文 guidance、persisted-context memory、JSON fallback、guarded error hint 等真实终端测试路径。
+- 保持边界：smoke preview 不调用 LLM、不执行 tool、不写存储、不启动 Routine、不调用 `/accompaniment/generate`、不调用 Engine。
+
+Recommended next Agent task:
+
+```text
+v2_8_23_agent_v2_8_phase_cleanup_regression_handoff
+```
+
+## v2_8_23_agent_v2_8_phase_cleanup_regression_handoff
+
+- Added Agent v2_8 phase cleanup/regression/handoff report.
+- Added `GET /agent/context/today-practice-guidance/v2-8-phase-handoff/spec`.
+- Added `POST /agent/context/today-practice-guidance/v2-8-phase-handoff/preview`.
+- Added terminal command `/v2-8-phase-handoff [json_payload]`.
+- Added `docs/AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_V2_8_23.md`.
+- Added tests for contract, payload, API route, CLI command, manifest exposure, and Agent/Engine boundary.
+- Captures the v2_8_1 → v2_8_22 completed milestone list, terminal smoke handoff, HarmonyOS debug fixture handoff, persistence boundary, regression commands, and next-phase recommendation.
+- No new runtime product capability: the preview does not call LLM, execute tools, write storage, start Routine, call `/accompaniment/generate`, call Engine, create MIDI, or play audio.
+
+Recommended next phase:
+
+```text
+Stop expanding v2_8. Move to integration handoff or v2_9_x Agent Persistence Implementation planning.
+```

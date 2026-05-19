@@ -61,6 +61,8 @@ from jammate_agent.core.contracts import (
     today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract,
     today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract,
     today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract,
+    today_practice_guidance_terminal_product_smoke_polish_contract,
+    agent_v2_8_phase_cleanup_regression_handoff_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -118,6 +120,10 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary,
     build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload,
     build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary,
+    build_today_practice_guidance_terminal_product_smoke_polish_payload,
+    build_today_practice_guidance_terminal_product_smoke_polish_summary,
+    build_agent_v2_8_phase_cleanup_regression_handoff_payload,
+    build_agent_v2_8_phase_cleanup_regression_handoff_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -999,6 +1005,82 @@ def preview_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_req
         "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract()["version"],
         "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload": payload.to_dict(),
         "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/v2-8-phase-handoff/spec")
+def get_agent_v2_8_phase_cleanup_regression_handoff_spec() -> dict:
+    return {"ok": True, "spec": agent_v2_8_phase_cleanup_regression_handoff_contract()}
+
+
+@router.post("/context/today-practice-guidance/v2-8-phase-handoff/preview")
+def preview_agent_v2_8_phase_cleanup_regression_handoff_request(request: dict) -> dict:
+    """Build a side-effect-free v2.8 phase handoff report."""
+
+    payload = build_agent_v2_8_phase_cleanup_regression_handoff_payload(
+        request,
+        source="agent_route_v2_8_phase_handoff_preview",
+    )
+    summary = build_agent_v2_8_phase_cleanup_regression_handoff_summary(
+        payload=payload,
+        source="agent_route_v2_8_phase_handoff_preview",
+    )
+    return {
+        "ok": True,
+        "agent_v2_8_phase_cleanup_regression_handoff_version": payload.payload_contract_version,
+        "agent_v2_8_phase_cleanup_regression_handoff_payload": payload.to_dict(),
+        "agent_v2_8_phase_cleanup_regression_handoff_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/terminal-product-smoke/spec")
+def get_today_practice_guidance_terminal_product_smoke_polish_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_terminal_product_smoke_polish_contract()}
+
+
+@router.post("/context/today-practice-guidance/terminal-product-smoke/preview")
+def preview_today_practice_guidance_terminal_product_smoke_polish_request(request: dict) -> dict:
+    """Build a side-effect-free terminal product smoke pack for guidance testing."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_terminal_product_smoke_polish_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_terminal_product_smoke_polish",
+    )
+    summary = build_today_practice_guidance_terminal_product_smoke_polish_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_terminal_product_smoke_polish_version": today_practice_guidance_terminal_product_smoke_polish_contract()["version"],
+        "today_practice_guidance_terminal_product_smoke_polish_payload": payload.to_dict(),
+        "today_practice_guidance_terminal_product_smoke_polish_summary": summary,
         "llm_called": False,
         "tool_executed": False,
         "storage_written": False,
