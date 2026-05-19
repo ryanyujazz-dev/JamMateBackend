@@ -71,9 +71,13 @@ export interface HarmonyOSRoutineCompletionRecord {
 
 export interface HarmonyOSRoutineCompletionRecordExecuteRequest {
   userId?: string | null
+  sessionId?: string | null
+  deviceId?: string | null
+  // Product HarmonyOS clients do not need to send sqliteDbPath/environment/write gates.
+  // Those are backend-owned; keep these fields optional only for local smoke/debug overrides.
   sqliteDbPath?: string | null
   environment?: 'test' | 'dev' | 'local' | string
-  clientConfirmedRecordWrite: boolean
+  clientConfirmedRecordWrite?: boolean
   idempotencyKey?: string | null
   routineCompletionRecord: HarmonyOSRoutineCompletionRecord
 }
@@ -87,9 +91,14 @@ export interface HarmonyOSProviderFixtureResult {
 
 export interface HarmonyOSTodayPracticeGuidancePreviewRequest {
   userId?: string | null
+  sessionId?: string | null
+  deviceId?: string | null
+  userMessage?: string
+  userInput?: string
+  // Product HarmonyOS clients do not need to send sqliteDbPath/environment.
+  // Those are backend-owned; keep these fields optional only for local smoke/debug overrides.
   sqliteDbPath?: string | null
   environment?: 'test' | 'dev' | 'local' | string
-  userInput: string
   availableMinutes?: number | null
   clientContext?: ClientContext
   providerResult?: HarmonyOSProviderFixtureResult | Record<string, unknown>
@@ -378,9 +387,12 @@ export interface AgentHarmonyOSRoutineCompletionRecord {
 
 export interface AgentHarmonyOSTodayPracticeGuidanceRequest {
   userId?: string | null
-  sqliteDbPath?: string | null
+  sessionId?: string | null
+  deviceId?: string | null
+  userMessage?: string
+  userInput?: string
+  sqliteDbPath?: string | null // Optional debug override; product clients should omit.
   environment?: 'test' | 'local_dev' | string
-  userInput: string
   availableMinutes?: number | null
   providerResult?: Record<string, unknown> | null
   callProvider?: boolean
@@ -390,9 +402,11 @@ export interface AgentHarmonyOSTodayPracticeGuidanceRequest {
 
 export interface AgentHarmonyOSRoutineCompletionRecordRequest {
   userId?: string | null
-  sqliteDbPath: string
+  sessionId?: string | null
+  deviceId?: string | null
+  sqliteDbPath?: string | null // Optional debug override; product clients should omit.
   environment?: 'test' | 'local_dev' | string
-  clientConfirmedRecordWrite: boolean
+  clientConfirmedRecordWrite?: boolean // Optional debug override; product route injects confirmation when omitted.
   idempotencyKey?: string | null
   routineCompletionRecord: AgentHarmonyOSRoutineCompletionRecord
   userPracticeProfile?: Record<string, unknown> | null

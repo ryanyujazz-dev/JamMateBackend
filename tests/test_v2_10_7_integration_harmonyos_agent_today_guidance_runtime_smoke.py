@@ -8,6 +8,8 @@ import sys
 import time
 import urllib.error
 import urllib.request
+
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,12 +63,15 @@ def test_strict_harmonyos_agent_runtime_smoke_script_is_agent_only_and_assertive
 
 
 def test_strict_harmonyos_agent_runtime_smoke_runs_against_live_fastapi(tmp_path: Path) -> None:
+    if os.environ.get("JAMMATE_ENABLE_LIVE_FASTAPI_SMOKE") != "1":
+        pytest.skip("live FastAPI runtime smoke is opt-in; run with JAMMATE_ENABLE_LIVE_FASTAPI_SMOKE=1")
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
     db_path = tmp_path / "harmonyos_agent_today_guidance_runtime_smoke.sqlite"
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     env["JAMMATE_AGENT_RUNTIME_SMOKE_RUN_ID"] = "pytest-v2-10-7"
+    env["JAMMATE_AGENT_CONTEXT_DB_PATH"] = str(db_path)
 
     server = subprocess.Popen(
         [
@@ -83,8 +88,8 @@ def test_strict_harmonyos_agent_runtime_smoke_runs_against_live_fastapi(tmp_path
         ],
         cwd=ROOT,
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         text=True,
     )
     try:

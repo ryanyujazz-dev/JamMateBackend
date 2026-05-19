@@ -230,3 +230,22 @@ Corrected the previous Ballad `1&` patch so logical `0.5` is interpreted through
 ## v2_5_5 delivery result: Jazz Ballad Two-Beat 1& Pattern Patch
 
 Corrected the Jazz Ballad two-beat piano soft-mark timing from local beat `1.0` to `0.5`, so the feel is beat 1 + beat 1& rather than beat 1 + beat 2. This did not change notes, voicing texture, expression values, pedal behavior, or Agent/LLM logic. Recommended next task: `v2_5_7_ballad_bass_anchor_path`.
+
+
+## v2_10_8 Integration — HarmonyOS Agent Black-Box Contract Fit
+
+Status: completed.
+
+The merged backend now matches the HarmonyOS frontend report contract:
+
+- `POST /agent/harmonyos/routine-completion-record/execute` accepts frontend product payloads without `dbPath` or `clientConfirmedRecordWrite`.
+- `POST /agent/harmonyos/today-practice-guidance/preview` accepts `userMessage` and does not require frontend-supplied SQLite fields.
+- Backend-owned context DB path comes from `JAMMATE_AGENT_CONTEXT_DB_PATH` or the local-dev default `/tmp/jammate_agent_harmonyos_context.sqlite3`.
+
+Next: run real device LAN smoke against `http://192.168.1.16:8000` or the current Mac LAN IP, then map UI states from `{ok, code, message, data, debug, safety}`.
+
+
+## v2_10_7 Integration HarmonyOS Agent Today Guidance Runtime Smoke
+
+Status: completed. Runtime smoke script is available at `frontend_fixtures/harmonyos/smoke/curl_agent_today_guidance_runtime_smoke.sh`.
+

@@ -20731,8 +20731,8 @@ def _normalize_routine_completion_record(args: dict[str, Any], *, user_id: str, 
         or f"routine_session_{uuid4().hex[:12]}"
     )
     title = str(
-        _first_present(raw, "title", "routineName", "routine_name", "blockTitle", "practiceTitle")
-        or _first_present(args, "title", "routineName")
+        _first_present(raw, "title", "routineTitle", "routineName", "routine_name", "blockTitle", "practiceTitle")
+        or _first_present(args, "title", "routineTitle", "routineName")
         or "JamMate practice session"
     )
     style = str(_first_present(raw, "style", "styleId", "practiceStyle") or _first_present(args, "style") or "unknown")
@@ -20774,7 +20774,10 @@ def _normalize_routine_completion_record(args: dict[str, Any], *, user_id: str, 
         "practiceGoal": _first_present(raw, "practice_goal", "practiceGoal", "goal"),
         "source": str(_first_present(raw, "source") or "routine_completion_record_write_mvp"),
         "traceId": trace_id,
-        "clientRecordId": _first_present(raw, "client_record_id", "clientRecordId"),
+        "clientRecordId": _first_present(raw, "client_record_id", "clientRecordId", "routineId"),
+        "routineId": _first_present(raw, "routine_id", "routineId"),
+        "status": _first_present(raw, "status"),
+        "items": _first_present(raw, "items", "routineItems"),
         "notes": _first_present(raw, "notes", "summary"),
     }
     if not completed:
@@ -21665,34 +21668,36 @@ def build_agent_harmonyos_today_guidance_api_contract_alignment_payload(
     }
     request_contracts = {
         "today_guidance_preview": {
-            "required": ["userInput"],
-            "recommended": ["userId", "sqliteDbPath", "environment", "availableMinutes"],
-            "optional": ["providerResult", "callProvider", "traceId"],
+            "required": ["userMessage"],
+            "recommended": ["userId", "sessionId", "deviceId", "availableMinutes"],
+            "optional": ["providerResult", "callProvider", "traceId", "includeDebugPayload"],
+            "backend_owned": ["sqliteDbPath", "environment"],
             "camel_case_preferred": True,
             "minimal_example": {
-                "userId": "dev_user",
-                "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
-                "environment": "test",
-                "userInput": "今天该练什么？",
-                "availableMinutes": 25,
+                "userId": "local-dev-user",
+                "sessionId": "agent-session-1779200000000",
+                "deviceId": "harmonyos-device-local",
+                "userMessage": "今天该练什么？",
             },
         },
         "routine_completion_record_execute": {
-            "required": ["sqliteDbPath", "clientConfirmedRecordWrite", "routineCompletionRecord"],
-            "recommended": ["userId", "environment", "idempotencyKey"],
-            "optional": ["traceId", "userPracticeProfile", "practicePlan"],
+            "required": ["routineCompletionRecord"],
+            "recommended": ["userId", "sessionId", "deviceId"],
+            "optional": ["traceId", "userPracticeProfile", "practicePlan", "idempotencyKey"],
+            "backend_owned": ["sqliteDbPath", "environment", "clientConfirmedRecordWrite", "backendPersistenceEnabled", "executeBackendPersistence"],
             "camel_case_preferred": True,
             "minimal_example": {
-                "userId": "dev_user",
-                "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
-                "environment": "test",
-                "clientConfirmedRecordWrite": True,
-                "idempotencyKey": "completion:dev_user:session_001",
+                "userId": "local-dev-user",
+                "sessionId": "practice-session-1779200000000",
+                "deviceId": "harmonyos-device-local",
                 "routineCompletionRecord": {
-                    "sessionId": "session_001",
-                    "title": "Medium Swing guide-tone comping",
-                    "actualSeconds": 900,
-                    "completed": True,
+                    "routineId": "routine-xxx",
+                    "routineTitle": "今日基础练习",
+                    "completedAt": "2026-05-20T20:30:00-07:00",
+                    "durationSeconds": 1800,
+                    "status": "completed",
+                    "items": [],
+                    "notes": "optional user note",
                 },
             },
         },
@@ -21724,13 +21729,14 @@ def build_agent_harmonyos_today_guidance_api_contract_alignment_payload(
         "harmonyos_local_routine_timer": "client_owned",
         "harmonyos_local_playback_state": "client_owned",
         "midi_asset_cache": "client_owned_or_engine_route_owned_not_agent_owned",
-        "agent_context_database": "backend_owned_when_sqliteDbPath_and_explicit_write_gate_are_provided",
+        "agent_context_database": "backend_owned_frontend_does_not_send_sqliteDbPath_or_internal_write_gates",
         "practice_guidance_display": "client_decides_presentation",
     }
     safety_contract = {
         "today_guidance_preview_writes_storage": False,
         "routine_completion_record_execute_may_write_backend_sqlite": True,
-        "routine_completion_record_write_requires_clientConfirmedRecordWrite": True,
+        "routine_completion_record_write_requires_clientConfirmedRecordWrite": False,
+        "routine_completion_record_product_route_injects_backend_write_gate": True,
         "writes_harmonyos_local_state": False,
         "starts_routine": False,
         "calls_accompaniment_generate": False,
