@@ -620,3 +620,40 @@ Recommended next Agent task:
 ```text
 v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix
 ```
+
+## v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix
+
+- Added SQLite backend API error/blocked response shape matrix for v2_9 persistence/readback surfaces.
+- Added `GET /agent/context/persistence-sqlite-backend-api-error-shape-matrix/spec`.
+- Added `POST /agent/context/persistence-sqlite-backend-api-error-shape-matrix/preview`.
+- Added terminal commands `/sqlite-api-error-shape-matrix [json_payload]` and `/context-persistence-sqlite-backend-api-error-shape-matrix [json_payload]`.
+- Covered stable client-facing shapes for `missing_write_gate`, `invalid_sqlite_db_path`, `empty_readback`, `idempotent_replay`, and `malformed_payload`.
+- Clarified HarmonyOS handling: idempotent replay is success, empty readback falls back to ordinary guidance/no persisted context, malformed payload requires client schema fix, and response fields stay canonical snake_case.
+- Kept the matrix preview-only: no packaged route execution, no SQLite connection/read/write, no API/server memory mutation, no TerminalChatSession memory write, no frontend fixture write, no LLM/tool/Engine/Routine/MIDI/playback side effects.
+- Added `docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_V2_9_7.md`.
+- Added `tests/test_v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix.py`.
+
+Recommended next Agent task:
+
+```text
+v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack
+```
+
+## v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack
+
+- Added HarmonyOS error fixture pack for SQLite backend persistence/readback API联调.
+- Added `GET /agent/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/spec`.
+- Added `POST /agent/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/preview`.
+- Added terminal commands `/sqlite-harmonyos-error-fixture-pack [json_payload]` and `/context-persistence-sqlite-backend-harmonyos-error-fixture-pack [json_payload]`.
+- Packaged copyable bad-request examples, expected UI/debug messages, retry policies, response-field assertions, curl examples, and ArkTS handling notes.
+- Covered `missing_write_gate`, `invalid_sqlite_db_path`, `empty_readback`, `idempotent_replay`, and `malformed_payload`.
+- Clarified client behavior: idempotent replay is success-like, empty readback falls back to ordinary guidance/no persisted context, malformed payload requires client schema fix, and response fields remain canonical snake_case.
+- Kept the fixture pack preview-only: no packaged route execution, no SQLite connection/read/write, no API/server memory mutation, no TerminalChatSession memory write, no frontend fixture write, no LLM/tool/Engine/Routine/MIDI/playback side effects.
+- Added `docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_V2_9_8.md`.
+- Added `tests/test_v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack.py`.
+
+Recommended next Agent task:
+
+```text
+v2_9_9_agent_context_persistence_sqlite_backend_handoff_completion_pack
+```

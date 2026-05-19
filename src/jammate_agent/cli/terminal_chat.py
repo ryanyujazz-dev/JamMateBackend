@@ -138,6 +138,10 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_sqlite_backend_api_memory_debug_pack_summary,
     build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload,
     build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary,
+    build_context_persistence_sqlite_backend_api_error_shape_matrix_payload,
+    build_context_persistence_sqlite_backend_api_error_shape_matrix_summary,
+    build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload,
+    build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary,
     build_context_persistence_profile_plan_history_snapshot_context_intake_payload,
     build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
     build_today_practice_guidance_persisted_context_recovery_e2e_payload,
@@ -177,6 +181,8 @@ from jammate_agent.core.tool_invocation import (
     context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract,
     context_persistence_sqlite_backend_api_memory_debug_pack_contract,
     context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract,
+    context_persistence_sqlite_backend_api_error_shape_matrix_contract,
+    context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract,
     context_persistence_profile_plan_history_snapshot_context_intake_contract,
     today_practice_guidance_persisted_context_recovery_e2e_contract,
     today_practice_guidance_persisted_context_terminal_memory_controls_contract,
@@ -2100,6 +2106,100 @@ class TerminalChatSession:
         }
 
 
+    def context_persistence_sqlite_backend_api_error_shape_matrix(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Preview SQLite backend API error/blocked response shape matrix."""
+
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_api_error_shape_matrix", "/sqlite-api-error-shape-matrix")
+        args = dict(arguments or {})
+        payload = build_context_persistence_sqlite_backend_api_error_shape_matrix_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_api_error_shape_matrix",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_api_error_shape_matrix_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_api_error_shape_matrix_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_api_error_shape_matrix_summary_recorded", summary)
+        ok = bool(summary.get("accepted", False))
+        self._finish_trace(trace, "sqlite_backend_api_error_shape_matrix_ready" if ok else "sqlite_backend_api_error_shape_matrix_blocked", {"ok": ok, "command": "/sqlite-api-error-shape-matrix", "summary": summary, "storage_written": False, "backend_database_written": False, "backend_database_read": False, "llm_called": False})
+        return {
+            "ok": ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/sqlite-api-error-shape-matrix",
+            "context_persistence_sqlite_backend_api_error_shape_matrix_version": context_persistence_sqlite_backend_api_error_shape_matrix_contract()["version"],
+            "context_persistence_sqlite_backend_api_error_shape_matrix_payload": payload_dict,
+            "context_persistence_sqlite_backend_api_error_shape_matrix_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "fixture_files_written": False,
+            "frontend_fixtures_directory_written": False,
+            "terminal_session_memory_loaded_by_api": False,
+            "terminal_session_memory_loaded_by_cli": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+        }
+
+
+    def context_persistence_sqlite_backend_harmonyos_error_fixture_pack(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Preview HarmonyOS error fixture pack for SQLite backend routes."""
+
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_harmonyos_error_fixture_pack", "/sqlite-harmonyos-error-fixture-pack")
+        args = dict(arguments or {})
+        payload = build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_harmonyos_error_fixture_pack",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary_recorded", summary)
+        ok = bool(summary.get("accepted", False))
+        self._finish_trace(trace, "sqlite_backend_harmonyos_error_fixture_pack_ready" if ok else "sqlite_backend_harmonyos_error_fixture_pack_blocked", {"ok": ok, "command": "/sqlite-harmonyos-error-fixture-pack", "summary": summary, "storage_written": False, "backend_database_written": False, "backend_database_read": False, "llm_called": False})
+        return {
+            "ok": ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/sqlite-harmonyos-error-fixture-pack",
+            "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_version": context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract()["version"],
+            "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload": payload_dict,
+            "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "fixture_files_written": False,
+            "frontend_fixtures_directory_written": False,
+            "terminal_session_memory_loaded_by_api": False,
+            "terminal_session_memory_loaded_by_cli": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+        }
+
+
     def context_persistence_sqlite_backend_today_guidance_recovery_e2e(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         trace = self._start_trace("terminal_context_persistence_sqlite_backend_today_guidance_recovery_e2e", "/context-persistence-sqlite-backend-today-guidance-recovery-e2e")
         payload = build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload(
@@ -3423,6 +3523,25 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
 
 
 
+    if user_input.startswith("/sqlite-api-error-shape-matrix"):
+        parsed = _parse_json_payload_command(user_input, "/sqlite-api-error-shape-matrix")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_api_error_shape_matrix(session.context_persistence_sqlite_backend_api_error_shape_matrix(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-api-error-shape-matrix"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-api-error-shape-matrix")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_api_error_shape_matrix(session.context_persistence_sqlite_backend_api_error_shape_matrix(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+
+
     if user_input.startswith("/sqlite-harmonyos-api-fixture-pack"):
         parsed = _parse_json_payload_command(user_input, "/sqlite-harmonyos-api-fixture-pack")
         if not parsed["ok"]:
@@ -3437,6 +3556,23 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             _print_command_error(parsed, stdout)
             return True
         _print_context_persistence_sqlite_backend_harmonyos_api_fixture_pack(session.context_persistence_sqlite_backend_harmonyos_api_fixture_pack(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/sqlite-harmonyos-error-fixture-pack"):
+        parsed = _parse_json_payload_command(user_input, "/sqlite-harmonyos-error-fixture-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_harmonyos_error_fixture_pack(session.context_persistence_sqlite_backend_harmonyos_error_fixture_pack(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-harmonyos-error-fixture-pack"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-harmonyos-error-fixture-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_harmonyos_error_fixture_pack(session.context_persistence_sqlite_backend_harmonyos_error_fixture_pack(parsed.get("arguments") or {}), stdout)
         return True
 
 
@@ -4105,6 +4241,63 @@ def _print_routine_history_persistence_candidate(response: dict[str, Any], stdou
 
 
 
+
+
+def _print_context_persistence_sqlite_backend_api_error_shape_matrix(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("context_persistence_sqlite_backend_api_error_shape_matrix_summary") or {}
+    print("ContextPersistenceSqliteBackendApiErrorShapeMatrix>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_api_error_shape_matrix_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  error_shape_matrix_preview_only: {str(summary.get('error_shape_matrix_preview_only', False)).lower()}", file=stdout)
+    print(f"  scenario_count: {summary.get('scenario_count')}", file=stdout)
+    print(f"  sampled_shape_count: {summary.get('sampled_shape_count')}", file=stdout)
+    print(f"  contains_missing_write_gate_shape: {str(summary.get('contains_missing_write_gate_shape', False)).lower()}", file=stdout)
+    print(f"  contains_invalid_sqlite_db_path_shape: {str(summary.get('contains_invalid_sqlite_db_path_shape', False)).lower()}", file=stdout)
+    print(f"  contains_empty_readback_shape: {str(summary.get('contains_empty_readback_shape', False)).lower()}", file=stdout)
+    print(f"  contains_idempotent_replay_shape: {str(summary.get('contains_idempotent_replay_shape', False)).lower()}", file=stdout)
+    print(f"  contains_malformed_payload_shape: {str(summary.get('contains_malformed_payload_shape', False)).lower()}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  backend_database_read: false", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+
+def _print_context_persistence_sqlite_backend_harmonyos_error_fixture_pack(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary") or {}
+    print("ContextPersistenceSqliteBackendHarmonyOSErrorFixturePack>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_harmonyos_error_fixture_pack_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  error_fixture_pack_preview_only: {str(summary.get('error_fixture_pack_preview_only', False)).lower()}", file=stdout)
+    print(f"  scenario_count: {summary.get('scenario_count')}", file=stdout)
+    print(f"  bad_request_example_count: {summary.get('bad_request_example_count')}", file=stdout)
+    print(f"  contains_missing_write_gate_fixture: {str(summary.get('contains_missing_write_gate_fixture', False)).lower()}", file=stdout)
+    print(f"  contains_invalid_sqlite_db_path_fixture: {str(summary.get('contains_invalid_sqlite_db_path_fixture', False)).lower()}", file=stdout)
+    print(f"  contains_empty_readback_fixture: {str(summary.get('contains_empty_readback_fixture', False)).lower()}", file=stdout)
+    print(f"  contains_idempotent_replay_fixture: {str(summary.get('contains_idempotent_replay_fixture', False)).lower()}", file=stdout)
+    print(f"  contains_malformed_payload_fixture: {str(summary.get('contains_malformed_payload_fixture', False)).lower()}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  backend_database_read: false", file=stdout)
+    print("  fixture_files_written: false", file=stdout)
+    print("  frontend_fixtures_directory_written: false", file=stdout)
+    print("  sqlite_connection_created: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
 
 
 def _print_context_persistence_sqlite_backend_harmonyos_api_fixture_pack(response: dict[str, Any], stdout: TextIO) -> None:

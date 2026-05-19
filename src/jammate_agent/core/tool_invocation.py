@@ -66,6 +66,8 @@ CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_AUTOLOAD_PREVIEW_VERSION = "v
 CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_TO_GUIDANCE_SMOKE_VERSION = "v2_9_4"
 CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_VERSION = "v2_9_5"
 CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION = "v2_9_6"
+CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION = "v2_9_7"
+CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION = "v2_9_8"
 
 
 @dataclass(frozen=True)
@@ -10449,6 +10451,1008 @@ def context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract() -> 
         "next_task_hint": "v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix",
     }
 
+
+
+@dataclass(frozen=True)
+class ContextPersistenceSqliteBackendApiErrorShapeMatrixPayload:
+    """v2_9_7 preview-only SQLite backend API error/blocked shape matrix.
+
+    The matrix stabilizes how HarmonyOS and API callers should recognize
+    expected blocked/error states across the v2_9 SQLite persistence surfaces.
+    It intentionally does not open SQLite, create tables, write rows, mutate
+    server/terminal memory, call the LLM, call tools, or touch the engine.
+    """
+
+    payload_contract_version: str
+    source: str
+    matrix_id: str
+    target_client: str
+    base_url: str
+    error_shape_matrix: list[dict[str, Any]]
+    sampled_blocked_response_shapes: dict[str, Any]
+    harmonyos_client_handling: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    backend_database_read: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    sqlite_rows_read: int = 0
+    fixture_files_written: bool = False
+    frontend_fixtures_directory_written: bool = False
+    terminal_session_memory_loaded_by_api: bool = False
+    terminal_session_memory_loaded_by_cli: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "matrix_id": self.matrix_id,
+            "target_client": self.target_client,
+            "base_url": self.base_url,
+            "error_shape_matrix": _redact_sensitive_values(self.error_shape_matrix),
+            "sampled_blocked_response_shapes": _redact_sensitive_values(self.sampled_blocked_response_shapes),
+            "harmonyos_client_handling": _redact_sensitive_values(self.harmonyos_client_handling),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "backend_database_read": self.backend_database_read,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "sqlite_rows_read": self.sqlite_rows_read,
+            "fixture_files_written": self.fixture_files_written,
+            "frontend_fixtures_directory_written": self.frontend_fixtures_directory_written,
+            "terminal_session_memory_loaded_by_api": self.terminal_session_memory_loaded_by_api,
+            "terminal_session_memory_loaded_by_cli": self.terminal_session_memory_loaded_by_cli,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _compact_sqlite_backend_error_sample(payload: dict[str, Any], *, route_key: str) -> dict[str, Any]:
+    validation = payload.get("validation") if isinstance(payload.get("validation"), dict) else {}
+    return {
+        "route_key": route_key,
+        "accepted": bool(validation.get("accepted", False)),
+        "validation_status": validation.get("status"),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+        "warnings": list(validation.get("warnings") or []),
+        "storage_written": bool(payload.get("storage_written", False) or validation.get("storage_written", False)),
+        "backend_database_written": bool(payload.get("backend_database_written", False) or validation.get("backend_database_written", False)),
+        "backend_database_read": bool(payload.get("backend_database_read", False) or validation.get("backend_database_read", False)),
+        "sqlite_connection_created": bool(payload.get("sqlite_connection_created", False) or validation.get("sqlite_connection_created", False)),
+        "sqlite_tables_created": bool(payload.get("sqlite_tables_created", False) or validation.get("sqlite_tables_created", False)),
+        "sqlite_rows_written": bool(payload.get("sqlite_rows_written", False) or validation.get("sqlite_rows_written", False)),
+        "sqlite_rows_read": int(payload.get("sqlite_rows_read") or validation.get("sqlite_rows_read") or 0),
+        "idempotent_replay": bool(payload.get("idempotent_replay", False) or validation.get("idempotent_replay", False)),
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+def build_context_persistence_sqlite_backend_api_error_shape_matrix_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "context_persistence_sqlite_backend_api_error_shape_matrix",
+) -> ContextPersistenceSqliteBackendApiErrorShapeMatrixPayload:
+    """Build a preview-only matrix of expected v2_9 SQLite API blocked/error shapes."""
+
+    args = dict(arguments or {})
+    trace = trace_id or _first_present(args, "trace_id", "traceId")
+    matrix_id = str(_first_present(args, "matrix_id", "matrixId") or f"sqlite_api_error_shape_matrix_{uuid4().hex[:12]}")
+    target_client = str(_first_present(args, "target_client", "targetClient") or "harmonyos")
+    base_url = str(_first_present(args, "base_url", "baseUrl") or "http://127.0.0.1:8000")
+    safe_missing_readback_path = str(_first_present(args, "missing_readback_sqlite_db_path", "missingReadbackSqliteDbPath") or f"/tmp/jammate_v2_9_7_missing_readback_{uuid4().hex[:8]}.sqlite")
+
+    missing_gate_payload = build_context_persistence_sqlite_backend_store_payload(
+        {
+            "environment": "test",
+            "sqliteDbPath": "/tmp/jammate_v2_9_7_missing_gate.sqlite",
+            "traceId": "trace_v2_9_7_missing_gate",
+            "userDecision": "approved",
+            "confirmationStatus": "user_approved_future_executor_required",
+            "idempotencyKey": "idem_v2_9_7_missing_gate",
+        },
+        trace_id="trace_v2_9_7_missing_gate",
+        source="sqlite_error_shape_matrix_missing_write_gate_sample",
+    ).to_dict()
+    invalid_path_payload = build_context_persistence_sqlite_backend_store_payload(
+        {
+            "environment": "test",
+            "backendPersistenceEnabled": True,
+            "executeBackendPersistence": True,
+            "sqliteDbPath": "/prod/secrets.sqlite",
+            "traceId": "trace_v2_9_7_invalid_path",
+            "userDecision": "approved",
+            "confirmationStatus": "user_approved_future_executor_required",
+            "idempotencyKey": "idem_v2_9_7_invalid_path",
+        },
+        trace_id="trace_v2_9_7_invalid_path",
+        source="sqlite_error_shape_matrix_invalid_db_path_sample",
+    ).to_dict()
+    empty_readback_payload = build_context_persistence_sqlite_backend_readback_context_recovery_payload(
+        {
+            "environment": "test",
+            "backendReadbackEnabled": True,
+            "executeBackendReadback": True,
+            "sqliteDbPath": safe_missing_readback_path,
+            "idempotencyKey": "idem_v2_9_7_missing_readback",
+        },
+        trace_id="trace_v2_9_7_missing_readback",
+        source="sqlite_error_shape_matrix_empty_readback_sample",
+    ).to_dict()
+
+    sampled_blocked_response_shapes = {
+        "missing_write_gate": _compact_sqlite_backend_error_sample(missing_gate_payload, route_key="sqlite_backend_store"),
+        "invalid_sqlite_db_path": _compact_sqlite_backend_error_sample(invalid_path_payload, route_key="sqlite_backend_store"),
+        "empty_readback": _compact_sqlite_backend_error_sample(empty_readback_payload, route_key="sqlite_backend_readback_context_recovery"),
+        "idempotent_replay": {
+            "route_key": "sqlite_backend_store",
+            "accepted": True,
+            "validation_status": "sqlite_backend_store_idempotent_replay",
+            "blocked_reasons": [],
+            "warnings": [],
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "sqlite_connection_created": True,
+            "sqlite_tables_created": True,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "idempotent_replay": True,
+            "client_treats_as_success": True,
+            "client_retry_safe": True,
+        },
+        "malformed_payload": {
+            "route_key": "api_layer",
+            "accepted": False,
+            "validation_status": "request_body_must_be_json_object",
+            "http_status_hint": 422,
+            "blocked_reasons": ["request_body_must_be_json_object"],
+            "warnings": [],
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "client_treats_as_success": False,
+            "client_retry_safe": False,
+        },
+    }
+
+    error_shape_matrix = [
+        {
+            "scenario_key": "missing_write_gate",
+            "route": "POST /agent/context/persistence-sqlite-backend-store/execute",
+            "category": "blocked_preflight",
+            "expected_status": sampled_blocked_response_shapes["missing_write_gate"]["validation_status"],
+            "expected_blocked_reasons": sampled_blocked_response_shapes["missing_write_gate"]["blocked_reasons"],
+            "client_action": "show debug提示：需要 backendPersistenceEnabled=true 与 executeBackendPersistence=true，并等待用户显式确认后再重试。",
+            "safe_to_retry_after_user_fix": True,
+        },
+        {
+            "scenario_key": "invalid_sqlite_db_path",
+            "route": "POST /agent/context/persistence-sqlite-backend-store/execute",
+            "category": "blocked_preflight",
+            "expected_status": sampled_blocked_response_shapes["invalid_sqlite_db_path"]["validation_status"],
+            "expected_blocked_reasons": sampled_blocked_response_shapes["invalid_sqlite_db_path"]["blocked_reasons"],
+            "client_action": "要求使用相对路径、/tmp 或 /mnt/data 下的 .db/.sqlite/.sqlite3 开发路径；不要使用 production/secrets 路径。",
+            "safe_to_retry_after_user_fix": True,
+        },
+        {
+            "scenario_key": "empty_readback",
+            "route": "POST /agent/context/persistence-sqlite-backend-readback-context-recovery/preview",
+            "category": "blocked_empty_state",
+            "expected_status": sampled_blocked_response_shapes["empty_readback"]["validation_status"],
+            "expected_blocked_reasons": sampled_blocked_response_shapes["empty_readback"]["blocked_reasons"],
+            "client_action": "显示“暂无可恢复练习上下文”，并回退到普通 today-practice guidance 或要求先完成一次 persistence write。",
+            "safe_to_retry_after_user_fix": True,
+        },
+        {
+            "scenario_key": "idempotent_replay",
+            "route": "POST /agent/context/persistence-sqlite-backend-store/execute",
+            "category": "accepted_non_write_replay",
+            "expected_status": "sqlite_backend_store_idempotent_replay",
+            "expected_blocked_reasons": [],
+            "client_action": "按成功处理，但提示没有新增写入；可继续 readback/guidance。",
+            "safe_to_retry_after_user_fix": True,
+        },
+        {
+            "scenario_key": "malformed_payload",
+            "route": "any v2_9 SQLite API route",
+            "category": "request_validation_error",
+            "expected_status": "request_body_must_be_json_object",
+            "expected_blocked_reasons": ["request_body_must_be_json_object"],
+            "client_action": "修正请求体为 JSON object，保持 camelCase 输入、读取 snake_case 输出。",
+            "safe_to_retry_after_user_fix": True,
+        },
+    ]
+    response_case_policy = {
+        "request_case": "HarmonyOS may send camelCase request fields.",
+        "response_case": "Backend response fields remain canonical snake_case.",
+        "key_paths_to_check": [
+            "*.validation.status",
+            "*.validation.accepted",
+            "*.validation.blocked_reasons",
+            "*.validation.warnings",
+            "*.storage_written",
+            "*.backend_database_written",
+            "*.backend_database_read",
+            "*.sqlite_connection_created",
+            "*.sqlite_rows_written",
+            "*.sqlite_rows_read",
+            "*.idempotent_replay",
+        ],
+    }
+    harmonyos_client_handling = {
+        "target_client": target_client,
+        "base_url": base_url,
+        "display_priority": ["validation.status", "validation.blocked_reasons", "validation.warnings", "trace_id"],
+        "treat_idempotent_replay_as_success": True,
+        "empty_readback_fallback": "show ordinary guidance without persisted context or ask user to sync/save context first",
+        "malformed_payload_fallback": "client-side request schema fix before retry",
+        "response_case_policy": response_case_policy,
+        "no_side_effect_fields_expected_false": [
+            "llm_called",
+            "tool_executed",
+            "engine_adapter_called",
+            "midi_asset_created",
+            "playback_started",
+            "routine_start_enabled",
+            "post_session_recommendation_card_created",
+        ],
+    }
+    warnings = ["api_error_shape_matrix_preview_only_no_routes_executed"]
+    validation = {
+        "accepted": True,
+        "status": "sqlite_backend_api_error_shape_matrix_ready",
+        "error_shape_matrix_preview_only": True,
+        "scenario_count": len(error_shape_matrix),
+        "sampled_shape_count": len(sampled_blocked_response_shapes),
+        "contains_missing_write_gate_shape": "missing_write_gate" in sampled_blocked_response_shapes,
+        "contains_invalid_sqlite_db_path_shape": "invalid_sqlite_db_path" in sampled_blocked_response_shapes,
+        "contains_empty_readback_shape": "empty_readback" in sampled_blocked_response_shapes,
+        "contains_idempotent_replay_shape": "idempotent_replay" in sampled_blocked_response_shapes,
+        "contains_malformed_payload_shape": "malformed_payload" in sampled_blocked_response_shapes,
+        "matrix_executes_existing_routes": False,
+        "matrix_opens_sqlite": False,
+        "matrix_writes_sqlite": False,
+        "matrix_reads_sqlite": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": warnings,
+        "blocked_reasons": [],
+    }
+    guard = {
+        "context_persistence_sqlite_backend_api_error_shape_matrix": True,
+        "preview_only": True,
+        "matrix_executes_existing_routes": False,
+        "matrix_opens_sqlite": False,
+        "matrix_writes_sqlite": False,
+        "matrix_reads_sqlite": False,
+        "fixture_pack_writes_frontend_fixtures": False,
+        "api_surface_mutates_server_memory": False,
+        "terminal_memory_update_is_cli_local_only": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "payload_calls_llm_by_default": False,
+        "payload_executes_tool": False,
+        "payload_creates_post_session_recommendation_card": False,
+        "payload_calls_accompaniment_generate": False,
+        "payload_calls_engine_adapter": False,
+        "payload_creates_midi_asset": False,
+        "payload_starts_playback": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    return ContextPersistenceSqliteBackendApiErrorShapeMatrixPayload(
+        payload_contract_version=CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+        source=source,
+        matrix_id=matrix_id,
+        target_client=target_client,
+        base_url=base_url,
+        error_shape_matrix=error_shape_matrix,
+        sampled_blocked_response_shapes=sampled_blocked_response_shapes,
+        harmonyos_client_handling=harmonyos_client_handling,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+    )
+
+
+def build_context_persistence_sqlite_backend_api_error_shape_matrix_summary(
+    *,
+    payload: ContextPersistenceSqliteBackendApiErrorShapeMatrixPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else build_context_persistence_sqlite_backend_api_error_shape_matrix_payload({}, source=source).to_dict()
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    sampled = data.get("sampled_blocked_response_shapes") if isinstance(data.get("sampled_blocked_response_shapes"), dict) else {}
+    return {
+        "context_persistence_sqlite_backend_api_error_shape_matrix_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "matrix_id": data.get("matrix_id"),
+        "target_client": data.get("target_client"),
+        "base_url": data.get("base_url"),
+        "scenario_count": validation.get("scenario_count", len(data.get("error_shape_matrix") or [])),
+        "sampled_shape_count": validation.get("sampled_shape_count", len(sampled)),
+        "contains_missing_write_gate_shape": validation.get("contains_missing_write_gate_shape", False),
+        "contains_invalid_sqlite_db_path_shape": validation.get("contains_invalid_sqlite_db_path_shape", False),
+        "contains_empty_readback_shape": validation.get("contains_empty_readback_shape", False),
+        "contains_idempotent_replay_shape": validation.get("contains_idempotent_replay_shape", False),
+        "contains_malformed_payload_shape": validation.get("contains_malformed_payload_shape", False),
+        "idempotent_replay_treated_as_success": bool((data.get("harmonyos_client_handling") or {}).get("treat_idempotent_replay_as_success", False)) if isinstance(data.get("harmonyos_client_handling"), dict) else False,
+        "error_shape_matrix_preview_only": validation.get("error_shape_matrix_preview_only", True),
+        "matrix_executes_existing_routes": validation.get("matrix_executes_existing_routes", False),
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def context_persistence_sqlite_backend_api_error_shape_matrix_contract() -> dict[str, Any]:
+    return {
+        "version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+        "context_persistence_sqlite_backend_api_error_shape_matrix_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+        "spec_route": "GET /agent/context/persistence-sqlite-backend-api-error-shape-matrix/spec",
+        "preview_route": "POST /agent/context/persistence-sqlite-backend-api-error-shape-matrix/preview",
+        "terminal_command": "/context-persistence-sqlite-backend-api-error-shape-matrix",
+        "short_terminal_command": "/sqlite-api-error-shape-matrix",
+        "surface": "SQLite backend persistence API error/blocked response shape matrix",
+        "mode": "preview_only_error_shape_matrix_no_sqlite_connection_no_state_mutation",
+        "execution_status": {
+            "sqlite_backend_api_error_shape_matrix_implemented": True,
+            "error_shape_matrix_preview_only": True,
+            "missing_write_gate_shape_included": True,
+            "invalid_sqlite_db_path_shape_included": True,
+            "empty_readback_shape_included": True,
+            "idempotent_replay_shape_included": True,
+            "malformed_payload_shape_included": True,
+            "database_connection_created": False,
+            "database_write_enabled": False,
+            "database_read_enabled": False,
+            "server_memory_mutation_enabled": False,
+            "local_device_write_enabled": False,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "covered_scenarios": [
+            "missing_write_gate",
+            "invalid_sqlite_db_path",
+            "empty_readback",
+            "idempotent_replay",
+            "malformed_payload",
+        ],
+        "guards": {
+            "matrix_executes_existing_routes": False,
+            "matrix_opens_sqlite": False,
+            "matrix_writes_sqlite": False,
+            "matrix_reads_sqlite": False,
+            "matrix_writes_frontend_fixtures": False,
+            "api_surface_mutates_server_memory": False,
+            "payload_calls_llm_by_default": False,
+            "payload_executes_tool": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        },
+        "uses_contracts": {
+            "sqlite_backend_store": CONTEXT_PERSISTENCE_SQLITE_BACKEND_STORE_VERSION,
+            "sqlite_backend_readback_context_recovery": CONTEXT_PERSISTENCE_SQLITE_BACKEND_READBACK_CONTEXT_RECOVERY_VERSION,
+            "api_memory_debug_pack": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_VERSION,
+            "harmonyos_api_fixture_pack": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION,
+        },
+        "next_task_hint": "v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack",
+    }
+
+
+@dataclass
+class ContextPersistenceSqliteBackendHarmonyOSErrorFixturePackPayload:
+    """v2_9_8 HarmonyOS-facing error fixture pack for SQLite backend persistence APIs.
+
+    The pack translates the v2_9_7 canonical error/blocked response matrix into
+    copyable bad-request fixtures, expected debug/UI messages, retry policies,
+    and response-field assertions. It never executes the packaged requests and
+    never opens, reads, or writes SQLite.
+    """
+
+    payload_contract_version: str
+    source: str
+    error_fixture_pack_id: str
+    target_client: str
+    base_url: str
+    harmonyos_error_fixture_pack: dict[str, Any]
+    bad_request_examples: list[dict[str, Any]]
+    expected_ui_debug_messages: list[dict[str, Any]]
+    retry_policy_catalog: list[dict[str, Any]]
+    response_field_assertion_catalog: list[dict[str, Any]]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    storage_written: bool = False
+    backend_database_written: bool = False
+    backend_database_read: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    sqlite_rows_read: int = 0
+    fixture_files_written: bool = False
+    frontend_fixtures_directory_written: bool = False
+    terminal_session_memory_loaded_by_api: bool = False
+    terminal_session_memory_loaded_by_cli: bool = False
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "error_fixture_pack_id": self.error_fixture_pack_id,
+            "target_client": self.target_client,
+            "base_url": self.base_url,
+            "harmonyos_error_fixture_pack": _redact_sensitive_values(self.harmonyos_error_fixture_pack),
+            "bad_request_examples": _redact_sensitive_values(self.bad_request_examples),
+            "expected_ui_debug_messages": _redact_sensitive_values(self.expected_ui_debug_messages),
+            "retry_policy_catalog": _redact_sensitive_values(self.retry_policy_catalog),
+            "response_field_assertion_catalog": _redact_sensitive_values(self.response_field_assertion_catalog),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "backend_database_read": self.backend_database_read,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "sqlite_rows_read": self.sqlite_rows_read,
+            "fixture_files_written": self.fixture_files_written,
+            "frontend_fixtures_directory_written": self.frontend_fixtures_directory_written,
+            "terminal_session_memory_loaded_by_api": self.terminal_session_memory_loaded_by_api,
+            "terminal_session_memory_loaded_by_cli": self.terminal_session_memory_loaded_by_cli,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _sqlite_error_fixture_request_body(
+    *,
+    scenario_key: str,
+    sqlite_db_path: str,
+    trace: str,
+    base_url: str,
+) -> dict[str, Any]:
+    """Return a copyable request body for one HarmonyOS error fixture case."""
+
+    common_context = {
+        "profile": {"mainGoal": "improvisation", "primaryInstrument": "piano"},
+        "activePlan": {"planId": "plan_error_fixture", "title": "SQLite error fixture plan"},
+        "routineHistory": [{"routineId": "routine_error_fixture", "completedAt": "2026-05-19T09:00:00Z", "minutes": 20}],
+    }
+    if scenario_key == "missing_write_gate":
+        return {
+            "environment": "test",
+            "sqliteDbPath": sqlite_db_path,
+            "traceId": f"{trace}_missing_write_gate",
+            "userDecision": "approved",
+            "confirmationStatus": "user_approved_future_executor_required",
+            "idempotencyKey": "idem_v2_9_8_missing_write_gate",
+            **common_context,
+        }
+    if scenario_key == "invalid_sqlite_db_path":
+        return {
+            "environment": "test",
+            "backendPersistenceEnabled": True,
+            "executeBackendPersistence": True,
+            "sqliteDbPath": "/prod/secrets.sqlite",
+            "traceId": f"{trace}_invalid_path",
+            "userDecision": "approved",
+            "confirmationStatus": "user_approved_future_executor_required",
+            "idempotencyKey": "idem_v2_9_8_invalid_path",
+            **common_context,
+        }
+    if scenario_key == "empty_readback":
+        return {
+            "environment": "test",
+            "backendReadbackEnabled": True,
+            "executeBackendReadback": True,
+            "sqliteDbPath": sqlite_db_path,
+            "traceId": f"{trace}_empty_readback",
+            "idempotencyKey": "idem_v2_9_8_empty_readback",
+        }
+    if scenario_key == "idempotent_replay":
+        return {
+            "environment": "test",
+            "backendPersistenceEnabled": True,
+            "executeBackendPersistence": True,
+            "sqliteDbPath": sqlite_db_path,
+            "traceId": f"{trace}_idempotent_replay",
+            "userDecision": "approved",
+            "confirmationStatus": "user_approved_future_executor_required",
+            "idempotencyKey": "idem_v2_9_8_replay_same_key_twice",
+            "fixtureNote": "Send the same body twice; second response should be sqlite_backend_store_idempotent_replay and treated as success.",
+            **common_context,
+        }
+    if scenario_key == "malformed_payload":
+        return {
+            "rawPayloadKind": "array_or_string_instead_of_json_object",
+            "exampleRejectedBody": ["not", "a", "json", "object"],
+            "expectedHttpStatusHint": 422,
+            "expectedBlockedReason": "request_body_must_be_json_object",
+            "clientFix": "Wrap request fields in a JSON object and send Content-Type: application/json.",
+            "baseUrl": base_url,
+        }
+    return {"scenarioKey": scenario_key, "sqliteDbPath": sqlite_db_path, "traceId": trace}
+
+
+def build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload(
+    args: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "context_persistence_sqlite_backend_harmonyos_error_fixture_pack",
+) -> ContextPersistenceSqliteBackendHarmonyOSErrorFixturePackPayload:
+    """Build a HarmonyOS-facing bad-request/error fixture pack for SQLite persistence APIs.
+
+    This builder consumes the existing v2_9_7 error matrix and converts it into
+    copyable fixtures. It does not execute any fixture request.
+    """
+
+    source_args = dict(args or {})
+    pack_id = str(_first_present(source_args, "error_fixture_pack_id", "errorFixturePackId", "fixture_pack_id", "fixturePackId", "pack_id", "packId") or f"sqlite_harmonyos_error_fixture_pack_{uuid4().hex[:12]}")
+    target_client = str(_first_present(source_args, "target_client", "targetClient") or "harmonyos")
+    base_url = str(_first_present(source_args, "base_url", "baseUrl") or "http://127.0.0.1:8000").rstrip("/")
+    trace = str(trace_id or _first_present(source_args, "trace_id", "traceId") or f"trace_{pack_id}")
+    sqlite_db_path = str(_first_present(source_args, "sqlite_db_path", "sqliteDbPath", "db_path", "dbPath") or "/tmp/jammate_agent_context_error_fixture.sqlite")
+    missing_readback_path = str(_first_present(source_args, "missing_readback_sqlite_db_path", "missingReadbackSqliteDbPath") or "/tmp/jammate_agent_context_error_fixture_missing.sqlite")
+
+    matrix_payload = build_context_persistence_sqlite_backend_api_error_shape_matrix_payload(
+        {
+            **source_args,
+            "baseUrl": base_url,
+            "targetClient": target_client,
+            "traceId": trace,
+            "missingReadbackSqliteDbPath": missing_readback_path,
+        },
+        trace_id=trace,
+        source="sqlite_harmonyos_error_fixture_pack_source_error_matrix",
+    ).to_dict()
+    sampled_shapes = matrix_payload.get("sampled_blocked_response_shapes") if isinstance(matrix_payload.get("sampled_blocked_response_shapes"), dict) else {}
+    matrix_rows = matrix_payload.get("error_shape_matrix") if isinstance(matrix_payload.get("error_shape_matrix"), list) else []
+    rows_by_key = {str(row.get("scenario_key")): row for row in matrix_rows if isinstance(row, dict)}
+
+    scenario_routes = {
+        "missing_write_gate": ("POST", "/agent/context/persistence-sqlite-backend-store/execute"),
+        "invalid_sqlite_db_path": ("POST", "/agent/context/persistence-sqlite-backend-store/execute"),
+        "empty_readback": ("POST", "/agent/context/persistence-sqlite-backend-readback-context-recovery/preview"),
+        "idempotent_replay": ("POST", "/agent/context/persistence-sqlite-backend-store/execute"),
+        "malformed_payload": ("POST", "any v2_9 SQLite API route"),
+    }
+    ui_messages = {
+        "missing_write_gate": "需要用户确认并开启 backendPersistenceEnabled 与 executeBackendPersistence 后，才能写入练习上下文。",
+        "invalid_sqlite_db_path": "SQLite 调试路径不合法；开发期请使用相对路径、/tmp 或 /mnt/data 下的 .db/.sqlite/.sqlite3 文件。",
+        "empty_readback": "暂无可恢复练习上下文，可回退到普通“今天该练什么”或先完成一次上下文保存。",
+        "idempotent_replay": "这是重复提交，后端未新增写入；可按成功处理并继续 readback/guidance。",
+        "malformed_payload": "请求体必须是 JSON object；请检查 ArkTS fetch body 与 Content-Type。",
+    }
+    retry_policies = {
+        "missing_write_gate": {"retry_kind": "after_user_confirmation_and_gate_fix", "safe_to_auto_retry": False, "requires_user_action": True},
+        "invalid_sqlite_db_path": {"retry_kind": "after_developer_path_fix", "safe_to_auto_retry": False, "requires_user_action": False},
+        "empty_readback": {"retry_kind": "after_context_saved_or_fallback_to_ordinary_guidance", "safe_to_auto_retry": False, "requires_user_action": False},
+        "idempotent_replay": {"retry_kind": "already_succeeded_continue_pipeline", "safe_to_auto_retry": True, "requires_user_action": False},
+        "malformed_payload": {"retry_kind": "after_client_schema_fix", "safe_to_auto_retry": False, "requires_user_action": False},
+    }
+
+    bad_request_examples: list[dict[str, Any]] = []
+    expected_ui_debug_messages: list[dict[str, Any]] = []
+    retry_policy_catalog: list[dict[str, Any]] = []
+    response_field_assertion_catalog: list[dict[str, Any]] = []
+    for scenario_key in ["missing_write_gate", "invalid_sqlite_db_path", "empty_readback", "idempotent_replay", "malformed_payload"]:
+        method, path = scenario_routes[scenario_key]
+        sample = sampled_shapes.get(scenario_key) if isinstance(sampled_shapes.get(scenario_key), dict) else {}
+        matrix_row = rows_by_key.get(scenario_key, {})
+        body = _sqlite_error_fixture_request_body(
+            scenario_key=scenario_key,
+            sqlite_db_path=missing_readback_path if scenario_key == "empty_readback" else sqlite_db_path,
+            trace=trace,
+            base_url=base_url,
+        )
+        expected_status = str(sample.get("validation_status") or matrix_row.get("expected_status") or "unknown")
+        blocked_reasons = list(sample.get("blocked_reasons") or matrix_row.get("expected_blocked_reasons") or [])
+        bad_request_examples.append({
+            "scenario_key": scenario_key,
+            "method": method,
+            "path": path,
+            "url": f"{base_url}{path}" if path.startswith("/") else path,
+            "body": _redact_sensitive_values(body),
+            "expected_validation_status": expected_status,
+            "expected_blocked_reasons": blocked_reasons,
+            "expected_http_status_hint": sample.get("http_status_hint", 200 if scenario_key != "malformed_payload" else 422),
+            "client_treats_as_success": bool(sample.get("client_treats_as_success", scenario_key == "idempotent_replay")),
+            "fixture_pack_executes_request": False,
+        })
+        expected_ui_debug_messages.append({
+            "scenario_key": scenario_key,
+            "severity": "info" if scenario_key == "idempotent_replay" else "warning",
+            "title": scenario_key.replace("_", " "),
+            "message": ui_messages[scenario_key],
+            "display_fields": ["validation.status", "validation.blocked_reasons", "validation.warnings", "trace_id"],
+            "fallback_action": matrix_row.get("client_action") or ui_messages[scenario_key],
+        })
+        retry_policy_catalog.append({
+            "scenario_key": scenario_key,
+            "expected_validation_status": expected_status,
+            **retry_policies[scenario_key],
+            "continue_pipeline_after_response": scenario_key == "idempotent_replay",
+        })
+        response_field_assertion_catalog.append({
+            "scenario_key": scenario_key,
+            "assertions": {
+                "validation.status": expected_status,
+                "validation.accepted": bool(sample.get("accepted", False)),
+                "validation.blocked_reasons": blocked_reasons,
+                "storage_written": bool(sample.get("storage_written", False)),
+                "backend_database_written": bool(sample.get("backend_database_written", False)),
+                "backend_database_read": bool(sample.get("backend_database_read", False)),
+                "sqlite_connection_created": bool(sample.get("sqlite_connection_created", False)) if scenario_key != "idempotent_replay" else True,
+                "routine_start_enabled": False,
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+            },
+            "snake_case_response_expected": True,
+        })
+
+    curl_bad_request_examples = []
+    for example in bad_request_examples:
+        body = json.dumps(example["body"], ensure_ascii=False)
+        curl_bad_request_examples.append(
+            f"curl -s -X {example['method']} '{example['url']}' -H 'Content-Type: application/json' -d '{body}'"
+        )
+
+    harmonyos_error_fixture_pack = {
+        "packContractVersion": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
+        "targetClient": target_client,
+        "baseUrl": base_url,
+        "purpose": "Copyable HarmonyOS bad-request/error fixtures for SQLite backend persistence route debugging.",
+        "sourceMatrixVersion": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+        "badRequestExamples": bad_request_examples,
+        "expectedUIDebugMessages": expected_ui_debug_messages,
+        "retryPolicyCatalog": retry_policy_catalog,
+        "responseFieldAssertionCatalog": response_field_assertion_catalog,
+        "curlBadRequestExamples": curl_bad_request_examples,
+        "arktsHandlingSketch": {
+            "requestCasePolicy": "HarmonyOS may send camelCase request fields; backend responses remain canonical snake_case.",
+            "checkStatusPath": "payload.validation.status or summary.validation_status",
+            "checkBlockedReasonsPath": "payload.validation.blocked_reasons or summary.blocked_reasons",
+            "successLikeStatuses": ["sqlite_backend_store_written", "sqlite_backend_store_idempotent_replay"],
+            "displayOnlyGuardFields": ["routine_start_enabled", "engine_adapter_called", "midi_asset_created", "playback_started"],
+        },
+        "manualDebugOrder": [example["scenario_key"] for example in bad_request_examples],
+        "frontendSafeContractNotes": [
+            "This pack itself does not call the packaged error requests.",
+            "It does not write frontend_fixtures/harmonyos; integration branch owns shared frontend fixture files.",
+            "Treat idempotent replay as a success-like response and continue readback/guidance.",
+            "Show empty readback as an ordinary no-context fallback, not as a fatal backend failure.",
+            "All backend response fields are snake_case even when HarmonyOS sends camelCase.",
+        ],
+    }
+    warnings = ["harmonyos_error_fixture_pack_preview_only_no_routes_executed"]
+    validation = {
+        "accepted": True,
+        "status": "sqlite_backend_harmonyos_error_fixture_pack_ready",
+        "error_fixture_pack_preview_only": True,
+        "scenario_count": len(bad_request_examples),
+        "bad_request_example_count": len(bad_request_examples),
+        "ui_debug_message_count": len(expected_ui_debug_messages),
+        "retry_policy_count": len(retry_policy_catalog),
+        "response_assertion_count": len(response_field_assertion_catalog),
+        "contains_missing_write_gate_fixture": True,
+        "contains_invalid_sqlite_db_path_fixture": True,
+        "contains_empty_readback_fixture": True,
+        "contains_idempotent_replay_fixture": True,
+        "contains_malformed_payload_fixture": True,
+        "fixture_pack_calls_existing_routes": False,
+        "fixture_pack_opens_sqlite": False,
+        "fixture_pack_reads_sqlite": False,
+        "fixture_pack_writes_sqlite": False,
+        "fixture_pack_writes_frontend_fixtures": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": warnings,
+        "blocked_reasons": [],
+    }
+    guard = {
+        "context_persistence_sqlite_backend_harmonyos_error_fixture_pack": True,
+        "preview_only": True,
+        "fixture_pack_calls_existing_routes": False,
+        "fixture_pack_opens_sqlite": False,
+        "fixture_pack_reads_sqlite": False,
+        "fixture_pack_writes_sqlite": False,
+        "fixture_pack_writes_frontend_fixtures": False,
+        "api_surface_mutates_server_memory": False,
+        "terminal_memory_update_is_cli_local_only": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "payload_calls_llm_by_default": False,
+        "payload_executes_tool": False,
+        "payload_creates_post_session_recommendation_card": False,
+        "payload_calls_accompaniment_generate": False,
+        "payload_calls_engine_adapter": False,
+        "payload_creates_midi_asset": False,
+        "payload_starts_playback": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    return ContextPersistenceSqliteBackendHarmonyOSErrorFixturePackPayload(
+        payload_contract_version=CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
+        source=source,
+        error_fixture_pack_id=pack_id,
+        target_client=target_client,
+        base_url=base_url,
+        harmonyos_error_fixture_pack=harmonyos_error_fixture_pack,
+        bad_request_examples=bad_request_examples,
+        expected_ui_debug_messages=expected_ui_debug_messages,
+        retry_policy_catalog=retry_policy_catalog,
+        response_field_assertion_catalog=response_field_assertion_catalog,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+    )
+
+
+def build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary(
+    *,
+    payload: ContextPersistenceSqliteBackendHarmonyOSErrorFixturePackPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload({}, source=source).to_dict()
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    return {
+        "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "error_fixture_pack_id": data.get("error_fixture_pack_id"),
+        "target_client": data.get("target_client"),
+        "base_url": data.get("base_url"),
+        "scenario_count": validation.get("scenario_count", len(data.get("bad_request_examples") or [])),
+        "bad_request_example_count": validation.get("bad_request_example_count", len(data.get("bad_request_examples") or [])),
+        "ui_debug_message_count": validation.get("ui_debug_message_count", len(data.get("expected_ui_debug_messages") or [])),
+        "retry_policy_count": validation.get("retry_policy_count", len(data.get("retry_policy_catalog") or [])),
+        "response_assertion_count": validation.get("response_assertion_count", len(data.get("response_field_assertion_catalog") or [])),
+        "contains_missing_write_gate_fixture": validation.get("contains_missing_write_gate_fixture", False),
+        "contains_invalid_sqlite_db_path_fixture": validation.get("contains_invalid_sqlite_db_path_fixture", False),
+        "contains_empty_readback_fixture": validation.get("contains_empty_readback_fixture", False),
+        "contains_idempotent_replay_fixture": validation.get("contains_idempotent_replay_fixture", False),
+        "contains_malformed_payload_fixture": validation.get("contains_malformed_payload_fixture", False),
+        "error_fixture_pack_preview_only": validation.get("error_fixture_pack_preview_only", True),
+        "fixture_pack_calls_existing_routes": validation.get("fixture_pack_calls_existing_routes", False),
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract() -> dict[str, Any]:
+    return {
+        "version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
+        "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
+        "spec_route": "GET /agent/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/spec",
+        "preview_route": "POST /agent/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/preview",
+        "terminal_command": "/context-persistence-sqlite-backend-harmonyos-error-fixture-pack",
+        "short_terminal_command": "/sqlite-harmonyos-error-fixture-pack",
+        "surface": "HarmonyOS SQLite backend persistence error fixture pack",
+        "mode": "preview_only_copyable_bad_request_fixtures_no_sqlite_connection_no_state_mutation",
+        "execution_status": {
+            "sqlite_backend_harmonyos_error_fixture_pack_implemented": True,
+            "error_fixture_pack_preview_only": True,
+            "bad_request_examples_included": True,
+            "ui_debug_messages_included": True,
+            "retry_policy_catalog_included": True,
+            "response_field_assertions_included": True,
+            "database_connection_created": False,
+            "database_write_enabled": False,
+            "database_read_enabled": False,
+            "server_memory_mutation_enabled": False,
+            "frontend_fixtures_directory_write_enabled": False,
+            "local_device_write_enabled": False,
+            "llm_call_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "covered_scenarios": [
+            "missing_write_gate",
+            "invalid_sqlite_db_path",
+            "empty_readback",
+            "idempotent_replay",
+            "malformed_payload",
+        ],
+        "guards": {
+            "fixture_pack_calls_existing_routes": False,
+            "fixture_pack_opens_sqlite": False,
+            "fixture_pack_reads_sqlite": False,
+            "fixture_pack_writes_sqlite": False,
+            "fixture_pack_writes_frontend_fixtures": False,
+            "api_surface_mutates_server_memory": False,
+            "payload_calls_llm_by_default": False,
+            "payload_executes_tool": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        },
+        "uses_contracts": {
+            "api_error_shape_matrix": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+            "harmonyos_api_fixture_pack": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION,
+            "sqlite_backend_store": CONTEXT_PERSISTENCE_SQLITE_BACKEND_STORE_VERSION,
+            "sqlite_backend_readback_context_recovery": CONTEXT_PERSISTENCE_SQLITE_BACKEND_READBACK_CONTEXT_RECOVERY_VERSION,
+        },
+        "next_task_hint": "v2_9_9_agent_context_persistence_sqlite_backend_handoff_completion_pack",
+    }
 
 def _terminal_memory_passthrough_args(args: dict[str, Any]) -> dict[str, Any]:
     allowed = {

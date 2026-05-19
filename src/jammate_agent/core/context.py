@@ -44,6 +44,8 @@ from jammate_agent.core.tool_invocation import (
     CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_TO_GUIDANCE_SMOKE_VERSION,
     CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_VERSION,
     CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -102,6 +104,8 @@ class CapabilityManifest:
     supports_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke: bool = True
     supports_context_persistence_sqlite_backend_api_memory_debug_pack: bool = True
     supports_context_persistence_sqlite_backend_harmonyos_api_fixture_pack: bool = True
+    supports_context_persistence_sqlite_backend_api_error_shape_matrix: bool = True
+    supports_context_persistence_sqlite_backend_harmonyos_error_fixture_pack: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -152,6 +156,8 @@ class CapabilityManifest:
             "supports_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke": self.supports_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke,
             "supports_context_persistence_sqlite_backend_api_memory_debug_pack": self.supports_context_persistence_sqlite_backend_api_memory_debug_pack,
             "supports_context_persistence_sqlite_backend_harmonyos_api_fixture_pack": self.supports_context_persistence_sqlite_backend_harmonyos_api_fixture_pack,
+            "supports_context_persistence_sqlite_backend_api_error_shape_matrix": self.supports_context_persistence_sqlite_backend_api_error_shape_matrix,
+            "supports_context_persistence_sqlite_backend_harmonyos_error_fixture_pack": self.supports_context_persistence_sqlite_backend_harmonyos_error_fixture_pack,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -384,6 +390,8 @@ class ContextBuilder:
                 "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_TO_GUIDANCE_SMOKE_VERSION,
                 "context_persistence_sqlite_backend_api_memory_debug_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_VERSION,
                 "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION,
+                "context_persistence_sqlite_backend_api_error_shape_matrix_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_VERSION,
+                "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_VERSION,
                 "context_persistence_snapshot_context_intake_present": bool(snapshot_context_intake),
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),

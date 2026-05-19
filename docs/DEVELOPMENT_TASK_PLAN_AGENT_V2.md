@@ -1405,3 +1405,125 @@ Next recommended Agent task:
 ```text
 v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix
 ```
+
+## v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix
+
+Status: completed in Agent track.
+
+Goal: stabilize the SQLite backend persistence API error/blocked response shapes so HarmonyOS and backend联调 can show clear debug states instead of treating expected gate blocks as unknown failures.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-api-error-shape-matrix/spec
+POST /agent/context/persistence-sqlite-backend-api-error-shape-matrix/preview
+CLI  /sqlite-api-error-shape-matrix [json_payload]
+CLI  /context-persistence-sqlite-backend-api-error-shape-matrix [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_ERROR_SHAPE_MATRIX_V2_9_7.md
+tests/test_v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix.py
+```
+
+Covered scenarios:
+
+```text
+missing_write_gate
+invalid_sqlite_db_path
+empty_readback
+idempotent_replay
+malformed_payload
+```
+
+Boundary:
+
+```text
+Preview-only matrix generation.
+No packaged route execution.
+No SQLite connection/read/write by the matrix itself.
+No API/server memory mutation.
+No TerminalChatSession memory write.
+No frontend_fixtures/harmonyos write.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No Engine music generation change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack
+```
+
+## v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack
+
+Status: completed in Agent track.
+
+Goal: translate the v2_9_7 SQLite backend API error/blocked shape matrix into HarmonyOS-facing bad-request fixtures, UI/debug messages, retry policies, and response-field assertions for frontend/backend联调.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/spec
+POST /agent/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/preview
+CLI  /sqlite-harmonyos-error-fixture-pack [json_payload]
+CLI  /context-persistence-sqlite-backend-harmonyos-error-fixture-pack [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_ERROR_FIXTURE_PACK_V2_9_8.md
+tests/test_v2_9_8_agent_context_persistence_sqlite_backend_harmonyos_error_fixture_pack.py
+```
+
+Pack content:
+
+```text
+bad_request_examples
+expected_ui_debug_messages
+retry_policy_catalog
+response_field_assertion_catalog
+curlBadRequestExamples
+ArkTS handling sketch
+frontend-safe contract notes
+```
+
+Covered scenarios:
+
+```text
+missing_write_gate
+invalid_sqlite_db_path
+empty_readback
+idempotent_replay
+malformed_payload
+```
+
+Boundary:
+
+```text
+Preview-only fixture generation.
+No packaged route execution.
+No SQLite connection/read/write by the pack itself.
+No API/server memory mutation.
+No TerminalChatSession memory write.
+No frontend_fixtures/harmonyos write.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No Engine music generation change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_9_agent_context_persistence_sqlite_backend_handoff_completion_pack
+```

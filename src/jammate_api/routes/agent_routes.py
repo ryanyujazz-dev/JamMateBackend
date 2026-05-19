@@ -70,6 +70,8 @@ from jammate_agent.core.contracts import (
     context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract,
     context_persistence_sqlite_backend_api_memory_debug_pack_contract,
     context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract,
+    context_persistence_sqlite_backend_api_error_shape_matrix_contract,
+    context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -145,6 +147,10 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_sqlite_backend_api_memory_debug_pack_summary,
     build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload,
     build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary,
+    build_context_persistence_sqlite_backend_api_error_shape_matrix_payload,
+    build_context_persistence_sqlite_backend_api_error_shape_matrix_summary,
+    build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload,
+    build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -1077,6 +1083,113 @@ def preview_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_reques
         "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_version": context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract()["version"],
         "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload": payload.to_dict(),
         "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-sqlite-backend-api-error-shape-matrix/spec")
+def get_context_persistence_sqlite_backend_api_error_shape_matrix_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_api_error_shape_matrix_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-api-error-shape-matrix/preview")
+def preview_context_persistence_sqlite_backend_api_error_shape_matrix_request(request: dict) -> dict:
+    """Preview SQLite backend persistence API blocked/error response shapes.
+
+    This route only returns a stable matrix for frontend/API debugging. It does
+    not execute packaged routes, open SQLite, read/write storage, mutate memory,
+    call LLM, execute tools, start Routine, call the engine, create MIDI, or
+    start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_api_error_shape_matrix_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_api_error_shape_matrix",
+    )
+    summary = build_context_persistence_sqlite_backend_api_error_shape_matrix_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_api_error_shape_matrix_version": context_persistence_sqlite_backend_api_error_shape_matrix_contract()["version"],
+        "context_persistence_sqlite_backend_api_error_shape_matrix_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_api_error_shape_matrix_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/spec")
+def get_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-harmonyos-error-fixture-pack/preview")
+def preview_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_request(request: dict) -> dict:
+    """Build HarmonyOS bad-request/error fixtures for SQLite persistence routes.
+
+    This route returns copyable client fixtures only. It does not execute those
+    requests, open/read/write SQLite, mutate API memory, write frontend fixture
+    files, call LLM/tools/Engine, start Routine, create MIDI, or play audio.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_harmonyos_error_fixture_pack",
+    )
+    summary = build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_version": context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract()["version"],
+        "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary": summary,
         "llm_called": False,
         "tool_executed": False,
         "route_called": False,
