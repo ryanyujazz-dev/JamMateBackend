@@ -1,6 +1,6 @@
 {
-  "version": "v2_8_24",
-  "purpose": "Minimal HarmonyOS-to-Python smoke validation pack.",
+  "version": "v2_10_6",
+  "purpose": "Minimal HarmonyOS-to-Python smoke validation pack, including v2_10_6 Agent today-guidance context handoff routes.",
   "base_url_examples": {
     "local_mac": "http://127.0.0.1:8000",
     "phone_to_mac_lan": "http://<MAC_LAN_IP>:8000"
@@ -375,11 +375,311 @@
       ],
       "notes": "HarmonyOS smoke review payload.",
       "nextActionPreference": "continue"
+    },
+    "harmonyOSRoutineCompletionRecordExecute": {
+      "userId": "harmonyos_smoke_user_001",
+      "sqliteDbPath": "/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite",
+      "environment": "test",
+      "clientConfirmedRecordWrite": true,
+      "idempotencyKey": "harmonyos-smoke:routine-completion:session-001",
+      "routineCompletionRecord": {
+        "sessionId": "harmonyos_smoke_session_001",
+        "title": "Medium Swing guide-tone comping",
+        "style": "medium_swing",
+        "tempo": 104,
+        "actualSeconds": 720,
+        "completed": true,
+        "completedAtUtc": "2026-05-19T15:00:00Z",
+        "notes": "完成 guide-tone comping block，下一次可承接 bossa comping。",
+        "source": "harmonyos_client"
+      },
+      "userPracticeProfile": {
+        "userId": "harmonyos_smoke_user_001",
+        "currentGoal": "提升 jazz comping 稳定性",
+        "preferredStyles": [
+          "medium_swing",
+          "bossa_nova"
+        ],
+        "focusAreas": [
+          "ii-V-I",
+          "comping",
+          "time feel"
+        ],
+        "comfortableTempoRanges": {
+          "medium_swing": [
+            92,
+            124
+          ],
+          "bossa_nova": [
+            100,
+            142
+          ]
+        }
+      },
+      "practicePlan": {
+        "planId": "harmonyos_smoke_plan_001",
+        "title": "HarmonyOS Smoke Comping Plan",
+        "status": "active",
+        "planBlocks": [
+          {
+            "blockId": "block_swing_guidetone",
+            "title": "Medium Swing guide-tone comping",
+            "style": "medium_swing",
+            "tempo": 104,
+            "durationMinutes": 12,
+            "goal": "稳定 ii-V-I guide-tone voice leading"
+          },
+          {
+            "blockId": "block_bossa_comping",
+            "title": "Blue Bossa comping review",
+            "style": "bossa_nova",
+            "tempo": 118,
+            "durationMinutes": 10,
+            "goal": "保持 bossa batida 稳定"
+          }
+        ]
+      }
+    },
+    "harmonyOSTodayPracticeGuidancePreview": {
+      "userId": "harmonyos_smoke_user_001",
+      "sqliteDbPath": "/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite",
+      "environment": "test",
+      "userInput": "今天该练什么？",
+      "availableMinutes": 25,
+      "providerResult": {
+        "ok": true,
+        "provider_name": "fixture",
+        "model": "fixture-model",
+        "content": "{\"guidance_mode\": \"adjust_based_on_history\", \"summary\": \"刚完成 Medium Swing guide-tone comping，今天可以承接计划进入 Blue Bossa comping review，并保留短时间 time feel 复盘。\", \"recommended_focus\": \"Bossa comping stability after recent swing guide-tone work\", \"recommended_blocks\": [{\"blockId\": \"block_bossa_comping\", \"title\": \"Blue Bossa comping review\", \"style\": \"bossa_nova\", \"tempo\": 118, \"durationMinutes\": 10, \"goal\": \"保持 bossa batida 稳定\"}, {\"blockId\": \"block_swing_review\", \"title\": \"Medium Swing time-feel recap\", \"style\": \"medium_swing\", \"tempo\": 104, \"durationMinutes\": 5, \"goal\": \"复盘刚完成的 guide-tone comping\"}], \"routine_candidates\": [{\"candidateId\": \"routine_harmonyos_bossa_review\", \"routineName\": \"Blue Bossa comping review\", \"style\": \"bossa_nova\", \"tempo\": 118, \"durationMinutes\": 10, \"practiceGoal\": \"根据最近完成记录继续推进\"}], \"adjustment_reason\": \"routine history shows Medium Swing guide-tone comping was completed recently\", \"profile_considerations\": \"匹配用户 medium_swing/bossa_nova 偏好与 ii-V-I/comping focus。\", \"user_confirmation_required\": true, \"next_client_actions\": [\"show_guidance\", \"present_routine_candidate\"]}"
+      }
     }
   },
   "playback_assertions": {
     "duration_rule": "Practice duration is controlled by HarmonyOS local timer, not by generating a 20/30/45-minute MIDI file.",
     "loop_rule": "If playback_instruction.client_loop_until_target_duration is true, loop the returned asset until the local timer reaches targetDurationMinutes or user stops.",
     "cache_rule": "Use asset.cache_key as the local cache identity when present."
+  },
+  "agent_today_guidance_product_smoke_sequence": [
+    {
+      "step": 9,
+      "name": "harmonyos_routine_completion_record_execute",
+      "method": "POST",
+      "path": "/agent/harmonyos/routine-completion-record/execute",
+      "request_file": "smoke_agent_harmonyos_routine_completion_record_execute.json",
+      "expect": {
+        "ok": true,
+        "code": "routine_completion_record_persisted",
+        "data.completionRecordPersisted": true
+      }
+    },
+    {
+      "step": 10,
+      "name": "harmonyos_today_practice_guidance_preview",
+      "method": "POST",
+      "path": "/agent/harmonyos/today-practice-guidance/preview",
+      "request_file": "smoke_agent_harmonyos_today_practice_guidance_preview.json",
+      "expect": {
+        "ok": true,
+        "code": "today_guidance_ready",
+        "data.guidancePreviewReady": true
+      }
+    }
+  ],
+  "agent_harmonyos_today_guidance_context_sequence": [
+    {
+      "step": 1,
+      "name": "harmonyos_routine_completion_record_execute",
+      "method": "POST",
+      "path": "/agent/harmonyos/routine-completion-record/execute",
+      "request": {
+        "userId": "harmonyos_smoke_user_001",
+        "sqliteDbPath": "/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite",
+        "environment": "test",
+        "clientConfirmedRecordWrite": true,
+        "idempotencyKey": "harmonyos-smoke:routine-completion:session-001",
+        "routineCompletionRecord": {
+          "sessionId": "harmonyos_smoke_session_001",
+          "title": "Medium Swing guide-tone comping",
+          "style": "medium_swing",
+          "tempo": 104,
+          "actualSeconds": 720,
+          "completed": true,
+          "completedAtUtc": "2026-05-19T15:00:00Z",
+          "notes": "完成 guide-tone comping block，下一次可承接 bossa comping。",
+          "source": "harmonyos_client"
+        },
+        "userPracticeProfile": {
+          "userId": "harmonyos_smoke_user_001",
+          "currentGoal": "提升 jazz comping 稳定性",
+          "preferredStyles": [
+            "medium_swing",
+            "bossa_nova"
+          ],
+          "focusAreas": [
+            "ii-V-I",
+            "comping",
+            "time feel"
+          ],
+          "comfortableTempoRanges": {
+            "medium_swing": [
+              92,
+              124
+            ],
+            "bossa_nova": [
+              100,
+              142
+            ]
+          }
+        },
+        "practicePlan": {
+          "planId": "harmonyos_smoke_plan_001",
+          "title": "HarmonyOS Smoke Comping Plan",
+          "status": "active",
+          "planBlocks": [
+            {
+              "blockId": "block_swing_guidetone",
+              "title": "Medium Swing guide-tone comping",
+              "style": "medium_swing",
+              "tempo": 104,
+              "durationMinutes": 12,
+              "goal": "稳定 ii-V-I guide-tone voice leading"
+            },
+            {
+              "blockId": "block_bossa_comping",
+              "title": "Blue Bossa comping review",
+              "style": "bossa_nova",
+              "tempo": 118,
+              "durationMinutes": 10,
+              "goal": "保持 bossa batida 稳定"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "ok": true,
+        "code": "routine_completion_record_persisted",
+        "data.completionRecordPersisted": true,
+        "data.nextTodayGuidanceCanReadHistory": true,
+        "safety.writesHarmonyOSLocalState": false,
+        "safety.startsRoutine": false,
+        "safety.callsEngineAdapter": false,
+        "safety.createsMidiAsset": false,
+        "safety.startsPlayback": false
+      }
+    },
+    {
+      "step": 2,
+      "name": "harmonyos_today_practice_guidance_preview",
+      "method": "POST",
+      "path": "/agent/harmonyos/today-practice-guidance/preview",
+      "request": {
+        "userId": "harmonyos_smoke_user_001",
+        "sqliteDbPath": "/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite",
+        "environment": "test",
+        "userInput": "今天该练什么？",
+        "availableMinutes": 25,
+        "providerResult": {
+          "ok": true,
+          "provider_name": "fixture",
+          "model": "fixture-model",
+          "content": "{\"guidance_mode\": \"adjust_based_on_history\", \"summary\": \"刚完成 Medium Swing guide-tone comping，今天可以承接计划进入 Blue Bossa comping review，并保留短时间 time feel 复盘。\", \"recommended_focus\": \"Bossa comping stability after recent swing guide-tone work\", \"recommended_blocks\": [{\"blockId\": \"block_bossa_comping\", \"title\": \"Blue Bossa comping review\", \"style\": \"bossa_nova\", \"tempo\": 118, \"durationMinutes\": 10, \"goal\": \"保持 bossa batida 稳定\"}, {\"blockId\": \"block_swing_review\", \"title\": \"Medium Swing time-feel recap\", \"style\": \"medium_swing\", \"tempo\": 104, \"durationMinutes\": 5, \"goal\": \"复盘刚完成的 guide-tone comping\"}], \"routine_candidates\": [{\"candidateId\": \"routine_harmonyos_bossa_review\", \"routineName\": \"Blue Bossa comping review\", \"style\": \"bossa_nova\", \"tempo\": 118, \"durationMinutes\": 10, \"practiceGoal\": \"根据最近完成记录继续推进\"}], \"adjustment_reason\": \"routine history shows Medium Swing guide-tone comping was completed recently\", \"profile_considerations\": \"匹配用户 medium_swing/bossa_nova 偏好与 ii-V-I/comping focus。\", \"user_confirmation_required\": true, \"next_client_actions\": [\"show_guidance\", \"present_routine_candidate\"]}"
+        }
+      },
+      "expect": {
+        "ok": true,
+        "code": "today_guidance_ready",
+        "data.guidancePreviewReady": true,
+        "data.contextSource": "sqlite_backend",
+        "data.routineCandidateCount": "greater_than_or_equal:1",
+        "data.requiresUserConfirmationBeforeRoutineStart": true,
+        "safety.backendSQLiteWriteMayOccur": false,
+        "safety.writesHarmonyOSLocalState": false,
+        "safety.startsRoutine": false,
+        "safety.callsEngineAdapter": false,
+        "safety.createsMidiAsset": false,
+        "safety.startsPlayback": false
+      }
+    }
+  ],
+  "frontend_agent_context_assertions": {
+    "routine_completion_write_route": "POST /agent/harmonyos/routine-completion-record/execute",
+    "today_guidance_preview_route": "POST /agent/harmonyos/today-practice-guidance/preview",
+    "routine_end_rule": "After a routine ends, HarmonyOS may write the completion record but should not show a backend-generated recommendation card immediately.",
+    "today_guidance_rule": "When the user later asks 今天该练什么, call the preview route and require explicit confirmation before starting any routine.",
+    "state_ownership": "HarmonyOS owns local timer/playback/UI state; backend owns only explicit backend context persistence."
+  },
+  "agent_today_guidance_runtime_smoke": {
+    "version": "v2_10_7",
+    "script": "curl_agent_today_guidance_runtime_smoke.sh",
+    "default_base_url": "http://127.0.0.1:8000",
+    "default_sqlite_db_path": "/tmp/jammate_agent_harmonyos_today_guidance_runtime_smoke.sqlite",
+    "purpose": "Run a strict FastAPI runtime smoke for the two HarmonyOS Agent product routes without calling Engine or playback routes.",
+    "command": "bash curl_agent_today_guidance_runtime_smoke.sh http://127.0.0.1:8000 /tmp/jammate_agent_harmonyos_today_guidance_runtime_smoke.sqlite",
+    "sequence": [
+      {
+        "step": 1,
+        "method": "GET",
+        "path": "/health",
+        "expect": {
+          "http_status": 200
+        }
+      },
+      {
+        "step": 2,
+        "method": "POST",
+        "path": "/agent/harmonyos/routine-completion-record/execute",
+        "request_file": "smoke_agent_harmonyos_routine_completion_record_execute.json",
+        "expect": {
+          "http_status": 200,
+          "ok": true,
+          "code": "routine_completion_record_persisted",
+          "data.completionRecordPersisted": true,
+          "data.nextTodayGuidanceCanReadHistory": true,
+          "debug.backendDatabaseWritten": true,
+          "safety.backendSQLiteWriteMayOccur": true,
+          "safety.writesHarmonyOSLocalState": false,
+          "safety.startsRoutine": false,
+          "safety.callsEngineAdapter": false,
+          "safety.createsMidiAsset": false,
+          "safety.startsPlayback": false
+        }
+      },
+      {
+        "step": 3,
+        "method": "POST",
+        "path": "/agent/harmonyos/today-practice-guidance/preview",
+        "request_file": "smoke_agent_harmonyos_today_practice_guidance_preview.json",
+        "expect": {
+          "http_status": 200,
+          "ok": true,
+          "code": "today_guidance_ready",
+          "data.guidancePreviewReady": true,
+          "data.contextSource": "sqlite_backend",
+          "data.requiresUserConfirmationBeforeRoutineStart": true,
+          "debug.sqliteReadbackAttempted": true,
+          "debug.backendDatabaseRead": true,
+          "debug.sqliteRowsRead": "greater_than_or_equal:1",
+          "safety.backendSQLiteWriteMayOccur": false,
+          "safety.writesHarmonyOSLocalState": false,
+          "safety.startsRoutine": false,
+          "safety.callsEngineAdapter": false,
+          "safety.createsMidiAsset": false,
+          "safety.startsPlayback": false
+        }
+      }
+    ],
+    "excluded_routes": [
+      "/accompaniment/generate",
+      "/agent/playback/prepare"
+    ],
+    "side_effects": {
+      "backend_sqlite_write": "only in step 2 and only because the fixture explicitly confirms record write",
+      "backend_sqlite_read": "step 3 reads persisted context",
+      "harmonyos_local_state_write": false,
+      "routine_start": false,
+      "engine_adapter_call": false,
+      "midi_generation": false,
+      "playback_start": false
+    }
   }
 }

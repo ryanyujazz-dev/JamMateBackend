@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_8_24`.
+Current version: `v2_10_8`.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -132,7 +132,7 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_8_24_integration_agent_engine_merge` is the active integration baseline for `integration/agent-engine-merge`. It merges Engine Track `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration` and Agent Track `v2_8_23_agent_v2_8_phase_cleanup_regression_handoff`.
+`v2_10_8_integration_agent_engine_merge` is the active integration baseline for `integration/agent-engine-merge`. It merges Engine Track `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff` and Agent Track `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
 
 Strict boundaries remain active:
 

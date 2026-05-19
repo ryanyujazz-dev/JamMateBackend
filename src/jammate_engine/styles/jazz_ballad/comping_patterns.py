@@ -306,14 +306,19 @@ def _four_beat_region_candidates(motion) -> tuple[PatternCandidate, ...]:
                 event_spec(
                     track="piano",
                     beat=0.5,
-                    role="harmonic",
-                    gesture=simultaneous_onset(),
+                    role="harmonic_motion",
+                    gesture=inner_movement_request(
+                        motion_shape="near_downbeat_upper_whisper",
+                        target_voice_class="projection_group",
+                        phrase_function="near_downbeat_whisper_not_delayed_whisper",
+                    ),
                     expression_hint="soft_whisper",
                     metadata=_event_metadata(
                         phrase_family="temporary_low_level_fallback",
                         phrase_function="near_downbeat_whisper_not_delayed_whisper",
                         phrase_slot="fallback_whisper",
                         timing_intent="swing_upbeat",
+                        gesture_intent="inner_movement",
                     ),
                 ),
             ),
@@ -439,8 +444,12 @@ def _two_beat_region_candidates() -> tuple[PatternCandidate, ...]:
                 event_spec(
                     track="piano",
                     beat=0.5,
-                    role="harmonic_mark",
-                    gesture=simultaneous_onset(),
+                    role="harmonic_motion",
+                    gesture=inner_movement_request(
+                        motion_shape="two_chord_upper_soft_mark",
+                        target_voice_class="projection_group",
+                        phrase_function="two_chord_region_anchor_and_mark",
+                    ),
                     expression_hint="soft_retouch",
                     metadata=_event_metadata(
                         phrase_family="two_chord_soft_marks",
@@ -448,6 +457,7 @@ def _two_beat_region_candidates() -> tuple[PatternCandidate, ...]:
                         phrase_slot="soft_mark",
                         context_gate="two_beat_region",
                         timing_intent="swing_upbeat",
+                        gesture_intent="inner_movement",
                     ),
                 ),
             ),
@@ -485,8 +495,12 @@ def _two_beat_region_candidates() -> tuple[PatternCandidate, ...]:
                 event_spec(
                     track="piano",
                     beat=0.5,
-                    role="harmonic",
-                    gesture=simultaneous_onset(),
+                    role="harmonic_motion",
+                    gesture=inner_movement_request(
+                        motion_shape="two_beat_upper_light_retouch",
+                        target_voice_class="projection_group",
+                        phrase_function="two_beat_light_retouch",
+                    ),
                     expression_hint="soft_retouch",
                     metadata=_event_metadata(
                         phrase_family="temporary_low_level_fallback",
@@ -494,6 +508,7 @@ def _two_beat_region_candidates() -> tuple[PatternCandidate, ...]:
                         phrase_slot="fallback_retouch",
                         context_gate="two_beat_region",
                         timing_intent="swing_upbeat",
+                        gesture_intent="inner_movement",
                     ),
                 ),
             ),

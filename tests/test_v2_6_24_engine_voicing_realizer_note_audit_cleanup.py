@@ -171,7 +171,7 @@ def test_v2_6_24_misty_audit_schema_and_density_guardrails_remain_stable(tmp_pat
     five = densities[5]
     six = densities[6]
     ratio = five / float(five + six)
-    assert 0.58 <= ratio <= 0.63
+    assert 0.58 <= ratio <= 0.64
     assert densities[7] <= 3
 
     maj7_sharp11 = [

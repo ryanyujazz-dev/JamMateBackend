@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
-from typing import Any
+from typing import Any, Mapping
 
 from jammate_engine.core.expression.expression_plan import EventExpression
 from jammate_engine.core.gestures.gesture import GestureKind
@@ -71,6 +71,7 @@ def release_reattacked_motion_voices(
     current_event: PatternEvent,
     current_notes: list[NoteEvent],
     event_by_id: dict[str, PatternEvent],
+    timing_policy: Mapping[str, Any] | None = None,
 ) -> list[NoteEvent]:
     """Trim only voices reattacked by an INNER_MOVEMENT gesture.
 
@@ -81,7 +82,7 @@ def release_reattacked_motion_voices(
 
     if not current_notes:
         return existing_notes
-    current_start = min(float(note.start_beat) for note in current_notes)
+    current_start = min(_performed_start_for_partial_release(note, timing_policy) for note in current_notes)
     selected_keys = {_voice_identity_key(note) for note in current_notes}
     selected_pitches = {int(note.note) for note in current_notes}
     out: list[NoteEvent] = []
@@ -93,14 +94,15 @@ def release_reattacked_motion_voices(
         if float(note.start_beat) >= current_start - 1e-9:
             out.append(note)
             continue
-        note_end = float(note.start_beat) + float(note.duration_beats)
+        prior_start = _performed_start_for_partial_release(note, timing_policy)
+        note_end = prior_start + float(note.duration_beats)
         if note_end <= current_start + 1e-9:
             out.append(note)
             continue
         if _voice_identity_key(note) not in selected_keys and int(note.note) not in selected_pitches:
             out.append(note)
             continue
-        new_duration = max(0.05, current_start - float(note.start_beat))
+        new_duration = max(0.05, current_start - prior_start)
         if new_duration >= float(note.duration_beats) - 1e-9:
             out.append(note)
             continue
@@ -118,6 +120,31 @@ def release_reattacked_motion_voices(
         )
         out.append(replace(note, duration_beats=new_duration, pedal_debug=pedal_debug))
     return out
+
+
+def _performed_start_for_partial_release(note: NoteEvent, timing_policy: Mapping[str, Any] | None = None) -> float:
+    """Return the rendered timing-grid start used for partial reattack trims.
+
+    This mirrors the expression-layer duration adjacency rule without importing
+    the MIDI renderer.  The realized NoteEvent still carries logical grid
+    timing; trimming against the performed swing upbeat avoids a small audible
+    gap between a held Ballad foundation and a swung 1& upper re-touch.
+    """
+
+    intent = str(getattr(note, "timing_intent", "auto") or "auto")
+    beat = float(getattr(note, "start_beat", 0.0) or 0.0)
+    if intent in {"straight_even", "literal"}:
+        return beat
+    policy = dict(timing_policy or {})
+    feel = str(policy.get("feel", "straight")).strip().lower()
+    if intent == "swing_upbeat" or (intent == "auto" and feel == "swing"):
+        half_grid = float(policy.get("half_beat_grid", 0.5) or 0.5)
+        ratio = float(policy.get("swing_ratio", 2.0 / 3.0) or (2.0 / 3.0))
+        whole = int(beat)
+        frac = beat - whole
+        if abs(frac - half_grid) < 1e-6:
+            return whole + ratio
+    return beat
 
 
 def sync_piano_audit_realized_notes(audit_events: list[dict[str, Any]], final_notes: list[NoteEvent]) -> list[dict[str, Any]]:

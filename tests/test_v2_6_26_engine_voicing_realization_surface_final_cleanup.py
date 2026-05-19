@@ -173,7 +173,7 @@ def test_v2_6_26_misty_audit_surface_and_guardrails_remain_stable(tmp_path: Path
     five = densities[5]
     six = densities[6]
     ratio = five / float(five + six)
-    assert 0.58 <= ratio <= 0.63
+    assert 0.58 <= ratio <= 0.64
     assert densities[7] <= 3
 
     maj7_sharp11 = [

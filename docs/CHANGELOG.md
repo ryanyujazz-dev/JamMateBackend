@@ -1,5 +1,16 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_10_8 — Integration Agent / Engine Merge
+
+- Merged Engine Track through `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff`.
+- Merged Agent Track through `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
+- Reconciled integration-owned shared files: `README.md`, `agent.md`, `VERSION`, `pyproject.toml`, `docs/ARCHITECTURE_V2.md`, `docs/API_CONTRACT_V2.md`, `docs/DEVELOPMENT_TASK_PLAN_V2.md`, `docs/CHANGELOG.md`, and `frontend_fixtures/harmonyos/`.
+- Preserved the direct HarmonyOS `/accompaniment/generate` response shape with top-level `ok`, `asset.format`, `asset.midi_base64`, `asset.midi_path`, `asset.cache_key`, and top-level `debug_summary`.
+- Preserved Agent contract / trace / tool-preview / context-guidance / persistence-preview / HarmonyOS product route boundaries without moving Agent logic into Engine runtime.
+- Preserved V2 Pattern / Gesture / Expression / Voicing / Realization boundaries; no new music-generation rule or V1 code migration was added by this integration pass.
+- Engine-side changes since v2_8_24 include frozen Ballad SPREAD guardrails, lower-foundation calibration, safe extension frequency calibration, and phrase-state anchor policy.
+- Agent-side changes since v2_8_24 include routine-completion-record persistence, today-practice-guidance with SQLite backend readback, and HarmonyOS runtime smoke.
+
 ## v2_8_24 — Integration Agent / Engine Merge
 
 - Merged Engine Track through `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration`.
@@ -289,3 +300,22 @@ This file is the chronological project history. README should remain the project
 - Introduced sibling `jammate_agent` and `jammate_api` packages beside `jammate_engine`.
 - Preserved direct engine accompaniment generation without LLM/Agent.
 - Added Agent playback preparation route backed by the engine adapter.
+
+## v2_10_6 — HarmonyOS Agent Today Guidance Integration Handoff
+
+- Integrated the `v2_10_5` HarmonyOS-facing Agent wrappers into repository frontend fixtures.
+- Added ArkTS client methods and types for:
+  - `POST /agent/harmonyos/routine-completion-record/execute`
+  - `POST /agent/harmonyos/today-practice-guidance/preview`
+- Added copyable smoke payloads and curl smoke steps for the completion-record → today-guidance loop.
+- Updated the shared API contract with the product-facing response envelopes and safety boundaries.
+- Runtime music generation behavior is unchanged; no Engine files were modified.
+
+## v2_10_7 — HarmonyOS Agent Today Guidance Runtime Smoke
+
+- Added a strict runtime smoke script for the two HarmonyOS-facing Agent practice-coach routes.
+- The script starts from copyable smoke fixtures, injects a caller-provided SQLite DB path and unique idempotency key, calls the running FastAPI service with curl, and asserts the returned JSON fields.
+- The strict runtime smoke validates completion-record persistence followed by today-guidance SQLite readback while intentionally skipping `/accompaniment/generate` and `/agent/playback/prepare`.
+- Added `docs/INTEGRATION_HARMONYOS_AGENT_TODAY_GUIDANCE_RUNTIME_SMOKE_V2_10_7.md` and updated HarmonyOS smoke README / smoke pack metadata.
+- Runtime music generation behavior is unchanged; no Engine files were modified.
+

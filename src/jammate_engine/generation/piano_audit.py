@@ -10,6 +10,19 @@ from jammate_engine.midi.render_pipeline import performed_beat
 
 PIANO_MUSICAL_AUDIT_CONTRACT_VERSION = "v2_2_38"
 PIANO_DROP_PROJECTION_AUDIT_VERSION = "v2_6_29"
+PIANO_LOWER_UPPER_GAP_AUDIT_VERSION = "v2_6_31"
+PIANO_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_VERSION = "v2_6_33"
+PIANO_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION = "v2_6_33"
+PIANO_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION = "v2_6_34"
+PIANO_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION = "v2_6_35"
+PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION = "v2_6_36"
+PIANO_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION = "v2_6_37"
+PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION = "v2_6_39"
+PIANO_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION = "v2_6_40"
+PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION = "v2_6_41"
+PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION = "v2_6_42"
+PIANO_LOWER_FOUNDATION_FINAL_PASS_VERSION = "v2_6_43"
+PIANO_BALLAD_SPREAD_VOICING_PHASE_SUMMARY_VERSION = "v2_6_44"
 
 
 @dataclass(frozen=True)
@@ -41,6 +54,12 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         )
         for index, row in enumerate(debug.get("piano_musical_audit_events") or [], start=1)
     ]
+    phrase_state_boundary_review = _annotate_phrase_state_boundary_review(rows)
+    post_continuity_checkpoint = _annotate_post_continuity_listening_checkpoint(
+        rows,
+        debug.get("timing_policy") or {},
+    )
+    same_chord_reattack_continuity = _annotate_same_chord_reattack_continuity(rows)
     warnings: list[str] = []
 
     style_counter: Counter[str] = Counter()
@@ -118,8 +137,52 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
     lower_foundation_low_register_events_by_grouping: Counter[str] = Counter()
     lower_foundation_low_register_events_by_density: Counter[str] = Counter()
     lower_foundation_span_violation_events = 0
+    lower_upper_group_gaps: list[int] = []
+    lower_upper_group_gap_stats_by_grouping: dict[str, list[int]] = {}
+    lower_upper_group_gap_stats_by_density: dict[str, list[int]] = {}
+    lower_upper_group_gap_stats_by_recipe: dict[str, list[int]] = {}
+    lower_upper_group_gap_too_tight_events_by_grouping: Counter[str] = Counter()
+    lower_upper_group_gap_too_wide_events_by_grouping: Counter[str] = Counter()
+    spread_gap_aware_micro_events_by_recipe: Counter[str] = Counter()
+    spread_gap_aware_micro_events_by_grouping: Counter[str] = Counter()
+    spread_gap_aware_original_gaps: list[int] = []
+    spread_gap_aware_replacement_gaps: list[int] = []
+    spread_wide_gap_deferred_events_by_recipe: Counter[str] = Counter()
+    spread_wide_gap_deferred_events_by_grouping: Counter[str] = Counter()
+    spread_wide_gap_deferred_original_gaps: list[int] = []
+    spread_wide_gap_deferred_replacement_gaps: list[int] = []
+    spread_wide_gap_source_inventory_events_by_recipe: Counter[str] = Counter()
+    spread_wide_gap_source_inventory_events_by_grouping: Counter[str] = Counter()
+    spread_wide_gap_source_inventory_best_replacement_gaps: list[int] = []
+    spread_wide_gap_source_inventory_top_stable_replacement_gaps: list[int] = []
+    spread_wide_gap_source_inventory_runtime_enabled_events = 0
+    spread_wide_gap_source_inventory_recommendation_counter: Counter[str] = Counter()
+    spread_phrase_scope_wide_gap_events_by_recipe: Counter[str] = Counter()
+    spread_phrase_scope_wide_gap_events_by_grouping: Counter[str] = Counter()
+    spread_phrase_scope_wide_gap_original_gaps: list[int] = []
+    spread_phrase_scope_wide_gap_realized_gaps: list[int] = []
+    spread_phrase_scope_wide_gap_state_protected_events = 0
+    spread_phrase_scope_wide_gap_runtime_realization_events = 0
+    spread_phrase_state_boundary_helper_cleanup_events = 0
+    spread_phrase_state_boundary_helper_anchor_events = 0
+    spread_phrase_state_boundary_helper_legacy_alias_match_events = 0
+    spread_phrase_state_boundary_helper_previous_state_anchor_events = 0
+    spread_phrase_state_anchor_policy_boundary_events = 0
+    spread_phrase_state_anchor_policy_boundary_gate_required_events = 0
+    spread_phrase_state_anchor_policy_boundary_scopes: Counter[str] = Counter()
+    spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events = 0
+    lower_upper_gap_comfort_min = 2
+    lower_upper_gap_comfort_max = 7
     all_midi_notes: list[int] = []
     top_note_ge_75_events = 0
+    major_seventh_events = 0
+    major_seventh_color_events = 0
+    major_seventh_safe_color_events = 0
+    major_seventh_unnotated_sharp11_events = 0
+    major_seventh_explicit_sharp11_events = 0
+    major_seventh_colors: Counter[str] = Counter()
+    major_seventh_colors_by_chord: dict[str, Counter[str]] = {}
+    major_seventh_non_safe_color_events_by_chord: Counter[str] = Counter()
 
     for row in rows:
         style_counter.update([str(debug.get("style", "unknown"))])
@@ -158,6 +221,91 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             spread_upper_drop_method_by_grouping.setdefault(grouping_key, Counter()).update([method])
             spread_upper_drop_method_by_recipe.setdefault(recipe_key, Counter()).update([method])
             spread_upper_drop_events_by_density.update([density_key])
+        group_gap_value = row.get("group_gap_semitones")
+        if group_gap_value is not None:
+            try:
+                group_gap = int(group_gap_value)
+            except (TypeError, ValueError):
+                group_gap = None
+            if group_gap is not None:
+                density_key = str(row["density"] or "unknown")
+                grouping_key = str(row["functional_grouping"] or "unknown")
+                recipe_key = str(row["recipe_id"] or "unknown")
+                lower_upper_group_gaps.append(group_gap)
+                lower_upper_group_gap_stats_by_grouping.setdefault(grouping_key, []).append(group_gap)
+                lower_upper_group_gap_stats_by_density.setdefault(density_key, []).append(group_gap)
+                lower_upper_group_gap_stats_by_recipe.setdefault(recipe_key, []).append(group_gap)
+                if group_gap < lower_upper_gap_comfort_min:
+                    lower_upper_group_gap_too_tight_events_by_grouping.update([grouping_key])
+                if group_gap > lower_upper_gap_comfort_max:
+                    lower_upper_group_gap_too_wide_events_by_grouping.update([grouping_key])
+        if row.get("spread_gap_aware_candidate_scope_micro_calibration_applied"):
+            spread_gap_aware_micro_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_gap_aware_micro_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            try:
+                spread_gap_aware_original_gaps.append(int(float(row.get("spread_gap_aware_original_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_gap_aware_replacement_gaps.append(int(float(row.get("spread_gap_aware_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+        if row.get("spread_wide_gap_deferred_outlier_strategy_deferred"):
+            spread_wide_gap_deferred_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_wide_gap_deferred_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            try:
+                spread_wide_gap_deferred_original_gaps.append(int(float(row.get("spread_wide_gap_deferred_original_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_wide_gap_deferred_replacement_gaps.append(int(float(row.get("spread_wide_gap_deferred_best_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+        if row.get("spread_wide_gap_source_inventory_plan_active"):
+            spread_wide_gap_source_inventory_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_wide_gap_source_inventory_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            recommendation = str(row.get("spread_wide_gap_source_inventory_recommended_next_boundary") or "unknown")
+            spread_wide_gap_source_inventory_recommendation_counter.update([recommendation])
+            if row.get("spread_wide_gap_source_inventory_runtime_replacement_enabled"):
+                spread_wide_gap_source_inventory_runtime_enabled_events += 1
+            try:
+                spread_wide_gap_source_inventory_best_replacement_gaps.append(int(float(row.get("spread_wide_gap_source_inventory_best_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_wide_gap_source_inventory_top_stable_replacement_gaps.append(int(float(row.get("spread_wide_gap_source_inventory_top_stable_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+        if row.get("spread_phrase_state_boundary_helper_cleanup_applied"):
+            spread_phrase_state_boundary_helper_cleanup_events += 1
+        if row.get("voicing_state_advance_anchor_enabled"):
+            spread_phrase_state_boundary_helper_anchor_events += 1
+            if tuple(row.get("voicing_state_advance_anchor_notes") or []) == tuple(row.get("spread_phrase_scope_wide_gap_state_advance_override_notes") or []):
+                spread_phrase_state_boundary_helper_legacy_alias_match_events += 1
+        if row.get("previous_voicing_state_state_advance_anchor_enabled"):
+            spread_phrase_state_boundary_helper_previous_state_anchor_events += 1
+        if row.get("spread_phrase_state_anchor_policy_boundary_applied"):
+            spread_phrase_state_anchor_policy_boundary_events += 1
+            spread_phrase_state_anchor_policy_boundary_scopes.update([str(row.get("spread_phrase_state_anchor_policy_boundary_scope") or "unknown")])
+        if row.get("voicing_state_advance_anchor_policy_gate_required"):
+            spread_phrase_state_anchor_policy_boundary_gate_required_events += 1
+        if row.get("previous_voicing_state_state_advance_anchor_policy_gate_consumed"):
+            spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events += 1
+        if row.get("spread_phrase_scope_wide_gap_candidate_availability_applied"):
+            spread_phrase_scope_wide_gap_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_phrase_scope_wide_gap_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            if row.get("spread_phrase_scope_wide_gap_state_advance_protected"):
+                spread_phrase_scope_wide_gap_state_protected_events += 1
+            if row.get("spread_phrase_scope_wide_gap_runtime_realization_enabled"):
+                spread_phrase_scope_wide_gap_runtime_realization_events += 1
+            try:
+                spread_phrase_scope_wide_gap_original_gaps.append(int(float(row.get("spread_phrase_scope_wide_gap_original_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_phrase_scope_wide_gap_realized_gaps.append(int(float(row.get("spread_phrase_scope_wide_gap_realized_gap"))))
+            except (TypeError, ValueError):
+                pass
         lower_notes = [int(note) for note in row.get("lower_group_notes") or []]
         if lower_notes:
             density_key = str(row["density"] or "unknown")
@@ -210,6 +358,22 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             all_midi_notes.extend(midi_notes)
             if max(midi_notes) >= 75:
                 top_note_ge_75_events += 1
+        major_color_detail = _major_seventh_color_detail(row)
+        if major_color_detail["is_major_seventh"]:
+            major_seventh_events += 1
+            colors = tuple(major_color_detail["colors"])
+            if colors:
+                major_seventh_color_events += 1
+            major_seventh_colors.update(colors)
+            chord_key = str(row.get("chord_symbol") or "unknown")
+            major_seventh_colors_by_chord.setdefault(chord_key, Counter()).update(colors)
+            if major_color_detail["safe_only"]:
+                major_seventh_safe_color_events += 1
+            if major_color_detail["unnotated_sharp11"]:
+                major_seventh_unnotated_sharp11_events += 1
+                major_seventh_non_safe_color_events_by_chord.update([chord_key])
+            if major_color_detail["explicit_sharp11"]:
+                major_seventh_explicit_sharp11_events += 1
         note_counts.append(int(row["realized_note_count"]))
         if row["duration_beats"] is not None:
             durations.append(float(row["duration_beats"]))
@@ -315,6 +479,209 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         "lower_foundation_low_register_events_by_grouping": dict(lower_foundation_low_register_events_by_grouping),
         "lower_foundation_low_register_events_by_density": dict(lower_foundation_low_register_events_by_density),
         "lower_foundation_span_violation_events": lower_foundation_span_violation_events,
+        "lower_upper_gap_audit_version": PIANO_LOWER_UPPER_GAP_AUDIT_VERSION,
+        "lower_upper_gap_comfort_min": lower_upper_gap_comfort_min,
+        "lower_upper_gap_comfort_max": lower_upper_gap_comfort_max,
+        "lower_upper_group_gap_min": min(lower_upper_group_gaps) if lower_upper_group_gaps else None,
+        "lower_upper_group_gap_max": max(lower_upper_group_gaps) if lower_upper_group_gaps else None,
+        "lower_upper_group_gap_average": round(mean(lower_upper_group_gaps), 3) if lower_upper_group_gaps else 0.0,
+        "lower_upper_group_gap_by_grouping": _numeric_stats_by_key(lower_upper_group_gap_stats_by_grouping),
+        "lower_upper_group_gap_by_density": _numeric_stats_by_key(lower_upper_group_gap_stats_by_density),
+        "lower_upper_group_gap_by_recipe": _numeric_stats_by_key(lower_upper_group_gap_stats_by_recipe),
+        "lower_upper_group_gap_too_tight_events": sum(lower_upper_group_gap_too_tight_events_by_grouping.values()),
+        "lower_upper_group_gap_too_tight_events_by_grouping": dict(lower_upper_group_gap_too_tight_events_by_grouping),
+        "lower_upper_group_gap_too_wide_events": sum(lower_upper_group_gap_too_wide_events_by_grouping.values()),
+        "lower_upper_group_gap_too_wide_events_by_grouping": dict(lower_upper_group_gap_too_wide_events_by_grouping),
+        "spread_gap_aware_candidate_scope_micro_calibration_version": PIANO_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_VERSION,
+        "spread_gap_aware_candidate_scope_micro_calibration_events": sum(spread_gap_aware_micro_events_by_recipe.values()),
+        "spread_gap_aware_candidate_scope_micro_calibration_events_by_recipe": dict(spread_gap_aware_micro_events_by_recipe),
+        "spread_gap_aware_candidate_scope_micro_calibration_events_by_grouping": dict(spread_gap_aware_micro_events_by_grouping),
+        "spread_gap_aware_original_gap_min": min(spread_gap_aware_original_gaps) if spread_gap_aware_original_gaps else None,
+        "spread_gap_aware_original_gap_max": max(spread_gap_aware_original_gaps) if spread_gap_aware_original_gaps else None,
+        "spread_gap_aware_replacement_gap_min": min(spread_gap_aware_replacement_gaps) if spread_gap_aware_replacement_gaps else None,
+        "spread_gap_aware_replacement_gap_max": max(spread_gap_aware_replacement_gaps) if spread_gap_aware_replacement_gaps else None,
+        "spread_wide_gap_deferred_outlier_strategy_version": PIANO_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION,
+        "spread_wide_gap_deferred_outlier_strategy_events": sum(spread_wide_gap_deferred_events_by_recipe.values()),
+        "spread_wide_gap_deferred_outlier_strategy_deferred_events": sum(spread_wide_gap_deferred_events_by_recipe.values()),
+        "spread_wide_gap_deferred_outlier_strategy_events_by_recipe": dict(spread_wide_gap_deferred_events_by_recipe),
+        "spread_wide_gap_deferred_outlier_strategy_events_by_grouping": dict(spread_wide_gap_deferred_events_by_grouping),
+        "spread_wide_gap_deferred_original_gap_min": min(spread_wide_gap_deferred_original_gaps) if spread_wide_gap_deferred_original_gaps else None,
+        "spread_wide_gap_deferred_original_gap_max": max(spread_wide_gap_deferred_original_gaps) if spread_wide_gap_deferred_original_gaps else None,
+        "spread_wide_gap_deferred_replacement_gap_min": min(spread_wide_gap_deferred_replacement_gaps) if spread_wide_gap_deferred_replacement_gaps else None,
+        "spread_wide_gap_deferred_replacement_gap_max": max(spread_wide_gap_deferred_replacement_gaps) if spread_wide_gap_deferred_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_plan_version": PIANO_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION,
+        "spread_wide_gap_source_inventory_plan_events": sum(spread_wide_gap_source_inventory_events_by_recipe.values()),
+        "spread_wide_gap_source_inventory_plan_events_by_recipe": dict(spread_wide_gap_source_inventory_events_by_recipe),
+        "spread_wide_gap_source_inventory_plan_events_by_grouping": dict(spread_wide_gap_source_inventory_events_by_grouping),
+        "spread_wide_gap_source_inventory_best_replacement_gap_min": min(spread_wide_gap_source_inventory_best_replacement_gaps) if spread_wide_gap_source_inventory_best_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_best_replacement_gap_max": max(spread_wide_gap_source_inventory_best_replacement_gaps) if spread_wide_gap_source_inventory_best_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap_min": min(spread_wide_gap_source_inventory_top_stable_replacement_gaps) if spread_wide_gap_source_inventory_top_stable_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap_max": max(spread_wide_gap_source_inventory_top_stable_replacement_gaps) if spread_wide_gap_source_inventory_top_stable_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_runtime_replacement_enabled_events": spread_wide_gap_source_inventory_runtime_enabled_events,
+        "spread_wide_gap_source_inventory_recommended_next_boundaries": dict(spread_wide_gap_source_inventory_recommendation_counter),
+        "spread_phrase_scope_wide_gap_candidate_availability_version": PIANO_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION,
+        "spread_phrase_scope_wide_gap_candidate_availability_events": sum(spread_phrase_scope_wide_gap_events_by_recipe.values()),
+        "spread_phrase_scope_wide_gap_candidate_availability_events_by_recipe": dict(spread_phrase_scope_wide_gap_events_by_recipe),
+        "spread_phrase_scope_wide_gap_candidate_availability_events_by_grouping": dict(spread_phrase_scope_wide_gap_events_by_grouping),
+        "spread_phrase_scope_wide_gap_original_gap_min": min(spread_phrase_scope_wide_gap_original_gaps) if spread_phrase_scope_wide_gap_original_gaps else None,
+        "spread_phrase_scope_wide_gap_original_gap_max": max(spread_phrase_scope_wide_gap_original_gaps) if spread_phrase_scope_wide_gap_original_gaps else None,
+        "spread_phrase_scope_wide_gap_realized_gap_min": min(spread_phrase_scope_wide_gap_realized_gaps) if spread_phrase_scope_wide_gap_realized_gaps else None,
+        "spread_phrase_scope_wide_gap_realized_gap_max": max(spread_phrase_scope_wide_gap_realized_gaps) if spread_phrase_scope_wide_gap_realized_gaps else None,
+        "spread_phrase_scope_wide_gap_state_advance_protected_events": spread_phrase_scope_wide_gap_state_protected_events,
+        "spread_phrase_scope_wide_gap_runtime_realization_enabled_events": spread_phrase_scope_wide_gap_runtime_realization_events,
+        "spread_phrase_state_boundary_helper_cleanup_version": PIANO_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION,
+        "spread_phrase_state_boundary_helper_cleanup_events": spread_phrase_state_boundary_helper_cleanup_events,
+        "spread_phrase_state_boundary_helper_state_anchor_events": spread_phrase_state_boundary_helper_anchor_events,
+        "spread_phrase_state_boundary_helper_legacy_alias_match_events": spread_phrase_state_boundary_helper_legacy_alias_match_events,
+        "spread_phrase_state_boundary_helper_previous_state_anchor_events": spread_phrase_state_boundary_helper_previous_state_anchor_events,
+        "spread_phrase_state_anchor_policy_boundary_version": PIANO_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION,
+        "spread_phrase_state_anchor_policy_boundary_events": spread_phrase_state_anchor_policy_boundary_events,
+        "spread_phrase_state_anchor_policy_boundary_gate_required_events": spread_phrase_state_anchor_policy_boundary_gate_required_events,
+        "spread_phrase_state_anchor_policy_boundary_scopes": dict(spread_phrase_state_anchor_policy_boundary_scopes),
+        "spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events": spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events,
+        "spread_phrase_state_boundary_review_version": PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION,
+        "spread_phrase_state_boundary_review_events": int(phrase_state_boundary_review.get("review_events", 0)),
+        "spread_phrase_state_boundary_review_next_events_found": int(phrase_state_boundary_review.get("next_events_found", 0)),
+        "spread_phrase_state_boundary_review_state_anchor_matches_override_events": int(phrase_state_boundary_review.get("state_anchor_matches_override_events", 0)),
+        "spread_phrase_state_boundary_review_realized_notes_not_used_as_state_events": int(phrase_state_boundary_review.get("realized_notes_not_used_as_state_events", 0)),
+        "spread_phrase_state_boundary_review_voice_leading_previous_matches_override_events": int(phrase_state_boundary_review.get("voice_leading_previous_matches_override_events", 0)),
+        "spread_phrase_state_boundary_review_warning_events": int(phrase_state_boundary_review.get("warning_events", 0)),
+        "spread_phrase_state_boundary_review_next_event_top_motion_max": phrase_state_boundary_review.get("next_event_top_motion_max"),
+        "spread_phrase_state_boundary_review_next_event_voice_leading_distance_max": phrase_state_boundary_review.get("next_event_voice_leading_distance_max"),
+        "spread_phrase_state_boundary_review_next_event_smoothness_labels": dict(phrase_state_boundary_review.get("next_event_smoothness_labels", {})),
+        "ballad_spread_post_continuity_listening_checkpoint_version": PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION,
+        "post_continuity_problem_bars_checked": list(post_continuity_checkpoint.get("problem_bars_checked", [])),
+        "post_continuity_problem_bars_found": list(post_continuity_checkpoint.get("problem_bars_found", [])),
+        "post_continuity_problem_bar_retouch_events": int(post_continuity_checkpoint.get("retouch_events", 0)),
+        "post_continuity_foundation_sustain_events": int(post_continuity_checkpoint.get("foundation_sustain_events", 0)),
+        "post_continuity_projection_only_retouch_events": int(post_continuity_checkpoint.get("projection_only_retouch_events", 0)),
+        "post_continuity_anchor_projection_trim_events": int(post_continuity_checkpoint.get("anchor_projection_trim_events", 0)),
+        "post_continuity_warning_events": int(post_continuity_checkpoint.get("warning_events", 0)),
+        "post_continuity_checkpoint_passed": bool(post_continuity_checkpoint.get("checkpoint_passed", False)),
+        "ballad_spread_same_chord_reattack_continuity_version": PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION,
+        "same_chord_reattack_regions_reviewed": int(same_chord_reattack_continuity.get("regions_reviewed", 0)),
+        "same_chord_reattack_events": int(same_chord_reattack_continuity.get("reattack_events", 0)),
+        "same_chord_reattack_region_voicing_reused_events": int(same_chord_reattack_continuity.get("region_voicing_reused_events", 0)),
+        "same_chord_reattack_exact_voicing_reuse_events": int(same_chord_reattack_continuity.get("exact_voicing_reuse_events", 0)),
+        "same_chord_reattack_foundation_stable_events": int(same_chord_reattack_continuity.get("foundation_stable_events", 0)),
+        "same_chord_reattack_projection_or_retouch_events": int(same_chord_reattack_continuity.get("projection_or_retouch_events", 0)),
+        "same_chord_reattack_fresh_revoicing_events": int(same_chord_reattack_continuity.get("fresh_revoicing_events", 0)),
+        "same_chord_reattack_changed_voicing_warning_events": int(same_chord_reattack_continuity.get("changed_voicing_warning_events", 0)),
+        "same_chord_reattack_continuity_warning_events": int(same_chord_reattack_continuity.get("warning_events", 0)),
+        "same_chord_reattack_continuity_checkpoint_passed": bool(same_chord_reattack_continuity.get("checkpoint_passed", False)),
+        "ballad_spread_safe_extension_frequency_calibration_version": PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION,
+        "major_seventh_safe_extension_events": major_seventh_events,
+        "major_seventh_safe_extension_color_events": major_seventh_color_events,
+        "major_seventh_safe_extension_warm_color_events": major_seventh_safe_color_events,
+        "major_seventh_safe_extension_degree_counts": dict(major_seventh_colors),
+        "major_seventh_safe_extension_degree_counts_by_chord": {key: dict(counter) for key, counter in major_seventh_colors_by_chord.items()},
+        "major_seventh_safe_extension_non_safe_color_events_by_chord": dict(major_seventh_non_safe_color_events_by_chord),
+        "major_seventh_unnotated_sharp11_events": major_seventh_unnotated_sharp11_events,
+        "major_seventh_explicit_sharp11_events": major_seventh_explicit_sharp11_events,
+        "major_seventh_safe_extension_preferred_colors": ["9", "13"],
+        "major_seventh_safe_extension_checkpoint_passed": bool(
+            major_seventh_events
+            and major_seventh_unnotated_sharp11_events == 0
+            and set(major_seventh_colors).issubset({"9", "13"})
+        ),
+        "ballad_spread_lower_foundation_weight_register_final_pass_version": PIANO_LOWER_FOUNDATION_FINAL_PASS_VERSION,
+        "lower_foundation_weight_register_final_pass_behavior_preserving": True,
+        "lower_foundation_weight_register_final_pass_density_lane_unchanged": bool(
+            dict(density_counter) == {"5": 124, "6": 72}
+        ),
+        "lower_foundation_weight_register_final_pass_grouping_mix_unchanged": bool(
+            dict(grouping_counter) == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
+        ),
+        "lower_foundation_weight_register_final_pass_low_register_threshold": 43,
+        "lower_foundation_weight_register_final_pass_profile_by_grouping": _lower_foundation_final_profile(
+            lower_foundation_note_stats_by_grouping,
+            lower_foundation_span_stats_by_grouping,
+            lower_foundation_low_register_events_by_grouping,
+            lower_upper_group_gap_stats_by_grouping,
+        ),
+        "lower_foundation_weight_register_final_pass_recipe_profile": dict(lower_foundation_recipe_counter),
+        "lower_foundation_weight_register_final_pass_2plus3_not_too_thin": bool(
+            dict(grouping_counter).get("2+3", 0) >= 100
+            and lower_foundation_note_stats_by_grouping.get("2+3")
+            and round(mean(lower_foundation_note_stats_by_grouping["2+3"]), 3) <= 53.0
+            and lower_foundation_low_register_events_by_grouping.get("2+3", 0) <= 4
+        ),
+        "lower_foundation_weight_register_final_pass_2plus4_pressure_accepted": bool(
+            dict(grouping_counter).get("2+4", 0) >= 60
+            and lower_foundation_low_register_events_by_grouping.get("2+4", 0) <= 30
+            and lower_upper_group_gap_too_tight_events_by_grouping.get("2+4", 0) == 0
+        ),
+        "lower_foundation_weight_register_final_pass_3plus3_no_low_mud": bool(
+            dict(grouping_counter).get("3+3", 0) <= 8
+            and lower_foundation_note_stats_by_grouping.get("3+3")
+            and min(lower_foundation_note_stats_by_grouping["3+3"]) >= 45
+            and max(lower_foundation_span_stats_by_grouping.get("3+3", [0])) <= 12
+        ),
+        "lower_foundation_weight_register_final_pass_1plus4_low_frequency_role_preserved": bool(
+            4 <= dict(grouping_counter).get("1+4", 0) <= 10
+            and lower_foundation_note_stats_by_grouping.get("1+4")
+            and min(lower_foundation_note_stats_by_grouping["1+4"]) >= 45
+        ),
+        "lower_foundation_weight_register_final_pass_checkpoint_passed": bool(
+            dict(density_counter) == {"5": 124, "6": 72}
+            and dict(grouping_counter) == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
+            and lower_foundation_span_violation_events == 0
+            and (max(lower_foundation_spans) if lower_foundation_spans else 0) <= 12
+            and sum(lower_upper_group_gap_too_tight_events_by_grouping.values()) == 0
+            and sum(lower_upper_group_gap_too_wide_events_by_grouping.values()) == 0
+            and lower_foundation_low_register_events_by_grouping.get("2+4", 0) <= 30
+            and lower_foundation_low_register_events_by_grouping.get("2+3", 0) <= 4
+            and all_midi_notes
+            and min(all_midi_notes) >= 40
+            and max(all_midi_notes) <= 74
+        ),
+        "ballad_spread_voicing_phase_summary_version": PIANO_BALLAD_SPREAD_VOICING_PHASE_SUMMARY_VERSION,
+        "ballad_spread_voicing_phase_summary_behavior_preserving": True,
+        "ballad_spread_voicing_phase_summary_handoff_ready": bool(
+            dict(density_counter) == {"5": 124, "6": 72}
+            and dict(grouping_counter) == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
+            and lower_foundation_span_violation_events == 0
+            and sum(lower_upper_group_gap_too_tight_events_by_grouping.values()) == 0
+            and sum(lower_upper_group_gap_too_wide_events_by_grouping.values()) == 0
+            and top_note_ge_75_events == 0
+            and all_midi_notes
+            and max(all_midi_notes) <= 74
+            and major_seventh_unnotated_sharp11_events == 0
+            and bool(post_continuity_checkpoint.get("checkpoint_passed", False))
+            and bool(same_chord_reattack_continuity.get("checkpoint_passed", False))
+            and int(phrase_state_boundary_review.get("warning_events", 0)) == 0
+        ),
+        "ballad_spread_voicing_phase_summary_frozen_guardrails": {
+            "density_counts": {"5": 124, "6": 72},
+            "grouping_counts": {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4},
+            "disabled_default_densities": {"4": 0, "7": 0},
+            "lower_upper_too_tight_events": 0,
+            "lower_upper_too_wide_events": 0,
+            "top_note_max_allowed": 74,
+            "top_note_ge_75_events": 0,
+            "unnotated_major_seventh_sharp11_events": 0,
+            "lower_foundation_span_violation_events": 0,
+            "post_continuity_checkpoint_passed": True,
+            "same_chord_reattack_continuity_checkpoint_passed": True,
+            "phrase_state_boundary_warning_events": 0,
+        },
+        "ballad_spread_voicing_phase_summary_completed_milestones": [
+            "v2_6_30_1plus4_lower_foundation_calibration",
+            "v2_6_31_lower_upper_gap_audit",
+            "v2_6_32_gap_aware_candidate_scope_micro_calibration",
+            "v2_6_35_phrase_scope_wide_gap_candidate_availability",
+            "v2_6_37_state_boundary_helper_cleanup",
+            "v2_6_40_state_anchor_policy_boundary",
+            "v2_6_41_same_chord_reattack_continuity",
+            "v2_6_42_safe_extension_frequency",
+            "v2_6_43_lower_foundation_weight_register_final_pass",
+        ],
+        "ballad_spread_voicing_phase_summary_next_candidate_areas": [
+            "medium_swing_open_drop_method_lock_calibration",
+            "bossa_voicing_policy_boundary_and_default_texture",
+            "upper_structure_policy_gated_runtime_expansion",
+            "minor_dominant_altered_light_gate_plan",
+        ],
         "low_note_min": min(all_midi_notes) if all_midi_notes else None,
         "top_note_max": max(all_midi_notes) if all_midi_notes else None,
         "top_note_ge_75_events": top_note_ge_75_events,
@@ -414,6 +781,20 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     lines.append(f"- SPREAD upper drop projection methods by grouping: `{summary.get('spread_upper_drop_projection_methods_by_grouping')}`")
     lines.append(f"- Lower foundation note min / max / average: `{summary.get('lower_foundation_note_min')}` / `{summary.get('lower_foundation_note_max')}` / `{summary.get('lower_foundation_note_average')}`")
     lines.append(f"- Lower foundation span max / average: `{summary.get('lower_foundation_span_max')}` / `{summary.get('lower_foundation_span_average')}`")
+    lines.append(f"- Lower/upper group gap min / max / average: `{summary.get('lower_upper_group_gap_min')}` / `{summary.get('lower_upper_group_gap_max')}` / `{summary.get('lower_upper_group_gap_average')}`")
+    lines.append(f"- Lower/upper group gap by grouping: `{summary.get('lower_upper_group_gap_by_grouping')}`")
+    lines.append(f"- Lower/upper group gap tight / wide events: `{summary.get('lower_upper_group_gap_too_tight_events')}` / `{summary.get('lower_upper_group_gap_too_wide_events')}`")
+    lines.append(f"- Phrase-scope wide-gap availability events: `{summary.get('spread_phrase_scope_wide_gap_candidate_availability_events')}`")
+    lines.append(f"- Phrase-scope wide-gap original / realized gap: `{summary.get('spread_phrase_scope_wide_gap_original_gap_min')}`-`{summary.get('spread_phrase_scope_wide_gap_original_gap_max')}` / `{summary.get('spread_phrase_scope_wide_gap_realized_gap_min')}`-`{summary.get('spread_phrase_scope_wide_gap_realized_gap_max')}`")
+    lines.append(f"- Phrase-scope state-protected / runtime-realized events: `{summary.get('spread_phrase_scope_wide_gap_state_advance_protected_events')}` / `{summary.get('spread_phrase_scope_wide_gap_runtime_realization_enabled_events')}`")
+    lines.append(f"- Phrase state boundary review events / warnings: `{summary.get('spread_phrase_state_boundary_review_events')}` / `{summary.get('spread_phrase_state_boundary_review_warning_events')}`")
+    lines.append(f"- Phrase state boundary next-event motion max: top `{summary.get('spread_phrase_state_boundary_review_next_event_top_motion_max')}`, voice-leading `{summary.get('spread_phrase_state_boundary_review_next_event_voice_leading_distance_max')}`")
+    lines.append(f"- Post-continuity checkpoint pass / warnings: `{summary.get('post_continuity_checkpoint_passed')}` / `{summary.get('post_continuity_warning_events')}`")
+    lines.append(f"- Post-continuity bars found: `{summary.get('post_continuity_problem_bars_found')}`")
+    lines.append(f"- Same-chord reattack reuse / warnings: `{summary.get('same_chord_reattack_region_voicing_reused_events')}` / `{summary.get('same_chord_reattack_continuity_warning_events')}`")
+    lines.append(f"- Same-chord reattack exact voicing / foundation stable: `{summary.get('same_chord_reattack_exact_voicing_reuse_events')}` / `{summary.get('same_chord_reattack_foundation_stable_events')}`")
+    lines.append(f"- Maj7 safe extension colors: `{summary.get('major_seventh_safe_extension_degree_counts')}`; unnotated #11 events: `{summary.get('major_seventh_unnotated_sharp11_events')}`")
+    lines.append(f"- Maj7 safe extension checkpoint: `{summary.get('major_seventh_safe_extension_checkpoint_passed')}`")
     lines.append(f"- Lower foundation notes by grouping: `{summary.get('lower_foundation_notes_by_grouping')}`")
     lines.append(f"- Lower foundation recipe counts: `{summary.get('lower_foundation_recipe_counts')}`")
     lines.append(f"- Lower foundation low-register events: `{summary.get('lower_foundation_low_register_events')}`")
@@ -520,6 +901,328 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     return "\n".join(lines)
 
 
+
+
+def _annotate_same_chord_reattack_continuity(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit same-chord reattack voicing stability inside one chord region.
+
+    v2_6_41 is intentionally conservative.  The realizer already owns the
+    one-default-voicing-per-chord-region cache, which is the correct boundary
+    for Ballad re-touches: repeated touches should reuse the same voicing unless
+    an event explicitly asks for fresh revoicing.  This audit makes that behavior
+    visible before any future same-chord movement/fill exceptions are added.
+    """
+
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = (str(row.get("region_id") or ""), str(row.get("chord_symbol") or ""), str(row.get("event_id") or "").split("_")[-1] if False else "piano")
+        grouped.setdefault(key, []).append(row)
+
+    regions_reviewed = 0
+    reattack_events = 0
+    region_voicing_reused_events = 0
+    exact_voicing_reuse_events = 0
+    foundation_stable_events = 0
+    projection_or_retouch_events = 0
+    fresh_revoicing_events = 0
+    changed_voicing_warning_events = 0
+    warning_events = 0
+
+    for group_rows in grouped.values():
+        ordered = sorted(group_rows, key=lambda row: (float(row.get("onset_beat") or 0.0), int(row.get("index") or 0)))
+        if len(ordered) <= 1:
+            continue
+        anchor = ordered[0]
+        anchor_event_id = str(anchor.get("event_id") or "")
+        anchor_notes = tuple(int(note) for note in anchor.get("midi_notes") or ())
+        anchor_lower = tuple(int(note) for note in anchor.get("lower_group_notes") or ())
+        if not anchor_notes:
+            continue
+        regions_reviewed += 1
+        for row in ordered[1:]:
+            reattack_events += 1
+            notes = tuple(int(note) for note in row.get("midi_notes") or ())
+            lower = tuple(int(note) for note in row.get("lower_group_notes") or ())
+            reused = bool(row.get("region_voicing_reused")) and str(row.get("region_voicing_source_event_id") or "") == anchor_event_id
+            exact_reuse = notes == anchor_notes
+            foundation_stable = lower == anchor_lower
+            projection_or_retouch = str(row.get("gesture_type") or "") in {"inner_movement", "simultaneous_onset"} and str(row.get("expression_profile") or "") in {"soft_retouch", "soft_answer", "soft_whisper"}
+            warning = not reused or not exact_reuse or not foundation_stable
+            if reused:
+                region_voicing_reused_events += 1
+            else:
+                fresh_revoicing_events += 1
+            if exact_reuse:
+                exact_voicing_reuse_events += 1
+            else:
+                changed_voicing_warning_events += 1
+            if foundation_stable:
+                foundation_stable_events += 1
+            if projection_or_retouch:
+                projection_or_retouch_events += 1
+            if warning:
+                warning_events += 1
+            row.update(
+                {
+                    "same_chord_reattack_continuity_version": PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION,
+                    "same_chord_reattack_continuity_applied": True,
+                    "same_chord_reattack_anchor_event_id": anchor_event_id,
+                    "same_chord_reattack_region_voicing_reused": reused,
+                    "same_chord_reattack_exact_voicing_reuse": exact_reuse,
+                    "same_chord_reattack_foundation_stable": foundation_stable,
+                    "same_chord_reattack_projection_or_retouch": projection_or_retouch,
+                    "same_chord_reattack_warning": warning,
+                    "same_chord_reattack_scope": "same_chord_region_cached_voicing_reuse_until_explicit_fresh_revoicing",
+                    "same_chord_reattack_no_density_lane_change": True,
+                    "same_chord_reattack_no_selector_change": True,
+                }
+            )
+
+    checkpoint_passed = reattack_events > 0 and warning_events == 0 and region_voicing_reused_events == reattack_events
+    return {
+        "regions_reviewed": regions_reviewed,
+        "reattack_events": reattack_events,
+        "region_voicing_reused_events": region_voicing_reused_events,
+        "exact_voicing_reuse_events": exact_voicing_reuse_events,
+        "foundation_stable_events": foundation_stable_events,
+        "projection_or_retouch_events": projection_or_retouch_events,
+        "fresh_revoicing_events": fresh_revoicing_events,
+        "changed_voicing_warning_events": changed_voicing_warning_events,
+        "warning_events": warning_events,
+        "checkpoint_passed": checkpoint_passed,
+    }
+
+
+def _annotate_post_continuity_listening_checkpoint(
+    rows: list[dict[str, Any]],
+    timing_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Review the accepted v2_6_38 Ballad 1& continuity patch.
+
+    This is observational only.  It focuses on the three performance bars the
+    user flagged before returning to voicing work.  The check verifies that the
+    1& touch is a projection-group re-touch and that lower/foundation notes
+    from the anchor sustain through that re-touch rather than being cut off.
+    """
+
+    problem_bars = (41, 63, 95)
+    problem_bar_set = set(problem_bars)
+    rows_by_region: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        rows_by_region.setdefault(str(row.get("region_id") or ""), []).append(row)
+
+    bars_found: list[int] = []
+    retouch_events = 0
+    foundation_sustain_events = 0
+    projection_only_retouch_events = 0
+    anchor_projection_trim_events = 0
+    warning_events = 0
+
+    for row in rows:
+        bar = int(float(row.get("onset_beat") or 0.0) // 4) + 1
+        if bar not in problem_bar_set:
+            continue
+        if row.get("pattern_id") != "ballad_piano_downbeat_1and_whisper":
+            continue
+        if row.get("gesture_type") != "inner_movement":
+            continue
+        if float(row.get("local_beat") or 0.0) != 0.5:
+            continue
+
+        retouch_events += 1
+        bars_found.append(bar)
+        region_rows = rows_by_region.get(str(row.get("region_id") or ""), [])
+        anchor_candidates = [
+            candidate
+            for candidate in region_rows
+            if candidate.get("pattern_id") == "ballad_piano_downbeat_1and_whisper"
+            and candidate.get("gesture_type") == "simultaneous_onset"
+            and float(candidate.get("onset_beat") or 0.0) < float(row.get("onset_beat") or 0.0)
+        ]
+        anchor = anchor_candidates[-1] if anchor_candidates else None
+        retouch_notes = [note for note in row.get("realized_notes") or [] if isinstance(note, Mapping)]
+        anchor_notes = [note for note in (anchor or {}).get("realized_notes", []) if isinstance(note, Mapping)]
+
+        retouch_starts = [_performed_note_start(note, timing_policy) for note in retouch_notes]
+        retouch_ends = [_performed_note_end(note, timing_policy) for note in retouch_notes]
+        retouch_start = min(retouch_starts) if retouch_starts else None
+        retouch_end = max(retouch_ends) if retouch_ends else None
+        anchor_ends = [_performed_note_end(note, timing_policy) for note in anchor_notes]
+
+        foundation_sustain_count = 0
+        projection_trim_count = 0
+        if retouch_end is not None:
+            foundation_sustain_count = sum(1 for end in anchor_ends if end >= retouch_end - 1e-6)
+        if retouch_start is not None:
+            projection_trim_count = sum(1 for end in anchor_ends if abs(end - retouch_start) < 1e-6)
+
+        projection_only = bool(retouch_notes) and {str(note.get("projection_ref") or "") for note in retouch_notes} == {"projection_group"}
+        foundation_ok = foundation_sustain_count >= 2
+        trim_ok = projection_trim_count >= 3
+        warning = not anchor or not projection_only or not foundation_ok or not trim_ok
+        if projection_only:
+            projection_only_retouch_events += 1
+        if foundation_ok:
+            foundation_sustain_events += 1
+        if trim_ok:
+            anchor_projection_trim_events += 1
+        if warning:
+            warning_events += 1
+
+        row.update(
+            {
+                "post_continuity_listening_checkpoint_version": PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION,
+                "post_continuity_listening_checkpoint_applied": True,
+                "post_continuity_problem_bar": bar,
+                "post_continuity_anchor_event_id": (anchor or {}).get("event_id"),
+                "post_continuity_retouch_projection_only": projection_only,
+                "post_continuity_foundation_notes_sustaining_through_retouch": foundation_sustain_count,
+                "post_continuity_projection_notes_trimmed_to_retouch_start": projection_trim_count,
+                "post_continuity_warning": warning,
+                "post_continuity_scope": "accepted_ballad_1and_whisper_continuity_observational_only",
+                "post_continuity_no_voicing_selector_change": True,
+            }
+        )
+
+    checkpoint_passed = (
+        sorted(bars_found) == list(problem_bars)
+        and retouch_events == len(problem_bars)
+        and foundation_sustain_events == len(problem_bars)
+        and projection_only_retouch_events == len(problem_bars)
+        and anchor_projection_trim_events == len(problem_bars)
+        and warning_events == 0
+    )
+    return {
+        "problem_bars_checked": list(problem_bars),
+        "problem_bars_found": sorted(bars_found),
+        "retouch_events": retouch_events,
+        "foundation_sustain_events": foundation_sustain_events,
+        "projection_only_retouch_events": projection_only_retouch_events,
+        "anchor_projection_trim_events": anchor_projection_trim_events,
+        "warning_events": warning_events,
+        "checkpoint_passed": checkpoint_passed,
+    }
+
+
+def _performed_note_start(note: Mapping[str, Any], timing_policy: Mapping[str, Any]) -> float:
+    return performed_beat(
+        float(note.get("start_beat", 0.0) or 0.0),
+        str(note.get("timing_intent") or "auto"),
+        timing_policy,
+    )
+
+
+def _performed_note_end(note: Mapping[str, Any], timing_policy: Mapping[str, Any]) -> float:
+    return _performed_note_start(note, timing_policy) + float(note.get("duration_beats", 0.0) or 0.0)
+
+
+def _annotate_phrase_state_boundary_review(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Review v2_6_35 state-advance protection at the next-event boundary.
+
+    This is observational only.  It verifies that rows realized with the
+    phrase-scope wide-gap candidate still advance subsequent voicing continuity
+    from the protected phrase anchor rather than from the substituted notes.
+    """
+
+    review_events = 0
+    next_events_found = 0
+    state_anchor_matches_override_events = 0
+    realized_notes_not_used_as_state_events = 0
+    voice_leading_previous_matches_override_events = 0
+    warning_events = 0
+    top_motions: list[float] = []
+    distances: list[float] = []
+    smoothness_labels: Counter[str] = Counter()
+
+    for index, row in enumerate(rows[:-1]):
+        if not row.get("spread_phrase_scope_wide_gap_candidate_availability_applied"):
+            continue
+        review_events += 1
+        next_row = rows[index + 1]
+        next_events_found += 1
+        override_notes = tuple(int(note) for note in row.get("spread_phrase_scope_wide_gap_state_advance_override_notes") or [])
+        realized_notes = tuple(int(note) for note in row.get("midi_notes") or [])
+        next_previous_state_notes = tuple(int(note) for note in next_row.get("previous_voicing_state_previous_notes") or [])
+        next_voice_leading_previous_notes = tuple(int(note) for note in next_row.get("voice_leading_previous_notes") or [])
+
+        state_anchor_matches = bool(override_notes) and next_previous_state_notes == override_notes
+        voice_leading_previous_matches = bool(override_notes) and next_voice_leading_previous_notes == override_notes
+        realized_notes_not_used = bool(realized_notes) and next_previous_state_notes != realized_notes
+        next_top_motion = _safe_float(next_row.get("voice_leading_top_voice_motion"))
+        next_distance = _safe_float(next_row.get("voice_leading_distance"))
+        next_label = str(next_row.get("voice_leading_smoothness_label") or "unknown")
+        if next_top_motion is not None:
+            top_motions.append(abs(next_top_motion))
+        if next_distance is not None:
+            distances.append(next_distance)
+        smoothness_labels.update([next_label])
+
+        # This boundary review is intentionally conservative: it should flag a
+        # warning only when the protected state was not actually used or when the
+        # immediate next event shows a large continuity jump.
+        warning = (
+            not state_anchor_matches
+            or not voice_leading_previous_matches
+            or not realized_notes_not_used
+            or (next_top_motion is not None and abs(next_top_motion) > 2.0)
+            or (next_distance is not None and next_distance > 6.0)
+        )
+        if state_anchor_matches:
+            state_anchor_matches_override_events += 1
+        if voice_leading_previous_matches:
+            voice_leading_previous_matches_override_events += 1
+        if realized_notes_not_used:
+            realized_notes_not_used_as_state_events += 1
+        if warning:
+            warning_events += 1
+
+        row.update(
+            {
+                "spread_phrase_state_boundary_review_version": PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION,
+                "spread_phrase_state_boundary_review_applied": True,
+                "spread_phrase_state_boundary_review_next_event_id": next_row.get("event_id"),
+                "spread_phrase_state_boundary_review_next_chord_symbol": next_row.get("chord_symbol"),
+                "spread_phrase_state_boundary_review_next_midi_notes": list(next_row.get("midi_notes") or []),
+                "spread_phrase_state_boundary_review_state_anchor_matches_override": state_anchor_matches,
+                "spread_phrase_state_boundary_review_voice_leading_previous_matches_override": voice_leading_previous_matches,
+                "spread_phrase_state_boundary_review_realized_notes_not_used_as_state": realized_notes_not_used,
+                "spread_phrase_state_boundary_review_next_top_motion": next_top_motion,
+                "spread_phrase_state_boundary_review_next_voice_leading_distance": next_distance,
+                "spread_phrase_state_boundary_review_next_smoothness_label": next_label,
+                "spread_phrase_state_boundary_review_warning": warning,
+                "spread_phrase_state_boundary_review_scope": "next_event_state_advance_boundary_observational_only",
+                "spread_phrase_state_boundary_review_no_runtime_change": True,
+            }
+        )
+        next_row.update(
+            {
+                "spread_phrase_state_boundary_review_after_protected_event": True,
+                "spread_phrase_state_boundary_review_previous_protected_event_id": row.get("event_id"),
+                "spread_phrase_state_boundary_review_previous_override_notes": list(override_notes),
+                "spread_phrase_state_boundary_review_previous_realized_notes": list(realized_notes),
+                "spread_phrase_state_boundary_review_state_anchor_matches_override": state_anchor_matches,
+            }
+        )
+
+    return {
+        "review_events": review_events,
+        "next_events_found": next_events_found,
+        "state_anchor_matches_override_events": state_anchor_matches_override_events,
+        "realized_notes_not_used_as_state_events": realized_notes_not_used_as_state_events,
+        "voice_leading_previous_matches_override_events": voice_leading_previous_matches_override_events,
+        "warning_events": warning_events,
+        "next_event_top_motion_max": max(top_motions) if top_motions else None,
+        "next_event_voice_leading_distance_max": round(max(distances), 3) if distances else None,
+        "next_event_smoothness_labels": dict(smoothness_labels),
+    }
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
 def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, Any], expression_audit_row: Mapping[str, Any] | None = None) -> dict[str, Any]:
     event = dict(raw.get("pattern_event") or {})
     expression = dict(raw.get("expression") or {})
@@ -585,6 +1288,9 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "closed_voicing_lowest_note_floor": voicing_metadata.get("closed_voicing_lowest_note_floor"),
         "region_voicing_reused": bool(voicing_metadata.get("region_voicing_reused", False)),
         "region_voicing_source_event_id": voicing_metadata.get("region_voicing_source_event_id"),
+        "same_chord_reattack_continuity_metadata_version": voicing_metadata.get("same_chord_reattack_continuity_version"),
+        "same_chord_reattack_continuity_region_cache_reuse": bool(voicing_metadata.get("same_chord_reattack_continuity_region_cache_reuse", False)),
+        "same_chord_reattack_continuity_contract": voicing_metadata.get("same_chord_reattack_continuity_contract"),
         "voicing_texture_scope_id": _texture_scope_id_from_metadata(voicing_metadata),
         "voicing_texture_contrast_role": _texture_contrast_role_from_metadata(voicing_metadata),
         "voicing_texture_open_method_weights": _texture_open_method_weights_from_metadata(voicing_metadata),
@@ -599,9 +1305,112 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "spread_upper_projection_metadata": upper_projection_metadata,
         "lower_group_recipe_id": voicing_metadata.get("lower_group_recipe_id"),
         "lower_group_notes": [int(note) for note in voicing_metadata.get("lower_group_notes") or []],
+        "group_gap_semitones": voicing_metadata.get("group_gap_semitones"),
         "lower_group_span_semitones": voicing_metadata.get("lower_group_span_semitones"),
         "lower_group_max_span_semitones": voicing_metadata.get("lower_group_max_span_semitones", 12),
         "lower_foundation_low_register_threshold": voicing_metadata.get("lower_foundation_low_register_threshold", 43),
+        "voice_leading_previous_notes": list((voicing_metadata.get("voice_leading_profile") or {}).get("previous_notes") or []),
+        "voice_leading_distance": (voicing_metadata.get("voice_leading_profile") or {}).get("voice_leading_distance"),
+        "voice_leading_top_voice_motion": (voicing_metadata.get("voice_leading_profile") or {}).get("top_voice_motion"),
+        "voice_leading_smoothness_label": (voicing_metadata.get("voice_leading_profile") or {}).get("smoothness_label"),
+        "previous_voicing_state_previous_notes": list((voicing_metadata.get("previous_voicing_state") or {}).get("previous_notes") or []),
+        "previous_voicing_state_previous_event_id": (voicing_metadata.get("previous_voicing_state") or {}).get("previous_event_id"),
+        "previous_voicing_state_previous_chord_symbol": (voicing_metadata.get("previous_voicing_state") or {}).get("previous_chord_symbol"),
+        "previous_voicing_state_lower_group_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("lower_group_notes") or []),
+        "previous_voicing_state_upper_group_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("upper_group_notes") or []),
+        "previous_voicing_state_group_gap_semitones": ((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("group_gap_semitones"),
+        "previous_voicing_state_state_advance_anchor_enabled": bool(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_enabled", False)),
+        "previous_voicing_state_state_advance_anchor_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_notes") or []),
+        "previous_voicing_state_state_advance_anchor_policy_gate_consumed": bool(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_policy_gate_consumed", False)),
+        "previous_voicing_state_state_advance_anchor_policy_gate_scope": ((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_policy_gate_scope"),
+        "spread_gap_aware_candidate_scope_micro_calibration_applied": bool(voicing_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_applied", False)),
+        "spread_gap_aware_candidate_scope_micro_calibration_version": voicing_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_version"),
+        "spread_gap_aware_original_gap": voicing_metadata.get("spread_gap_aware_original_gap"),
+        "spread_gap_aware_replacement_gap": voicing_metadata.get("spread_gap_aware_replacement_gap"),
+        "spread_gap_aware_original_primary_cost": voicing_metadata.get("spread_gap_aware_original_primary_cost"),
+        "spread_gap_aware_replacement_primary_cost": voicing_metadata.get("spread_gap_aware_replacement_primary_cost"),
+        "spread_gap_aware_same_recipe_only": bool(voicing_metadata.get("spread_gap_aware_same_recipe_only", False)),
+        "spread_gap_aware_density_lane_unchanged": bool(voicing_metadata.get("spread_gap_aware_density_lane_unchanged", False)),
+        "spread_gap_aware_max_primary_cost_delta_used": voicing_metadata.get("spread_gap_aware_max_primary_cost_delta_used"),
+        "spread_wide_gap_deferred_outlier_strategy_deferred": bool(voicing_metadata.get("spread_wide_gap_deferred_outlier_strategy_deferred", False)),
+        "spread_wide_gap_deferred_outlier_strategy_version": voicing_metadata.get("spread_wide_gap_deferred_outlier_strategy_version"),
+        "spread_wide_gap_deferred_original_gap": voicing_metadata.get("spread_wide_gap_deferred_original_gap"),
+        "spread_wide_gap_deferred_candidate_count": voicing_metadata.get("spread_wide_gap_deferred_candidate_count"),
+        "spread_wide_gap_deferred_best_replacement_gap": voicing_metadata.get("spread_wide_gap_deferred_best_replacement_gap"),
+        "spread_wide_gap_deferred_top_stable_replacement_gap": voicing_metadata.get("spread_wide_gap_deferred_top_stable_replacement_gap"),
+        "spread_wide_gap_deferred_original_primary_cost": voicing_metadata.get("spread_wide_gap_deferred_original_primary_cost"),
+        "spread_wide_gap_deferred_best_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_deferred_best_replacement_primary_cost"),
+        "spread_wide_gap_deferred_top_stable_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_deferred_top_stable_replacement_primary_cost"),
+        "spread_wide_gap_deferred_max_primary_cost_delta": voicing_metadata.get("spread_wide_gap_deferred_max_primary_cost_delta"),
+        "spread_wide_gap_deferred_same_recipe_only": bool(voicing_metadata.get("spread_wide_gap_deferred_same_recipe_only", False)),
+        "spread_wide_gap_deferred_density_lane_unchanged": bool(voicing_metadata.get("spread_wide_gap_deferred_density_lane_unchanged", False)),
+        "spread_wide_gap_deferred_not_broad_scorer": bool(voicing_metadata.get("spread_wide_gap_deferred_not_broad_scorer", False)),
+        "spread_wide_gap_deferred_runtime_replacement_enabled": bool(voicing_metadata.get("spread_wide_gap_deferred_runtime_replacement_enabled", False)),
+        "spread_wide_gap_deferred_reason": voicing_metadata.get("spread_wide_gap_deferred_reason"),
+        "spread_wide_gap_source_inventory_plan_active": bool(voicing_metadata.get("spread_wide_gap_source_inventory_plan_active", False)),
+        "spread_wide_gap_source_inventory_plan_version": voicing_metadata.get("spread_wide_gap_source_inventory_plan_version"),
+        "spread_wide_gap_source_inventory_plan_scope": voicing_metadata.get("spread_wide_gap_source_inventory_plan_scope"),
+        "spread_wide_gap_source_inventory_original_gap": voicing_metadata.get("spread_wide_gap_source_inventory_original_gap"),
+        "spread_wide_gap_source_inventory_candidate_count": voicing_metadata.get("spread_wide_gap_source_inventory_candidate_count"),
+        "spread_wide_gap_source_inventory_comfort_candidate_count": voicing_metadata.get("spread_wide_gap_source_inventory_comfort_candidate_count"),
+        "spread_wide_gap_source_inventory_best_replacement_gap": voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_gap"),
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap": voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_replacement_gap"),
+        "spread_wide_gap_source_inventory_original_primary_cost": voicing_metadata.get("spread_wide_gap_source_inventory_original_primary_cost"),
+        "spread_wide_gap_source_inventory_best_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_primary_cost"),
+        "spread_wide_gap_source_inventory_top_stable_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_replacement_primary_cost"),
+        "spread_wide_gap_source_inventory_original_lower_recipe_id": voicing_metadata.get("spread_wide_gap_source_inventory_original_lower_recipe_id"),
+        "spread_wide_gap_source_inventory_original_upper_source_degrees": list(voicing_metadata.get("spread_wide_gap_source_inventory_original_upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_best_replacement_lower_recipe_id": voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_lower_recipe_id"),
+        "spread_wide_gap_source_inventory_best_replacement_upper_source_degrees": list(voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_top_stable_lower_recipe_id": voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_lower_recipe_id"),
+        "spread_wide_gap_source_inventory_top_stable_upper_source_degrees": list(voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_same_recipe_only": bool(voicing_metadata.get("spread_wide_gap_source_inventory_same_recipe_only", False)),
+        "spread_wide_gap_source_inventory_not_broad_scorer": bool(voicing_metadata.get("spread_wide_gap_source_inventory_not_broad_scorer", False)),
+        "spread_wide_gap_source_inventory_runtime_replacement_enabled": bool(voicing_metadata.get("spread_wide_gap_source_inventory_runtime_replacement_enabled", False)),
+        "spread_wide_gap_source_inventory_density_lane_unchanged": bool(voicing_metadata.get("spread_wide_gap_source_inventory_density_lane_unchanged", False)),
+        "spread_wide_gap_source_inventory_recommended_next_boundary": voicing_metadata.get("spread_wide_gap_source_inventory_recommended_next_boundary"),
+        "spread_wide_gap_source_inventory_reason": voicing_metadata.get("spread_wide_gap_source_inventory_reason"),
+        "spread_phrase_scope_wide_gap_candidate_availability_applied": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_applied", False)),
+        "spread_phrase_scope_wide_gap_candidate_availability_version": voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_version"),
+        "spread_phrase_scope_wide_gap_candidate_availability_scope": voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_scope"),
+        "spread_phrase_scope_wide_gap_original_gap": voicing_metadata.get("spread_phrase_scope_wide_gap_original_gap"),
+        "spread_phrase_scope_wide_gap_realized_gap": voicing_metadata.get("spread_phrase_scope_wide_gap_realized_gap"),
+        "spread_phrase_scope_wide_gap_best_replacement_gap": voicing_metadata.get("spread_phrase_scope_wide_gap_best_replacement_gap"),
+        "spread_phrase_scope_wide_gap_candidate_count": voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_count"),
+        "spread_phrase_scope_wide_gap_original_notes": list(voicing_metadata.get("spread_phrase_scope_wide_gap_original_notes") or []),
+        "spread_phrase_scope_wide_gap_realized_notes": list(voicing_metadata.get("spread_phrase_scope_wide_gap_realized_notes") or []),
+        "spread_phrase_scope_wide_gap_original_upper_source_degrees": list(voicing_metadata.get("spread_phrase_scope_wide_gap_original_upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_realized_upper_source_degrees": list(voicing_metadata.get("spread_phrase_scope_wide_gap_realized_upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_best_replacement_upper_source_degrees": list(voicing_metadata.get("spread_phrase_scope_wide_gap_best_replacement_upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_original_primary_cost": voicing_metadata.get("spread_phrase_scope_wide_gap_original_primary_cost"),
+        "spread_phrase_scope_wide_gap_realized_primary_cost": voicing_metadata.get("spread_phrase_scope_wide_gap_realized_primary_cost"),
+        "spread_phrase_scope_wide_gap_best_replacement_primary_cost": voicing_metadata.get("spread_phrase_scope_wide_gap_best_replacement_primary_cost"),
+        "spread_phrase_scope_wide_gap_max_primary_cost_delta": voicing_metadata.get("spread_phrase_scope_wide_gap_max_primary_cost_delta"),
+        "spread_phrase_scope_wide_gap_state_advance_protected": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_state_advance_protected", False)),
+        "spread_phrase_scope_wide_gap_state_advance_override_enabled": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_state_advance_override_enabled", False)),
+        "spread_phrase_scope_wide_gap_state_advance_override_notes": list(voicing_metadata.get("spread_phrase_scope_wide_gap_state_advance_override_notes") or []),
+        "spread_phrase_scope_wide_gap_not_broad_scorer": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_not_broad_scorer", False)),
+        "spread_phrase_scope_wide_gap_same_recipe_only": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_same_recipe_only", False)),
+        "spread_phrase_scope_wide_gap_density_lane_guarded": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_density_lane_guarded", False)),
+        "spread_phrase_scope_wide_gap_runtime_realization_enabled": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_runtime_realization_enabled", False)),
+        "spread_phrase_scope_wide_gap_reason": voicing_metadata.get("spread_phrase_scope_wide_gap_reason"),
+        "voicing_state_advance_anchor_helper_version": voicing_metadata.get("voicing_state_advance_anchor_helper_version"),
+        "voicing_state_advance_anchor_enabled": bool(voicing_metadata.get("voicing_state_advance_anchor_enabled", False)),
+        "voicing_state_advance_anchor_policy_gate_version": voicing_metadata.get("voicing_state_advance_anchor_policy_gate_version"),
+        "voicing_state_advance_anchor_policy_gate_required": bool(voicing_metadata.get("voicing_state_advance_anchor_policy_gate_required", False)),
+        "voicing_state_advance_anchor_policy_gate_scope": voicing_metadata.get("voicing_state_advance_anchor_policy_gate_scope"),
+        "voicing_state_advance_anchor_notes": list(voicing_metadata.get("voicing_state_advance_anchor_notes") or []),
+        "voicing_state_advance_anchor_degrees": list(voicing_metadata.get("voicing_state_advance_anchor_degrees") or []),
+        "voicing_state_advance_anchor_reason": voicing_metadata.get("voicing_state_advance_anchor_reason"),
+        "spread_phrase_state_boundary_helper_cleanup_version": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_version"),
+        "spread_phrase_state_boundary_helper_cleanup_applied": bool(voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_applied", False)),
+        "spread_phrase_state_boundary_helper_cleanup_contract": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_contract"),
+        "spread_phrase_state_boundary_helper_cleanup_state_anchor_owner": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_state_anchor_owner"),
+        "spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor": bool(voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor", False)),
+        "spread_phrase_state_anchor_policy_boundary_version": voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_version"),
+        "spread_phrase_state_anchor_policy_boundary_applied": bool(voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_applied", False)),
+        "spread_phrase_state_anchor_policy_boundary_contract": voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_contract"),
+        "spread_phrase_state_anchor_policy_boundary_scope": voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_scope"),
         "disposition_projection_spec": dict(voicing_metadata.get("disposition_projection_spec") or {}),
         "legacy_projection_callback_used": bool(voicing_metadata.get("legacy_projection_callback_used", False)),
         "legacy_projection_cleanup_required": bool(voicing_metadata.get("legacy_projection_cleanup_required", False)),
@@ -675,6 +1484,30 @@ def _drop_projection_method_from_metadata(metadata: Mapping[str, Any]) -> str | 
     return None
 
 
+def _major_seventh_color_detail(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Return maj7 safe-extension audit details for an already-realized event.
+
+    This is observational only: it does not re-plan chord material.  The
+    Ballad default is intentionally warm, so ordinary major-seventh expansion
+    should expose 9/13 and avoid unnotated #11 unless the chart or a later
+    policy explicitly asks for Lydian/bright color.
+    """
+
+    chord = str(row.get("chord_symbol") or "")
+    chord_lower = chord.lower()
+    is_major_seventh = "maj7" in chord_lower or "ma7" in chord_lower or "△7" in chord
+    degrees = [str(degree) for degree in row.get("degrees") or []]
+    colors = [degree for degree in degrees if degree in {"9", "11", "#11", "13", "b9", "#9", "b13"}]
+    explicit_sharp11 = "#11" in chord or "♯11" in chord
+    return {
+        "is_major_seventh": is_major_seventh,
+        "colors": colors,
+        "safe_only": bool(colors) and set(colors).issubset({"9", "13"}),
+        "unnotated_sharp11": bool(is_major_seventh and "#11" in degrees and not explicit_sharp11),
+        "explicit_sharp11": bool(is_major_seventh and "#11" in degrees and explicit_sharp11),
+    }
+
+
 def _counter_percentages_by_key(counters: Mapping[str, Counter[str]]) -> dict[str, dict[str, float]]:
     out: dict[str, dict[str, float]] = {}
     for key, counter in counters.items():
@@ -682,6 +1515,33 @@ def _counter_percentages_by_key(counters: Mapping[str, Counter[str]]) -> dict[st
         out[str(key)] = {str(name): round(float(count) / float(total), 4) for name, count in counter.items()}
     return out
 
+
+
+def _lower_foundation_final_profile(
+    note_stats_by_grouping: Mapping[str, list[int]],
+    span_stats_by_grouping: Mapping[str, list[int]],
+    low_register_events_by_grouping: Mapping[str, int],
+    gap_stats_by_grouping: Mapping[str, list[int]],
+) -> dict[str, dict[str, Any]]:
+    profile: dict[str, dict[str, Any]] = {}
+    for grouping, notes in note_stats_by_grouping.items():
+        spans = list(span_stats_by_grouping.get(grouping, []))
+        gaps = list(gap_stats_by_grouping.get(grouping, []))
+        note_values = list(notes)
+        profile[grouping] = {
+            "note_count": len(note_values),
+            "event_count": len(spans),
+            "note_min": min(note_values) if note_values else None,
+            "note_max": max(note_values) if note_values else None,
+            "note_average": round(mean(note_values), 3) if note_values else 0.0,
+            "span_max": max(spans) if spans else None,
+            "span_average": round(mean(spans), 3) if spans else 0.0,
+            "gap_min": min(gaps) if gaps else None,
+            "gap_max": max(gaps) if gaps else None,
+            "gap_average": round(mean(gaps), 3) if gaps else 0.0,
+            "low_register_events": int(low_register_events_by_grouping.get(grouping, 0)),
+        }
+    return profile
 
 def _numeric_stats_by_key(values_by_key: Mapping[str, list[int]]) -> dict[str, dict[str, float | int | None]]:
     out: dict[str, dict[str, float | int | None]] = {}

@@ -1,8 +1,8 @@
-// JamMate API Client Sketch v2_8_24
+// JamMate API Client Sketch v2_10_6 integration handoff
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/api/JamMateApiClient.ets
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 
-import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse, AgentTraceApiSpecResponse, AgentTraceDetailResponse, AgentTraceListResponse } from '../model/AgentTypes'
+import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentHarmonyOSRoutineCompletionRecordRequest, AgentHarmonyOSRoutineCompletionRecordResponse, AgentHarmonyOSTodayPracticeGuidanceRequest, AgentHarmonyOSTodayPracticeGuidanceResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse, AgentTraceApiSpecResponse, HarmonyOSRoutineCompletionRecordExecuteRequest, HarmonyOSRoutineCompletionRecordExecuteResponse, HarmonyOSTodayPracticeGuidancePreviewRequest, HarmonyOSTodayPracticeGuidancePreviewResponse, AgentTraceDetailResponse, AgentTraceListResponse } from '../model/AgentTypes'
 import type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'
 import { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
 
@@ -28,6 +28,16 @@ export class JamMateApiClient {
     return deepSnakeToCamel(raw) as AgentContextRuntimePreviewResponse
   }
 
+  async executeHarmonyOSRoutineCompletionRecord(request: HarmonyOSRoutineCompletionRecordExecuteRequest): Promise<HarmonyOSRoutineCompletionRecordExecuteResponse> {
+    const raw = await this.post('/agent/harmonyos/routine-completion-record/execute', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as HarmonyOSRoutineCompletionRecordExecuteResponse
+  }
+
+  async previewHarmonyOSTodayPracticeGuidance(request: HarmonyOSTodayPracticeGuidancePreviewRequest): Promise<HarmonyOSTodayPracticeGuidancePreviewResponse> {
+    const raw = await this.post('/agent/harmonyos/today-practice-guidance/preview', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as HarmonyOSTodayPracticeGuidancePreviewResponse
+  }
+
   async getLLMProviderBoundarySpec(): Promise<Record<string, unknown>> {
     const raw = await this.get('/agent/llm/provider/spec')
     return deepSnakeToCamel(raw) as Record<string, unknown>
@@ -51,6 +61,23 @@ export class JamMateApiClient {
   async getAgentTrace(traceId: string): Promise<AgentTraceDetailResponse> {
     const raw = await this.get(`/agent/traces/${traceId}`)
     return deepSnakeToCamel(raw) as AgentTraceDetailResponse
+  }
+
+
+
+  async previewHarmonyOSTodayPracticeGuidance(request: AgentHarmonyOSTodayPracticeGuidanceRequest): Promise<AgentHarmonyOSTodayPracticeGuidanceResponse> {
+    const raw = await this.post('/agent/harmonyos/today-practice-guidance/preview', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as AgentHarmonyOSTodayPracticeGuidanceResponse
+  }
+
+  async recordHarmonyOSRoutineCompletion(request: AgentHarmonyOSRoutineCompletionRecordRequest): Promise<AgentHarmonyOSRoutineCompletionRecordResponse> {
+    const raw = await this.post('/agent/harmonyos/routine-completion-record/execute', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as AgentHarmonyOSRoutineCompletionRecordResponse
+  }
+
+  async getHarmonyOSTodayGuidanceContractSpec(): Promise<Record<string, unknown>> {
+    const raw = await this.get('/agent/harmonyos/today-guidance-api-contract-alignment/spec')
+    return deepSnakeToCamel(raw) as Record<string, unknown>
   }
 
   async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {

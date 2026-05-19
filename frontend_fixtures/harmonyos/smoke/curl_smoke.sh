@@ -34,3 +34,18 @@ curl -s "${BASE_URL}/agent/traces/spec" | python -m json.tool
 
 echo "8 optional) GET /agent/traces"
 curl -s "${BASE_URL}/agent/traces" | python -m json.tool
+
+
+echo "9 optional) POST /agent/harmonyos/routine-completion-record/execute"
+curl -s -X POST "${BASE_URL}/agent/harmonyos/routine-completion-record/execute" \
+  -H "Content-Type: application/json" \
+  -d @smoke_agent_harmonyos_routine_completion_record_execute.json | python -m json.tool
+
+echo "10 optional) POST /agent/harmonyos/today-practice-guidance/preview"
+curl -s -X POST "${BASE_URL}/agent/harmonyos/today-practice-guidance/preview" \
+  -H "Content-Type: application/json" \
+  -d @smoke_agent_harmonyos_today_practice_guidance_preview.json | python -m json.tool
+
+echo "11 optional) strict HarmonyOS Agent today-guidance runtime smoke"
+echo "   Run separately for response assertions and a runtime-only Agent path:"
+echo "   bash curl_agent_today_guidance_runtime_smoke.sh ${BASE_URL} /tmp/jammate_agent_harmonyos_today_guidance_runtime_smoke.sqlite"

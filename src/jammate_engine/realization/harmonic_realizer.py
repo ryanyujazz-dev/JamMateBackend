@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 from jammate_engine.core.roles import EnsembleContext
 from jammate_engine.core.expression.expression_plan import ExpressionPlan
@@ -81,12 +81,22 @@ class HarmonicRealizer:
         self.gesture_realizer = GestureRealizer()
         self.last_piano_audit_events: list[dict[str, Any]] = []
 
+    @property
+    def voicing_resolver(self):  # noqa: ANN201 - compatibility surface for older tests/tools
+        return self.voicing_orchestrator.voicing_resolver
+
+    @voicing_resolver.setter
+    def voicing_resolver(self, resolver) -> None:  # noqa: ANN001 - mirrors legacy test double injection
+        self.voicing_orchestrator.voicing_resolver = resolver
+
     def realize(
         self,
         events: list[PatternEvent],
         expression: ExpressionPlan,
         style_voicing_policy,
         ensemble: EnsembleContext | dict,
+        *,
+        timing_policy: Mapping[str, Any] | None = None,
     ) -> list[NoteEvent]:
         self.last_piano_audit_events = []
         policy = base_voicing_policy_from_style_input(style_voicing_policy)
@@ -114,6 +124,7 @@ class HarmonicRealizer:
                     current_event=event,
                     current_notes=realized,
                     event_by_id=event_by_id,
+                    timing_policy=timing_policy,
                 )
             out.extend(realized)
             audit_row = piano_audit_event(event, expr, voicing, realized)

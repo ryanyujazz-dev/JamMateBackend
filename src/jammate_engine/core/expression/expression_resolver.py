@@ -334,7 +334,7 @@ class ExpressionResolver:
                 for later in ordered[index + 1 :]:
                     if later.onset_beat <= event.onset_beat + 1e-6:
                         continue
-                    if _is_non_interrupting_partial_reattack(later):
+                    if is_non_interrupting_partial_reattack(later):
                         # A V2 Ballad inner-movement gesture is not a new full
                         # harmonic attack.  It should not force the previous
                         # warm foundation to release; HarmonicRealizer will trim
@@ -385,7 +385,7 @@ def _performed_onset_for_duration(event: PatternEvent, timing_policy: Mapping | 
     return beat
 
 
-def _is_non_interrupting_partial_reattack(event: PatternEvent) -> bool:
+def is_non_interrupting_partial_reattack(event: PatternEvent) -> bool:
     gesture_type = str(getattr(event, "gesture_type", "") or "").strip().lower()
     if gesture_type != "inner_movement":
         return False
@@ -406,6 +406,10 @@ def _is_non_interrupting_partial_reattack(event: PatternEvent) -> bool:
         or "inner" in scope
         or "color" in scope
     )
+
+
+def _is_non_interrupting_partial_reattack(event: PatternEvent) -> bool:
+    return is_non_interrupting_partial_reattack(event)
 
 def _micro_tuned_anticipated_duration(
     duration: float,

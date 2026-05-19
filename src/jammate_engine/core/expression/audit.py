@@ -8,6 +8,7 @@ from typing import Any, Mapping
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
 
 from .expression_plan import EventExpression, ExpressionPlan
+from .expression_resolver import is_non_interrupting_partial_reattack
 
 
 EXPRESSION_AUDIT_CONTRACT_VERSION = "v2_0_45"
@@ -149,9 +150,12 @@ def _next_same_track_starts(events: list[PatternEvent]) -> dict[str, float | Non
         for index, event in enumerate(ordered):
             next_start = None
             for later in ordered[index + 1 :]:
-                if later.onset_beat > event.onset_beat + 1e-6:
-                    next_start = float(later.onset_beat)
-                    break
+                if later.onset_beat <= event.onset_beat + 1e-6:
+                    continue
+                if is_non_interrupting_partial_reattack(later):
+                    continue
+                next_start = float(later.onset_beat)
+                break
             result[event.event_id] = next_start
     return result
 

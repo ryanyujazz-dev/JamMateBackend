@@ -8,11 +8,17 @@ from ..disposition.spread_voice_leading import spread_grouping_mix_contract_inte
 from .candidate import VoicingCandidate
 from ..policy import VoicingPolicy
 from .scorer import score_candidate
-from ..runtime.state import VoicingState
+from ..runtime.state import VoicingState, VoicingStateAdvanceAnchor
 from .voice_leading import common_tone_count, set_based_voice_leading_distance, top_note, voice_leading_distance
 
 
 SPREAD_TOP_REGISTER_MICRO_CALIBRATION_VERSION = "v2_6_28"
+SPREAD_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_VERSION = "v2_6_33"
+SPREAD_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION = "v2_6_33"
+SPREAD_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION = "v2_6_34"
+SPREAD_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION = "v2_6_35"
+SPREAD_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION = "v2_6_37"
+SPREAD_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION = "v2_6_40"
 
 
 def select_candidate(
@@ -324,6 +330,7 @@ def _collapse_spread_candidates_to_groupwise_nearest(
 
     passthrough = [candidate for candidate in candidates if candidate not in eligible]
     best = min(eligible, key=lambda candidate: _spread_groupwise_realization_cost(candidate, policy=policy, state=state))
+    best = _maybe_replace_gap_outlier_with_same_recipe_candidate(best, eligible, policy=policy, state=state)
     cost = _spread_groupwise_realization_cost(best, policy=policy, state=state)
     annotated = replace(
         best,
@@ -360,6 +367,302 @@ def _is_spread_groupwise_candidate(candidate: VoicingCandidate) -> bool:
         and bool(metadata.get("upper_group_notes"))
     )
 
+
+
+def _maybe_replace_gap_outlier_with_same_recipe_candidate(
+    best: VoicingCandidate,
+    eligible: list[VoicingCandidate],
+    *,
+    policy: VoicingPolicy,
+    state: VoicingState,
+) -> VoicingCandidate:
+    """Repair sparse Ballad SPREAD gap outliers inside the selected recipe scope.
+
+    v2_6_32 deliberately does not change density routing or grouping weights.
+    It only reconsiders candidates with the same recipe_id when the already
+    selected candidate has a lower/upper group gap outside the comfort band.
+    """
+
+    policy_metadata = dict(policy.metadata or {})
+    if not _coerce_bool(policy_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_enabled"), default=False):
+        return best
+    current_gap = _candidate_group_gap(best)
+    if current_gap is None:
+        return best
+    comfort_min = float(policy_metadata.get("spread_gap_aware_comfort_min", policy_metadata.get("spread_comfort_group_gap_min", 2)) or 2)
+    comfort_max = float(policy_metadata.get("spread_gap_aware_comfort_max", policy_metadata.get("spread_comfort_group_gap_max", 7)) or 7)
+    if comfort_min <= current_gap <= comfort_max:
+        return best
+
+    top_soft_high = float(policy_metadata.get("spread_top_register_micro_soft_high", policy_metadata.get("voicing_register_top_soft_high", 74)) or 74)
+    same_recipe = [
+        candidate
+        for candidate in eligible
+        if str(candidate.recipe_id or "") == str(best.recipe_id or "")
+        and _candidate_group_gap(candidate) is not None
+        and comfort_min <= float(_candidate_group_gap(candidate)) <= comfort_max
+        and (max(int(note) for note in candidate.notes) <= top_soft_high if candidate.notes else False)
+    ]
+    if not same_recipe:
+        return best
+
+    original_cost = _spread_groupwise_realization_cost(best, policy=policy, state=state)
+    replacement = min(same_recipe, key=lambda candidate: _spread_groupwise_realization_cost(candidate, policy=policy, state=state))
+    replacement_cost = _spread_groupwise_realization_cost(replacement, policy=policy, state=state)
+    is_wide_gap = float(current_gap) > comfort_max
+    wide_enabled = _coerce_bool(policy_metadata.get("spread_wide_gap_deferred_outlier_strategy_enabled"), default=False)
+    regular_max_delta = float(policy_metadata.get("spread_gap_aware_same_recipe_max_primary_cost_delta", 5.0) or 5.0)
+    wide_max_delta = float(policy_metadata.get("spread_wide_gap_deferred_same_recipe_max_primary_cost_delta", regular_max_delta) or regular_max_delta)
+
+    if is_wide_gap and wide_enabled:
+        original_top = max(int(note) for note in best.notes) if best.notes else None
+        top_stable_replacement = replacement
+        top_stable_replacement_cost = replacement_cost
+        if original_top is not None:
+            top_stable_replacement = min(
+                same_recipe,
+                key=lambda candidate: (
+                    abs(max(int(note) for note in candidate.notes) - original_top) if candidate.notes else 999.0,
+                    _spread_groupwise_realization_cost(candidate, policy=policy, state=state)[0],
+                ),
+            )
+            top_stable_replacement_cost = _spread_groupwise_realization_cost(top_stable_replacement, policy=policy, state=state)
+        replacement_metadata = _wide_gap_source_inventory_plan_metadata(
+            best=best,
+            replacement=replacement,
+            top_stable_replacement=top_stable_replacement,
+            same_recipe=same_recipe,
+            original_gap=current_gap,
+            original_cost=original_cost,
+            replacement_cost=replacement_cost,
+            top_stable_replacement_cost=top_stable_replacement_cost,
+            max_primary_cost_delta=wide_max_delta,
+        )
+        deferred_metadata = {
+            "spread_wide_gap_deferred_outlier_strategy_version": SPREAD_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION,
+            "spread_wide_gap_deferred_outlier_strategy_deferred": True,
+            "spread_wide_gap_deferred_original_recipe_id": best.recipe_id,
+            "spread_wide_gap_deferred_original_gap": current_gap,
+            "spread_wide_gap_deferred_candidate_count": len(same_recipe),
+            "spread_wide_gap_deferred_best_replacement_gap": _candidate_group_gap(replacement),
+            "spread_wide_gap_deferred_top_stable_replacement_gap": _candidate_group_gap(top_stable_replacement),
+            "spread_wide_gap_deferred_original_primary_cost": round(float(original_cost[0]), 3),
+            "spread_wide_gap_deferred_best_replacement_primary_cost": round(float(replacement_cost[0]), 3),
+            "spread_wide_gap_deferred_top_stable_replacement_primary_cost": round(float(top_stable_replacement_cost[0]), 3),
+            "spread_wide_gap_deferred_max_primary_cost_delta": round(float(wide_max_delta), 3),
+            "spread_wide_gap_deferred_same_recipe_only": True,
+            "spread_wide_gap_deferred_density_lane_unchanged": True,
+            "spread_wide_gap_deferred_not_broad_scorer": True,
+            "spread_wide_gap_deferred_runtime_replacement_enabled": False,
+            "spread_wide_gap_deferred_reason": "runtime_replacement_deferred_to_avoid_density_lane_cascade",
+            **replacement_metadata,
+        }
+        phrase_scope_enabled = _coerce_bool(
+            policy_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_enabled"),
+            default=False,
+        )
+        phrase_state_protection_enabled = _coerce_bool(
+            policy_metadata.get("spread_phrase_scope_wide_gap_state_advance_protection_enabled"),
+            default=True,
+        )
+        top_stable_gap = _candidate_group_gap(top_stable_replacement)
+        if (
+            phrase_scope_enabled
+            and phrase_state_protection_enabled
+            and str(best.recipe_id or "") == "spread_2plus3_contract"
+            and top_stable_gap is not None
+            and comfort_min <= float(top_stable_gap) <= comfort_max
+            and float(top_stable_replacement_cost[0]) <= float(original_cost[0]) + wide_max_delta
+        ):
+            original_metadata = dict(best.metadata or {})
+            phrase_metadata = _phrase_scope_wide_gap_candidate_availability_metadata(
+                best=best,
+                realized=top_stable_replacement,
+                replacement=replacement,
+                same_recipe=same_recipe,
+                original_gap=current_gap,
+                original_cost=original_cost,
+                replacement_cost=replacement_cost,
+                realized_cost=top_stable_replacement_cost,
+                max_primary_cost_delta=wide_max_delta,
+            )
+            state_anchor = VoicingStateAdvanceAnchor(
+                notes=tuple(best.notes),
+                degrees=tuple(best.degrees),
+                lower_group_notes=tuple(int(note) for note in original_metadata.get("lower_group_notes") or ()),
+                upper_group_notes=tuple(int(note) for note in original_metadata.get("upper_group_notes") or ()),
+                upper_group_degrees=tuple(str(degree) for degree in original_metadata.get("upper_group_degrees") or ()),
+                lower_group_placed_degrees=tuple(str(degree) for degree in original_metadata.get("lower_group_placed_degrees") or ()),
+                group_gap_semitones=original_metadata.get("group_gap_semitones"),
+                reason="phrase_scope_wide_gap_candidate_availability_preserve_original_phrase_anchor",
+                policy_gate_scope="ballad_spread_phrase_scope_wide_gap_candidate_availability",
+            )
+            return replace(
+                top_stable_replacement,
+                metadata={
+                    **dict(top_stable_replacement.metadata),
+                    **deferred_metadata,
+                    **phrase_metadata,
+                    **state_anchor.to_metadata(),
+                    "spread_phrase_state_boundary_helper_cleanup_version": SPREAD_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION,
+                    "spread_phrase_state_boundary_helper_cleanup_applied": True,
+                    "spread_phrase_state_boundary_helper_cleanup_contract": "realized_notes_separate_from_state_anchor",
+                    "spread_phrase_state_boundary_helper_cleanup_state_anchor_owner": "VoicingStateAdvanceAnchor",
+                    "spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor": True,
+                    "spread_phrase_state_anchor_policy_boundary_version": SPREAD_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION,
+                    "spread_phrase_state_anchor_policy_boundary_applied": True,
+                    "spread_phrase_state_anchor_policy_boundary_contract": "core_helper_requires_explicit_policy_gate",
+                    "spread_phrase_state_anchor_policy_boundary_scope": "ballad_spread_phrase_scope_wide_gap_candidate_availability",
+                },
+            )
+
+        return replace(
+            best,
+            metadata={
+                **dict(best.metadata),
+                **deferred_metadata,
+            },
+        )
+
+    if float(replacement_cost[0]) > float(original_cost[0]) + regular_max_delta:
+        return best
+
+    replacement_gap = _candidate_group_gap(replacement)
+    metadata = {
+        **dict(replacement.metadata),
+        "spread_gap_aware_candidate_scope_micro_calibration_version": SPREAD_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_VERSION,
+        "spread_gap_aware_candidate_scope_micro_calibration_applied": True,
+        "spread_gap_aware_original_recipe_id": best.recipe_id,
+        "spread_gap_aware_original_gap": current_gap,
+        "spread_gap_aware_replacement_gap": replacement_gap,
+        "spread_gap_aware_original_primary_cost": round(float(original_cost[0]), 3),
+        "spread_gap_aware_replacement_primary_cost": round(float(replacement_cost[0]), 3),
+        "spread_gap_aware_top_soft_high": top_soft_high,
+        "spread_gap_aware_same_recipe_only": True,
+        "spread_gap_aware_density_lane_unchanged": True,
+        "spread_gap_aware_max_primary_cost_delta_used": round(float(regular_max_delta), 3),
+    }
+
+    return replace(replacement, metadata=metadata)
+
+
+
+def _phrase_scope_wide_gap_candidate_availability_metadata(
+    *,
+    best: VoicingCandidate,
+    realized: VoicingCandidate,
+    replacement: VoicingCandidate,
+    same_recipe: list[VoicingCandidate],
+    original_gap: float,
+    original_cost: tuple[float, float, float, float, tuple[int, ...]],
+    replacement_cost: tuple[float, float, float, float, tuple[int, ...]],
+    realized_cost: tuple[float, float, float, float, tuple[int, ...]],
+    max_primary_cost_delta: float,
+) -> dict[str, object]:
+    """Expose a state-advancement-safe phrase-scope fix for deferred wide gaps.
+
+    The remaining Ballad 2+3 Fm7 wide gaps have viable same-recipe alternatives,
+    but letting the realized replacement become the next selector state causes a
+    density-lane cascade.  v2_6_35 therefore selects the top-stable same-recipe
+    candidate for the current realization while advancing the voicing continuity
+    state with the original phrase anchor.  This is intentionally narrow: it is
+    not a broad scorer and it does not re-open density routing.
+    """
+
+    realized_gap = _candidate_group_gap(realized)
+    return {
+        "spread_phrase_scope_wide_gap_candidate_availability_version": SPREAD_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION,
+        "spread_phrase_scope_wide_gap_candidate_availability_applied": True,
+        "spread_phrase_scope_wide_gap_candidate_availability_scope": "2plus3_same_recipe_top_stable_candidate_before_state_advancement",
+        "spread_phrase_scope_wide_gap_original_recipe_id": best.recipe_id,
+        "spread_phrase_scope_wide_gap_original_gap": float(original_gap),
+        "spread_phrase_scope_wide_gap_realized_gap": realized_gap,
+        "spread_phrase_scope_wide_gap_best_replacement_gap": _candidate_group_gap(replacement),
+        "spread_phrase_scope_wide_gap_candidate_count": len(same_recipe),
+        "spread_phrase_scope_wide_gap_original_notes": list(best.notes),
+        "spread_phrase_scope_wide_gap_realized_notes": list(realized.notes),
+        "spread_phrase_scope_wide_gap_original_upper_source_degrees": list(dict(best.metadata or {}).get("upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_realized_upper_source_degrees": list(dict(realized.metadata or {}).get("upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_best_replacement_upper_source_degrees": list(dict(replacement.metadata or {}).get("upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_original_primary_cost": round(float(original_cost[0]), 3),
+        "spread_phrase_scope_wide_gap_realized_primary_cost": round(float(realized_cost[0]), 3),
+        "spread_phrase_scope_wide_gap_best_replacement_primary_cost": round(float(replacement_cost[0]), 3),
+        "spread_phrase_scope_wide_gap_max_primary_cost_delta": round(float(max_primary_cost_delta), 3),
+        "spread_phrase_scope_wide_gap_state_advance_protected": True,
+        "spread_phrase_scope_wide_gap_state_advance_override_enabled": True,
+        "spread_phrase_scope_wide_gap_state_advance_override_notes": list(best.notes),
+        "spread_phrase_scope_wide_gap_not_broad_scorer": True,
+        "spread_phrase_scope_wide_gap_same_recipe_only": True,
+        "spread_phrase_scope_wide_gap_density_lane_guarded": True,
+        "spread_phrase_scope_wide_gap_runtime_realization_enabled": True,
+        "spread_phrase_scope_wide_gap_reason": "use_top_stable_same_recipe_candidate_while_preserving_phrase_state_anchor",
+    }
+
+
+def _wide_gap_source_inventory_plan_metadata(
+    *,
+    best: VoicingCandidate,
+    replacement: VoicingCandidate,
+    top_stable_replacement: VoicingCandidate,
+    same_recipe: list[VoicingCandidate],
+    original_gap: float,
+    original_cost: tuple[float, float, float, float, tuple[int, ...]],
+    replacement_cost: tuple[float, float, float, float, tuple[int, ...]],
+    top_stable_replacement_cost: tuple[float, float, float, float, tuple[int, ...]],
+    max_primary_cost_delta: float,
+) -> dict[str, object]:
+    """Describe the source-inventory path for deferred 2+3 wide gaps.
+
+    v2_6_34 deliberately stays observational.  Direct runtime replacement of
+    the remaining 2+3 Fm7 wide gaps fixes the local gap but cascades into the
+    Ballad SPREAD density lane.  The safer next boundary is therefore a
+    source-inventory / phrase-scope plan that records which same-recipe upper
+    source placements are viable without selecting them here.
+    """
+
+    comfort_candidates = [
+        candidate
+        for candidate in same_recipe
+        if _candidate_group_gap(candidate) is not None
+    ]
+    best_gap = _candidate_group_gap(replacement)
+    top_stable_gap = _candidate_group_gap(top_stable_replacement)
+    return {
+        "spread_wide_gap_source_inventory_plan_version": SPREAD_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION,
+        "spread_wide_gap_source_inventory_plan_active": True,
+        "spread_wide_gap_source_inventory_plan_scope": "2plus3_same_recipe_upper_source_inventory_audit_only",
+        "spread_wide_gap_source_inventory_plan_target_recipe_id": str(best.recipe_id or ""),
+        "spread_wide_gap_source_inventory_plan_target_grouping": str(getattr(best.functional_grouping, "value", best.functional_grouping) or ""),
+        "spread_wide_gap_source_inventory_original_gap": float(original_gap),
+        "spread_wide_gap_source_inventory_candidate_count": len(same_recipe),
+        "spread_wide_gap_source_inventory_comfort_candidate_count": len(comfort_candidates),
+        "spread_wide_gap_source_inventory_best_replacement_gap": best_gap,
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap": top_stable_gap,
+        "spread_wide_gap_source_inventory_original_primary_cost": round(float(original_cost[0]), 3),
+        "spread_wide_gap_source_inventory_best_replacement_primary_cost": round(float(replacement_cost[0]), 3),
+        "spread_wide_gap_source_inventory_top_stable_replacement_primary_cost": round(float(top_stable_replacement_cost[0]), 3),
+        "spread_wide_gap_source_inventory_max_primary_cost_delta": round(float(max_primary_cost_delta), 3),
+        "spread_wide_gap_source_inventory_original_lower_recipe_id": dict(best.metadata or {}).get("lower_group_recipe_id"),
+        "spread_wide_gap_source_inventory_original_upper_source_degrees": list(dict(best.metadata or {}).get("upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_best_replacement_lower_recipe_id": dict(replacement.metadata or {}).get("lower_group_recipe_id"),
+        "spread_wide_gap_source_inventory_best_replacement_upper_source_degrees": list(dict(replacement.metadata or {}).get("upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_top_stable_lower_recipe_id": dict(top_stable_replacement.metadata or {}).get("lower_group_recipe_id"),
+        "spread_wide_gap_source_inventory_top_stable_upper_source_degrees": list(dict(top_stable_replacement.metadata or {}).get("upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_same_recipe_only": True,
+        "spread_wide_gap_source_inventory_not_broad_scorer": True,
+        "spread_wide_gap_source_inventory_runtime_replacement_enabled": False,
+        "spread_wide_gap_source_inventory_density_lane_unchanged": True,
+        "spread_wide_gap_source_inventory_recommended_next_boundary": "phrase_scope_or_inventory_level_candidate_availability_not_runtime_replacement",
+        "spread_wide_gap_source_inventory_reason": "runtime_replacement_deferred_to_avoid_density_lane_cascade",
+    }
+
+def _candidate_group_gap(candidate: VoicingCandidate) -> float | None:
+    metadata = dict(candidate.metadata or {})
+    value = metadata.get("group_gap_semitones")
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 def _spread_groupwise_realization_cost(
     candidate: VoicingCandidate,

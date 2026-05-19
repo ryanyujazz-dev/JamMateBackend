@@ -9,7 +9,7 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_8_24`.
+Current package version: `v2_10_8`.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -296,17 +296,21 @@ docs/JAZZ_BALLAD_TWO_BEAT_1AND_PATTERN_PATCH_V2_5_5.md
 
 ## Current Development Status
 
-### v2_8_24 integration merge baseline
+### v2_10_8 integration merge baseline
 
-`v2_8_24` is the integration/agent-engine-merge baseline. It merges Engine Track `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration` with Agent Track `v2_8_23_agent_v2_8_phase_cleanup_regression_handoff`.
+`v2_10_8` is the current integration/agent-engine-merge baseline. It merges Engine Track `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff` with Agent Track `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
 
 Integration handling:
 
-- Engine generation/runtime/voicing/style code remains from the Engine Track.
-- Agent orchestration, contracts, trace, terminal, and tool-preview code remains from the Agent Track.
+- Engine generation/runtime/voicing/style code remains from the Engine Track through v2.6.44, including frozen Ballad SPREAD guardrails, lower-foundation calibration, safe extension frequency calibration, and phrase-state anchor policy.
+- Agent orchestration, contracts, trace, terminal, tool-preview, context/guidance, persistence, and HarmonyOS product routes remain from the Agent Track through v2.10.7, including routine-completion-record persistence and today-practice-guidance runtime smoke.
 - Shared docs, version surfaces, and HarmonyOS fixture surfaces are reconciled in this integration package.
-- No new Engine music-generation rule and no new Agent/LLM product feature is introduced by this merge.
+- No new Engine music-generation rule and no new Agent/LLM product feature is introduced by this integration pass beyond what each track already delivered.
 - `POST /accompaniment/generate` preserves the HarmonyOS playback-critical response shape: `ok`, `asset.format`, `asset.midi_base64`, `asset.midi_path`, `asset.cache_key`, and `debug_summary`.
+
+### v2_8_24 integration merge baseline
+
+`v2_8_24` was the previous integration baseline. It merged Engine Track `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration` with Agent Track `v2_8_23_agent_v2_8_phase_cleanup_regression_handoff`.
 
 ### v2_6_1 branch / track ownership status
 
