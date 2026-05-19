@@ -1,3 +1,26 @@
+## v2_6_31 Ballad SPREAD Lower/Upper Gap Audit Rule
+
+The piano audit must expose grouped-SPREAD lower/upper gap behavior without reselecting notes.
+
+Audit comfort band:
+
+```text
+2 <= lower/upper group gap <= 7 semitones
+```
+
+Required observational fields:
+
+```text
+lower_upper_gap_audit_version
+lower_upper_group_gap_by_grouping
+lower_upper_group_gap_by_density
+lower_upper_group_gap_by_recipe
+lower_upper_group_gap_too_tight_events_by_grouping
+lower_upper_group_gap_too_wide_events_by_grouping
+```
+
+This audit is a voicing observability layer only. It must not change Pattern, Anticipation, Expression, Gesture, MIDI, or the current Ballad density lane.
+
 ## Voicing Rule Update: v2_6_28 Ballad SPREAD Top Voice / Register Micro Calibration
 
 ## v2_6_30 Jazz Ballad SPREAD voicing calibration
@@ -914,3 +937,27 @@ spread_upper_drop_projection_methods_by_density:
 ```
 
 These audit fields are observational only and must not influence runtime selection.
+
+## v2_6_35 Ballad SPREAD Phrase-Scope Wide Gap Rule
+
+For Jazz Ballad SPREAD, the two known `2+3 Fm7` wide-gap rows may use a narrow phrase-scope candidate availability rule:
+
+```text
+only spread_2plus3_contract
+same-recipe only
+use top-stable replacement candidate
+realized gap target <= 7 semitones
+advance VoicingState with original phrase anchor
+no broad scorer
+no density lane reopening
+```
+
+Expected Misty three-chorus guardrails:
+
+```text
+5-note:124 / 6-note:72
+1+4:10
+4-note:0 / 7-note:0
+lower_upper_too_wide_events:0
+top_note_max <= 74
+```

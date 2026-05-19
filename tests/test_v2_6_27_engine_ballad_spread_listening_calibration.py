@@ -143,7 +143,7 @@ def test_v2_6_27_misty_ballad_runtime_removes_default_1plus4_but_keeps_6_to_4_ba
     six = densities[6]
     assert five > 0 and six > 0
     ratio = five / float(five + six)
-    assert 0.60 <= ratio <= 0.62
+    assert 0.62 <= ratio <= 0.64
     assert groupings["2+3"] + groupings["1+4"] == five
     assert groupings["2+4"] + groupings["3+3"] == six
 

@@ -103,7 +103,13 @@ class JamMateEngine:
         # Harmonic realization now routes through the core gesture projection
         # boundary before NoteEvent creation.
         harmonic_realizer = HarmonicRealizer(rng=rng)
-        harmonic_notes = harmonic_realizer.realize(pattern_events, expression_plan, effective_voicing_policy, ensemble_context)
+        harmonic_notes = harmonic_realizer.realize(
+            pattern_events,
+            expression_plan,
+            effective_voicing_policy,
+            ensemble_context,
+            timing_policy=style.timing_policy,
+        )
         bass_notes = BassFoundationRealizer().realize(pattern_events) if ensemble_context.bass_present else []
         piano_lh_bass_notes = PianoLHBassFoundationRealizer().realize(pattern_events, ensemble_context)
         drum_notes = PercussionRealizer().realize(pattern_events)

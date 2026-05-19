@@ -9,7 +9,7 @@ from .plan import VoicedNote, VoicingPlan
 from ..taxonomy.projection_map import ABSTRACT_GROUP_KEYS, build_projection_map, group_indices_for_projection
 from .request import VoicingRequest
 from ..selection.selector import select_candidate
-from .state import VoicingState
+from .state import VoicingState, state_advance_notes_and_degrees
 
 
 class VoicingResolver:
@@ -104,31 +104,38 @@ class VoicingResolver:
                 "previous_voicing_state": self.state.to_debug_dict(),
             },
         )
+        state_notes, state_degrees, state_anchor = state_advance_notes_and_degrees(
+            metadata=candidate.metadata,
+            realized_notes=[note.midi_note for note in voiced],
+            realized_degrees=[note.degree for note in voiced],
+        )
+        state_metadata = {
+            "score_breakdown": dict(candidate.metadata.get("score_breakdown", {})),
+            "selector_decision": dict(candidate.selector_decision),
+            "voice_leading_profile": dict(candidate.voice_leading_profile),
+            "recipe_id": candidate.recipe_id,
+            "functional_grouping": candidate.functional_grouping.value if candidate.functional_grouping else None,
+            "content_family": candidate.content_family.value if candidate.content_family else None,
+            "rootless_ab_content_type": candidate.metadata.get("rootless_ab_content_type"),
+            "rootless_ab_orientation_family": candidate.metadata.get("rootless_ab_orientation_family"),
+            # Preserve abstract SPREAD group state so later voicing selection can
+            # voice-lead lower/foundation and upper/projection groups separately.
+            "lower_group_notes": candidate.metadata.get("lower_group_notes"),
+            "upper_group_notes": candidate.metadata.get("upper_group_notes"),
+            "upper_group_degrees": candidate.metadata.get("upper_group_degrees"),
+            "lower_group_placed_degrees": candidate.metadata.get("lower_group_placed_degrees"),
+            "group_gap_semitones": candidate.metadata.get("group_gap_semitones"),
+            "spread_recipe_id": candidate.metadata.get("recipe_id") or candidate.recipe_id,
+        }
+        if state_anchor is not None:
+            state_metadata = state_anchor.to_state_metadata(state_metadata)
         self.state = self.state.advance(
             event_id=request.event_id,
             chord_symbol=request.chord_symbol,
-            notes=[note.midi_note for note in voiced],
-            degrees=[note.degree for note in voiced],
+            notes=state_notes,
+            degrees=state_degrees,
             onset_beat=request.onset_beat,
-            metadata={
-                "score_breakdown": dict(candidate.metadata.get("score_breakdown", {})),
-                "selector_decision": dict(candidate.selector_decision),
-                "voice_leading_profile": dict(candidate.voice_leading_profile),
-                "recipe_id": candidate.recipe_id,
-                "functional_grouping": candidate.functional_grouping.value if candidate.functional_grouping else None,
-                "content_family": candidate.content_family.value if candidate.content_family else None,
-                "rootless_ab_content_type": candidate.metadata.get("rootless_ab_content_type"),
-                "rootless_ab_orientation_family": candidate.metadata.get("rootless_ab_orientation_family"),
-                # Preserve abstract SPREAD group state so later voicing selection
-                # can voice-lead lower/foundation and upper/projection groups
-                # separately instead of treating the whole voicing as one stack.
-                "lower_group_notes": candidate.metadata.get("lower_group_notes"),
-                "upper_group_notes": candidate.metadata.get("upper_group_notes"),
-                "upper_group_degrees": candidate.metadata.get("upper_group_degrees"),
-                "lower_group_placed_degrees": candidate.metadata.get("lower_group_placed_degrees"),
-                "group_gap_semitones": candidate.metadata.get("group_gap_semitones"),
-                "spread_recipe_id": candidate.metadata.get("recipe_id") or candidate.recipe_id,
-            },
+            metadata=state_metadata,
         )
         return plan
 

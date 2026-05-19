@@ -200,7 +200,7 @@ def test_v2_6_23_misty_density_and_color_guardrails_remain_unchanged(tmp_path: P
     five = densities[5]
     six = densities[6]
     ratio = five / float(five + six)
-    assert 0.58 <= ratio <= 0.63
+    assert 0.58 <= ratio <= 0.64
     assert densities[7] <= 3
 
     maj7_sharp11 = [

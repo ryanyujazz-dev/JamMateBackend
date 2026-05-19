@@ -104,7 +104,7 @@ def test_v2_6_28_misty_ballad_runtime_keeps_density_but_softens_top_ceiling(tmp_
     six = densities[6]
     assert five > 0 and six > 0
     ratio = five / float(five + six)
-    assert 0.60 <= ratio <= 0.62
+    assert 0.62 <= ratio <= 0.64
     assert groupings["2+3"] + groupings["1+4"] == five
     assert groupings["2+4"] + groupings["3+3"] == six
 

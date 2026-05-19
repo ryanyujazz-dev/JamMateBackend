@@ -10,6 +10,14 @@ from jammate_engine.midi.render_pipeline import performed_beat
 
 PIANO_MUSICAL_AUDIT_CONTRACT_VERSION = "v2_2_38"
 PIANO_DROP_PROJECTION_AUDIT_VERSION = "v2_6_29"
+PIANO_LOWER_UPPER_GAP_AUDIT_VERSION = "v2_6_31"
+PIANO_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_VERSION = "v2_6_33"
+PIANO_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION = "v2_6_33"
+PIANO_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION = "v2_6_34"
+PIANO_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION = "v2_6_35"
+PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION = "v2_6_36"
+PIANO_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION = "v2_6_37"
+PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION = "v2_6_39"
 
 
 @dataclass(frozen=True)
@@ -41,6 +49,11 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         )
         for index, row in enumerate(debug.get("piano_musical_audit_events") or [], start=1)
     ]
+    phrase_state_boundary_review = _annotate_phrase_state_boundary_review(rows)
+    post_continuity_checkpoint = _annotate_post_continuity_listening_checkpoint(
+        rows,
+        debug.get("timing_policy") or {},
+    )
     warnings: list[str] = []
 
     style_counter: Counter[str] = Counter()
@@ -118,6 +131,38 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
     lower_foundation_low_register_events_by_grouping: Counter[str] = Counter()
     lower_foundation_low_register_events_by_density: Counter[str] = Counter()
     lower_foundation_span_violation_events = 0
+    lower_upper_group_gaps: list[int] = []
+    lower_upper_group_gap_stats_by_grouping: dict[str, list[int]] = {}
+    lower_upper_group_gap_stats_by_density: dict[str, list[int]] = {}
+    lower_upper_group_gap_stats_by_recipe: dict[str, list[int]] = {}
+    lower_upper_group_gap_too_tight_events_by_grouping: Counter[str] = Counter()
+    lower_upper_group_gap_too_wide_events_by_grouping: Counter[str] = Counter()
+    spread_gap_aware_micro_events_by_recipe: Counter[str] = Counter()
+    spread_gap_aware_micro_events_by_grouping: Counter[str] = Counter()
+    spread_gap_aware_original_gaps: list[int] = []
+    spread_gap_aware_replacement_gaps: list[int] = []
+    spread_wide_gap_deferred_events_by_recipe: Counter[str] = Counter()
+    spread_wide_gap_deferred_events_by_grouping: Counter[str] = Counter()
+    spread_wide_gap_deferred_original_gaps: list[int] = []
+    spread_wide_gap_deferred_replacement_gaps: list[int] = []
+    spread_wide_gap_source_inventory_events_by_recipe: Counter[str] = Counter()
+    spread_wide_gap_source_inventory_events_by_grouping: Counter[str] = Counter()
+    spread_wide_gap_source_inventory_best_replacement_gaps: list[int] = []
+    spread_wide_gap_source_inventory_top_stable_replacement_gaps: list[int] = []
+    spread_wide_gap_source_inventory_runtime_enabled_events = 0
+    spread_wide_gap_source_inventory_recommendation_counter: Counter[str] = Counter()
+    spread_phrase_scope_wide_gap_events_by_recipe: Counter[str] = Counter()
+    spread_phrase_scope_wide_gap_events_by_grouping: Counter[str] = Counter()
+    spread_phrase_scope_wide_gap_original_gaps: list[int] = []
+    spread_phrase_scope_wide_gap_realized_gaps: list[int] = []
+    spread_phrase_scope_wide_gap_state_protected_events = 0
+    spread_phrase_scope_wide_gap_runtime_realization_events = 0
+    spread_phrase_state_boundary_helper_cleanup_events = 0
+    spread_phrase_state_boundary_helper_anchor_events = 0
+    spread_phrase_state_boundary_helper_legacy_alias_match_events = 0
+    spread_phrase_state_boundary_helper_previous_state_anchor_events = 0
+    lower_upper_gap_comfort_min = 2
+    lower_upper_gap_comfort_max = 7
     all_midi_notes: list[int] = []
     top_note_ge_75_events = 0
 
@@ -158,6 +203,84 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             spread_upper_drop_method_by_grouping.setdefault(grouping_key, Counter()).update([method])
             spread_upper_drop_method_by_recipe.setdefault(recipe_key, Counter()).update([method])
             spread_upper_drop_events_by_density.update([density_key])
+        group_gap_value = row.get("group_gap_semitones")
+        if group_gap_value is not None:
+            try:
+                group_gap = int(group_gap_value)
+            except (TypeError, ValueError):
+                group_gap = None
+            if group_gap is not None:
+                density_key = str(row["density"] or "unknown")
+                grouping_key = str(row["functional_grouping"] or "unknown")
+                recipe_key = str(row["recipe_id"] or "unknown")
+                lower_upper_group_gaps.append(group_gap)
+                lower_upper_group_gap_stats_by_grouping.setdefault(grouping_key, []).append(group_gap)
+                lower_upper_group_gap_stats_by_density.setdefault(density_key, []).append(group_gap)
+                lower_upper_group_gap_stats_by_recipe.setdefault(recipe_key, []).append(group_gap)
+                if group_gap < lower_upper_gap_comfort_min:
+                    lower_upper_group_gap_too_tight_events_by_grouping.update([grouping_key])
+                if group_gap > lower_upper_gap_comfort_max:
+                    lower_upper_group_gap_too_wide_events_by_grouping.update([grouping_key])
+        if row.get("spread_gap_aware_candidate_scope_micro_calibration_applied"):
+            spread_gap_aware_micro_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_gap_aware_micro_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            try:
+                spread_gap_aware_original_gaps.append(int(float(row.get("spread_gap_aware_original_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_gap_aware_replacement_gaps.append(int(float(row.get("spread_gap_aware_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+        if row.get("spread_wide_gap_deferred_outlier_strategy_deferred"):
+            spread_wide_gap_deferred_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_wide_gap_deferred_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            try:
+                spread_wide_gap_deferred_original_gaps.append(int(float(row.get("spread_wide_gap_deferred_original_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_wide_gap_deferred_replacement_gaps.append(int(float(row.get("spread_wide_gap_deferred_best_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+        if row.get("spread_wide_gap_source_inventory_plan_active"):
+            spread_wide_gap_source_inventory_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_wide_gap_source_inventory_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            recommendation = str(row.get("spread_wide_gap_source_inventory_recommended_next_boundary") or "unknown")
+            spread_wide_gap_source_inventory_recommendation_counter.update([recommendation])
+            if row.get("spread_wide_gap_source_inventory_runtime_replacement_enabled"):
+                spread_wide_gap_source_inventory_runtime_enabled_events += 1
+            try:
+                spread_wide_gap_source_inventory_best_replacement_gaps.append(int(float(row.get("spread_wide_gap_source_inventory_best_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_wide_gap_source_inventory_top_stable_replacement_gaps.append(int(float(row.get("spread_wide_gap_source_inventory_top_stable_replacement_gap"))))
+            except (TypeError, ValueError):
+                pass
+        if row.get("spread_phrase_state_boundary_helper_cleanup_applied"):
+            spread_phrase_state_boundary_helper_cleanup_events += 1
+        if row.get("voicing_state_advance_anchor_enabled"):
+            spread_phrase_state_boundary_helper_anchor_events += 1
+            if tuple(row.get("voicing_state_advance_anchor_notes") or []) == tuple(row.get("spread_phrase_scope_wide_gap_state_advance_override_notes") or []):
+                spread_phrase_state_boundary_helper_legacy_alias_match_events += 1
+        if row.get("previous_voicing_state_state_advance_anchor_enabled"):
+            spread_phrase_state_boundary_helper_previous_state_anchor_events += 1
+        if row.get("spread_phrase_scope_wide_gap_candidate_availability_applied"):
+            spread_phrase_scope_wide_gap_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
+            spread_phrase_scope_wide_gap_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
+            if row.get("spread_phrase_scope_wide_gap_state_advance_protected"):
+                spread_phrase_scope_wide_gap_state_protected_events += 1
+            if row.get("spread_phrase_scope_wide_gap_runtime_realization_enabled"):
+                spread_phrase_scope_wide_gap_runtime_realization_events += 1
+            try:
+                spread_phrase_scope_wide_gap_original_gaps.append(int(float(row.get("spread_phrase_scope_wide_gap_original_gap"))))
+            except (TypeError, ValueError):
+                pass
+            try:
+                spread_phrase_scope_wide_gap_realized_gaps.append(int(float(row.get("spread_phrase_scope_wide_gap_realized_gap"))))
+            except (TypeError, ValueError):
+                pass
         lower_notes = [int(note) for note in row.get("lower_group_notes") or []]
         if lower_notes:
             density_key = str(row["density"] or "unknown")
@@ -315,6 +438,80 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         "lower_foundation_low_register_events_by_grouping": dict(lower_foundation_low_register_events_by_grouping),
         "lower_foundation_low_register_events_by_density": dict(lower_foundation_low_register_events_by_density),
         "lower_foundation_span_violation_events": lower_foundation_span_violation_events,
+        "lower_upper_gap_audit_version": PIANO_LOWER_UPPER_GAP_AUDIT_VERSION,
+        "lower_upper_gap_comfort_min": lower_upper_gap_comfort_min,
+        "lower_upper_gap_comfort_max": lower_upper_gap_comfort_max,
+        "lower_upper_group_gap_min": min(lower_upper_group_gaps) if lower_upper_group_gaps else None,
+        "lower_upper_group_gap_max": max(lower_upper_group_gaps) if lower_upper_group_gaps else None,
+        "lower_upper_group_gap_average": round(mean(lower_upper_group_gaps), 3) if lower_upper_group_gaps else 0.0,
+        "lower_upper_group_gap_by_grouping": _numeric_stats_by_key(lower_upper_group_gap_stats_by_grouping),
+        "lower_upper_group_gap_by_density": _numeric_stats_by_key(lower_upper_group_gap_stats_by_density),
+        "lower_upper_group_gap_by_recipe": _numeric_stats_by_key(lower_upper_group_gap_stats_by_recipe),
+        "lower_upper_group_gap_too_tight_events": sum(lower_upper_group_gap_too_tight_events_by_grouping.values()),
+        "lower_upper_group_gap_too_tight_events_by_grouping": dict(lower_upper_group_gap_too_tight_events_by_grouping),
+        "lower_upper_group_gap_too_wide_events": sum(lower_upper_group_gap_too_wide_events_by_grouping.values()),
+        "lower_upper_group_gap_too_wide_events_by_grouping": dict(lower_upper_group_gap_too_wide_events_by_grouping),
+        "spread_gap_aware_candidate_scope_micro_calibration_version": PIANO_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_VERSION,
+        "spread_gap_aware_candidate_scope_micro_calibration_events": sum(spread_gap_aware_micro_events_by_recipe.values()),
+        "spread_gap_aware_candidate_scope_micro_calibration_events_by_recipe": dict(spread_gap_aware_micro_events_by_recipe),
+        "spread_gap_aware_candidate_scope_micro_calibration_events_by_grouping": dict(spread_gap_aware_micro_events_by_grouping),
+        "spread_gap_aware_original_gap_min": min(spread_gap_aware_original_gaps) if spread_gap_aware_original_gaps else None,
+        "spread_gap_aware_original_gap_max": max(spread_gap_aware_original_gaps) if spread_gap_aware_original_gaps else None,
+        "spread_gap_aware_replacement_gap_min": min(spread_gap_aware_replacement_gaps) if spread_gap_aware_replacement_gaps else None,
+        "spread_gap_aware_replacement_gap_max": max(spread_gap_aware_replacement_gaps) if spread_gap_aware_replacement_gaps else None,
+        "spread_wide_gap_deferred_outlier_strategy_version": PIANO_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION,
+        "spread_wide_gap_deferred_outlier_strategy_events": sum(spread_wide_gap_deferred_events_by_recipe.values()),
+        "spread_wide_gap_deferred_outlier_strategy_deferred_events": sum(spread_wide_gap_deferred_events_by_recipe.values()),
+        "spread_wide_gap_deferred_outlier_strategy_events_by_recipe": dict(spread_wide_gap_deferred_events_by_recipe),
+        "spread_wide_gap_deferred_outlier_strategy_events_by_grouping": dict(spread_wide_gap_deferred_events_by_grouping),
+        "spread_wide_gap_deferred_original_gap_min": min(spread_wide_gap_deferred_original_gaps) if spread_wide_gap_deferred_original_gaps else None,
+        "spread_wide_gap_deferred_original_gap_max": max(spread_wide_gap_deferred_original_gaps) if spread_wide_gap_deferred_original_gaps else None,
+        "spread_wide_gap_deferred_replacement_gap_min": min(spread_wide_gap_deferred_replacement_gaps) if spread_wide_gap_deferred_replacement_gaps else None,
+        "spread_wide_gap_deferred_replacement_gap_max": max(spread_wide_gap_deferred_replacement_gaps) if spread_wide_gap_deferred_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_plan_version": PIANO_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION,
+        "spread_wide_gap_source_inventory_plan_events": sum(spread_wide_gap_source_inventory_events_by_recipe.values()),
+        "spread_wide_gap_source_inventory_plan_events_by_recipe": dict(spread_wide_gap_source_inventory_events_by_recipe),
+        "spread_wide_gap_source_inventory_plan_events_by_grouping": dict(spread_wide_gap_source_inventory_events_by_grouping),
+        "spread_wide_gap_source_inventory_best_replacement_gap_min": min(spread_wide_gap_source_inventory_best_replacement_gaps) if spread_wide_gap_source_inventory_best_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_best_replacement_gap_max": max(spread_wide_gap_source_inventory_best_replacement_gaps) if spread_wide_gap_source_inventory_best_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap_min": min(spread_wide_gap_source_inventory_top_stable_replacement_gaps) if spread_wide_gap_source_inventory_top_stable_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap_max": max(spread_wide_gap_source_inventory_top_stable_replacement_gaps) if spread_wide_gap_source_inventory_top_stable_replacement_gaps else None,
+        "spread_wide_gap_source_inventory_runtime_replacement_enabled_events": spread_wide_gap_source_inventory_runtime_enabled_events,
+        "spread_wide_gap_source_inventory_recommended_next_boundaries": dict(spread_wide_gap_source_inventory_recommendation_counter),
+        "spread_phrase_scope_wide_gap_candidate_availability_version": PIANO_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION,
+        "spread_phrase_scope_wide_gap_candidate_availability_events": sum(spread_phrase_scope_wide_gap_events_by_recipe.values()),
+        "spread_phrase_scope_wide_gap_candidate_availability_events_by_recipe": dict(spread_phrase_scope_wide_gap_events_by_recipe),
+        "spread_phrase_scope_wide_gap_candidate_availability_events_by_grouping": dict(spread_phrase_scope_wide_gap_events_by_grouping),
+        "spread_phrase_scope_wide_gap_original_gap_min": min(spread_phrase_scope_wide_gap_original_gaps) if spread_phrase_scope_wide_gap_original_gaps else None,
+        "spread_phrase_scope_wide_gap_original_gap_max": max(spread_phrase_scope_wide_gap_original_gaps) if spread_phrase_scope_wide_gap_original_gaps else None,
+        "spread_phrase_scope_wide_gap_realized_gap_min": min(spread_phrase_scope_wide_gap_realized_gaps) if spread_phrase_scope_wide_gap_realized_gaps else None,
+        "spread_phrase_scope_wide_gap_realized_gap_max": max(spread_phrase_scope_wide_gap_realized_gaps) if spread_phrase_scope_wide_gap_realized_gaps else None,
+        "spread_phrase_scope_wide_gap_state_advance_protected_events": spread_phrase_scope_wide_gap_state_protected_events,
+        "spread_phrase_scope_wide_gap_runtime_realization_enabled_events": spread_phrase_scope_wide_gap_runtime_realization_events,
+        "spread_phrase_state_boundary_helper_cleanup_version": PIANO_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION,
+        "spread_phrase_state_boundary_helper_cleanup_events": spread_phrase_state_boundary_helper_cleanup_events,
+        "spread_phrase_state_boundary_helper_state_anchor_events": spread_phrase_state_boundary_helper_anchor_events,
+        "spread_phrase_state_boundary_helper_legacy_alias_match_events": spread_phrase_state_boundary_helper_legacy_alias_match_events,
+        "spread_phrase_state_boundary_helper_previous_state_anchor_events": spread_phrase_state_boundary_helper_previous_state_anchor_events,
+        "spread_phrase_state_boundary_review_version": PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION,
+        "spread_phrase_state_boundary_review_events": int(phrase_state_boundary_review.get("review_events", 0)),
+        "spread_phrase_state_boundary_review_next_events_found": int(phrase_state_boundary_review.get("next_events_found", 0)),
+        "spread_phrase_state_boundary_review_state_anchor_matches_override_events": int(phrase_state_boundary_review.get("state_anchor_matches_override_events", 0)),
+        "spread_phrase_state_boundary_review_realized_notes_not_used_as_state_events": int(phrase_state_boundary_review.get("realized_notes_not_used_as_state_events", 0)),
+        "spread_phrase_state_boundary_review_voice_leading_previous_matches_override_events": int(phrase_state_boundary_review.get("voice_leading_previous_matches_override_events", 0)),
+        "spread_phrase_state_boundary_review_warning_events": int(phrase_state_boundary_review.get("warning_events", 0)),
+        "spread_phrase_state_boundary_review_next_event_top_motion_max": phrase_state_boundary_review.get("next_event_top_motion_max"),
+        "spread_phrase_state_boundary_review_next_event_voice_leading_distance_max": phrase_state_boundary_review.get("next_event_voice_leading_distance_max"),
+        "spread_phrase_state_boundary_review_next_event_smoothness_labels": dict(phrase_state_boundary_review.get("next_event_smoothness_labels", {})),
+        "ballad_spread_post_continuity_listening_checkpoint_version": PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION,
+        "post_continuity_problem_bars_checked": list(post_continuity_checkpoint.get("problem_bars_checked", [])),
+        "post_continuity_problem_bars_found": list(post_continuity_checkpoint.get("problem_bars_found", [])),
+        "post_continuity_problem_bar_retouch_events": int(post_continuity_checkpoint.get("retouch_events", 0)),
+        "post_continuity_foundation_sustain_events": int(post_continuity_checkpoint.get("foundation_sustain_events", 0)),
+        "post_continuity_projection_only_retouch_events": int(post_continuity_checkpoint.get("projection_only_retouch_events", 0)),
+        "post_continuity_anchor_projection_trim_events": int(post_continuity_checkpoint.get("anchor_projection_trim_events", 0)),
+        "post_continuity_warning_events": int(post_continuity_checkpoint.get("warning_events", 0)),
+        "post_continuity_checkpoint_passed": bool(post_continuity_checkpoint.get("checkpoint_passed", False)),
         "low_note_min": min(all_midi_notes) if all_midi_notes else None,
         "top_note_max": max(all_midi_notes) if all_midi_notes else None,
         "top_note_ge_75_events": top_note_ge_75_events,
@@ -414,6 +611,16 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     lines.append(f"- SPREAD upper drop projection methods by grouping: `{summary.get('spread_upper_drop_projection_methods_by_grouping')}`")
     lines.append(f"- Lower foundation note min / max / average: `{summary.get('lower_foundation_note_min')}` / `{summary.get('lower_foundation_note_max')}` / `{summary.get('lower_foundation_note_average')}`")
     lines.append(f"- Lower foundation span max / average: `{summary.get('lower_foundation_span_max')}` / `{summary.get('lower_foundation_span_average')}`")
+    lines.append(f"- Lower/upper group gap min / max / average: `{summary.get('lower_upper_group_gap_min')}` / `{summary.get('lower_upper_group_gap_max')}` / `{summary.get('lower_upper_group_gap_average')}`")
+    lines.append(f"- Lower/upper group gap by grouping: `{summary.get('lower_upper_group_gap_by_grouping')}`")
+    lines.append(f"- Lower/upper group gap tight / wide events: `{summary.get('lower_upper_group_gap_too_tight_events')}` / `{summary.get('lower_upper_group_gap_too_wide_events')}`")
+    lines.append(f"- Phrase-scope wide-gap availability events: `{summary.get('spread_phrase_scope_wide_gap_candidate_availability_events')}`")
+    lines.append(f"- Phrase-scope wide-gap original / realized gap: `{summary.get('spread_phrase_scope_wide_gap_original_gap_min')}`-`{summary.get('spread_phrase_scope_wide_gap_original_gap_max')}` / `{summary.get('spread_phrase_scope_wide_gap_realized_gap_min')}`-`{summary.get('spread_phrase_scope_wide_gap_realized_gap_max')}`")
+    lines.append(f"- Phrase-scope state-protected / runtime-realized events: `{summary.get('spread_phrase_scope_wide_gap_state_advance_protected_events')}` / `{summary.get('spread_phrase_scope_wide_gap_runtime_realization_enabled_events')}`")
+    lines.append(f"- Phrase state boundary review events / warnings: `{summary.get('spread_phrase_state_boundary_review_events')}` / `{summary.get('spread_phrase_state_boundary_review_warning_events')}`")
+    lines.append(f"- Phrase state boundary next-event motion max: top `{summary.get('spread_phrase_state_boundary_review_next_event_top_motion_max')}`, voice-leading `{summary.get('spread_phrase_state_boundary_review_next_event_voice_leading_distance_max')}`")
+    lines.append(f"- Post-continuity checkpoint pass / warnings: `{summary.get('post_continuity_checkpoint_passed')}` / `{summary.get('post_continuity_warning_events')}`")
+    lines.append(f"- Post-continuity bars found: `{summary.get('post_continuity_problem_bars_found')}`")
     lines.append(f"- Lower foundation notes by grouping: `{summary.get('lower_foundation_notes_by_grouping')}`")
     lines.append(f"- Lower foundation recipe counts: `{summary.get('lower_foundation_recipe_counts')}`")
     lines.append(f"- Lower foundation low-register events: `{summary.get('lower_foundation_low_register_events')}`")
@@ -520,6 +727,237 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     return "\n".join(lines)
 
 
+
+def _annotate_post_continuity_listening_checkpoint(
+    rows: list[dict[str, Any]],
+    timing_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Review the accepted v2_6_38 Ballad 1& continuity patch.
+
+    This is observational only.  It focuses on the three performance bars the
+    user flagged before returning to voicing work.  The check verifies that the
+    1& touch is a projection-group re-touch and that lower/foundation notes
+    from the anchor sustain through that re-touch rather than being cut off.
+    """
+
+    problem_bars = (41, 63, 95)
+    problem_bar_set = set(problem_bars)
+    rows_by_region: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        rows_by_region.setdefault(str(row.get("region_id") or ""), []).append(row)
+
+    bars_found: list[int] = []
+    retouch_events = 0
+    foundation_sustain_events = 0
+    projection_only_retouch_events = 0
+    anchor_projection_trim_events = 0
+    warning_events = 0
+
+    for row in rows:
+        bar = int(float(row.get("onset_beat") or 0.0) // 4) + 1
+        if bar not in problem_bar_set:
+            continue
+        if row.get("pattern_id") != "ballad_piano_downbeat_1and_whisper":
+            continue
+        if row.get("gesture_type") != "inner_movement":
+            continue
+        if float(row.get("local_beat") or 0.0) != 0.5:
+            continue
+
+        retouch_events += 1
+        bars_found.append(bar)
+        region_rows = rows_by_region.get(str(row.get("region_id") or ""), [])
+        anchor_candidates = [
+            candidate
+            for candidate in region_rows
+            if candidate.get("pattern_id") == "ballad_piano_downbeat_1and_whisper"
+            and candidate.get("gesture_type") == "simultaneous_onset"
+            and float(candidate.get("onset_beat") or 0.0) < float(row.get("onset_beat") or 0.0)
+        ]
+        anchor = anchor_candidates[-1] if anchor_candidates else None
+        retouch_notes = [note for note in row.get("realized_notes") or [] if isinstance(note, Mapping)]
+        anchor_notes = [note for note in (anchor or {}).get("realized_notes", []) if isinstance(note, Mapping)]
+
+        retouch_starts = [_performed_note_start(note, timing_policy) for note in retouch_notes]
+        retouch_ends = [_performed_note_end(note, timing_policy) for note in retouch_notes]
+        retouch_start = min(retouch_starts) if retouch_starts else None
+        retouch_end = max(retouch_ends) if retouch_ends else None
+        anchor_ends = [_performed_note_end(note, timing_policy) for note in anchor_notes]
+
+        foundation_sustain_count = 0
+        projection_trim_count = 0
+        if retouch_end is not None:
+            foundation_sustain_count = sum(1 for end in anchor_ends if end >= retouch_end - 1e-6)
+        if retouch_start is not None:
+            projection_trim_count = sum(1 for end in anchor_ends if abs(end - retouch_start) < 1e-6)
+
+        projection_only = bool(retouch_notes) and {str(note.get("projection_ref") or "") for note in retouch_notes} == {"projection_group"}
+        foundation_ok = foundation_sustain_count >= 2
+        trim_ok = projection_trim_count >= 3
+        warning = not anchor or not projection_only or not foundation_ok or not trim_ok
+        if projection_only:
+            projection_only_retouch_events += 1
+        if foundation_ok:
+            foundation_sustain_events += 1
+        if trim_ok:
+            anchor_projection_trim_events += 1
+        if warning:
+            warning_events += 1
+
+        row.update(
+            {
+                "post_continuity_listening_checkpoint_version": PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION,
+                "post_continuity_listening_checkpoint_applied": True,
+                "post_continuity_problem_bar": bar,
+                "post_continuity_anchor_event_id": (anchor or {}).get("event_id"),
+                "post_continuity_retouch_projection_only": projection_only,
+                "post_continuity_foundation_notes_sustaining_through_retouch": foundation_sustain_count,
+                "post_continuity_projection_notes_trimmed_to_retouch_start": projection_trim_count,
+                "post_continuity_warning": warning,
+                "post_continuity_scope": "accepted_ballad_1and_whisper_continuity_observational_only",
+                "post_continuity_no_voicing_selector_change": True,
+            }
+        )
+
+    checkpoint_passed = (
+        sorted(bars_found) == list(problem_bars)
+        and retouch_events == len(problem_bars)
+        and foundation_sustain_events == len(problem_bars)
+        and projection_only_retouch_events == len(problem_bars)
+        and anchor_projection_trim_events == len(problem_bars)
+        and warning_events == 0
+    )
+    return {
+        "problem_bars_checked": list(problem_bars),
+        "problem_bars_found": sorted(bars_found),
+        "retouch_events": retouch_events,
+        "foundation_sustain_events": foundation_sustain_events,
+        "projection_only_retouch_events": projection_only_retouch_events,
+        "anchor_projection_trim_events": anchor_projection_trim_events,
+        "warning_events": warning_events,
+        "checkpoint_passed": checkpoint_passed,
+    }
+
+
+def _performed_note_start(note: Mapping[str, Any], timing_policy: Mapping[str, Any]) -> float:
+    return performed_beat(
+        float(note.get("start_beat", 0.0) or 0.0),
+        str(note.get("timing_intent") or "auto"),
+        timing_policy,
+    )
+
+
+def _performed_note_end(note: Mapping[str, Any], timing_policy: Mapping[str, Any]) -> float:
+    return _performed_note_start(note, timing_policy) + float(note.get("duration_beats", 0.0) or 0.0)
+
+
+def _annotate_phrase_state_boundary_review(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Review v2_6_35 state-advance protection at the next-event boundary.
+
+    This is observational only.  It verifies that rows realized with the
+    phrase-scope wide-gap candidate still advance subsequent voicing continuity
+    from the protected phrase anchor rather than from the substituted notes.
+    """
+
+    review_events = 0
+    next_events_found = 0
+    state_anchor_matches_override_events = 0
+    realized_notes_not_used_as_state_events = 0
+    voice_leading_previous_matches_override_events = 0
+    warning_events = 0
+    top_motions: list[float] = []
+    distances: list[float] = []
+    smoothness_labels: Counter[str] = Counter()
+
+    for index, row in enumerate(rows[:-1]):
+        if not row.get("spread_phrase_scope_wide_gap_candidate_availability_applied"):
+            continue
+        review_events += 1
+        next_row = rows[index + 1]
+        next_events_found += 1
+        override_notes = tuple(int(note) for note in row.get("spread_phrase_scope_wide_gap_state_advance_override_notes") or [])
+        realized_notes = tuple(int(note) for note in row.get("midi_notes") or [])
+        next_previous_state_notes = tuple(int(note) for note in next_row.get("previous_voicing_state_previous_notes") or [])
+        next_voice_leading_previous_notes = tuple(int(note) for note in next_row.get("voice_leading_previous_notes") or [])
+
+        state_anchor_matches = bool(override_notes) and next_previous_state_notes == override_notes
+        voice_leading_previous_matches = bool(override_notes) and next_voice_leading_previous_notes == override_notes
+        realized_notes_not_used = bool(realized_notes) and next_previous_state_notes != realized_notes
+        next_top_motion = _safe_float(next_row.get("voice_leading_top_voice_motion"))
+        next_distance = _safe_float(next_row.get("voice_leading_distance"))
+        next_label = str(next_row.get("voice_leading_smoothness_label") or "unknown")
+        if next_top_motion is not None:
+            top_motions.append(abs(next_top_motion))
+        if next_distance is not None:
+            distances.append(next_distance)
+        smoothness_labels.update([next_label])
+
+        # This boundary review is intentionally conservative: it should flag a
+        # warning only when the protected state was not actually used or when the
+        # immediate next event shows a large continuity jump.
+        warning = (
+            not state_anchor_matches
+            or not voice_leading_previous_matches
+            or not realized_notes_not_used
+            or (next_top_motion is not None and abs(next_top_motion) > 2.0)
+            or (next_distance is not None and next_distance > 6.0)
+        )
+        if state_anchor_matches:
+            state_anchor_matches_override_events += 1
+        if voice_leading_previous_matches:
+            voice_leading_previous_matches_override_events += 1
+        if realized_notes_not_used:
+            realized_notes_not_used_as_state_events += 1
+        if warning:
+            warning_events += 1
+
+        row.update(
+            {
+                "spread_phrase_state_boundary_review_version": PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION,
+                "spread_phrase_state_boundary_review_applied": True,
+                "spread_phrase_state_boundary_review_next_event_id": next_row.get("event_id"),
+                "spread_phrase_state_boundary_review_next_chord_symbol": next_row.get("chord_symbol"),
+                "spread_phrase_state_boundary_review_next_midi_notes": list(next_row.get("midi_notes") or []),
+                "spread_phrase_state_boundary_review_state_anchor_matches_override": state_anchor_matches,
+                "spread_phrase_state_boundary_review_voice_leading_previous_matches_override": voice_leading_previous_matches,
+                "spread_phrase_state_boundary_review_realized_notes_not_used_as_state": realized_notes_not_used,
+                "spread_phrase_state_boundary_review_next_top_motion": next_top_motion,
+                "spread_phrase_state_boundary_review_next_voice_leading_distance": next_distance,
+                "spread_phrase_state_boundary_review_next_smoothness_label": next_label,
+                "spread_phrase_state_boundary_review_warning": warning,
+                "spread_phrase_state_boundary_review_scope": "next_event_state_advance_boundary_observational_only",
+                "spread_phrase_state_boundary_review_no_runtime_change": True,
+            }
+        )
+        next_row.update(
+            {
+                "spread_phrase_state_boundary_review_after_protected_event": True,
+                "spread_phrase_state_boundary_review_previous_protected_event_id": row.get("event_id"),
+                "spread_phrase_state_boundary_review_previous_override_notes": list(override_notes),
+                "spread_phrase_state_boundary_review_previous_realized_notes": list(realized_notes),
+                "spread_phrase_state_boundary_review_state_anchor_matches_override": state_anchor_matches,
+            }
+        )
+
+    return {
+        "review_events": review_events,
+        "next_events_found": next_events_found,
+        "state_anchor_matches_override_events": state_anchor_matches_override_events,
+        "realized_notes_not_used_as_state_events": realized_notes_not_used_as_state_events,
+        "voice_leading_previous_matches_override_events": voice_leading_previous_matches_override_events,
+        "warning_events": warning_events,
+        "next_event_top_motion_max": max(top_motions) if top_motions else None,
+        "next_event_voice_leading_distance_max": round(max(distances), 3) if distances else None,
+        "next_event_smoothness_labels": dict(smoothness_labels),
+    }
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
 def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, Any], expression_audit_row: Mapping[str, Any] | None = None) -> dict[str, Any]:
     event = dict(raw.get("pattern_event") or {})
     expression = dict(raw.get("expression") or {})
@@ -599,9 +1037,103 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "spread_upper_projection_metadata": upper_projection_metadata,
         "lower_group_recipe_id": voicing_metadata.get("lower_group_recipe_id"),
         "lower_group_notes": [int(note) for note in voicing_metadata.get("lower_group_notes") or []],
+        "group_gap_semitones": voicing_metadata.get("group_gap_semitones"),
         "lower_group_span_semitones": voicing_metadata.get("lower_group_span_semitones"),
         "lower_group_max_span_semitones": voicing_metadata.get("lower_group_max_span_semitones", 12),
         "lower_foundation_low_register_threshold": voicing_metadata.get("lower_foundation_low_register_threshold", 43),
+        "voice_leading_previous_notes": list((voicing_metadata.get("voice_leading_profile") or {}).get("previous_notes") or []),
+        "voice_leading_distance": (voicing_metadata.get("voice_leading_profile") or {}).get("voice_leading_distance"),
+        "voice_leading_top_voice_motion": (voicing_metadata.get("voice_leading_profile") or {}).get("top_voice_motion"),
+        "voice_leading_smoothness_label": (voicing_metadata.get("voice_leading_profile") or {}).get("smoothness_label"),
+        "previous_voicing_state_previous_notes": list((voicing_metadata.get("previous_voicing_state") or {}).get("previous_notes") or []),
+        "previous_voicing_state_previous_event_id": (voicing_metadata.get("previous_voicing_state") or {}).get("previous_event_id"),
+        "previous_voicing_state_previous_chord_symbol": (voicing_metadata.get("previous_voicing_state") or {}).get("previous_chord_symbol"),
+        "previous_voicing_state_lower_group_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("lower_group_notes") or []),
+        "previous_voicing_state_upper_group_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("upper_group_notes") or []),
+        "previous_voicing_state_group_gap_semitones": ((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("group_gap_semitones"),
+        "previous_voicing_state_state_advance_anchor_enabled": bool(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_enabled", False)),
+        "previous_voicing_state_state_advance_anchor_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_notes") or []),
+        "spread_gap_aware_candidate_scope_micro_calibration_applied": bool(voicing_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_applied", False)),
+        "spread_gap_aware_candidate_scope_micro_calibration_version": voicing_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_version"),
+        "spread_gap_aware_original_gap": voicing_metadata.get("spread_gap_aware_original_gap"),
+        "spread_gap_aware_replacement_gap": voicing_metadata.get("spread_gap_aware_replacement_gap"),
+        "spread_gap_aware_original_primary_cost": voicing_metadata.get("spread_gap_aware_original_primary_cost"),
+        "spread_gap_aware_replacement_primary_cost": voicing_metadata.get("spread_gap_aware_replacement_primary_cost"),
+        "spread_gap_aware_same_recipe_only": bool(voicing_metadata.get("spread_gap_aware_same_recipe_only", False)),
+        "spread_gap_aware_density_lane_unchanged": bool(voicing_metadata.get("spread_gap_aware_density_lane_unchanged", False)),
+        "spread_gap_aware_max_primary_cost_delta_used": voicing_metadata.get("spread_gap_aware_max_primary_cost_delta_used"),
+        "spread_wide_gap_deferred_outlier_strategy_deferred": bool(voicing_metadata.get("spread_wide_gap_deferred_outlier_strategy_deferred", False)),
+        "spread_wide_gap_deferred_outlier_strategy_version": voicing_metadata.get("spread_wide_gap_deferred_outlier_strategy_version"),
+        "spread_wide_gap_deferred_original_gap": voicing_metadata.get("spread_wide_gap_deferred_original_gap"),
+        "spread_wide_gap_deferred_candidate_count": voicing_metadata.get("spread_wide_gap_deferred_candidate_count"),
+        "spread_wide_gap_deferred_best_replacement_gap": voicing_metadata.get("spread_wide_gap_deferred_best_replacement_gap"),
+        "spread_wide_gap_deferred_top_stable_replacement_gap": voicing_metadata.get("spread_wide_gap_deferred_top_stable_replacement_gap"),
+        "spread_wide_gap_deferred_original_primary_cost": voicing_metadata.get("spread_wide_gap_deferred_original_primary_cost"),
+        "spread_wide_gap_deferred_best_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_deferred_best_replacement_primary_cost"),
+        "spread_wide_gap_deferred_top_stable_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_deferred_top_stable_replacement_primary_cost"),
+        "spread_wide_gap_deferred_max_primary_cost_delta": voicing_metadata.get("spread_wide_gap_deferred_max_primary_cost_delta"),
+        "spread_wide_gap_deferred_same_recipe_only": bool(voicing_metadata.get("spread_wide_gap_deferred_same_recipe_only", False)),
+        "spread_wide_gap_deferred_density_lane_unchanged": bool(voicing_metadata.get("spread_wide_gap_deferred_density_lane_unchanged", False)),
+        "spread_wide_gap_deferred_not_broad_scorer": bool(voicing_metadata.get("spread_wide_gap_deferred_not_broad_scorer", False)),
+        "spread_wide_gap_deferred_runtime_replacement_enabled": bool(voicing_metadata.get("spread_wide_gap_deferred_runtime_replacement_enabled", False)),
+        "spread_wide_gap_deferred_reason": voicing_metadata.get("spread_wide_gap_deferred_reason"),
+        "spread_wide_gap_source_inventory_plan_active": bool(voicing_metadata.get("spread_wide_gap_source_inventory_plan_active", False)),
+        "spread_wide_gap_source_inventory_plan_version": voicing_metadata.get("spread_wide_gap_source_inventory_plan_version"),
+        "spread_wide_gap_source_inventory_plan_scope": voicing_metadata.get("spread_wide_gap_source_inventory_plan_scope"),
+        "spread_wide_gap_source_inventory_original_gap": voicing_metadata.get("spread_wide_gap_source_inventory_original_gap"),
+        "spread_wide_gap_source_inventory_candidate_count": voicing_metadata.get("spread_wide_gap_source_inventory_candidate_count"),
+        "spread_wide_gap_source_inventory_comfort_candidate_count": voicing_metadata.get("spread_wide_gap_source_inventory_comfort_candidate_count"),
+        "spread_wide_gap_source_inventory_best_replacement_gap": voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_gap"),
+        "spread_wide_gap_source_inventory_top_stable_replacement_gap": voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_replacement_gap"),
+        "spread_wide_gap_source_inventory_original_primary_cost": voicing_metadata.get("spread_wide_gap_source_inventory_original_primary_cost"),
+        "spread_wide_gap_source_inventory_best_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_primary_cost"),
+        "spread_wide_gap_source_inventory_top_stable_replacement_primary_cost": voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_replacement_primary_cost"),
+        "spread_wide_gap_source_inventory_original_lower_recipe_id": voicing_metadata.get("spread_wide_gap_source_inventory_original_lower_recipe_id"),
+        "spread_wide_gap_source_inventory_original_upper_source_degrees": list(voicing_metadata.get("spread_wide_gap_source_inventory_original_upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_best_replacement_lower_recipe_id": voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_lower_recipe_id"),
+        "spread_wide_gap_source_inventory_best_replacement_upper_source_degrees": list(voicing_metadata.get("spread_wide_gap_source_inventory_best_replacement_upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_top_stable_lower_recipe_id": voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_lower_recipe_id"),
+        "spread_wide_gap_source_inventory_top_stable_upper_source_degrees": list(voicing_metadata.get("spread_wide_gap_source_inventory_top_stable_upper_source_degrees") or []),
+        "spread_wide_gap_source_inventory_same_recipe_only": bool(voicing_metadata.get("spread_wide_gap_source_inventory_same_recipe_only", False)),
+        "spread_wide_gap_source_inventory_not_broad_scorer": bool(voicing_metadata.get("spread_wide_gap_source_inventory_not_broad_scorer", False)),
+        "spread_wide_gap_source_inventory_runtime_replacement_enabled": bool(voicing_metadata.get("spread_wide_gap_source_inventory_runtime_replacement_enabled", False)),
+        "spread_wide_gap_source_inventory_density_lane_unchanged": bool(voicing_metadata.get("spread_wide_gap_source_inventory_density_lane_unchanged", False)),
+        "spread_wide_gap_source_inventory_recommended_next_boundary": voicing_metadata.get("spread_wide_gap_source_inventory_recommended_next_boundary"),
+        "spread_wide_gap_source_inventory_reason": voicing_metadata.get("spread_wide_gap_source_inventory_reason"),
+        "spread_phrase_scope_wide_gap_candidate_availability_applied": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_applied", False)),
+        "spread_phrase_scope_wide_gap_candidate_availability_version": voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_version"),
+        "spread_phrase_scope_wide_gap_candidate_availability_scope": voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_availability_scope"),
+        "spread_phrase_scope_wide_gap_original_gap": voicing_metadata.get("spread_phrase_scope_wide_gap_original_gap"),
+        "spread_phrase_scope_wide_gap_realized_gap": voicing_metadata.get("spread_phrase_scope_wide_gap_realized_gap"),
+        "spread_phrase_scope_wide_gap_best_replacement_gap": voicing_metadata.get("spread_phrase_scope_wide_gap_best_replacement_gap"),
+        "spread_phrase_scope_wide_gap_candidate_count": voicing_metadata.get("spread_phrase_scope_wide_gap_candidate_count"),
+        "spread_phrase_scope_wide_gap_original_notes": list(voicing_metadata.get("spread_phrase_scope_wide_gap_original_notes") or []),
+        "spread_phrase_scope_wide_gap_realized_notes": list(voicing_metadata.get("spread_phrase_scope_wide_gap_realized_notes") or []),
+        "spread_phrase_scope_wide_gap_original_upper_source_degrees": list(voicing_metadata.get("spread_phrase_scope_wide_gap_original_upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_realized_upper_source_degrees": list(voicing_metadata.get("spread_phrase_scope_wide_gap_realized_upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_best_replacement_upper_source_degrees": list(voicing_metadata.get("spread_phrase_scope_wide_gap_best_replacement_upper_source_degrees") or []),
+        "spread_phrase_scope_wide_gap_original_primary_cost": voicing_metadata.get("spread_phrase_scope_wide_gap_original_primary_cost"),
+        "spread_phrase_scope_wide_gap_realized_primary_cost": voicing_metadata.get("spread_phrase_scope_wide_gap_realized_primary_cost"),
+        "spread_phrase_scope_wide_gap_best_replacement_primary_cost": voicing_metadata.get("spread_phrase_scope_wide_gap_best_replacement_primary_cost"),
+        "spread_phrase_scope_wide_gap_max_primary_cost_delta": voicing_metadata.get("spread_phrase_scope_wide_gap_max_primary_cost_delta"),
+        "spread_phrase_scope_wide_gap_state_advance_protected": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_state_advance_protected", False)),
+        "spread_phrase_scope_wide_gap_state_advance_override_enabled": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_state_advance_override_enabled", False)),
+        "spread_phrase_scope_wide_gap_state_advance_override_notes": list(voicing_metadata.get("spread_phrase_scope_wide_gap_state_advance_override_notes") or []),
+        "spread_phrase_scope_wide_gap_not_broad_scorer": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_not_broad_scorer", False)),
+        "spread_phrase_scope_wide_gap_same_recipe_only": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_same_recipe_only", False)),
+        "spread_phrase_scope_wide_gap_density_lane_guarded": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_density_lane_guarded", False)),
+        "spread_phrase_scope_wide_gap_runtime_realization_enabled": bool(voicing_metadata.get("spread_phrase_scope_wide_gap_runtime_realization_enabled", False)),
+        "spread_phrase_scope_wide_gap_reason": voicing_metadata.get("spread_phrase_scope_wide_gap_reason"),
+        "voicing_state_advance_anchor_helper_version": voicing_metadata.get("voicing_state_advance_anchor_helper_version"),
+        "voicing_state_advance_anchor_enabled": bool(voicing_metadata.get("voicing_state_advance_anchor_enabled", False)),
+        "voicing_state_advance_anchor_notes": list(voicing_metadata.get("voicing_state_advance_anchor_notes") or []),
+        "voicing_state_advance_anchor_degrees": list(voicing_metadata.get("voicing_state_advance_anchor_degrees") or []),
+        "voicing_state_advance_anchor_reason": voicing_metadata.get("voicing_state_advance_anchor_reason"),
+        "spread_phrase_state_boundary_helper_cleanup_version": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_version"),
+        "spread_phrase_state_boundary_helper_cleanup_applied": bool(voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_applied", False)),
+        "spread_phrase_state_boundary_helper_cleanup_contract": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_contract"),
+        "spread_phrase_state_boundary_helper_cleanup_state_anchor_owner": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_state_anchor_owner"),
+        "spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor": bool(voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor", False)),
         "disposition_projection_spec": dict(voicing_metadata.get("disposition_projection_spec") or {}),
         "legacy_projection_callback_used": bool(voicing_metadata.get("legacy_projection_callback_used", False)),
         "legacy_projection_cleanup_required": bool(voicing_metadata.get("legacy_projection_cleanup_required", False)),
