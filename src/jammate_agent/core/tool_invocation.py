@@ -53,6 +53,9 @@ CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION = "v2_8_15"
 CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION = "v2_8_16"
 TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION = "v2_8_17"
 TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION = "v2_8_18"
+TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION = "v2_8_19"
+TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION = "v2_8_20"
+TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION = "v2_8_21"
 
 
 @dataclass(frozen=True)
@@ -8402,6 +8405,330 @@ def today_practice_guidance_persisted_context_terminal_memory_controls_contract(
         "next_task_hint": "v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture",
     }
 
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceTerminalMemoryToHarmonyOSDebugFixturePayload:
+    """v2_8_19 bridge from terminal persisted-context memory to HarmonyOS debug fixture preview.
+
+    The payload is a frontend-debug fixture preview only. It serializes the
+    already-normalized terminal memory / snapshot context into a HarmonyOS-facing
+    debug request shape so the client can test the same recovered-context
+    today-practice guidance path without manually pasting large JSON blocks.
+    It does not write storage, call the LLM, execute tools, start Routine, call
+    /accompaniment/generate, call engine adapters, create MIDI, or start playback.
+    """
+
+    payload_contract_version: str
+    source: str
+    fixture_id: str
+    user_input: str
+    snapshot_context_intake_payload: dict[str, Any]
+    recovered_context_summary: dict[str, Any]
+    harmonyos_debug_fixture: dict[str, Any]
+    agent_request_preview: dict[str, Any]
+    terminal_command_preview: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "fixture_id": self.fixture_id,
+            "user_input": self.user_input,
+            "snapshot_context_intake_payload": _redact_sensitive_values(self.snapshot_context_intake_payload),
+            "recovered_context_summary": _redact_sensitive_values(self.recovered_context_summary),
+            "harmonyos_debug_fixture": _redact_sensitive_values(self.harmonyos_debug_fixture),
+            "agent_request_preview": _redact_sensitive_values(self.agent_request_preview),
+            "terminal_command_preview": _redact_sensitive_values(self.terminal_command_preview),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _extract_terminal_memory_debug_fixture_source_args(args: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    memory = _first_present(args, "persisted_context_memory", "persistedContextMemory", "terminalMemory", "terminal_memory")
+    if isinstance(memory, dict):
+        guidance_args = memory.get("guidance_arguments") or memory.get("guidanceArguments")
+        if isinstance(guidance_args, dict):
+            return dict(guidance_args), "terminal_persisted_context_memory_guidance_arguments"
+        snapshot = memory.get("snapshot_context_intake_payload") or memory.get("snapshotContextIntakePayload")
+        if isinstance(snapshot, dict):
+            return {"snapshotContextIntakePayload": snapshot}, "terminal_persisted_context_memory_snapshot_payload"
+    snapshot = _first_present(args, "snapshot_context_intake_payload", "snapshotContextIntakePayload", "contextPersistenceSnapshotContextIntake")
+    if isinstance(snapshot, dict):
+        return {"snapshotContextIntakePayload": snapshot}, "embedded_snapshot_context_intake_payload"
+    return dict(args), "direct_debug_fixture_arguments"
+
+
+def build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture",
+) -> TodayPracticeGuidanceTerminalMemoryToHarmonyOSDebugFixturePayload:
+    """Build a HarmonyOS debug fixture preview from terminal persisted-context memory."""
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    user_input = str(_first_present(args, "user_input", "userInput", "text") or "今天该练什么？")
+    fixture_id = str(_first_present(args, "fixture_id", "fixtureId", "debug_fixture_id", "debugFixtureId") or f"harmonyos_today_guidance_debug_{uuid4().hex[:12]}")
+    available_minutes = _first_present(args, "available_minutes", "availableMinutes")
+    source_args, source_kind = _extract_terminal_memory_debug_fixture_source_args(args)
+    if available_minutes is not None:
+        source_args.setdefault("availableMinutes", available_minutes)
+    source_args.setdefault("userInput", user_input)
+
+    snapshot_payload, snapshot_source = _extract_snapshot_intake_payload_for_recovery(source_args, trace)
+    recovered_summary = _summarize_recovered_context_sections(snapshot_payload)
+    snapshot_validation = snapshot_payload.get("validation") if isinstance(snapshot_payload.get("validation"), dict) else {}
+    accepted = bool(snapshot_validation.get("accepted", True)) and any(
+        bool(recovered_summary.get(key))
+        for key in ("profile_context_present", "active_plan_context_present", "routine_history_context_present", "assembled_practice_context_present")
+    )
+    warnings: list[str] = []
+    blocked_reasons: list[str] = []
+    if not accepted:
+        blocked_reasons.append("no_recoverable_profile_plan_or_history_context_for_harmonyos_debug_fixture")
+    if source_kind == "direct_debug_fixture_arguments":
+        warnings.append("fixture_built_from_direct_arguments_not_terminal_memory")
+    if snapshot_source == "snapshot_context_intake_builder":
+        warnings.append("snapshot_context_intake_payload_was_built_for_debug_fixture_preview")
+
+    agent_body = {
+        "userInput": user_input,
+        "availableMinutes": available_minutes,
+        "snapshotContextIntakePayload": snapshot_payload,
+        "callProvider": False,
+        "debugFixtureMode": True,
+    }
+    provider_result = _first_present(args, "provider_result", "providerResult") or _first_present(source_args, "provider_result", "providerResult")
+    if isinstance(provider_result, dict):
+        agent_body["providerResult"] = provider_result
+    agent_request_preview = {
+        "method": "POST",
+        "path": "/agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview",
+        "body": agent_body,
+        "side_effects_created": False,
+        "client_may_call_for_debug_preview": True,
+    }
+    terminal_command_preview = {
+        "load_context": "/persisted-context-load <harmonyos_debug_fixture.contextPayload>",
+        "ask_guidance": user_input,
+        "show_memory": "/persisted-context-show",
+        "clear_memory": "/persisted-context-clear",
+    }
+    context_payload = {
+        "availableMinutes": available_minutes,
+        "userInput": user_input,
+        "snapshotContextIntakePayload": snapshot_payload,
+    }
+    harmonyos_debug_fixture = {
+        "fixtureContractVersion": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+        "fixtureKind": "today_practice_guidance_persisted_context_debug_fixture",
+        "fixtureId": fixture_id,
+        "title": "Today Practice Guidance persisted-context debug fixture",
+        "description": "Load recovered profile / active plan / routine history context, then preview today-practice guidance.",
+        "harmonyosOwned": True,
+        "backendOwned": False,
+        "clientDecidesPresentation": True,
+        "frontendFlowAssumption": False,
+        "contextPayload": context_payload,
+        "agentRequestPreview": agent_request_preview,
+        "debugClientFlow": [
+            "load persisted-context fixture into HarmonyOS debug screen state",
+            "call Agent persisted-context recovery preview route or terminal memory command",
+            "render display-only ActionCard / Routine candidate returned by Agent",
+            "require separate user confirmation before any future Routine start",
+        ],
+        "expectedGuards": {
+            "storageWritten": False,
+            "backendDatabaseWritten": False,
+            "localDeviceWrittenByAgent": False,
+            "llmCalledByFixtureBuilder": False,
+            "toolExecuted": False,
+            "routineStartEnabled": False,
+            "accompanimentGenerateCallEnabled": False,
+            "engineAdapterCalled": False,
+            "midiAssetCreated": False,
+            "playbackStarted": False,
+            "postSessionRecommendationCardCreated": False,
+        },
+    }
+    validation = {
+        "accepted": accepted,
+        "status": "accepted" if accepted else "blocked",
+        "source_kind": source_kind,
+        "snapshot_source": snapshot_source,
+        "profile_context_present": recovered_summary.get("profile_context_present", False),
+        "active_plan_context_present": recovered_summary.get("active_plan_context_present", False),
+        "routine_history_context_present": recovered_summary.get("routine_history_context_present", False),
+        "assembled_practice_context_present": recovered_summary.get("assembled_practice_context_present", False),
+        "warnings": warnings,
+        "blocked_reasons": blocked_reasons,
+    }
+    guard = {
+        "fixture_builder_writes_storage": False,
+        "fixture_builder_calls_llm": False,
+        "fixture_builder_executes_tool": False,
+        "fixture_builder_calls_engine_adapter": False,
+        "fixture_builder_calls_accompaniment_generate": False,
+        "fixture_builder_creates_midi_asset": False,
+        "fixture_builder_starts_playback": False,
+        "fixture_builder_starts_routine": False,
+        "fixture_builder_creates_post_session_recommendation_card": False,
+        "harmonyos_fixture_is_debug_preview_only": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    return TodayPracticeGuidanceTerminalMemoryToHarmonyOSDebugFixturePayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+        source=source,
+        fixture_id=fixture_id,
+        user_input=user_input,
+        snapshot_context_intake_payload=snapshot_payload,
+        recovered_context_summary=recovered_summary,
+        harmonyos_debug_fixture=harmonyos_debug_fixture,
+        agent_request_preview=agent_request_preview,
+        terminal_command_preview=terminal_command_preview,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+    )
+
+
+def build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary(
+    *,
+    payload: TodayPracticeGuidanceTerminalMemoryToHarmonyOSDebugFixturePayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    recovered = data.get("recovered_context_summary") if isinstance(data.get("recovered_context_summary"), dict) else {}
+    request = data.get("agent_request_preview") if isinstance(data.get("agent_request_preview"), dict) else {}
+    return {
+        "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "fixture_id": data.get("fixture_id"),
+        "source_kind": validation.get("source_kind"),
+        "snapshot_source": validation.get("snapshot_source"),
+        "profile_context_present": validation.get("profile_context_present", False),
+        "active_plan_context_present": validation.get("active_plan_context_present", False),
+        "routine_history_context_present": validation.get("routine_history_context_present", False),
+        "assembled_practice_context_present": validation.get("assembled_practice_context_present", False),
+        "profile_summary": recovered.get("profile_summary"),
+        "plan_block_count": recovered.get("plan_block_count", 0),
+        "routine_history_item_count": recovered.get("routine_history_item_count", 0),
+        "debug_fixture_ready": bool(validation.get("accepted")),
+        "agent_preview_route": request.get("path"),
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+        "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview",
+        "terminal_command": "/persisted-context-harmonyos-debug-fixture [json_payload]",
+        "surface": "Terminal persisted-context memory to HarmonyOS debug fixture preview",
+        "mode": "frontend_debug_fixture_preview_only",
+        "execution_status": {
+            "debug_fixture_preview_enabled": True,
+            "terminal_memory_can_be_serialized_for_harmonyos_debug": True,
+            "harmonyos_can_use_fixture_to_call_persisted_context_recovery_preview": True,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled_by_agent": False,
+            "llm_call_enabled_by_fixture_builder": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "fixture_flow": [
+            "read terminal persisted-context memory or direct profile/plan/history JSON",
+            "normalize it through snapshot context intake",
+            "emit a HarmonyOS debug fixture payload and Agent preview request shape",
+            "client may render display-only guidance and Routine candidate after calling preview route",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "frontend_flow_assumption": False,
+            "client_decides_presentation": True,
+        },
+        "uses_contracts": {
+            "today_practice_guidance_persisted_context_terminal_memory_controls": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "context_persistence_profile_plan_history_snapshot_context_intake": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+            "today_practice_guidance_persisted_context_recovery_e2e": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+        },
+        "next_task_hint": "v2_8_20_agent_harmonyos_debug_fixture_roundtrip_terminal_e2e",
+    }
+
 def _normalize_storage_adapter_entities(args: dict[str, Any]) -> list[str]:
     raw = _first_present(args, "entities", "context_entities", "contextEntities", "requested_entities", "requestedEntities")
     if raw is None:
@@ -11323,6 +11650,680 @@ def detect_today_practice_guidance_intent(user_input: str | None) -> dict[str, A
         "accompaniment_generate_call_enabled": False,
     }
 
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceHarmonyOSDebugFixtureRoundtripTerminalE2EPayload:
+    """v2_8_20 roundtrip preview from HarmonyOS debug fixture back into guidance.
+
+    This payload consumes a v2_8_19 HarmonyOS debug fixture preview (or builds one
+    from direct profile/plan/history arguments), extracts the Agent persisted
+    context recovery request body, and runs the read-only persisted-context
+    recovery guidance preview. It verifies the terminal/frontend debug fixture
+    can roundtrip into the same display-only TodayPracticeGuidance chain.
+    """
+
+    payload_contract_version: str
+    source: str
+    fixture_id: str | None
+    user_input: str
+    fixture_payload: dict[str, Any]
+    agent_request_body: dict[str, Any]
+    recovery_payload: dict[str, Any]
+    recovery_summary: dict[str, Any]
+    roundtrip_validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "fixture_id": self.fixture_id,
+            "user_input": self.user_input,
+            "fixture_payload": _redact_sensitive_values(self.fixture_payload),
+            "agent_request_body": _redact_sensitive_values(self.agent_request_body),
+            "recovery_payload": _redact_sensitive_values(self.recovery_payload),
+            "recovery_summary": _redact_sensitive_values(self.recovery_summary),
+            "roundtrip_validation": _redact_sensitive_values(self.roundtrip_validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _extract_harmonyos_debug_fixture_for_roundtrip(args: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    fixture = _first_present(
+        args,
+        "harmonyos_debug_fixture",
+        "harmonyosDebugFixture",
+        "debugFixture",
+        "fixture",
+    )
+    if isinstance(fixture, dict):
+        return fixture, "embedded_harmonyos_debug_fixture"
+    payload = _first_present(
+        args,
+        "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload",
+        "todayPracticeGuidanceTerminalMemoryToHarmonyOSDebugFixturePayload",
+        "debug_fixture_payload",
+        "debugFixturePayload",
+    )
+    if isinstance(payload, dict):
+        fixture = payload.get("harmonyos_debug_fixture") or payload.get("harmonyosDebugFixture")
+        if isinstance(fixture, dict):
+            return fixture, "embedded_v2_8_19_payload_fixture"
+    fixture_payload = build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload(
+        args,
+        trace_id=args.get("trace_id") or args.get("traceId"),
+        source="roundtrip_builds_debug_fixture_from_arguments",
+    )
+    return fixture_payload.to_dict().get("harmonyos_debug_fixture", {}), "built_from_arguments_or_terminal_memory"
+
+
+def _extract_agent_request_body_from_debug_fixture(fixture: dict[str, Any], fallback_args: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    warnings: list[str] = []
+    request_preview = fixture.get("agentRequestPreview") or fixture.get("agent_request_preview")
+    body: dict[str, Any] = {}
+    if isinstance(request_preview, dict):
+        preview_body = request_preview.get("body")
+        if isinstance(preview_body, dict):
+            body = dict(preview_body)
+    if not body:
+        context_payload = fixture.get("contextPayload") or fixture.get("context_payload")
+        if isinstance(context_payload, dict):
+            body = dict(context_payload)
+            warnings.append("agent_request_preview_body_missing_used_context_payload")
+    if not body:
+        snapshot_payload = _first_present(fallback_args, "snapshotContextIntakePayload", "snapshot_context_intake_payload")
+        if isinstance(snapshot_payload, dict):
+            body = {"snapshotContextIntakePayload": snapshot_payload}
+            warnings.append("fixture_missing_request_body_used_fallback_snapshot_payload")
+    provider_result = _first_present(fallback_args, "providerResult", "provider_result")
+    if isinstance(provider_result, dict) and "providerResult" not in body and "provider_result" not in body:
+        body["providerResult"] = provider_result
+    if "callProvider" not in body and "call_provider" not in body:
+        body["callProvider"] = False
+    if "debugFixtureRoundtrip" not in body:
+        body["debugFixtureRoundtrip"] = True
+    return body, warnings
+
+
+def build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e",
+) -> TodayPracticeGuidanceHarmonyOSDebugFixtureRoundtripTerminalE2EPayload:
+    """Roundtrip a HarmonyOS debug fixture preview into persisted-context recovery guidance."""
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    fixture, fixture_source = _extract_harmonyos_debug_fixture_for_roundtrip(args)
+    agent_body, extraction_warnings = _extract_agent_request_body_from_debug_fixture(fixture, args)
+    user_input = str(agent_body.get("userInput") or agent_body.get("user_input") or args.get("userInput") or args.get("user_input") or "今天该练什么？")
+    fixture_id = fixture.get("fixtureId") or fixture.get("fixture_id")
+    recovery = build_today_practice_guidance_persisted_context_recovery_e2e_payload(
+        agent_body,
+        trace_id=trace,
+        source="roundtrip_terminal_e2e_to_persisted_context_recovery",
+    )
+    recovery_dict = recovery.to_dict()
+    recovery_summary = build_today_practice_guidance_persisted_context_recovery_e2e_summary(
+        payload=recovery,
+        source="roundtrip_terminal_e2e",
+    )
+    preview_path = None
+    request_preview = fixture.get("agentRequestPreview") or fixture.get("agent_request_preview")
+    if isinstance(request_preview, dict):
+        preview_path = request_preview.get("path")
+    expected_path = "/agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview"
+    path_matches = (preview_path in (None, expected_path))
+    recovered = bool(recovery_summary.get("profile_context_recovered") or recovery_summary.get("active_plan_context_recovered") or recovery_summary.get("routine_history_context_recovered"))
+    action_card_is_valid = bool(recovery_summary.get("guidance_action_card_is_valid"))
+    accepted = path_matches and recovered and action_card_is_valid
+    blocked_reasons: list[str] = []
+    warnings: list[str] = list(extraction_warnings)
+    if not path_matches:
+        blocked_reasons.append("debug_fixture_agent_request_preview_path_mismatch")
+    if not recovered:
+        blocked_reasons.append("roundtrip_recovered_no_profile_plan_or_history_context")
+    if not action_card_is_valid:
+        blocked_reasons.append("roundtrip_guidance_action_card_invalid")
+    if fixture_source == "built_from_arguments_or_terminal_memory":
+        warnings.append("roundtrip_fixture_was_built_from_arguments_not_harmonyos_fixture")
+    validation = {
+        "accepted": accepted,
+        "status": "accepted" if accepted else "blocked",
+        "fixture_source": fixture_source,
+        "fixture_id": fixture_id,
+        "agent_preview_route": preview_path or expected_path,
+        "agent_preview_route_matches_expected": path_matches,
+        "profile_context_recovered": bool(recovery_summary.get("profile_context_recovered")),
+        "active_plan_context_recovered": bool(recovery_summary.get("active_plan_context_recovered")),
+        "routine_history_context_recovered": bool(recovery_summary.get("routine_history_context_recovered")),
+        "guidance_action_card_is_valid": action_card_is_valid,
+        "routine_candidate_count": int(recovery_summary.get("routine_candidate_count") or 0),
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "warnings": warnings,
+        "blocked_reasons": blocked_reasons,
+    }
+    guard = {
+        "roundtrip_writes_storage": False,
+        "roundtrip_writes_backend_database": False,
+        "roundtrip_writes_harmonyos_local_state": False,
+        "roundtrip_creates_sqlite_connection": False,
+        "roundtrip_calls_llm": False,
+        "roundtrip_executes_tool": False,
+        "roundtrip_starts_routine": False,
+        "roundtrip_calls_accompaniment_generate": False,
+        "roundtrip_calls_engine_adapter": False,
+        "roundtrip_creates_midi_asset": False,
+        "roundtrip_starts_playback": False,
+        "roundtrip_creates_post_session_recommendation_card": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    return TodayPracticeGuidanceHarmonyOSDebugFixtureRoundtripTerminalE2EPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+        source=source,
+        fixture_id=str(fixture_id) if fixture_id else None,
+        user_input=user_input,
+        fixture_payload=fixture,
+        agent_request_body=agent_body,
+        recovery_payload=recovery_dict,
+        recovery_summary=recovery_summary,
+        roundtrip_validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+    )
+
+
+def build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary(
+    *,
+    payload: TodayPracticeGuidanceHarmonyOSDebugFixtureRoundtripTerminalE2EPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("roundtrip_validation") if isinstance(data.get("roundtrip_validation"), dict) else {}
+    recovery_summary = data.get("recovery_summary") if isinstance(data.get("recovery_summary"), dict) else {}
+    return {
+        "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "fixture_id": validation.get("fixture_id"),
+        "fixture_source": validation.get("fixture_source"),
+        "agent_preview_route": validation.get("agent_preview_route"),
+        "agent_preview_route_matches_expected": validation.get("agent_preview_route_matches_expected", False),
+        "profile_context_recovered": validation.get("profile_context_recovered", False),
+        "active_plan_context_recovered": validation.get("active_plan_context_recovered", False),
+        "routine_history_context_recovered": validation.get("routine_history_context_recovered", False),
+        "guidance_action_card_is_valid": validation.get("guidance_action_card_is_valid", False),
+        "routine_candidate_count": validation.get("routine_candidate_count", 0),
+        "roundtrip_ready": bool(validation.get("accepted")),
+        "guidance_summary": recovery_summary.get("guidance_summary"),
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+        "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview",
+        "terminal_command": "/harmonyos-debug-fixture-roundtrip [json_payload]",
+        "surface": "HarmonyOS debug fixture roundtrip back into persisted-context today-practice guidance",
+        "mode": "debug_fixture_request_preview_to_display_only_guidance_roundtrip",
+        "execution_status": {
+            "roundtrip_preview_enabled": True,
+            "harmonyos_debug_fixture_can_roundtrip_to_agent_preview": True,
+            "persisted_context_recovery_preview_used": True,
+            "guidance_display_only": True,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled_by_agent": False,
+            "llm_call_enabled_by_roundtrip": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "roundtrip_flow": [
+            "consume HarmonyOS debug fixture preview or build one from terminal memory/direct context",
+            "extract fixture.agentRequestPreview.body for persisted-context recovery",
+            "run read-only persisted-context recovery guidance preview",
+            "return validation, recovered-context summary, and display-only ActionCard readiness",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_starts_routine": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        },
+        "uses_contracts": {
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+            "today_practice_guidance_persisted_context_recovery_e2e": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+            "context_persistence_profile_plan_history_snapshot_context_intake": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
+        },
+        "next_task_hint": "v2_8_21_agent_harmonyos_debug_fixture_api_request_pack",
+    }
+
+
+
+@dataclass(frozen=True)
+class TodayPracticeGuidanceHarmonyOSDebugFixtureAPIRequestPackPayload:
+    """v2_8_21 request pack for HarmonyOS persisted-context guidance debug integration.
+
+    This payload turns the v2_8_19/v2_8_20 debug fixture chain into a concise
+    request/response pack that a HarmonyOS developer can copy into an API client
+    or debug screen. It is documentation/preview only: it does not call routes,
+    write storage, invoke LLM, start routines, or touch the accompaniment engine.
+    """
+
+    payload_contract_version: str
+    source: str
+    pack_id: str
+    user_input: str
+    harmonyos_debug_fixture: dict[str, Any]
+    api_request_pack: dict[str, Any]
+    response_shape_preview: dict[str, Any]
+    terminal_command_pack: dict[str, Any]
+    roundtrip_summary: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    storage_written: bool = False
+    backend_database_written: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "pack_id": self.pack_id,
+            "user_input": self.user_input,
+            "harmonyos_debug_fixture": _redact_sensitive_values(self.harmonyos_debug_fixture),
+            "api_request_pack": _redact_sensitive_values(self.api_request_pack),
+            "response_shape_preview": _redact_sensitive_values(self.response_shape_preview),
+            "terminal_command_pack": _redact_sensitive_values(self.terminal_command_pack),
+            "roundtrip_summary": _redact_sensitive_values(self.roundtrip_summary),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _compact_json_for_request_pack(value: Any) -> str:
+    return json.dumps(_redact_sensitive_values(value), ensure_ascii=False, separators=(",", ":"))
+
+
+def build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "today_practice_guidance_harmonyos_debug_fixture_api_request_pack",
+) -> TodayPracticeGuidanceHarmonyOSDebugFixtureAPIRequestPackPayload:
+    """Build a copyable HarmonyOS API request pack for debug-fixture guidance testing."""
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    pack_id = str(_first_present(args, "pack_id", "packId") or f"harmonyos_guidance_request_pack_{uuid4().hex[:12]}")
+    base_url = str(_first_present(args, "base_url", "baseUrl") or "http://127.0.0.1:8000").rstrip("/")
+    user_input = str(_first_present(args, "user_input", "userInput", "text") or "今天该练什么？")
+
+    roundtrip = build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload(
+        args,
+        trace_id=trace,
+        source="api_request_pack_roundtrip_validation",
+    )
+    roundtrip_dict = roundtrip.to_dict()
+    roundtrip_summary = build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary(
+        payload=roundtrip,
+        source="api_request_pack",
+    )
+    harmonyos_fixture = roundtrip_dict.get("fixture_payload") if isinstance(roundtrip_dict.get("fixture_payload"), dict) else {}
+    agent_body = roundtrip_dict.get("agent_request_body") if isinstance(roundtrip_dict.get("agent_request_body"), dict) else {}
+
+    fixture_preview_body = dict(args)
+    # The fixture builder accepts direct profile/plan/history input. Keeping the
+    # body close to the developer's original payload makes the pack copyable.
+    if "baseUrl" in fixture_preview_body:
+        fixture_preview_body.pop("baseUrl", None)
+    if "base_url" in fixture_preview_body:
+        fixture_preview_body.pop("base_url", None)
+    if "packId" in fixture_preview_body:
+        fixture_preview_body.pop("packId", None)
+    if "pack_id" in fixture_preview_body:
+        fixture_preview_body.pop("pack_id", None)
+
+    roundtrip_body = {"harmonyosDebugFixture": harmonyos_fixture}
+    provider_result = _first_present(args, "providerResult", "provider_result")
+    if isinstance(provider_result, dict):
+        roundtrip_body["providerResult"] = provider_result
+
+    api_requests = [
+        {
+            "step": 1,
+            "name": "build_harmonyos_debug_fixture_preview",
+            "method": "POST",
+            "path": "/agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview",
+            "url": f"{base_url}/agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview",
+            "body": fixture_preview_body,
+            "expected_response_keys": [
+                "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload",
+                "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary",
+            ],
+            "side_effects_created": False,
+        },
+        {
+            "step": 2,
+            "name": "run_persisted_context_recovery_guidance_preview",
+            "method": "POST",
+            "path": "/agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview",
+            "url": f"{base_url}/agent/context/today-practice-guidance/persisted-context-recovery/e2e-preview",
+            "body": agent_body,
+            "expected_response_keys": [
+                "today_practice_guidance_persisted_context_recovery_e2e_payload",
+                "today_practice_guidance_persisted_context_recovery_e2e_summary",
+            ],
+            "side_effects_created": False,
+        },
+        {
+            "step": 3,
+            "name": "validate_harmonyos_debug_fixture_roundtrip",
+            "method": "POST",
+            "path": "/agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview",
+            "url": f"{base_url}/agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview",
+            "body": roundtrip_body,
+            "expected_response_keys": [
+                "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload",
+                "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary",
+            ],
+            "side_effects_created": False,
+        },
+    ]
+    api_request_pack = {
+        "packContractVersion": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+        "packKind": "harmonyos_today_practice_guidance_debug_fixture_api_request_pack",
+        "packId": pack_id,
+        "baseUrl": base_url,
+        "purpose": "Copyable HarmonyOS debug API requests for persisted-context today-practice guidance preview.",
+        "requests": api_requests,
+        "curlExamples": [
+            f"curl -s -X POST {req['url']} -H 'Content-Type: application/json' -d '{_compact_json_for_request_pack(req['body'])}'"
+            for req in api_requests
+        ],
+        "arktsFetchSketch": {
+            "method": "POST",
+            "contentType": "application/json",
+            "requestOrder": [req["name"] for req in api_requests],
+            "clientOwnsPresentation": True,
+            "doNotStartRoutineFromPreview": True,
+        },
+        "directTerminalEquivalent": "/harmonyos-debug-fixture-roundtrip <json_payload>",
+        "debugOnly": True,
+    }
+    response_shape_preview = {
+        "build_harmonyos_debug_fixture_preview": {
+            "ok": True,
+            "summary_path": "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary",
+            "fixture_path": "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload.harmonyos_debug_fixture",
+            "debug_fixture_ready": True,
+        },
+        "run_persisted_context_recovery_guidance_preview": {
+            "ok": True,
+            "summary_path": "today_practice_guidance_persisted_context_recovery_e2e_summary",
+            "action_card_display_only": True,
+            "routine_start_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+        },
+        "validate_harmonyos_debug_fixture_roundtrip": {
+            "ok": True,
+            "summary_path": "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary",
+            "roundtrip_ready": bool(roundtrip_summary.get("roundtrip_ready")),
+            "guidance_action_card_is_valid": bool(roundtrip_summary.get("guidance_action_card_is_valid")),
+        },
+    }
+    terminal_command_pack = {
+        "load_memory": "/persisted-context-load <profile_plan_history_json>",
+        "export_debug_fixture": "/persisted-context-harmonyos-debug-fixture",
+        "roundtrip": "/harmonyos-debug-fixture-roundtrip",
+        "api_request_pack": "/harmonyos-debug-fixture-api-request-pack [json_payload]",
+        "ordinary_user_turn_after_memory_load": user_input,
+    }
+    accepted = bool(harmonyos_fixture) and bool(agent_body) and len(api_requests) == 3
+    warnings: list[str] = []
+    blocked_reasons: list[str] = []
+    if not harmonyos_fixture:
+        blocked_reasons.append("harmonyos_debug_fixture_missing")
+    if not agent_body:
+        blocked_reasons.append("agent_request_body_missing")
+    if not roundtrip_summary.get("roundtrip_ready"):
+        warnings.append("roundtrip_preview_not_ready_pack_still_generated_for_debugging")
+    validation = {
+        "accepted": accepted,
+        "status": "accepted" if accepted else "blocked",
+        "pack_id": pack_id,
+        "request_count": len(api_requests),
+        "contains_fixture_builder_request": True,
+        "contains_persisted_context_recovery_request": True,
+        "contains_roundtrip_validation_request": True,
+        "roundtrip_ready": bool(roundtrip_summary.get("roundtrip_ready")),
+        "guidance_action_card_is_valid": bool(roundtrip_summary.get("guidance_action_card_is_valid")),
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "warnings": warnings,
+        "blocked_reasons": blocked_reasons,
+    }
+    guard = {
+        "request_pack_writes_storage": False,
+        "request_pack_calls_llm": False,
+        "request_pack_executes_tool": False,
+        "request_pack_calls_engine_adapter": False,
+        "request_pack_calls_accompaniment_generate": False,
+        "request_pack_creates_midi_asset": False,
+        "request_pack_starts_playback": False,
+        "request_pack_starts_routine": False,
+        "request_pack_creates_post_session_recommendation_card": False,
+        "debug_only": True,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    return TodayPracticeGuidanceHarmonyOSDebugFixtureAPIRequestPackPayload(
+        payload_contract_version=TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+        source=source,
+        pack_id=pack_id,
+        user_input=user_input,
+        harmonyos_debug_fixture=harmonyos_fixture,
+        api_request_pack=api_request_pack,
+        response_shape_preview=response_shape_preview,
+        terminal_command_pack=terminal_command_pack,
+        roundtrip_summary=roundtrip_summary,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+    )
+
+
+def build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary(
+    *,
+    payload: TodayPracticeGuidanceHarmonyOSDebugFixtureAPIRequestPackPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else {}
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    pack = data.get("api_request_pack") if isinstance(data.get("api_request_pack"), dict) else {}
+    requests = pack.get("requests") if isinstance(pack.get("requests"), list) else []
+    return {
+        "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+        "source": source,
+        "has_payload": payload is not None,
+        "validation_status": validation.get("status"),
+        "accepted": validation.get("accepted", False),
+        "pack_id": data.get("pack_id"),
+        "api_request_pack_ready": bool(validation.get("accepted")),
+        "request_count": len(requests),
+        "request_paths": [req.get("path") for req in requests if isinstance(req, dict)],
+        "roundtrip_ready": validation.get("roundtrip_ready", False),
+        "guidance_action_card_is_valid": validation.get("guidance_action_card_is_valid", False),
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "accompaniment_generate_call_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract() -> dict[str, Any]:
+    return {
+        "version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+        "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+        "spec_route": "GET /agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/spec",
+        "preview_route": "POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/preview",
+        "terminal_command": "/harmonyos-debug-fixture-api-request-pack [json_payload]",
+        "surface": "HarmonyOS debug fixture API request pack for persisted-context today-practice guidance preview",
+        "mode": "copyable_debug_api_request_pack_without_side_effects",
+        "execution_status": {
+            "api_request_pack_preview_enabled": True,
+            "builds_copyable_request_bodies": True,
+            "calls_routes": False,
+            "database_persistence_implemented": False,
+            "backend_write_enabled": False,
+            "local_device_write_enabled_by_agent": False,
+            "llm_call_enabled_by_pack_builder": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "request_pack_steps": [
+            "POST terminal-memory-harmonyos-debug-fixture/preview to build a debug fixture",
+            "POST persisted-context-recovery/e2e-preview to preview display-only guidance",
+            "POST harmonyos-debug-fixture-roundtrip/e2e-preview to validate fixture roundtrip",
+        ],
+        "guards": {
+            "payload_writes_storage": False,
+            "payload_calls_llm": False,
+            "payload_executes_tool": False,
+            "payload_calls_engine_adapter": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_starts_routine": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        },
+        "uses_contracts": {
+            "terminal_memory_to_harmonyos_debug_fixture": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+            "persisted_context_recovery_e2e": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
+            "harmonyos_debug_fixture_roundtrip_terminal_e2e": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+        },
+        "next_task_hint": "v2_8_22_agent_terminal_chat_product_smoke_polish",
+    }
 
 def build_today_practice_guidance_terminal_chat_e2e_payload(
     arguments: dict[str, Any] | None = None,

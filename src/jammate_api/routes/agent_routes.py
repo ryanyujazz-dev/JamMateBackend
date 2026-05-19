@@ -58,6 +58,9 @@ from jammate_agent.core.contracts import (
     context_persistence_dev_fixture_readback_replay_contract,
     context_persistence_profile_plan_history_snapshot_context_intake_contract,
     today_practice_guidance_persisted_context_recovery_e2e_contract,
+    today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract,
+    today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract,
+    today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -109,6 +112,12 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
     build_today_practice_guidance_persisted_context_recovery_e2e_payload,
     build_today_practice_guidance_persisted_context_recovery_e2e_summary,
+    build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload,
+    build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary,
+    build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload,
+    build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary,
+    build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload,
+    build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -826,6 +835,51 @@ def preview_today_practice_guidance_persisted_context_recovery_e2e_request(reque
     }
 
 
+@router.get("/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/spec")
+def get_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract()}
+
+
+@router.post("/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview")
+def preview_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_request(request: dict) -> dict:
+    """Build a HarmonyOS debug fixture preview from terminal persisted-context memory.
+
+    This route returns a frontend-debug fixture and an Agent request preview only.
+    It does not write storage, call LLM, execute tools, start Routine, call
+    /accompaniment/generate, call engine adapters, create MIDI assets, or start
+    playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture",
+    )
+    summary = build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract()["version"],
+        "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload": payload.to_dict(),
+        "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
 @router.get("/context/persistence-snapshot-context-intake/spec")
 def get_context_persistence_profile_plan_history_snapshot_context_intake_spec() -> dict:
     return {"ok": True, "spec": context_persistence_profile_plan_history_snapshot_context_intake_contract()}
@@ -867,6 +921,96 @@ def preview_context_persistence_profile_plan_history_snapshot_context_intake_req
         "post_session_recommendation_card_created": False,
         "accompaniment_generate_call_enabled": False,
         "routine_start_enabled": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/spec")
+def get_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract()}
+
+
+@router.post("/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview")
+def preview_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_request(request: dict) -> dict:
+    """Roundtrip a HarmonyOS debug fixture into persisted-context guidance preview.
+
+    This route verifies the frontend debug fixture request body can be fed back
+    into the Agent persisted-context recovery E2E. It does not write storage,
+    call LLM, execute tools, start Routine, call /accompaniment/generate, call
+    engine adapters, create MIDI assets, or start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e",
+    )
+    summary = build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_version": today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract()["version"],
+        "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload": payload.to_dict(),
+        "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/spec")
+def get_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_spec() -> dict:
+    return {"ok": True, "spec": today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract()}
+
+
+@router.post("/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/preview")
+def preview_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_request(request: dict) -> dict:
+    """Build a copyable HarmonyOS API request pack for debug fixture guidance tests.
+
+    This route prepares endpoint/body/response-shape examples only. It does not
+    call those routes, write storage, call LLM, execute tools, start Routine,
+    call /accompaniment/generate, call engine adapters, create MIDI assets, or
+    start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_today_practice_guidance_harmonyos_debug_fixture_api_request_pack",
+    )
+    summary = build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract()["version"],
+        "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload": payload.to_dict(),
+        "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "local_device_written": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
     }
 
 

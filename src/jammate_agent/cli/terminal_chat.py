@@ -44,6 +44,9 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_ACTION_CARD_VERSION,
     TODAY_PRACTICE_GUIDANCE_TERMINAL_CHAT_E2E_VERSION,
     TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+    TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+    TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
     CONTEXT_AND_GUIDANCE_SKELETON_CLEANUP_VERSION,
     USER_PRACTICE_PROFILE_CONTEXT_INTAKE_VERSION,
     PRACTICE_CONTEXT_STORAGE_BOUNDARY_VERSION,
@@ -123,6 +126,12 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
     build_today_practice_guidance_persisted_context_recovery_e2e_payload,
     build_today_practice_guidance_persisted_context_recovery_e2e_summary,
+    build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload,
+    build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary,
+    build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload,
+    build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary,
+    build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload,
+    build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary,
     build_context_and_guidance_skeleton_cleanup_payload,
     build_context_and_guidance_skeleton_cleanup_summary,
     detect_today_practice_guidance_intent,
@@ -144,6 +153,9 @@ from jammate_agent.core.tool_invocation import (
     context_persistence_profile_plan_history_snapshot_context_intake_contract,
     today_practice_guidance_persisted_context_recovery_e2e_contract,
     today_practice_guidance_persisted_context_terminal_memory_controls_contract,
+    today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_contract,
+    today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_contract,
+    today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract,
     build_tool_call_preview_trace_summary,
     build_tool_execution_confirmation_summary,
     build_tool_executor_summary,
@@ -477,6 +489,7 @@ class TerminalChatSession:
             "today_practice_guidance_action_card_summary": payload_dict.get("action_card_summary") if not memory else (payload_dict.get("guidance_summary")),
             "persisted_context_terminal_memory_used": bool(memory),
             "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
             "payload_kind": payload_kind,
             "llm_called": payload.llm_called,
             "tool_execution_enabled": False,
@@ -538,6 +551,7 @@ class TerminalChatSession:
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
             "command": "/persisted-context-load",
             "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
             "memory_loaded": bool(self.persisted_context_memory.get("loaded")),
             "summary": summary,
             "snapshot_context_intake_payload": payload_dict,
@@ -563,6 +577,7 @@ class TerminalChatSession:
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
             "command": "/persisted-context-show",
             "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
             "memory_loaded": loaded,
             "summary": summary,
             "will_inject_into_next_today_practice_guidance_turn": loaded,
@@ -582,6 +597,7 @@ class TerminalChatSession:
             "terminal_chat_version": TERMINAL_CHAT_VERSION,
             "command": "/persisted-context-clear",
             "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
             "memory_was_loaded": was_loaded,
             "memory_loaded": False,
             "session_memory_only": True,
@@ -591,6 +607,127 @@ class TerminalChatSession:
             "routine_start_enabled": False,
             "accompaniment_generate_call_enabled": False,
         }
+
+
+    def persisted_context_harmonyos_debug_fixture(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_persisted_context_harmonyos_debug_fixture", "/persisted-context-harmonyos-debug-fixture")
+        args = dict(arguments or {})
+        if self.persisted_context_memory.get("loaded") and not any(key in args for key in ("persistedContextMemory", "persisted_context_memory", "snapshotContextIntakePayload", "snapshot_context_intake_payload", "userPracticeProfile", "user_practice_profile", "practicePlan", "practice_plan", "routineHistoryRecords", "routine_history_records")):
+            args["persistedContextMemory"] = dict(self.persisted_context_memory)
+        payload = build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_persisted_context_harmonyos_debug_fixture",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_persisted_context_harmonyos_debug_fixture_payload_built", payload_dict)
+        summary = build_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_persisted_context_harmonyos_debug_fixture_summary_recorded", summary)
+        self._finish_trace(trace, "persisted_context_harmonyos_debug_fixture_previewed", {"ok": True, "summary": summary, "storage_written": False, "llm_called": False, "engine_adapter_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/persisted-context-harmonyos-debug-fixture",
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_payload": payload_dict,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary": summary,
+            "memory_loaded": bool(self.persisted_context_memory.get("loaded")),
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def harmonyos_debug_fixture_roundtrip(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_harmonyos_debug_fixture_roundtrip", "/harmonyos-debug-fixture-roundtrip")
+        args = dict(arguments or {})
+        if self.persisted_context_memory.get("loaded") and not any(key in args for key in ("harmonyosDebugFixture", "harmonyos_debug_fixture", "debugFixture", "fixture", "snapshotContextIntakePayload", "snapshot_context_intake_payload", "userPracticeProfile", "user_practice_profile", "practicePlan", "practice_plan", "routineHistoryRecords", "routine_history_records")):
+            args["persistedContextMemory"] = dict(self.persisted_context_memory)
+        payload = build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_harmonyos_debug_fixture_roundtrip",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_harmonyos_debug_fixture_roundtrip_payload_built", payload_dict)
+        summary = build_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_harmonyos_debug_fixture_roundtrip_summary_recorded", summary)
+        self._finish_trace(trace, "harmonyos_debug_fixture_roundtrip_previewed", {"ok": True, "summary": summary, "storage_written": False, "llm_called": False, "engine_adapter_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/harmonyos-debug-fixture-roundtrip",
+            "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+            "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_payload": payload_dict,
+            "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary": summary,
+            "memory_loaded": bool(self.persisted_context_memory.get("loaded")),
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def harmonyos_debug_fixture_api_request_pack(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_harmonyos_debug_fixture_api_request_pack", "/harmonyos-debug-fixture-api-request-pack")
+        args = dict(arguments or {})
+        if self.persisted_context_memory.get("loaded") and not any(key in args for key in ("harmonyosDebugFixture", "harmonyos_debug_fixture", "debugFixture", "fixture", "snapshotContextIntakePayload", "snapshot_context_intake_payload", "userPracticeProfile", "user_practice_profile", "practicePlan", "practice_plan", "routineHistoryRecords", "routine_history_records")):
+            args["persistedContextMemory"] = dict(self.persisted_context_memory)
+        payload = build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_harmonyos_debug_fixture_api_request_pack",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_harmonyos_debug_fixture_api_request_pack_payload_built", payload_dict)
+        summary = build_today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_harmonyos_debug_fixture_api_request_pack_summary_recorded", summary)
+        self._finish_trace(trace, "harmonyos_debug_fixture_api_request_pack_previewed", {"ok": True, "summary": summary, "storage_written": False, "llm_called": False, "engine_adapter_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/harmonyos-debug-fixture-api-request-pack",
+            "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
+            "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_payload": payload_dict,
+            "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary": summary,
+            "memory_loaded": bool(self.persisted_context_memory.get("loaded")),
+            "llm_called": False,
+            "tool_executed": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "local_device_written": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
 
     def preview_tool_call(self, tool_name: str, arguments: dict[str, Any] | None = None, user_input: str | None = None) -> dict:
         """Preview a proposed tool call from the terminal without executing it."""
@@ -2383,6 +2520,7 @@ class TerminalChatSession:
             "has_last_harmonyos_agent_action_card": self.last_harmonyos_agent_action_card is not None,
             "persisted_context_memory_loaded": bool(self.persisted_context_memory.get("loaded")),
             "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
             "last_harmonyos_agent_action_status": self.last_harmonyos_agent_action_card.execution_status if self.last_harmonyos_agent_action_card else None,
             "agent_runtime_skeleton_cleanup_version": AGENT_RUNTIME_SKELETON_CLEANUP_VERSION,
         }
@@ -2622,6 +2760,28 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         return True
     if user_input == "/persisted-context-clear":
         _print_persisted_context_memory(session.persisted_context_clear(), stdout)
+        return True
+    if user_input.startswith("/persisted-context-harmonyos-debug-fixture"):
+        parsed = _parse_json_payload_command(user_input, "/persisted-context-harmonyos-debug-fixture")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_persisted_context_harmonyos_debug_fixture(session.persisted_context_harmonyos_debug_fixture(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/harmonyos-debug-fixture-roundtrip"):
+        parsed = _parse_json_payload_command(user_input, "/harmonyos-debug-fixture-roundtrip")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_harmonyos_debug_fixture_roundtrip(session.harmonyos_debug_fixture_roundtrip(parsed.get("arguments") or {}), stdout)
+        return True
+    if user_input.startswith("/harmonyos-debug-fixture-api-request-pack"):
+        parsed = _parse_json_payload_command(user_input, "/harmonyos-debug-fixture-api-request-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_harmonyos_debug_fixture_api_request_pack(session.harmonyos_debug_fixture_api_request_pack(parsed.get("arguments") or {}), stdout)
         return True
     if user_input == "/runtime-skeleton":
         _print_agent_runtime_skeleton(session.agent_runtime_skeleton_status(), stdout)
@@ -3946,6 +4106,76 @@ def _print_persisted_context_memory(response: dict[str, Any], stdout: TextIO) ->
     print(f"  routine_start_enabled: {str(response.get('routine_start_enabled', False)).lower()}", file=stdout)
 
 
+def _print_persisted_context_harmonyos_debug_fixture(response: dict[str, Any], stdout: TextIO) -> None:
+    print("PersistedContextHarmonyOSDebugFixture>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  memory_loaded: {str(response.get('memory_loaded', False)).lower()}", file=stdout)
+    summary = response.get("today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_summary") or {}
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  debug_fixture_ready: {summary.get('debug_fixture_ready')}", file=stdout)
+    print(f"  fixture_id: {summary.get('fixture_id')}", file=stdout)
+    print(f"  agent_preview_route: {summary.get('agent_preview_route')}", file=stdout)
+    print(f"  profile_context_present: {summary.get('profile_context_present')}", file=stdout)
+    print(f"  active_plan_context_present: {summary.get('active_plan_context_present')}", file=stdout)
+    print(f"  routine_history_context_present: {summary.get('routine_history_context_present')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_harmonyos_debug_fixture_roundtrip(response: dict[str, Any], stdout: TextIO) -> None:
+    print("HarmonyOSDebugFixtureRoundtripE2E>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  memory_loaded: {str(response.get('memory_loaded', False)).lower()}", file=stdout)
+    summary = response.get("today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_summary") or {}
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  roundtrip_ready: {summary.get('roundtrip_ready')}", file=stdout)
+    print(f"  fixture_id: {summary.get('fixture_id')}", file=stdout)
+    print(f"  agent_preview_route: {summary.get('agent_preview_route')}", file=stdout)
+    print(f"  profile_context_recovered: {summary.get('profile_context_recovered')}", file=stdout)
+    print(f"  active_plan_context_recovered: {summary.get('active_plan_context_recovered')}", file=stdout)
+    print(f"  routine_history_context_recovered: {summary.get('routine_history_context_recovered')}", file=stdout)
+    print(f"  guidance_action_card_is_valid: {summary.get('guidance_action_card_is_valid')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+
+def _print_harmonyos_debug_fixture_api_request_pack(response: dict[str, Any], stdout: TextIO) -> None:
+    print("HarmonyOSDebugFixtureAPIRequestPack>", file=stdout)
+    print(f"  version: {response.get('today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  memory_loaded: {str(response.get('memory_loaded', False)).lower()}", file=stdout)
+    summary = response.get("today_practice_guidance_harmonyos_debug_fixture_api_request_pack_summary") or {}
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  api_request_pack_ready: {summary.get('api_request_pack_ready')}", file=stdout)
+    print(f"  request_count: {summary.get('request_count')}", file=stdout)
+    print(f"  request_paths: {summary.get('request_paths')}", file=stdout)
+    print(f"  roundtrip_ready: {summary.get('roundtrip_ready')}", file=stdout)
+    print(f"  guidance_action_card_is_valid: {summary.get('guidance_action_card_is_valid')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
 def _print_help(stdout: TextIO) -> None:
     print("Commands:", file=stdout)
     print("  setup        # shell subcommand: create local LLM config", file=stdout)
@@ -3955,6 +4185,9 @@ def _print_help(stdout: TextIO) -> None:
     print("  /persisted-context-load {json}", file=stdout)
     print("  /persisted-context-show", file=stdout)
     print("  /persisted-context-clear", file=stdout)
+    print("  /persisted-context-harmonyos-debug-fixture [json_payload]", file=stdout)
+    print("  /harmonyos-debug-fixture-roundtrip [json_payload]", file=stdout)
+    print("  /harmonyos-debug-fixture-api-request-pack [json_payload]", file=stdout)
     print("  /session", file=stdout)
     print("  /context [full|--full|json|--json]", file=stdout)
     print("  /profiles", file=stdout)
@@ -4027,6 +4260,7 @@ def _print_help(stdout: TextIO) -> None:
     print("Ordinary turns like ‘今天该练什么？’ now route into the guarded guidance ActionCard chain.", file=stdout)
     print("/context-engineering shows the consolidated context-engineering skeleton status.", file=stdout)
     print("/context-guidance-skeleton shows the v2_7_3→v2_7_9 context/guidance chain registry and guards.", file=stdout)
+    print("/harmonyos-debug-fixture-roundtrip validates the HarmonyOS debug fixture → Agent persisted-context guidance preview roundtrip.", file=stdout)
     print("/runtime-skeleton shows the consolidated read-only Agent lifecycle and guard status.", file=stdout)
     print("Successful LLM replies are scanned for explicit JSON tool-call candidates and previewed only.", file=stdout)
 

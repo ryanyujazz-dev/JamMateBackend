@@ -876,3 +876,98 @@ Out of scope:
 - playback
 
 Recommended next task: `v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls`.
+
+## v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture
+
+Status: completed in Agent track.
+
+Goal: map terminal persisted-context memory into a HarmonyOS-facing debug fixture preview so frontend debug screens can test recovered-context today-practice guidance without repeatedly pasting large JSON payloads.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/spec
+POST /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview
+CLI  /persisted-context-harmonyos-debug-fixture [json_payload]
+docs/AGENT_TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_V2_8_19.md
+tests/test_v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture.py
+```
+
+Boundary:
+
+```text
+No backend database write.
+No HarmonyOS local write by Agent.
+No SQLite connection/table/row.
+No LLM call by fixture builder.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No post-session recommendation card.
+No change to frontend_fixtures/harmonyos.
+```
+
+Next recommended task:
+
+```text
+v2_8_20_agent_harmonyos_debug_fixture_roundtrip_terminal_e2e
+```
+
+## v2_8_20_agent_harmonyos_debug_fixture_roundtrip_terminal_e2e
+
+Status: completed in Agent track.
+
+Goal: verify that a HarmonyOS debug fixture preview can roundtrip back into the Agent persisted-context recovery guidance preview.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/spec
+POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview
+CLI  /harmonyos-debug-fixture-roundtrip [json_payload]
+docs/AGENT_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_V2_8_20.md
+tests/test_v2_8_20_agent_harmonyos_debug_fixture_roundtrip_terminal_e2e.py
+```
+
+Boundary:
+
+```text
+No backend database write.
+No HarmonyOS local write by Agent.
+No SQLite connection/table/row.
+No LLM call by roundtrip preview.
+No tool execution.
+No Routine start.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No post-session recommendation card.
+No change to frontend_fixtures/harmonyos.
+```
+
+Next recommended task:
+
+```text
+v2_8_21_agent_harmonyos_debug_fixture_api_request_pack
+```
+
+## v2_8_21_agent_harmonyos_debug_fixture_api_request_pack
+
+目标：把 persisted-context guidance debug fixture 链路整理成鸿蒙前端可直接联调的 API request pack。
+
+范围：
+
+```text
+GET  /agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/spec
+POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/preview
+CLI  /harmonyos-debug-fixture-api-request-pack [json_payload]
+```
+
+非目标：不写数据库、不改 HarmonyOS fixture、不调用 LLM、不执行 tool、不启动 Routine、不调用 Engine。
+
+下一步建议：`v2_8_22_agent_terminal_chat_product_smoke_polish`。
+

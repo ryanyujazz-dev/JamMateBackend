@@ -426,3 +426,46 @@ v2_8_17_agent_today_practice_guidance_persisted_context_recovery_e2e
 - Added CLI `/today-practice-guidance-persisted-context-recovery`.
 - Added `docs/AGENT_TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_V2_8_17.md`.
 - Guardrails remain: no storage writes, no Routine start, no `/accompaniment/generate`, no engine adapter, no MIDI asset, no playback.
+
+## v2_8_19_agent_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture
+
+- Added terminal persisted-context memory → HarmonyOS debug fixture preview contract.
+- Added `GET /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/spec`.
+- Added `POST /agent/context/today-practice-guidance/terminal-memory-harmonyos-debug-fixture/preview`.
+- Added terminal command `/persisted-context-harmonyos-debug-fixture [json_payload]`.
+- Added `docs/AGENT_TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_V2_8_19.md`.
+- Added tests for contract, payload, API route, terminal command, manifest exposure, and Agent/Engine boundary.
+- The fixture preview serializes recovered profile / active plan / routine history context into a HarmonyOS debug payload and Agent request preview.
+- Still does not write backend database, write HarmonyOS local state, call LLM, execute tools, start Routine, call `/accompaniment/generate`, call Engine, create MIDI, or start playback.
+
+Recommended next Agent task:
+
+```text
+v2_8_20_agent_harmonyos_debug_fixture_roundtrip_terminal_e2e
+```
+
+## v2_8_20_agent_harmonyos_debug_fixture_roundtrip_terminal_e2e
+
+- Added HarmonyOS debug fixture roundtrip terminal/API E2E preview.
+- Added `GET /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/spec`.
+- Added `POST /agent/context/today-practice-guidance/harmonyos-debug-fixture-roundtrip/e2e-preview`.
+- Added terminal command `/harmonyos-debug-fixture-roundtrip [json_payload]`.
+- Added `docs/AGENT_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_V2_8_20.md`.
+- Added tests for contract, payload roundtrip, API route, CLI command, manifest exposure, and Agent/Engine boundary.
+- The roundtrip consumes a v2_8_19 HarmonyOS debug fixture or builds one from terminal memory/direct context, extracts `agentRequestPreview.body`, and feeds it into v2_8_17 persisted-context recovery guidance.
+- Still does not write backend database, write HarmonyOS local state, call LLM, execute tools, start Routine, call `/accompaniment/generate`, call Engine, create MIDI, or start playback.
+
+Recommended next Agent task:
+
+```text
+v2_8_21_agent_harmonyos_debug_fixture_api_request_pack
+```
+
+## v2_8_21_agent_harmonyos_debug_fixture_api_request_pack
+
+- 新增 HarmonyOS debug fixture API request pack。
+- 新增 `/agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/spec`。
+- 新增 `/agent/context/today-practice-guidance/harmonyos-debug-fixture-api-request-pack/preview`。
+- 新增终端命令 `/harmonyos-debug-fixture-api-request-pack [json_payload]`。
+- 只生成 endpoint / request body / response path / curl example / terminal command preview，不调用 route、不写库、不调用 LLM、不启动 Routine、不调用 Engine。
+

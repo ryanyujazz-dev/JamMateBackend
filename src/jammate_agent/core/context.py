@@ -32,6 +32,9 @@ from jammate_agent.core.tool_invocation import (
     CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
     TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
     TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+    TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+    TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+    TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -78,6 +81,9 @@ class CapabilityManifest:
     supports_context_persistence_profile_plan_history_snapshot_context_intake: bool = True
     supports_today_practice_guidance_persisted_context_recovery_e2e: bool = True
     supports_today_practice_guidance_persisted_context_terminal_memory_controls: bool = True
+    supports_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture: bool = True
+    supports_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e: bool = True
+    supports_today_practice_guidance_harmonyos_debug_fixture_api_request_pack: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -116,6 +122,9 @@ class CapabilityManifest:
             "supports_context_persistence_profile_plan_history_snapshot_context_intake": self.supports_context_persistence_profile_plan_history_snapshot_context_intake,
             "supports_today_practice_guidance_persisted_context_recovery_e2e": self.supports_today_practice_guidance_persisted_context_recovery_e2e,
             "supports_today_practice_guidance_persisted_context_terminal_memory_controls": self.supports_today_practice_guidance_persisted_context_terminal_memory_controls,
+            "supports_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture": self.supports_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture,
+            "supports_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e": self.supports_today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e,
+            "supports_today_practice_guidance_harmonyos_debug_fixture_api_request_pack": self.supports_today_practice_guidance_harmonyos_debug_fixture_api_request_pack,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -336,6 +345,9 @@ class ContextBuilder:
                 "context_persistence_profile_plan_history_snapshot_context_intake_version": CONTEXT_PERSISTENCE_PROFILE_PLAN_HISTORY_SNAPSHOT_CONTEXT_INTAKE_VERSION,
                 "today_practice_guidance_persisted_context_recovery_e2e_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_RECOVERY_E2E_VERSION,
                 "today_practice_guidance_persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+                "today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_MEMORY_TO_HARMONYOS_DEBUG_FIXTURE_VERSION,
+                "today_practice_guidance_harmonyos_debug_fixture_roundtrip_terminal_e2e_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_ROUNDTRIP_TERMINAL_E2E_VERSION,
+                "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
                 "context_persistence_snapshot_context_intake_present": bool(snapshot_context_intake),
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),
