@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Architecture
 
-Current baseline: `v2_6_1`.
+Current baseline: `v2_8_24`.
 
 This document records the canonical architecture. Version-specific delivery notes belong in separate `docs/*V2_x_x*.md` files.
 
@@ -224,3 +224,15 @@ The integrated package keeps the engine and Agent as separate architectural trac
 Parallel development now uses explicit Engine / Agent / Integration ownership. Engine work owns musical runtime behavior under `jammate_engine`; Agent work owns orchestration under `jammate_agent`; Integration work owns shared version surfaces, public docs, API reconciliation, and frontend fixtures. See `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md`.
 
 This is a governance/architecture boundary change only. It does not change accompaniment generation behavior, Agent tool execution behavior, or HarmonyOS response shapes.
+
+
+## v2_8_24 Integration Merge Boundary
+
+This baseline merges Engine Track `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration` and Agent Track `v2_8_23_agent_v2_8_phase_cleanup_regression_handoff`.
+
+The merge is boundary-preserving:
+
+- Engine generation code remains the source of truth for Pattern, Gesture, Expression, Voicing, Realization, MIDI, and style behavior.
+- Agent code remains the source of truth for practice orchestration, terminal chat, LLM/provider boundary, trace, tool-preview, context/guidance contracts, and persistence preview contracts.
+- `jammate_api` assembles the direct accompaniment route and Agent routes without moving Agent logic into engine runtime.
+- HarmonyOS direct accompaniment output remains backend snake_case with `asset.midi_base64`, `asset.midi_path`, `asset.cache_key`, and top-level `debug_summary`.

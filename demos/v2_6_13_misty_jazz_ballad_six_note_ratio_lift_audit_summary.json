@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "version_tag": "v2_6_13_engine_voicing_ballad_six_note_ratio_lift",
+  "scope": "Voicing-only Ballad/SPREAD 6-note ratio lift; no pattern/expression/MIDI/API changes.",
+  "midi_path": "demos/v2_6_13_misty_jazz_ballad_six_note_ratio_lift_demo.mid",
+  "performance_choruses": 3,
+  "performance_bars": 96,
+  "piano_audit_events": 196,
+  "density_counts": {
+    "5": 182,
+    "6": 12,
+    "7": 2
+  },
+  "grouping_counts": {
+    "2+3": 182,
+    "2+4": 7,
+    "3+3": 5,
+    "3+4": 2
+  },
+  "recipe_counts": {
+    "spread_2plus3_contract": 182,
+    "spread_2plus4_contract": 7,
+    "spread_3plus3_contract": 5,
+    "spread_3plus4_contract": 2
+  },
+  "disposition_counts": {
+    "spread": 196
+  },
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "assertions": {
+    "no_4note_spread": true,
+    "five_note_dominates": true,
+    "six_note_lifted_above_v2_6_12_baseline_8": true,
+    "no_unnotated_maj7_sharp11_default": true
+  }
+}

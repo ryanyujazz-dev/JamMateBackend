@@ -1,0 +1,32 @@
+{
+  "version": "v2_6_25_engine_voicing_request_orchestration_cache_boundary_audit",
+  "ok": true,
+  "demo_file": "v2_6_25_misty_jazz_ballad_request_orchestration_cache_boundary_audit_demo.mid",
+  "style": "jazz_ballad",
+  "tune": "Misty",
+  "tempo": 72,
+  "seed": 26912,
+  "performance_choruses": 3,
+  "performance_bars": 96,
+  "piano_audit_events": 196,
+  "density": {
+    "5": 120,
+    "6": 76
+  },
+  "grouping": {
+    "2+4": 65,
+    "2+3": 112,
+    "1+4": 8,
+    "3+3": 11
+  },
+  "five_note": 120,
+  "six_note": 76,
+  "five_to_six_ratio": 0.6122,
+  "four_note_events": 0,
+  "seven_note_events": 0,
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "region_voicing_reused_events": 46,
+  "request_orchestration_version_reused_events": 46
+}

@@ -1,6 +1,6 @@
 # JamMate API Contract V2
 
-Current baseline: `v2_6_1`.
+Current baseline: `v2_8_24`.
 
 This document records the stable API contract shape. Detailed version-specific API delivery notes live in separate `docs/*V2_x_x*.md` files.
 
@@ -52,7 +52,7 @@ Expected response:
 {
   "ok": true,
   "service": "jammate-api",
-  "engine_version": "v2_6_1",
+  "engine_version": "v2_8_24",
   "agent_version": "v0_1"
 }
 ```
@@ -213,3 +213,28 @@ This pass changes only version metadata and engine-planning documentation. Direc
 ## v2_5_10 Integration Contract Note
 
 This integrated package preserves both current public surfaces: HarmonyOS direct accompaniment generation and Agent preview/trace APIs. `POST /accompaniment/generate` remains the playback-critical route and must continue returning canonical snake_case backend fields, including `asset.midi_base64` and `asset.cache_key`. Agent tool-preview and trace APIs remain preview/inspection-only and must not execute tools or dispatch engine adapters.
+
+
+## v2_8_24 Integration Contract Note
+
+This integration pass preserves the two public route families:
+
+- Direct playback: `POST /accompaniment/generate`.
+- Agent/debug/preview: `GET/POST /agent/*`.
+
+The direct accompaniment response remains playback-critical for HarmonyOS and must keep this canonical backend shape:
+
+```json
+{
+  "ok": true,
+  "asset": {
+    "format": "midi_base64",
+    "midi_base64": "...",
+    "midi_path": "...",
+    "cache_key": "..."
+  },
+  "debug_summary": {}
+}
+```
+
+Agent contract, trace, context, guidance, persistence-preview, and tool-preview routes must remain preview/orchestration surfaces and must not mutate Engine generation behavior.

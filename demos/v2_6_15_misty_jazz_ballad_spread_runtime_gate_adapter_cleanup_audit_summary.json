@@ -1,0 +1,46 @@
+{
+  "version": "v2_6_15_engine_voicing_spread_runtime_gate_and_adapter_cleanup",
+  "demo_file": "v2_6_15_misty_jazz_ballad_spread_runtime_gate_adapter_cleanup_demo.mid",
+  "style": "jazz_ballad",
+  "tune": "Misty",
+  "tempo": 72,
+  "choruses": 3,
+  "seed": 26912,
+  "ok": true,
+  "piano_audit_events": 196,
+  "density": {
+    "5": 118,
+    "6": 76,
+    "7": 2
+  },
+  "grouping": {
+    "2+3": 118,
+    "2+4": 71,
+    "3+3": 5,
+    "3+4": 2
+  },
+  "recipes": {
+    "spread_2plus3_contract": 118,
+    "spread_2plus4_contract": 71,
+    "spread_3plus3_contract": 5,
+    "spread_3plus4_contract": 2
+  },
+  "dispositions": {
+    "spread": 196
+  },
+  "five_to_six_ratio_excluding_7note": {
+    "five": 118,
+    "six": 76,
+    "five_share": 0.6082474226804123,
+    "six_share": 0.3917525773195876
+  },
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "runtime_boundary": {
+    "spread_runtime_gate_owner": "core.voicing.disposition.spread_runtime_gate",
+    "spread_runtime_adapter_owner": "core.voicing.disposition.spread_runtime_adapter",
+    "behavior_preserving": true,
+    "pattern_anticipation_expression_gesture_midi_unchanged": true
+  }
+}

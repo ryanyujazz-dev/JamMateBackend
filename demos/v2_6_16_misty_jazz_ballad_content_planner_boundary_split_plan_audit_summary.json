@@ -1,0 +1,36 @@
+{
+  "version": "v2_6_16_engine_voicing_content_planner_boundary_split_plan",
+  "behavior_change": false,
+  "demo": "Misty / Jazz Ballad / 3 choruses",
+  "output_midi": "v2_6_16_misty_jazz_ballad_content_planner_boundary_split_plan_demo.mid",
+  "generation_ok": true,
+  "performance_choruses": 3,
+  "performance_bars": 96,
+  "piano_audit_events": 196,
+  "density": {
+    "5": 118,
+    "6": 76,
+    "7": 2
+  },
+  "grouping": {
+    "2+3": 118,
+    "2+4": 71,
+    "3+3": 5,
+    "3+4": 2
+  },
+  "five_to_six_ratio_excluding_7note": {
+    "five_note": 118,
+    "six_note": 76,
+    "five_pct": 0.6082,
+    "six_pct": 0.3918
+  },
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "guardrails": {
+    "four_note_spread_default_zero": true,
+    "one_plus_three_absent": true,
+    "two_plus_two_absent": true,
+    "unnotated_maj7_sharp11_absent": true
+  }
+}

@@ -4,11 +4,15 @@ import math
 import random
 from dataclasses import replace
 
+from ..disposition.spread_voice_leading import spread_grouping_mix_contract_intent_cost
 from .candidate import VoicingCandidate
 from ..policy import VoicingPolicy
 from .scorer import score_candidate
 from ..runtime.state import VoicingState
 from .voice_leading import common_tone_count, set_based_voice_leading_distance, top_note, voice_leading_distance
+
+
+SPREAD_TOP_REGISTER_MICRO_CALIBRATION_VERSION = "v2_6_28"
 
 
 def select_candidate(
@@ -338,6 +342,8 @@ def _collapse_spread_candidates_to_groupwise_nearest(
             "spread_top_voice_continuity_version": "v2_2_84",
             "spread_top_voice_continuity_runtime_applied": True,
             "spread_top_voice_continuity_profile": _spread_top_voice_continuity_profile(best, policy=policy, state=state),
+            "spread_top_register_micro_calibration_version": SPREAD_TOP_REGISTER_MICRO_CALIBRATION_VERSION if _spread_top_register_micro_calibration_enabled(policy) else None,
+            "spread_top_register_micro_calibration_profile": _spread_top_register_micro_calibration_profile(best, policy),
             "spread_lower_assignment_profile": _group_assignment_profile(_previous_group_notes(state, "lower"), tuple(sorted(int(note) for note in dict(best.metadata or {}).get("lower_group_notes") or ()))),
             "spread_upper_assignment_profile": _group_assignment_profile(_previous_group_notes(state, "upper"), tuple(sorted(int(note) for note in dict(best.metadata or {}).get("upper_group_notes") or ()))),
             "spread_upper_assignment_handles_unequal_note_counts": True,
@@ -381,19 +387,23 @@ def _spread_groupwise_realization_cost(
         current_gap_cost = _spread_current_group_gap_cost(candidate, policy)
         whole_cost = _spread_whole_voicing_cost(candidate, policy)
         top_weight = float(dict(policy.metadata or {}).get("spread_top_voice_continuity_weight", 2.2) or 2.2)
+        grouping_mix_contract_intent_cost = spread_grouping_mix_contract_intent_cost(candidate, policy)
         primary = (
             lower_motion * 1.05
             + upper_motion * 0.85
             + top_continuity_cost * top_weight
             + recipe_change_cost
             + current_gap_cost
+            + grouping_mix_contract_intent_cost
         )
         # v2_2_82: full top-line continuity is an explicit sort key.  It is
         # deliberately independent of lower/upper note count, so 3-note ↔
         # 4-note upper transitions can keep a smooth audible soprano line.
         return (primary, top_continuity_cost, gap_change * 0.25, whole_cost, tuple(candidate.notes))
 
-    return (_spread_whole_voicing_cost(candidate, policy), _spread_span_cost(candidate), -float(candidate.score), 0.0, tuple(candidate.notes))
+    grouping_mix_contract_intent_cost = spread_grouping_mix_contract_intent_cost(candidate, policy)
+    return (_spread_whole_voicing_cost(candidate, policy) + grouping_mix_contract_intent_cost, _spread_span_cost(candidate), -float(candidate.score), 0.0, tuple(candidate.notes))
+
 
 
 def _previous_group_notes(state: VoicingState, group: str) -> tuple[int, ...]:
@@ -516,6 +526,7 @@ def _spread_whole_voicing_cost(candidate: VoicingCandidate, policy: VoicingPolic
     if not notes:
         return 999.0
     cost = _spread_register_center_cost(candidate, policy)
+    cost += _spread_top_register_micro_calibration_cost(candidate, policy)
     if _coerce_bool(metadata.get("rooted_bass_anchor_enabled"), default=False):
         root_note = metadata.get("root_bass_anchor_note")
         try:
@@ -570,6 +581,78 @@ def _spread_register_center_cost(candidate: VoicingCandidate, policy: VoicingPol
     upper_floor_cost = max(0.0, upper_floor - min(upper)) * 5.0 if upper else 99.0
     span = (max(candidate.notes) - min(candidate.notes)) if candidate.notes else 0
     return lower_cost + upper_floor_cost + span * 0.01
+
+
+def _spread_top_register_micro_calibration_enabled(policy: VoicingPolicy) -> bool:
+    metadata = dict(policy.metadata or {})
+    return _coerce_bool(metadata.get("spread_top_register_micro_calibration_enabled"), default=False)
+
+
+def _spread_top_register_micro_calibration_profile(candidate: VoicingCandidate, policy: VoicingPolicy) -> dict[str, object]:
+    """Inspect the narrow v2_6_28 SPREAD top-register micro bias."""
+
+    policy_metadata = dict(policy.metadata or {})
+    notes = tuple(sorted(int(note) for note in candidate.notes))
+    enabled = _spread_top_register_micro_calibration_enabled(policy)
+    if not enabled or not notes:
+        return {
+            "version": SPREAD_TOP_REGISTER_MICRO_CALIBRATION_VERSION,
+            "enabled": enabled,
+            "cost": 0.0,
+            "reason": "disabled_or_empty_notes",
+            "does_not_change_density_lane": True,
+            "notes_only_selector_bias": True,
+        }
+    top = max(notes)
+    avg = sum(notes) / len(notes)
+    soft_high = float(policy_metadata.get("spread_top_register_micro_soft_high", policy_metadata.get("voicing_register_top_soft_high", 74)) or 74)
+    hard_high = float(policy_metadata.get("spread_top_register_micro_hard_high", policy_metadata.get("voicing_register_top_hard_high", 77)) or 77)
+    avg_soft_high = float(policy_metadata.get("spread_top_register_micro_average_soft_high", 66.0) or 66.0)
+    weight = float(policy_metadata.get("spread_top_register_micro_weight", 1.0) or 1.0)
+    cost = 0.0
+    reasons: list[str] = []
+    if top > soft_high:
+        excess = float(top) - soft_high
+        cost += excess * float(policy_metadata.get("spread_top_register_micro_soft_penalty", 0.55) or 0.55) * weight
+        reasons.append(f"top_above_micro_soft_high:{excess:.2f}")
+    if top > hard_high:
+        excess = float(top) - hard_high
+        cost += excess * float(policy_metadata.get("spread_top_register_micro_hard_penalty", 1.35) or 1.35) * weight
+        reasons.append(f"top_above_micro_hard_high:{excess:.2f}")
+    if avg > avg_soft_high:
+        excess = float(avg) - avg_soft_high
+        cost += excess * float(policy_metadata.get("spread_top_register_micro_average_penalty", 0.18) or 0.18) * weight
+        reasons.append(f"average_above_micro_soft_high:{excess:.2f}")
+    if not reasons:
+        reasons.append("inside_micro_register_band")
+    return {
+        "version": SPREAD_TOP_REGISTER_MICRO_CALIBRATION_VERSION,
+        "enabled": True,
+        "cost": round(float(cost), 4),
+        "top_note": int(top),
+        "average_pitch": round(float(avg), 3),
+        "soft_high": round(float(soft_high), 3),
+        "hard_high": round(float(hard_high), 3),
+        "average_soft_high": round(float(avg_soft_high), 3),
+        "weight": round(float(weight), 3),
+        "reasons": reasons,
+        "does_not_change_density_lane": True,
+        "notes_only_selector_bias": True,
+    }
+
+
+def _spread_top_register_micro_calibration_cost(candidate: VoicingCandidate, policy: VoicingPolicy) -> float:
+    """Softly prefer warm Ballad SPREAD tops below the ceiling.
+
+    This v2_6_28 cost is intentionally narrow: it shapes already-legal SPREAD
+    candidates during groupwise realization collapse.  It does not construct
+    sources, change density lanes, alter color permission, or rewrite MIDI.
+    The main target is the no-previous-state opening case where top-line
+    continuity cannot yet protect against selecting the highest legal upper
+    projection.
+    """
+
+    return float(_spread_top_register_micro_calibration_profile(candidate, policy).get("cost", 0.0) or 0.0)
 
 
 def _spread_span_cost(candidate: VoicingCandidate) -> float:

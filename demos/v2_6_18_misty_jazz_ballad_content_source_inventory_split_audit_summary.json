@@ -1,0 +1,36 @@
+{
+  "version_task": "v2_6_18_engine_voicing_content_source_inventory_behavior_preserving_split",
+  "style": "jazz_ballad",
+  "tune": "Misty",
+  "tempo": 72,
+  "choruses": 3,
+  "seed": 26912,
+  "midi_path": "demos/v2_6_18_misty_jazz_ballad_content_source_inventory_split_demo.mid",
+  "piano_audit_events": 196,
+  "density_counts": {
+    "5": 118,
+    "6": 76,
+    "7": 2
+  },
+  "grouping_counts": {
+    "2+3": 118,
+    "2+4": 71,
+    "3+3": 5,
+    "3+4": 2
+  },
+  "five_to_six_ratio_excluding_7": {
+    "5_note": 118,
+    "6_note": 76,
+    "5_note_share": 0.6082474226804123,
+    "6_note_share": 0.3917525773195876
+  },
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "guardrails": {
+    "four_note_spread_zero": true,
+    "one_plus_three_absent": true,
+    "two_plus_two_absent": true,
+    "maj7_sharp11_default_absent": true
+  }
+}

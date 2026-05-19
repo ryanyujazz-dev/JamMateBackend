@@ -7,10 +7,20 @@
 ## 仓库分支
 
 - `main` — 稳定版本，禁止直接提交，只通过 PR 更新
+- `integration` — 集成分支，处理共享文档冲突，feature 分支的 PR 先到这里
 - `feature/agent-workflow` — Agent 工作流相关开发
 - `feature/engine-deepening` — 引擎深度优化相关开发
 
-main 分支已在 GitHub 设为保护分支，禁止直接 push。
+main 和 integration 分支已在 GitHub 设为保护分支，禁止直接 push。
+
+### 分支流转方向
+
+```
+feature/agent-workflow ──→ integration ──→ main
+feature/engine-deepening ──→ integration ──→ main
+```
+
+feature 分支的代码通过 PR 合入 integration，在 integration 上统一处理共享文档（README、VERSION 等），确认无误后再通过 PR 合入 main。
 
 ---
 
@@ -129,57 +139,53 @@ commit：abc1234 feat(agent): add LLM workflow foundation
 
 ## PR 合并流程
 
-### 并行开发的核心约束
+### 合并路径
 
-两个分支并行开发时，ChatGPT 给的全量 zip 会让共有文件（VERSION、README、docs 等）在两边各自不同。如果直接 merge，会产生大量冲突且难以解决。
+```
+feature/agent-workflow ──→ integration ──→ main
+feature/engine-deepening ──→ integration ──→ main
+```
 
-**解决方案：合并前需要对齐一次。** 先合并第一个分支，然后让 ChatGPT 基于最新 main 重新出一个第二个分支的 zip，再用新 zip 覆盖第二个分支，最后合并。
+### 第一步：feature 分支 → integration
 
-### 合并顺序：先 Agent → 对齐 → 再 Engine
-
-#### 第一步：合并 feature/agent-workflow → main
-
-1. 执行：
+1. 按文档归属规则，检查 feature 分支是否只改了自己专属的文档
+2. 创建 PR 到 integration：
    ```
-   git checkout feature/agent-workflow
-   git pull origin feature/agent-workflow
-   git diff main...feature/agent-workflow --stat
+   gh pr create --base integration --head <feature分支> --title "<标题>" --body "<摘要>"
    ```
-2. 分析差异，生成 PR 标题和摘要，展示给用户确认
-3. 用户确认后：
+3. 用户确认后 merge：
    ```
-   gh pr create --base main --head feature/agent-workflow --title "<标题>" --body "<摘要>"
+   gh pr merge <PR编号> --merge
    ```
-4. 询问用户是否 merge，确认后：
+4. 在 integration 上统一更新共享文档（README、VERSION、ARCHITECTURE 等）
+5. 提交共享文档更新并推送 integration
+
+### 第二步：integration → main
+
+integration 上的共享文档对齐完成后：
+
+1. 创建 PR：
+   ```
+   gh pr create --base main --head integration --title "<标题>" --body "<摘要>"
+   ```
+2. 用户确认后 merge：
    ```
    gh pr merge <PR编号> --merge
    ```
 
-#### 第二步：对齐 Engine 分支
+### 第三步：同步 feature 分支
 
-Agent 合入 main 后，**不要直接 git merge main 到 engine 分支**（会大量冲突）。
+main 更新后，将两个 feature 分支 reset 到最新 main：
+```
+git checkout <feature分支>
+git fetch origin main
+git reset --hard origin/main
+git push origin <feature分支> --force
+```
 
-正确的做法：
-1. 提醒用户把合并后的 main 状态告诉 ChatGPT 窗口 B（复制 VERSION、README、关键 docs 过去）
-2. ChatGPT 基于最新 main 重新出一个 engine zip
-3. 用户把新 zip 给我，按正常 zip 更新流程（解压 → checkout engine-deepening → rsync 覆盖 → 提交推送）
+### 对齐策略（替代方案）
 
-#### 第三步：合并 feature/engine-deepening → main
-
-对齐完成后，合并应该是干净的：
-
-1. 执行：
-   ```
-   git checkout feature/engine-deepening
-   git pull origin feature/engine-deepening
-   git diff main...feature/engine-deepening --stat
-   ```
-2. 分析差异，生成 PR 标题和摘要，展示给用户确认
-3. 用户确认后：
-   ```
-   gh pr create --base main --head feature/engine-deepening --title "<标题>" --body "<摘要>"
-   ```
-4. 询问用户是否 merge，确认后：
+如果不想 reset feature 分支，也可以让 ChatGPT 基于最新 main 重新出 zip，再按正常流程覆盖。
    ```
    gh pr merge <PR编号> --merge
    ```
@@ -207,18 +213,33 @@ main 只通过 PR 更新。GitHub 保护分支已开启作为硬约束。
 
 这是正常的。
 
-### 3. 两个分支都可能改版本文件
+### 3. 文档归属规则（防止并行开发冲突）
 
-容易冲突的文件：
-- `VERSION`
-- `pyproject.toml`
+各分支只能修改自己归属的文档，共享文档只在合入 main 时统一更新。
+
+**共享文档（仅 main / integration 分支改）：**
 - `README.md`
 - `agent.md`
-- `docs/API_CONTRACT_V2.md`
+- `VERSION`
+- `pyproject.toml`
 - `docs/ARCHITECTURE_V2.md`
+- `docs/API_CONTRACT_V2.md`
 - `docs/DEVELOPMENT_TASK_PLAN_V2.md`
+- `docs/CHANGELOG.md`
+- `frontend_fixtures/harmonyos/`
 
-遇到冲突时，不要简单覆盖。需要根据 main 和当前分支内容合并保留双方有效信息。
+**Engine 线专属文档（仅 feature/engine-deepening 改）：**
+- `docs/DEVELOPMENT_TASK_PLAN_ENGINE_V2.md`
+- `docs/CHANGELOG_ENGINE.md`
+- `docs/GENERATION_RULES_SUMMARY_V2.md`
+- `docs/STYLE_RULE_BASELINE_V2.md`
+
+**Agent 线专属文档（仅 feature/agent-workflow 改）：**
+- `docs/DEVELOPMENT_TASK_PLAN_AGENT_V2.md`
+- `docs/CHANGELOG_AGENT.md`
+- `docs/AGENT*.md`
+
+收到 zip 后，如果 ChatGPT 的全量包修改了不属于当前分支的共享文档，rsync 覆盖后要在 commit 前检查：属于另一分支归属的文档改动应被忽略或备注。合入 main 时再统一同步共享文档。
 
 ### 4. 不要提交无关本地文件
 

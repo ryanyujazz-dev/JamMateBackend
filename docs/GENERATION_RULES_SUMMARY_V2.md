@@ -1,10 +1,190 @@
+## Voicing Rule Update: v2_6_28 Ballad SPREAD Top Voice / Register Micro Calibration
+
+## v2_6_30 Jazz Ballad SPREAD voicing calibration
+
+Jazz Ballad SPREAD now treats `1+4` as a low-frequency 5-note upper4 color lane. It is not a default comping body and must not leak through zero-weight compatible-neighbor routing. The main Ballad SPREAD body remains `2+3` for 5-note and `2+4` for 6-note, with `3+3` as a low-frequency 6-note thickness lane.
+
+Current Misty / 3-chorus audit target: roughly 120 5-note events and 76 6-note events, with `1+4` around 4-10 events, 4-note SPREAD at 0, 7-note at 0 for the default seed, no unnotated maj7#11, and top register capped at or below 74.
+
+Lower foundation groups should stay compact: lower group spans should remain within one octave, low-register density remains guarded, and audit must expose lower note range, lower span, recipe counts, and low-register events before further tuning.
+
+---
+
+
+`v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration` adds a narrow selector-side micro bias for Jazz Ballad grouped SPREAD candidates.
+
+The purpose is not to change the voicing system or density lane. The purpose is to avoid opening or isolated no-previous-state SPREAD choices that jump directly to the highest legal top register before top-line continuity has a previous voicing to compare against.
+
+Current Ballad SPREAD ordinary runtime remains:
+
+```text
+2+3  stable 5-note body
+2+4  fuller 6-note support
+3+3  fuller 6-note support / lift
+```
+
+Still disabled by default:
+
+```text
+1+4  explicit upper4 color / isolation only
+1+3  retired 4-note SPREAD
+2+2  retired 4-note SPREAD
+```
+
+Guardrails after this pass:
+
+```text
+5-note:6-note remains near 6:4
+4-note SPREAD remains 0
+1+4 ordinary runtime remains 0
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+Misty max top note is capped at 74 for the reference seed
+```
+
+Recommended next task:
+
+```text
+v2_6_29_engine_ballad_spread_lower_foundation_register_micro_calibration
+```
+
+## v2_6_26 Voicing realization surface boundary note
+
+`harmonic_realizer.py` is now explicitly treated as a thin realization surface. It may iterate active piano `PatternEvent`s, reset the request orchestrator cache at the start of a realization pass, delegate voicing plan requests, call `GestureRealizer`, own the returned `NoteEvent` list, and attach a surface-version marker to piano audit rows.
+
+It must not construct degree sources, route content families, decide color permission, project closed/open/spread voicings, score/select voicing candidates directly, build `VoicingRequest` directly, own region voicing cache logic, build piano audit payloads directly, write MIDI, or apply expression.
+
+Current realization owner map:
+
+```text
+harmonic_realizer.py                         # thin realization surface
+realizer_voicing_request_orchestration.py    # VoicingRequest + region cache + resolver call
+voicing_policy_context_adapter.py            # PatternEvent metadata -> event-scoped VoicingPolicy metadata
+realizer_note_audit.py                       # piano audit rows / note debug / partial reattack trims
+gesture_realizer.py                          # selected VoicingPlan -> NoteEvent projection
+```
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+Recommended next task:
+
+```text
+v2_6_27_engine_ballad_spread_listening_calibration_pass
+```
+
+## v2_6_25 Voicing realization boundary note
+
+The request/cache owner is now `src/jammate_engine/realization/realizer_voicing_request_orchestration.py`.
+
+Rule:
+
+```text
+HarmonicRealizer does not build VoicingRequest directly.
+HarmonicRealizer does not own region voicing cache logic directly.
+HarmonicRealizer does not call policy_with_event_voicing_context directly.
+```
+
+The current cache contract remains:
+
+```text
+one_default_voicing_selection_per_chord_region_until_explicit_gesture_revoices
+```
+
+Explicit fresh revoicing is allowed only through event or gesture metadata:
+
+```text
+force_fresh_voicing
+revoice_within_region
+```
+
+This is a behavior-preserving boundary cleanup. It does not change Pattern, Anticipation, Expression, Gesture, MIDI, Agent, API, or shared docs.
+
+---
+
+## v2_6_24 Voicing realization boundary note
+
+The harmonic realization boundary now separates voicing request orchestration from note/audit/debug payload construction:
+
+```text
+harmonic_realizer.py        # VoicingRequest / resolver / gesture realizer orchestration
+realizer_note_audit.py      # piano audit rows, note debug payloads, partial reattack NoteEvent trims
+```
+
+`realizer_note_audit.py` is not a voicing source, color, projection, selector, expression, or MIDI owner. It may only consume already-selected PatternEvent / Expression / VoicingPlan / NoteEvent data.
+
+## v2_6_23 Harmonic realizer policy/context adapter cleanup
+
+- No musical rule, density, pattern, expression, MIDI, or API behavior changed in this pass.
+- `voicing_policy_context_adapter.py` now owns only event-scoped policy/context metadata translation for voicing requests.
+- `harmonic_realizer.py` should not directly own harmonic-context, texture-scope, Ballad SPREAD grouping-mix, or SPREAD expansion-ratio helper logic.
+- The adapter does not construct degree sources, does not decide color permission, does not project closed/open/spread voicings, and does not score or select candidates.
+- Jazz Ballad guardrails remain: 4-note SPREAD disabled, 5-note:6-note ~= 6:4, and maj7#11 remains off by default unless explicit/written/intent-enabled.
+
+## v2_6_22 Voicing cleanup — retired SPREAD pilot logic
+
+- Retired Jazz Ballad SPREAD pilot / dry-run / safe-dry-run / runtime-guard logic has been deleted from the active voicing surface.
+- Current Ballad SPREAD generation uses grouped SPREAD runtime candidate pools directly: event-level grouping-mix policy chooses compatible SPREAD contracts, projection core creates notes-only candidates, runtime adapter maps legal projection candidates to `VoicingCandidate`, and selector performs groupwise voice-leading.
+- This pass does not change Pattern, Anticipation, Expression, Gesture, Pedal, Timing, MIDI, Agent, API, or HarmonyOS behavior.
+- Default Misty Ballad audit remains: 4-note SPREAD disabled, 5-note / 6-note near 6:4, maj7#11 absent unless explicit/written/intent-enabled.
+
+
+## v2_6_15 Voicing/SPREAD runtime-boundary rule
+
+SPREAD runtime gate and adapter are now separate voicing owners:
+
+```text
+spread_runtime_gate.py      # whether notes-only SPREAD projection may be queried
+spread_runtime_adapter.py   # explicit SpreadProjectionCandidate -> VoicingCandidate field mapping
+spread.py                   # compatibility facade; should not regain runtime gate/adapter implementation body
+```
+
+The gate does not imply adapter conversion. The adapter does not imply candidate-generator wiring. Neither layer may choose patterns, anticipation, expression, pedal, gesture, or MIDI behavior.
+
+Ballad/SPREAD density calibration remains: 5-note and 6-note should stay near 6:4 in the Misty three-chorus audit, with 4-note SPREAD default disabled and maj7#11 absent unless explicitly requested or written in the chart.
+
 # v2_3_9 Pedal / Expression Rule Update
 Pedal is an expression-layer contract. Patterns expose facts such as tail availability, density, anticipation eligibility, and harmonic rhythm; Expression chooses `none/light/sustain/lush`; MIDI realizer only materializes approved CC64 with re-pedal offset. Bossa/Swing stay dry by default; Ballad may use balanced pedal with chord-change re-pedal.
 # Generation Rules Summary V2 — Compact
-Current version: `v2_5_9`.
+Current version: `v2_6_8`.
 Generation Rule Documentation Principle: every code-level generation rule change must update this file. 生成规则 includes style vocabulary, role/domain generation, anticipation, expression, voicing choice, BassFoundation, percussion, and MIDI timing interpretation.
 
 
+
+## v2_6_8 Engine Voicing SPREAD Register Guard Split
+
+- No runtime music-generation behavior changed in this pass.
+- `spread_register_guards.py` now owns SPREAD register/gap/span legality: `SpreadProjectionRegisterPolicy`, lower/upper register windows, rooted bass anchor guard, low-register density guard, group gap guard, and overall span guard.
+- `spread.py` remains the public compatibility surface and re-exports the register guard API; existing imports from `jammate_engine.core.voicing.disposition.spread` and `jammate_engine.core.voicing.disposition` continue to work.
+- The register guard owner remains notes-only and voicing-only. It does not own Pattern, Anticipation, Expression, Gesture, MIDI writer, velocity, duration, or pedal decisions.
+- v2_6_5 frozen behavior signatures for representative SPREAD candidates are preserved.
+
+## v2_6_7 Engine Voicing SPREAD Upper Source Split
+
+- No runtime music-generation behavior changed in this pass.
+- `spread_upper_sources.py` now owns SPREAD upper source refs, options, adapter result dataclasses, source-oriented adapter policy, upper-structure source gate helpers, upper-source metadata extraction, and DROP2/DROP3-only upper 4-note method normalization.
+- `spread.py` remains the public compatibility surface and re-exports the upper-source API.
+- The upper source owner remains notes-only and source-oriented; it does not own lower placement, register legality, voice-leading, expression, gesture, or MIDI writer behavior.
+- v2_6_5 frozen behavior signatures for representative SPREAD candidates are preserved.
+
+
+## v2_6_4 Voicing taxonomy and boundary hardening
+
+- No runtime music-generation behavior changed in this pass.
+- Added the formal voicing taxonomy and boundary document: `docs/ENGINE_VOICING_TAXONOMY_AND_BOUNDARY_HARDENING_V2_6_4.md`.
+- Voicing axes are now documented as: ContentFamily, RootSupportPolicy/BassRelation, Density/FunctionalGrouping, Disposition/ProjectionMethod, ColorPolicy/AlteredDominantPolicy, RegisterGuard, and Selector/VoiceLeading.
+- Boundary baseline: only Voicing selects concrete vertical pitch content, density, grouping, disposition, register, and voice-leading. Pattern remains pitchless, Anticipation rewrites only pitchless events, Expression owns duration/velocity/articulation/touch/pedal intent, Gesture projects an already selected VoicingPlan, and MIDI writer only serializes resolved events.
+- Style pattern files must not import concrete voicing selection internals or bind content families/dispositions. Style `voicing_policy.py` files may bias VoicingPolicy only.
+
+## v2_6_3 MIDI output pipeline boundary audit
+
+- No runtime music-generation behavior changed in this pass.
+- Added the formal input/output boundary document for the current MIDI output chain: `docs/ENGINE_MIDI_OUTPUT_PIPELINE_BOUNDARY_AUDIT_V2_6_3.md`.
+- Boundary baseline: PatternEvent remains pitchless; Anticipation rewrites only the pitchless timeline; Expression owns duration/velocity/articulation/touch/pedal intent; Voicing owns concrete vertical pitch content/density/disposition/voice-leading; Gesture projection maps already-selected voicing notes into NoteEvent objects; Timing owns swing/humanization performed placement; Pedal CC64 realization materializes expression pedal intent; MIDI writer only serializes resolved note/controller events.
 
 ## v2_5_9 V1 instrument-rule deep audit mapping
 
@@ -99,6 +279,13 @@ This index preserves stable contract names for regression tests while avoiding o
 Medium Swing now attaches section/chorus texture intent metadata before voicing resolution. A normal A section remains `baseline_open_swing`; a bridge exposes `bridge_open_contrast` with slightly wider semantic `width`; the final chorus exposes `final_chorus_open_lift` with slightly higher semantic energy/density. This is debug/contract planning only: OPEN family filtering, OPEN method weights, MethodLock, and nearest-motion rescue remain the active runtime behavior.
 ## Additional compact compatibility aliases
 generation/bass_foundation/; Do not add more core infrastructure; No BassFoundation retune; 3-note; 5-note; 6-note; rootless_ab_content_type_with_5; rootless_ab_content_type_with_13; m7 + 13; m7b5; m11b5; b3 + b7 + b5; shell_plus_expanded_color; supersedes; replaces; directed minor-second; directed m2; runtime_filtering_enabled=True; HarmonicContext-backed Method Lock Scope Adapter; Seed-Then-Follow; Method Lock Rescue; Method Lock Rescue Runtime; OpenProjectionMethod.DROP2; ii-V; V-I; ii-V-I; progression_phrase_voicing_method_lock_planning_only; locked_method; open_projection_method; boundary_test_source; DROP2 Audit Fixture; open_drop2_parent_closed_degrees; docs/ARCHITECTURE_V2.md; docs/PIPELINE_V2.md; docs/SYSTEM_CONTRACTS_V2.md; docs/API_CONTRACT_V2.md; docs/GENERATION_RULES_SUMMARY_V2.md; docs/STYLE_RULE_BASELINE_V2.md; docs/STYLE_TUNING_ENTRY_POINT_V2.md; docs/DEVELOPMENT_TASK_PLAN_V2.md; docs/DEVELOPMENT_HARNESS_V2.md; docs/NEW_FILE_PLACEMENT_GUIDE_V2.md; docs/FUTURE_IDEAS_BACKLOG_V2.md; docs/VOICING_MODULE_FILE_AUDIT_V2.md; docs/PROJECT_DOCUMENTATION_AUDIT_V2.md; docs/CLOSED_3_4_NOTE_BASELINE_AND_PRE_DISPOSITION_PLAN_V2.md; docs/DISPOSITION_PROJECTION_ARCHITECTURE_V2.md; docs/VOICING_TEXTURE_STATE_ARCHITECTURE_V2.md; generate_closed_34note_baseline_smoke_listening.py; generate_3note_closed_listening_verification_demos.py; generate_4note_source_weight_listening_verification_demos.py; generate_4note_triad_closed_listening_verification_demos.py; generate_4note_triad_closed_listening_verification_demos; closed_34note_baseline_smoke_summary; 4-note triad-aware closed listening; closed register downshift; closed legality; avg_closed_4note_source_collapse_distance; closed_3note_closed_legality_then_nearest_motion; closed_3note_per_source_minimum_motion; closed_4note_per_source_minimum_motion; closed_4note_minimum_motion_events; closed_voicing_lowest_note_floor; min_closed_voicing_lowest_note; max_closed_voicing_span; max_density; min_density; preferred_density.
+
+## v2_6_7 update — SPREAD upper source adapter split
+- SPREAD upper source/orientation adaptation is now owned by `core/voicing/disposition/spread_upper_sources.py`.
+- The adapter remains notes-only and source-oriented: it reuses core content-planner/color/upper-structure source resources and DROP2/DROP3 method names, but it must not reuse final CLOSED/OPEN placements as SPREAD placements.
+- Public compatibility remains through `core.voicing.disposition.spread` and `core.voicing.disposition`.
+- This is behavior-preserving: no source weights, style policies, pattern, expression, gesture, realization, pedal, MIDI, API, Agent, or shared version files changed.
+
 ## v2_2_56 update — Ballad SPREAD 1+3 Pilot + Demo
 - SPREAD `1+3` is an explicit listening/audit candidate: lower/foundation group = root only; upper/projection group = existing 3-note content source/oriented upper stack.
 - The combined 1+3 voicing must preserve seventh-chord identity under the global v2_2_54 source-integrity gate; seventh chords cannot become triad/add shapes that drop the defining 3/7.
@@ -311,3 +498,419 @@ For two-beat Jazz Ballad regions, the soft-mark / light-retouch piano candidates
 ## v2_5_10 Integration Note
 
 Engine generation rules remain at the `v2_5_9` official engine-deepening baseline. The discarded experimental Ballad brush-drums shortcut is not part of this integrated baseline.
+
+
+## v2_6_5 Engine Voicing SPREAD Boundary Split Plan
+
+SPREAD remains a voicing disposition/projection family. It owns lower/upper functional grouping, register/gap/span/root-anchor legality, groupwise voice-leading, and adapter/gate logic for converting SPREAD candidates into ordinary voicing candidates. It does not own pattern rhythm, anticipation, expression, pedal, MIDI writing, or style pattern vocabulary.
+
+Current `core/voicing/disposition/spread.py` responsibilities are now inventoried for future behavior-preserving extraction: contracts, lower group inventory and placement, upper source adapter, register guards, basic projection, groupwise voice-leading, runtime gate, runtime adapter, Ballad pilot/isolation, and debug/audit wrappers.
+
+Before any SPREAD implementation split, preserve the v2_6_5 behavior signatures for: lower recipe ids, seven spread contract skeletons, and representative projection output for `Cmaj7`, `G7b9`, and `Bm7b5`. Future split work must keep public imports from `jammate_engine.core.voicing.disposition.spread`, `jammate_engine.core.voicing.disposition`, and `jammate_engine.core.voicing` compatible.
+
+## v2_6_6 Engine Voicing SPREAD Lower Group Split
+
+- No runtime music-generation behavior changed in this pass.
+- `spread_lower_groups.py` now owns SPREAD lower/foundation recipe ids, recipe dataclasses, inventory, chord-quality-aware instantiation, lower placement, and lower inventory debug payloads.
+- `spread_contracts.py` now owns small shared SPREAD contract constants/enums needed before a full package conversion.
+- `spread.py` remains the public compatibility surface and re-exports the lower-group API; existing imports from `jammate_engine.core.voicing.disposition.spread` and `jammate_engine.core.voicing.disposition` continue to work.
+- The lower group owner remains notes-only and does not own Pattern, Anticipation, Expression, Gesture, MIDI writer, velocity, duration, or pedal decisions.
+- v2_6_5 frozen behavior signatures for lower recipe ids and representative SPREAD candidates are preserved.
+
+
+## v2_6_9 Engine Voicing SPREAD Projection Core Split
+
+- No music-generation rule changed in this pass.
+- `spread_projection_core.py` now owns notes-only lower+upper SPREAD projection orchestration.
+- Lower group recipes remain in `spread_lower_groups.py`; upper source adaptation remains in `spread_upper_sources.py`; register/gap/span legality remains in `spread_register_guards.py`.
+- SPREAD projection core must not own Pattern, Anticipation, Expression, Gesture, Pedal, MIDI, style pattern vocabulary, or style-level voicing preference selection.
+- Existing imports from `jammate_engine.core.voicing.disposition.spread` and `jammate_engine.core.voicing.disposition` must remain compatible.
+- v2_6_5 frozen behavior signatures for representative SPREAD candidates remain preserved.
+
+## Voicing Rule Update: v2_6_10 SPREAD Density Reset
+
+Jazz Ballad SPREAD no longer treats 4-note `1+3` / `2+2` as normal runtime SPREAD. Those contracts are retired from default output because 4-note voicings belong to ordinary closed/open/rooted-color paths, while SPREAD should represent lower/upper functional grouping.
+
+Active default SPREAD contracts:
+
+```text
+1+4  -> 5-note
+2+3  -> 5-note, normal Ballad body
+2+4  -> 6-note, fuller support/lift
+3+3  -> 6-note, fuller support/lift/climax
+3+4  -> 7-note, ending/climax only
+```
+
+Boundary rule: Pattern, Anticipation, Expression, Gesture, and MIDI do not choose voicing density, source, or disposition. The density/disposition gate belongs to `core.voicing.density_policy`; Ballad only declares grouped-spread preferences through its voicing policy metadata.
+
+## Voicing Rule Update: v2_6_11 Ballad Safe Extension Color Gate
+
+Jazz Ballad safe harmonic expansion now treats plain major-seventh chords as warm 9/13 targets by default. `#11` is no longer part of the ordinary unnotated maj7 safe-extension pool.
+
+```text
+Ebmaj7 + default Ballad expansion -> 9 / 13 priority, no automatic #11
+Ebmaj7#11 written in chart -> #11 preserved faithfully
+Ebmaj7 + harmonic_color_intent=lydian/bright/modern -> #11 may enter the source pool
+```
+
+This rule belongs to core voicing source/color permission. Pattern, Anticipation, Expression, Gesture, Pedal, and MIDI do not choose or suppress maj7#11.
+
+## Voicing Rule Update: v2_6_12 SPREAD Groupwise Voice-Leading Owner
+
+SPREAD groupwise voice-leading / ranking / continuity is now owned by `core.voicing.disposition.spread_voice_leading`.
+
+The scorer remains notes-only and componentized:
+
+```text
+lower/foundation group motion
+upper/projection group motion
+top voice continuity
+group gap stability
+span penalty
+register penalty
+legality penalty
+```
+
+`spread.py` is the compatibility facade. It may re-export the existing public scorer names, but it should not regain the main groupwise scoring implementation.
+
+This split does not change Jazz Ballad SPREAD density routing or color policy: v2_6_10 still keeps Ballad SPREAD centered on 5/6-note grouped voicings, and v2_6_11 still prevents unnotated maj7#11 from becoming default warm Ballad safe extension color.
+
+
+## Voicing Rule Update: v2_6_13 Ballad Six-Note Ratio Lift
+
+Jazz Ballad SPREAD remains centered on 5-note `2+3`, but selected 6-note grouping-mix contracts now receive a small notes-only intent bias during SPREAD groupwise voice-leading collapse:
+
+```text
+spread_grouping_mix_selected_6note_contract_bias = 0.20
+```
+
+Owner:
+
+```text
+core.voicing.disposition.spread_voice_leading
+```
+
+Effect in reference Misty / Jazz Ballad / 3-chorus audit:
+
+```text
+v2_6_12: 6-note = 8
+v2_6_13: 6-note = 12
+```
+
+Guardrails remain unchanged:
+
+```text
+4-note SPREAD 1+3 / 2+2 remain retired from default Ballad runtime
+5-note remains dominant
+7-note remains rare
+unnotated maj7#11 remains disabled by default
+Pattern / Anticipation / Expression / Pedal / Gesture / MIDI do not choose voicing density
+```
+
+## Voicing Rule Update: v2_6_14 Ballad SPREAD 5-to-6 Ratio Calibration
+
+Jazz Ballad SPREAD grouped voicing now targets approximately:
+
+```text
+5-note:6-note ~= 6:4
+```
+
+The adjustment is still notes-only and owned by:
+
+```text
+core.voicing.disposition.spread_voice_leading
+```
+
+Runtime lever:
+
+```text
+spread_grouping_mix_selected_6note_contract_bias = 5.0
+```
+
+Reference Misty / Jazz Ballad / 3-chorus audit:
+
+```text
+5-note: 118
+6-note: 76
+7-note: 2
+4-note: 0
+```
+
+Guardrails remain unchanged:
+
+```text
+4-note SPREAD 1+3 / 2+2 remain retired from default Ballad runtime
+7-note remains low-frequency
+unnotated maj7#11 remains disabled by default
+Pattern / Anticipation / Expression / Pedal / Gesture / MIDI do not choose voicing density
+```
+
+## Voicing Rule Update: v2_6_15 SPREAD Runtime Gate / Adapter Owners
+
+SPREAD notes-only runtime enablement and candidate adapter mapping now have dedicated owners:
+
+```text
+core.voicing.disposition.spread_runtime_gate
+core.voicing.disposition.spread_runtime_adapter
+```
+
+`spread.py` remains a public compatibility facade. Runtime gate / adapter logic must not own style pattern vocabulary, anticipation, expression, pedal, MIDI writing, or API behavior. The adapter remains explicitly notes-only unless a later runtime wiring pass intentionally opens conversion.
+
+The v2_6_14 Jazz Ballad SPREAD density calibration remains unchanged:
+
+```text
+5-note:6-note ~= 6:4
+4-note SPREAD 1+3 / 2+2 remain retired from default Ballad runtime
+7-note remains rare
+unnotated maj7#11 remains off by default
+```
+
+## Voicing Rule Update: v2_6_16 Content Planner Boundary Split Plan
+
+`core.voicing.sources.content_planner` remains the public content-planning API for now, but future code split work must separate concern groups before adding more source families.
+
+Planned ownership model:
+
+```text
+content_planner.py             public API / compatibility facade / orchestration
+content_family_router.py       chord-quality-valid ContentFamily routing
+content_source_inventory.py    family -> degree source options
+color_permission.py            color admission gates / explicit-symbol fidelity
+source_balance.py              source-family scoring only
+upper_structure.py             source-only upper-structure recipes
+```
+
+Non-negotiable guardrails for the next split:
+
+```text
+Content routing must not decide disposition/register/projection.
+Source inventory must not score or select candidates.
+Color permission must not invent source inventories.
+Source balance must not create degree recipes.
+Upper Structure must stay source-only and reuse closed/inversion/DROP projection.
+Pattern / Anticipation / Expression / Gesture / MIDI must remain outside voicing source planning.
+```
+
+Recommended next code task:
+
+```text
+v2_6_17_engine_voicing_content_family_router_behavior_preserving_split
+```
+
+## Voicing Rule Update: v2_6_17 Content Family Router Owner
+
+Content-family routing now has a dedicated source-boundary owner:
+
+```text
+core.voicing.sources.content_family_router
+```
+
+This module decides which `ContentFamily` values are chord-quality-valid for a given chord symbol and `VoicingPolicy`. It handles triad family normalization, root-support filtering, fake-rootless prevention for no-seventh chords, conservative seventh-basic filtering, and the existing 4-note color-family entry gate.
+
+`content_planner.py` remains the public facade and source inventory orchestration surface. Source inventory still owns family-to-degree options until the next planned split.
+
+Boundary guardrails:
+
+```text
+content_family_router does not create degree recipes
+content_family_router does not score source balance
+content_family_router does not choose register/disposition/projection
+content_family_router does not touch Pattern / Anticipation / Expression / Gesture / MIDI
+```
+
+Reference Jazz Ballad voicing guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4
+4-note SPREAD remains retired from default Ballad runtime
+unnotated maj7#11 remains off by default
+```
+
+Recommended next task:
+
+```text
+v2_6_18_engine_voicing_content_source_inventory_behavior_preserving_split
+```
+
+## Voicing Rule Update: v2_6_18 Content Source Inventory Owner
+
+Family-to-degree source inventory now has a dedicated source-boundary owner:
+
+```text
+core.voicing.sources.content_source_inventory
+```
+
+This module owns source construction for:
+
+```text
+shell+5 / shell+color
+seventh-basic 4-note sources
+rooted-color 4-note sources
+rootless A/B sources
+triad-aware 3-note and 4-note sources
+altered-dominant source inventory
+explicit-symbol color source inventory
+seventh-chord source integrity notes
+```
+
+`content_planner.py` remains the public facade and recipe orchestration layer. It should call `content_family_router.py` for valid families and `content_source_inventory.py` for source options, then attach density metadata to form `VoicingContentRecipe` objects.
+
+Boundary guardrails:
+
+```text
+content_source_inventory does not route ContentFamily values
+content_source_inventory does not score source balance
+content_source_inventory does not choose register/disposition/projection
+content_source_inventory does not touch Pattern / Anticipation / Expression / Gesture / MIDI
+```
+
+Reference Jazz Ballad voicing guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4
+4-note SPREAD remains retired from default Ballad runtime
+unnotated maj7#11 remains off by default
+```
+
+Recommended next task:
+
+```text
+v2_6_19_engine_voicing_color_permission_adapter_cleanup
+```
+## Voicing Rule Update: v2_6_19 Color Permission Adapter Owner
+
+`v2_6_19_engine_voicing_color_permission_adapter_cleanup` clarifies the color-permission boundary:
+
+```text
+color_permission.py           decides explicit / expanded color admission and audit notes
+content_source_inventory.py   constructs voicing source degree options
+content_family_router.py      routes legal ContentFamily choices
+content_planner.py            remains the facade / recipe orchestration layer
+```
+
+`color_permission.py` now owns `explicit_symbol_color_degrees`, `rootless_ab_explicit_color_degrees`, `ordered_explicit_colors`, `expansion_color_candidates`, `major_seventh_safe_extension_preference`, and `build_voicing_color_permission_context`.
+
+It does not construct voicing sources. Rooted-color, rootless A/B, altered-dominant, shell+color, triad-aware and seventh-basic source construction remains in `content_source_inventory.py`.
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+## Voicing Rule Update: v2_6_20 Source Balance Boundary Owner
+
+`v2_6_20_engine_voicing_source_balance_boundary_cleanup` clarifies the source-balance boundary:
+
+```text
+source_balance.py            source-family scoring / bias only
+content_family_router.py     ContentFamily routing / chord-quality normalization
+content_source_inventory.py  family -> degree source construction
+color_permission.py          explicit / expanded color admission
+upper_structure.py           source-only upper-structure recipes
+```
+
+`source_balance.py` may read existing candidate metadata and apply `source_family_weights`, `source_family_weights_by_gate`, and altered-dominant intensity bias. It does not construct sources, does not route ContentFamily, does not decide color permission, and does not choose disposition/projection/register.
+
+`SourceBalanceProfile` is an inspectable scoring/debug profile only; it exposes the selected source key, gate mode, lookup keys, content family, and altered-dominant source kind.
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+Recommended next task:
+
+```text
+v2_6_21_engine_voicing_upper_structure_boundary_audit
+```
+
+## Voicing Rule Update: v2_6_21 Upper Structure Boundary Owner
+
+`v2_6_21_engine_voicing_upper_structure_boundary_audit` clarifies the Upper Structure boundary:
+
+```text
+upper_structure.py           source-only upper-structure degree recipes
+content_family_router.py     ContentFamily routing / chord-quality normalization
+content_source_inventory.py  family -> degree source construction
+color_permission.py          explicit / expanded color admission
+source_balance.py            source-family scoring / bias only
+spread_*                     projection / register / runtime adapter / groupwise motion
+selection/*                  candidate scoring / selector / voice-leading
+```
+
+`upper_structure.py` may publish 3-note and 4-note Upper Structure source recipes and source metadata. It does not project closed/open/spread voicings, does not choose register or octave placement, does not score/select candidates, does not rank voice-leading, does not adapt runtime SPREAD candidates, and does not write MIDI or touch expression.
+
+Upper Structure remains a source family, not a projection system:
+
+```text
+3-note upper structures reuse existing closed / inversion placement
+4-note upper structures reuse existing closed / inversion / DROP2 / DROP3 projection paths
+```
+
+Guardrails remain unchanged:
+
+```text
+5-note:6-note ~= 6:4 for Ballad/SPREAD
+4-note SPREAD default remains retired
+maj7#11 remains off by default unless chart-explicit or harmonic-color intent enables it
+```
+
+Recommended next task:
+
+```text
+v2_6_22_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup
+```
+
+## v2_6_27 Completed — Engine Ballad SPREAD Listening Calibration
+
+Completed voicing-only listening calibration:
+
+- kept Ballad SPREAD focused on ordinary runtime groupings `2+3`, `2+4`, and `3+3`;
+- demoted `1+4` to an explicit upper4-color/listening-isolation lane instead of default comping body;
+- filtered zero-weight compatible contracts out of the runtime candidate pool;
+- kept the 5-note:6-note balance near 6:4 after removing 1+4 from ordinary runtime;
+- preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration`.
+
+## v2_6_29 Voicing Audit Rule — Drop Projection Counts
+
+Piano audit now distinguishes top-level drop projection usage from SPREAD upper-group drop usage.
+
+For ordinary OPEN voicings:
+
+```text
+scope = main_voicing
+method = drop2 / drop3 / drop2_and_4
+```
+
+For grouped SPREAD voicings:
+
+```text
+scope = spread_upper_group
+method = upper_projection_method when it is drop2 / drop3 / drop2_and_4
+```
+
+The audit must include upper group drop usage in 5-note / 6-note / 7-note SPREAD counts, because grouped SPREAD may have a whole-voicing disposition of `spread` while its upper group internally reuses DROP2 or DROP3 projection resources.
+
+Current Misty Ballad v2_6_29 expected upper-group drop counts:
+
+```text
+spread_upper_projection_methods:
+  closed_upper_stack: 120
+  drop2: 12
+  drop3: 64
+
+spread_upper_drop_projection_methods_by_density:
+  6:
+    drop2: 12
+    drop3: 64
+```
+
+These audit fields are observational only and must not influence runtime selection.

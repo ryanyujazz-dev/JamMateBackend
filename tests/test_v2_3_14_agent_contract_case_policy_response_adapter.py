@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+EXPECTED_VERSION = (Path(__file__).resolve().parents[1] / "VERSION").read_text(encoding="utf-8").strip()
+
 from fastapi.testclient import TestClient
 
 from jammate_agent.core.contract_codegen import frontend_fixture_pack
@@ -45,7 +47,7 @@ def test_arkts_contract_files_include_case_adapter_and_camel_domain_types() -> N
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["version"] == "v2_6_1"
+    assert payload["version"] == EXPECTED_VERSION
     assert payload["response_case"] == "snake_case"
     assert payload["client_domain_case"] == "camelCase"
     files = {item["filename"]: item for item in payload["files"]}
@@ -74,4 +76,4 @@ def test_repository_frontend_fixture_pack_writes_case_adapter_file() -> None:
     assert (fixture_root / "api" / "CaseAdapter.ets").exists()
     assert "deepSnakeToCamel" in (fixture_root / "api" / "CaseAdapter.ets").read_text(encoding="utf-8")
     assert "mapAgentResponse" in (fixture_root / "api" / "JamMateApiClient.ets").read_text(encoding="utf-8")
-    assert "v2_6_1" in (fixture_root / "README.md").read_text(encoding="utf-8")
+    assert EXPECTED_VERSION in (fixture_root / "README.md").read_text(encoding="utf-8")

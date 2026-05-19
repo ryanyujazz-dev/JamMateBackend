@@ -1,0 +1,33 @@
+{
+  "version": "v2_6_23_engine_voicing_harmonic_realizer_policy_context_adapter_cleanup",
+  "demo": "demos/v2_6_23_misty_jazz_ballad_harmonic_realizer_policy_context_adapter_cleanup_demo.mid",
+  "ok": true,
+  "performance_choruses": 3,
+  "performance_bars": 96,
+  "piano_audit_events": 196,
+  "density": {
+    "5-note": 120,
+    "6-note": 76
+  },
+  "grouping": {
+    "1+4": 8,
+    "2+3": 112,
+    "2+4": 65,
+    "3+3": 11
+  },
+  "five_to_six_ratio": {
+    "five_note": 120,
+    "six_note": 76,
+    "five_ratio_ignoring_other": 0.6122448979591837,
+    "six_ratio_ignoring_other": 0.3877551020408163
+  },
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "upper_structure_events": 0,
+  "guardrails": {
+    "four_note_spread_default_retired": true,
+    "maj7_sharp11_default_absent": true,
+    "five_six_near_6_to_4": true
+  }
+}

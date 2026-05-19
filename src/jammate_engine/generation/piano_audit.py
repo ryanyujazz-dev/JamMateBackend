@@ -9,6 +9,7 @@ from jammate_engine.midi.render_pipeline import performed_beat
 
 
 PIANO_MUSICAL_AUDIT_CONTRACT_VERSION = "v2_2_38"
+PIANO_DROP_PROJECTION_AUDIT_VERSION = "v2_6_29"
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,26 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
     texture_methods_by_contrast: dict[str, Counter[str]] = {}
     texture_methods_by_scope: dict[str, Counter[str]] = {}
     texture_weight_plan_by_contrast: dict[str, dict[str, float]] = {}
+    drop_projection_method_counter: Counter[str] = Counter()
+    drop_projection_method_by_scope: dict[str, Counter[str]] = {}
+    spread_upper_projection_method_counter: Counter[str] = Counter()
+    spread_upper_drop_method_counter: Counter[str] = Counter()
+    spread_upper_drop_method_by_density: dict[str, Counter[str]] = {}
+    spread_upper_drop_method_by_grouping: dict[str, Counter[str]] = {}
+    spread_upper_drop_method_by_recipe: dict[str, Counter[str]] = {}
+    spread_upper_drop_events_by_density: Counter[str] = Counter()
+    lower_foundation_notes: list[int] = []
+    lower_foundation_spans: list[int] = []
+    lower_foundation_note_stats_by_grouping: dict[str, list[int]] = {}
+    lower_foundation_note_stats_by_density: dict[str, list[int]] = {}
+    lower_foundation_span_stats_by_grouping: dict[str, list[int]] = {}
+    lower_foundation_span_stats_by_density: dict[str, list[int]] = {}
+    lower_foundation_recipe_counter: Counter[str] = Counter()
+    lower_foundation_low_register_events_by_grouping: Counter[str] = Counter()
+    lower_foundation_low_register_events_by_density: Counter[str] = Counter()
+    lower_foundation_span_violation_events = 0
+    all_midi_notes: list[int] = []
+    top_note_ge_75_events = 0
 
     for row in rows:
         style_counter.update([str(debug.get("style", "unknown"))])
@@ -116,6 +137,46 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         scope_id = str(row.get("voicing_texture_scope_id") or "unknown")
         contrast_role = str(row.get("voicing_texture_contrast_role") or "unknown")
         projection_method = str(row["disposition_projection_method"] or "unknown")
+        main_drop_method = row.get("main_drop_projection_method")
+        spread_upper_method = row.get("spread_upper_projection_method")
+        spread_upper_drop_method = row.get("spread_upper_drop_projection_method")
+        if main_drop_method:
+            method = str(main_drop_method)
+            drop_projection_method_counter.update([method])
+            drop_projection_method_by_scope.setdefault("main_voicing", Counter()).update([method])
+        if spread_upper_method:
+            spread_upper_projection_method_counter.update([str(spread_upper_method)])
+        if spread_upper_drop_method:
+            method = str(spread_upper_drop_method)
+            density_key = str(row["density"] or "unknown")
+            grouping_key = str(row["functional_grouping"] or "unknown")
+            recipe_key = str(row["recipe_id"] or "unknown")
+            drop_projection_method_counter.update([method])
+            drop_projection_method_by_scope.setdefault("spread_upper_group", Counter()).update([method])
+            spread_upper_drop_method_counter.update([method])
+            spread_upper_drop_method_by_density.setdefault(density_key, Counter()).update([method])
+            spread_upper_drop_method_by_grouping.setdefault(grouping_key, Counter()).update([method])
+            spread_upper_drop_method_by_recipe.setdefault(recipe_key, Counter()).update([method])
+            spread_upper_drop_events_by_density.update([density_key])
+        lower_notes = [int(note) for note in row.get("lower_group_notes") or []]
+        if lower_notes:
+            density_key = str(row["density"] or "unknown")
+            grouping_key = str(row["functional_grouping"] or "unknown")
+            lower_foundation_notes.extend(lower_notes)
+            lower_foundation_note_stats_by_grouping.setdefault(grouping_key, []).extend(lower_notes)
+            lower_foundation_note_stats_by_density.setdefault(density_key, []).extend(lower_notes)
+            span = max(lower_notes) - min(lower_notes)
+            lower_foundation_spans.append(span)
+            lower_foundation_span_stats_by_grouping.setdefault(grouping_key, []).append(span)
+            lower_foundation_span_stats_by_density.setdefault(density_key, []).append(span)
+            if span > int(row.get("lower_group_max_span_semitones") or 12):
+                lower_foundation_span_violation_events += 1
+            recipe_id = str(row.get("lower_group_recipe_id") or "unknown")
+            lower_foundation_recipe_counter.update([recipe_id])
+            low_register_threshold = int(row.get("lower_foundation_low_register_threshold") or 43)
+            if min(lower_notes) < low_register_threshold:
+                lower_foundation_low_register_events_by_grouping.update([grouping_key])
+                lower_foundation_low_register_events_by_density.update([density_key])
         texture_scope_counter.update([scope_id])
         texture_contrast_counter.update([contrast_role])
         texture_methods_by_contrast.setdefault(contrast_role, Counter()).update([projection_method])
@@ -144,6 +205,11 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             open_drop2_parent_closed_spans.append(int(row["open_drop2_parent_closed_span"]))
         if row.get("midi_notes") and row.get("open_drop2_projection"):
             open_drop2_lows.append(min(int(note) for note in row["midi_notes"]))
+        midi_notes = [int(note) for note in row.get("midi_notes") or []]
+        if midi_notes:
+            all_midi_notes.extend(midi_notes)
+            if max(midi_notes) >= 75:
+                top_note_ge_75_events += 1
         note_counts.append(int(row["realized_note_count"]))
         if row["duration_beats"] is not None:
             durations.append(float(row["duration_beats"]))
@@ -224,6 +290,34 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         "dispositions": dict(disposition_counter),
         "disposition_projection_families": dict(projection_family_counter),
         "disposition_projection_methods": dict(projection_method_counter),
+        "drop_projection_audit_version": PIANO_DROP_PROJECTION_AUDIT_VERSION,
+        "drop_projection_methods_total": dict(drop_projection_method_counter),
+        "drop_projection_methods_by_scope": {key: dict(counter) for key, counter in drop_projection_method_by_scope.items()},
+        "spread_upper_projection_methods": dict(spread_upper_projection_method_counter),
+        "spread_upper_drop_projection_methods": dict(spread_upper_drop_method_counter),
+        "spread_upper_drop_projection_events": sum(spread_upper_drop_method_counter.values()),
+        "spread_upper_drop_projection_methods_by_density": {key: dict(counter) for key, counter in spread_upper_drop_method_by_density.items()},
+        "spread_upper_drop_projection_methods_by_grouping": {key: dict(counter) for key, counter in spread_upper_drop_method_by_grouping.items()},
+        "spread_upper_drop_projection_methods_by_recipe": {key: dict(counter) for key, counter in spread_upper_drop_method_by_recipe.items()},
+        "spread_upper_drop_projection_events_by_density": dict(spread_upper_drop_events_by_density),
+        "lower_foundation_audit_version": "v2_6_30",
+        "lower_foundation_note_min": min(lower_foundation_notes) if lower_foundation_notes else None,
+        "lower_foundation_note_max": max(lower_foundation_notes) if lower_foundation_notes else None,
+        "lower_foundation_note_average": round(mean(lower_foundation_notes), 3) if lower_foundation_notes else 0.0,
+        "lower_foundation_span_max": max(lower_foundation_spans) if lower_foundation_spans else None,
+        "lower_foundation_span_average": round(mean(lower_foundation_spans), 3) if lower_foundation_spans else 0.0,
+        "lower_foundation_notes_by_grouping": _numeric_stats_by_key(lower_foundation_note_stats_by_grouping),
+        "lower_foundation_notes_by_density": _numeric_stats_by_key(lower_foundation_note_stats_by_density),
+        "lower_foundation_spans_by_grouping": _numeric_stats_by_key(lower_foundation_span_stats_by_grouping),
+        "lower_foundation_spans_by_density": _numeric_stats_by_key(lower_foundation_span_stats_by_density),
+        "lower_foundation_recipe_counts": dict(lower_foundation_recipe_counter),
+        "lower_foundation_low_register_events": sum(lower_foundation_low_register_events_by_grouping.values()),
+        "lower_foundation_low_register_events_by_grouping": dict(lower_foundation_low_register_events_by_grouping),
+        "lower_foundation_low_register_events_by_density": dict(lower_foundation_low_register_events_by_density),
+        "lower_foundation_span_violation_events": lower_foundation_span_violation_events,
+        "low_note_min": min(all_midi_notes) if all_midi_notes else None,
+        "top_note_max": max(all_midi_notes) if all_midi_notes else None,
+        "top_note_ge_75_events": top_note_ge_75_events,
         "voicing_texture_scope_counts": dict(texture_scope_counter),
         "voicing_texture_contrast_roles": dict(texture_contrast_counter),
         "voicing_texture_methods_by_contrast_role": {key: dict(counter) for key, counter in texture_methods_by_contrast.items()},
@@ -312,6 +406,19 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     lines.append(f"- Dispositions: `{summary.get('dispositions')}`")
     lines.append(f"- Disposition projection families: `{summary.get('disposition_projection_families')}`")
     lines.append(f"- Disposition projection methods: `{summary.get('disposition_projection_methods')}`")
+    lines.append(f"- Drop projection methods total: `{summary.get('drop_projection_methods_total')}`")
+    lines.append(f"- Drop projection methods by scope: `{summary.get('drop_projection_methods_by_scope')}`")
+    lines.append(f"- SPREAD upper projection methods: `{summary.get('spread_upper_projection_methods')}`")
+    lines.append(f"- SPREAD upper drop projection methods: `{summary.get('spread_upper_drop_projection_methods')}`")
+    lines.append(f"- SPREAD upper drop projection methods by density: `{summary.get('spread_upper_drop_projection_methods_by_density')}`")
+    lines.append(f"- SPREAD upper drop projection methods by grouping: `{summary.get('spread_upper_drop_projection_methods_by_grouping')}`")
+    lines.append(f"- Lower foundation note min / max / average: `{summary.get('lower_foundation_note_min')}` / `{summary.get('lower_foundation_note_max')}` / `{summary.get('lower_foundation_note_average')}`")
+    lines.append(f"- Lower foundation span max / average: `{summary.get('lower_foundation_span_max')}` / `{summary.get('lower_foundation_span_average')}`")
+    lines.append(f"- Lower foundation notes by grouping: `{summary.get('lower_foundation_notes_by_grouping')}`")
+    lines.append(f"- Lower foundation recipe counts: `{summary.get('lower_foundation_recipe_counts')}`")
+    lines.append(f"- Lower foundation low-register events: `{summary.get('lower_foundation_low_register_events')}`")
+    lines.append(f"- Lower foundation span violation events: `{summary.get('lower_foundation_span_violation_events')}`")
+    lines.append(f"- Low note min / top note max / top >= 75 events: `{summary.get('low_note_min')}` / `{summary.get('top_note_max')}` / `{summary.get('top_note_ge_75_events')}`")
     lines.append(f"- Texture contrast roles: `{summary.get('voicing_texture_contrast_roles')}`")
     lines.append(f"- Texture methods by contrast role: `{summary.get('voicing_texture_methods_by_contrast_role')}`")
     lines.append(f"- Texture method percentages by contrast role: `{summary.get('voicing_texture_method_percentages_by_contrast_role')}`")
@@ -421,6 +528,7 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
     register_guard = dict(voicing.get("register_guard") or {})
     selector = dict(voicing.get("selector_decision") or {})
     voicing_metadata = dict(voicing.get("metadata") or {})
+    upper_projection_metadata = dict(voicing_metadata.get("upper_projection_metadata") or {})
     expression_audit_row = dict(expression_audit_row or {})
     logical_starts = [float(note.get("start_beat", 0.0)) for note in realized if isinstance(note, Mapping)]
     performed = [performed_beat(start, str(note.get("timing_intent", "auto")), timing_policy) for start, note in zip(logical_starts, realized)]
@@ -484,6 +592,16 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "voicing_texture_state_allowed_families": list((dict(voicing_metadata.get("voicing_texture_state") or {}).get("allowed_families") or [])),
         "disposition_projection_family": voicing_metadata.get("disposition_projection_family"),
         "disposition_projection_method": voicing_metadata.get("disposition_projection_method"),
+        "main_drop_projection_method": _drop_projection_method_from_metadata(voicing_metadata),
+        "spread_upper_projection_method": voicing_metadata.get("upper_projection_method"),
+        "spread_upper_drop_projection_method": _drop_projection_method_from_metadata(upper_projection_metadata) or _drop_projection_method_name(voicing_metadata.get("upper_projection_method")),
+        "spread_upper_projection_uses_drop_family_resource": bool(upper_projection_metadata.get("spread_upper_projection_uses_drop_family_resource", False)),
+        "spread_upper_projection_metadata": upper_projection_metadata,
+        "lower_group_recipe_id": voicing_metadata.get("lower_group_recipe_id"),
+        "lower_group_notes": [int(note) for note in voicing_metadata.get("lower_group_notes") or []],
+        "lower_group_span_semitones": voicing_metadata.get("lower_group_span_semitones"),
+        "lower_group_max_span_semitones": voicing_metadata.get("lower_group_max_span_semitones", 12),
+        "lower_foundation_low_register_threshold": voicing_metadata.get("lower_foundation_low_register_threshold", 43),
         "disposition_projection_spec": dict(voicing_metadata.get("disposition_projection_spec") or {}),
         "legacy_projection_callback_used": bool(voicing_metadata.get("legacy_projection_callback_used", False)),
         "legacy_projection_cleanup_required": bool(voicing_metadata.get("legacy_projection_cleanup_required", False)),
@@ -521,11 +639,60 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
     }
 
 
+def _drop_projection_method_name(value: Any) -> str | None:
+    text = str(getattr(value, "value", value) or "").strip().lower().replace("-", "_")
+    aliases = {
+        "drop2": "drop2",
+        "drop_2": "drop2",
+        "drop3": "drop3",
+        "drop_3": "drop3",
+        "drop2_and_4": "drop2_and_4",
+        "drop_2_and_4": "drop2_and_4",
+        "drop24": "drop2_and_4",
+        "drop_2_4": "drop2_and_4",
+        "drop2&4": "drop2_and_4",
+        "drop_2&4": "drop2_and_4",
+    }
+    return aliases.get(text)
+
+
+def _drop_projection_method_from_metadata(metadata: Mapping[str, Any]) -> str | None:
+    for key in (
+        "open_named_projection_method",
+        "active_open_projection_method",
+        "disposition_projection_method",
+    ):
+        method = _drop_projection_method_name(metadata.get(key))
+        if method:
+            return method
+    for method, marker in (
+        ("drop2_and_4", "open_drop2_and_4_projection"),
+        ("drop3", "open_drop3_projection"),
+        ("drop2", "open_drop2_projection"),
+    ):
+        if bool(metadata.get(marker)):
+            return method
+    return None
+
+
 def _counter_percentages_by_key(counters: Mapping[str, Counter[str]]) -> dict[str, dict[str, float]]:
     out: dict[str, dict[str, float]] = {}
     for key, counter in counters.items():
         total = sum(counter.values()) or 1
         out[str(key)] = {str(name): round(float(count) / float(total), 4) for name, count in counter.items()}
+    return out
+
+
+def _numeric_stats_by_key(values_by_key: Mapping[str, list[int]]) -> dict[str, dict[str, float | int | None]]:
+    out: dict[str, dict[str, float | int | None]] = {}
+    for key, values in values_by_key.items():
+        numbers = [int(value) for value in values]
+        out[str(key)] = {
+            "count": len(numbers),
+            "min": min(numbers) if numbers else None,
+            "max": max(numbers) if numbers else None,
+            "average": round(mean(numbers), 3) if numbers else 0.0,
+        }
     return out
 
 

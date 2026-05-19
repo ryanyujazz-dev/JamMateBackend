@@ -4,18 +4,11 @@ from dataclasses import replace
 from typing import Iterable
 
 from jammate_engine.core.harmony.chord_parser import ParsedChord, parse_chord
-from jammate_engine.core.harmony.material import degree_to_semitone
 
 from .candidate import VoicingCandidate
 from .constraints import evaluate_register_guard
 from ..sources.canonical_source import canonical_closed_source_from_degrees
 from ..sources.content_planner import plan_content_recipes
-from ..disposition.closed import (
-    closed_compactness_metadata,
-    effective_closed_register_low,
-    strict_closed_compact_layout_enabled,
-    strict_closed_register_variants,
-)
 from ..disposition.method_lock import (
     method_lock_rescue_plan_for_generation,
     method_lock_runtime_plan_for_projection,
@@ -33,10 +26,18 @@ from ..disposition.models import (
     projection_spec_from_legacy_disposition,
 )
 from ..disposition.projection import project_source_to_disposition
-from ..disposition.spread import guard_ballad_spread_pilot_runtime_enablement
-from ..disposition.facade import place_degree_notes
+from ..disposition.spread_projection_core import project_basic_spread_candidates
+from ..disposition.spread_runtime_adapter import spread_projection_candidate_to_voicing_candidate_adapter
 from ..policy import ContentFamily, Disposition, RootSupportPolicy, VoicingPolicy, harmonic_expansion_allowed
+from ..density_policy import density_disposition_decision
 from ..runtime.texture_plan import derive_voicing_texture_plan, derive_voicing_texture_state
+from .content_placement import place_content_recipe_for_projection
+from .register_variants import (
+    closed_voicing_compactness_metadata,
+    policy_for_disposition_guard,
+    register_variants,
+)
+from .source_rotation_metadata import source_rotation_metadata
 
 
 def generate_candidates(symbol: str, policy: VoicingPolicy) -> list[VoicingCandidate]:
@@ -48,32 +49,181 @@ def generate_candidates(symbol: str, policy: VoicingPolicy) -> list[VoicingCandi
     """
 
     candidates = _generate_candidates_without_runtime_rescue(symbol, policy)
-    candidates = _maybe_merge_ballad_spread_runtime_pilot_candidates(symbol, policy, candidates)
+    candidates = _maybe_use_grouped_spread_runtime_candidates(symbol, policy, candidates)
     if not _method_lock_rescue_runtime_enabled(policy.metadata):
         return candidates
     return _execute_method_lock_rescue_if_needed(symbol, policy, candidates)
 
 
-def _maybe_merge_ballad_spread_runtime_pilot_candidates(
+def _maybe_use_grouped_spread_runtime_candidates(
     symbol: str,
     policy: VoicingPolicy,
     candidates: list[VoicingCandidate],
 ) -> list[VoicingCandidate]:
-    """Optionally add explicit Ballad SPREAD pilot candidates to the pool.
+    """Use the current grouped-SPREAD runtime pool when the event policy asks for it.
 
-    The default path returns the original list unchanged.  The SPREAD pilot path
-    requires dedicated policy metadata gates and always keeps the existing pool
-    as fallback.
+    This replaces the retired Ballad SPREAD pilot/dry-run wiring.  It only
+    adapts already-legal SPREAD projection candidates into runtime candidates;
+    source choice, projection, register guards, expression, and MIDI remain
+    owned by their dedicated layers.
     """
 
-    result = guard_ballad_spread_pilot_runtime_enablement(
+    metadata = dict(policy.metadata or {})
+    spread_requested = _coerce_bool(metadata.get("spread_selector_enabled"), default=False) or _coerce_bool(
+        metadata.get("spread_groupwise_voice_leading_runtime_enabled"),
+        default=False,
+    )
+    if not spread_requested:
+        return candidates
+    if "spread" not in _metadata_family_values(metadata):
+        return candidates
+
+    contract_ids = _grouped_spread_runtime_contract_ids(metadata)
+    if not contract_ids:
+        return candidates
+
+    try:
+        max_upper_options = int(
+            metadata.get("spread_runtime_adapter_max_upper_options", metadata.get("max_upper_options", 12)) or 12
+        )
+    except (TypeError, ValueError):
+        max_upper_options = 12
+
+    projected = project_basic_spread_candidates(
         symbol,
         policy,
-        base_candidates=tuple(candidates),
+        contract_ids=contract_ids,
+        max_upper_options=max_upper_options,
     )
-    if not result.enabled_for_listening_isolation:
+    spread_candidates: list[VoicingCandidate] = []
+    for result in projected:
+        for projection_candidate in result.candidates:
+            if not bool(getattr(projection_candidate, "is_legal", False)):
+                continue
+            adapter_result = spread_projection_candidate_to_voicing_candidate_adapter(
+                projection_candidate,
+                policy,
+                allow_conversion=True,
+                selector_reason="grouped_spread_runtime_candidate_pool",
+            )
+            if not adapter_result.converted or adapter_result.adapted_candidate is None:
+                continue
+            spread_candidates.append(_annotate_grouped_spread_runtime_candidate(adapter_result.adapted_candidate, metadata))
+
+    if not spread_candidates:
         return candidates
-    return list(result.guarded_candidates)
+
+    pool_metadata = metadata.get("spread_grouping_mix_candidate_pool") or {}
+    if not isinstance(pool_metadata, dict):
+        pool_metadata = {}
+    use_compatible_only = _coerce_bool(
+        pool_metadata.get("use_compatible_contracts", metadata.get("spread_grouping_mix_candidate_pool_uses_compatible_contracts")),
+        default=True,
+    )
+    if use_compatible_only:
+        return list(spread_candidates)
+    return [*spread_candidates, *candidates]
+
+
+def _metadata_family_values(metadata: dict) -> set[str]:
+    values: set[str] = set()
+    for key in ("primary_family", "preferred_disposition", "preferred_family"):
+        value = metadata.get(key)
+        if value is not None:
+            values.add(str(getattr(value, "value", value)).strip().lower())
+    allowed = metadata.get("allowed_families") or metadata.get("effective_disposition_families") or ()
+    if isinstance(allowed, str):
+        allowed = [part.strip() for part in allowed.replace(";", ",").split(",") if part.strip()]
+    if isinstance(allowed, Iterable):
+        for item in allowed:
+            values.add(str(getattr(item, "value", item)).strip().lower())
+    return values
+
+
+def _grouped_spread_runtime_contract_ids(metadata: dict) -> tuple[str, ...]:
+    ids: list[str] = []
+
+    pool_metadata = metadata.get("spread_grouping_mix_candidate_pool") or {}
+    if not isinstance(pool_metadata, dict):
+        pool_metadata = {}
+    for source in (
+        pool_metadata.get("selected_contract_id"),
+        metadata.get("ballad_spread_grouping_mix_selected_contract_id"),
+    ):
+        if source:
+            text = str(source).strip()
+            if text and text not in ids:
+                ids.append(text)
+
+    pool_compatible_ids = _as_string_sequence(pool_metadata.get("compatible_contract_ids"))
+    if pool_compatible_ids:
+        for item in pool_compatible_ids:
+            if item and item not in ids:
+                ids.append(item)
+        return tuple(ids)
+
+    for source in (
+        metadata.get("spread_grouping_mix_candidate_contract_ids"),
+        metadata.get("spread_density_runtime_contract_ids"),
+        metadata.get("compatible_contract_ids"),
+    ):
+        for item in _as_string_sequence(source):
+            if item and item not in ids:
+                ids.append(item)
+    return tuple(ids)
+
+
+def _as_string_sequence(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return tuple(part.strip() for part in value.replace(";", ",").split(",") if part.strip())
+    if isinstance(value, Iterable):
+        return tuple(str(getattr(item, "value", item)).strip() for item in value if str(getattr(item, "value", item)).strip())
+    text = str(getattr(value, "value", value)).strip()
+    return (text,) if text else ()
+
+
+def _annotate_grouped_spread_runtime_candidate(candidate: VoicingCandidate, metadata: dict) -> VoicingCandidate:
+    candidate_metadata = dict(candidate.metadata or {})
+    selected_contract_id = metadata.get("ballad_spread_grouping_mix_selected_contract_id")
+    try:
+        six_note_bias = float(metadata.get("spread_grouping_mix_selected_6note_contract_bias", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        six_note_bias = 0.0
+    decision = dict(metadata.get("ballad_spread_grouping_mix_policy_decision") or {})
+    if selected_contract_id:
+        decision = {**decision, "selected_contract_id": selected_contract_id}
+    candidate_metadata.update(
+        {
+            "spread_grouped_runtime_candidate_pool_version": "v2_6_22",
+            "candidate_pool_source": "grouped_spread_runtime",
+            "candidate_generator_wiring_allowed": True,
+            "style_runtime_wiring_enabled": True,
+            "runtime_enabled": True,
+            "spread_groupwise_voice_leading_runtime_enabled": True,
+            "ballad_spread_grouping_mix_policy_decision": decision,
+            "ballad_spread_grouping_mix_selected_contract_id": selected_contract_id,
+            "spread_grouping_mix_policy_decision": decision,
+            "spread_grouping_mix_selected_contract_id": selected_contract_id,
+            "no_expression_or_pedal": True,
+            "no_pattern_anticipation_gesture_or_midi": True,
+        }
+    )
+    selector_decision = dict(candidate.selector_decision or {})
+    selector_decision.update(
+        {
+            "source": "grouped_spread_runtime_candidate_pool",
+            "candidate_pool_source": "grouped_spread_runtime",
+            "candidate_generator_wiring_allowed": True,
+            "style_runtime_wiring_enabled": True,
+            "runtime_enabled": True,
+        }
+    )
+    score = float(candidate.score or 0.0)
+    if six_note_bias > 0.0 and str(candidate.recipe_id) == "spread_2plus4_contract":
+        score += six_note_bias * 0.4
+    return replace(candidate, score=score, metadata=candidate_metadata, selector_decision=selector_decision)
 
 
 def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPolicy) -> list[VoicingCandidate]:
@@ -113,6 +263,14 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
         texture_debug = texture_plan.to_debug_dict()
         canonical_debug = canonical_source.to_debug_dict()
         for disposition in dispositions:
+            density_disposition = density_disposition_decision(
+                disposition=disposition,
+                density=recipe.density,
+                functional_grouping=recipe.functional_grouping,
+                policy=policy,
+            )
+            if not density_disposition.allowed:
+                continue
             open_method_pool = _open_projection_methods_for_disposition(disposition, policy)
             for open_method_index, open_method in enumerate(open_method_pool):
                 projection_policy = _policy_with_active_open_projection_method(policy, disposition, open_method, open_method_pool)
@@ -121,7 +279,7 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                     policy=projection_policy,
                     root_pc=chord.root_pc,
                     degrees=degrees,
-                    legacy_placement_callback=lambda disposition=disposition, projection_policy=projection_policy: _place_content_recipe(
+                    legacy_placement_callback=lambda disposition=disposition, projection_policy=projection_policy: place_content_recipe_for_projection(
                         chord, degrees, family, disposition, projection_policy, content_recipe.validity_notes
                     ),
                     closed_parent_placement_callback=lambda projection_policy=projection_policy: _project_closed_parent_for_named_open_projection(
@@ -153,16 +311,11 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                 )
                 if policy.root_support in {RootSupportPolicy.ROOT_REQUIRED, RootSupportPolicy.BASS_ROOT_REQUIRED} and "R" not in [degree for degree, _ in placed]:
                     continue
-                source_rotation_metadata = {
-                        **_rootless_ab_orientation_metadata(family, content_recipe.validity_notes),
-                        **_basic_4note_metadata(family, content_recipe.validity_notes),
-                        **_rooted_color_4note_metadata(family, content_recipe.validity_notes),
-                        **_triad_4note_metadata(family, content_recipe.validity_notes),
-                    }
-                for variant_index, variant_placed in enumerate(_register_variants(placed, projection_policy, disposition)):
+                source_rotation_debug = source_rotation_metadata(family, content_recipe.validity_notes)
+                for variant_index, variant_placed in enumerate(register_variants(placed, projection_policy, disposition)):
                     placed_degrees = [degree for degree, _ in variant_placed]
                     variant_notes = [note for _, note in variant_placed]
-                    register_guard = evaluate_register_guard(variant_notes, _policy_for_disposition_guard(projection_policy, disposition)).to_debug_dict()
+                    register_guard = evaluate_register_guard(variant_notes, policy_for_disposition_guard(projection_policy, disposition)).to_debug_dict()
                     if _runtime_filter_failed_register_guard_candidates(projection_policy.metadata) and not bool(register_guard.get("passed", False)):
                         continue
                     candidates.append(
@@ -224,9 +377,11 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                                 "active_open_projection_method": open_method.value if open_method is not None else None,
                                 "interval_structure": projection_policy.interval_structure.value,
                                 "register_variant": variant_index,
-                                **_closed_voicing_compactness_metadata(variant_notes, projection_policy, disposition),
+                                **closed_voicing_compactness_metadata(variant_notes, projection_policy, disposition),
                                 "content_recipe": recipe_debug,
                                 "density_recipe": recipe.to_debug_dict(),
+                                "density_disposition_decision": density_disposition.to_debug_dict(),
+                                "voicing_density_disposition_policy_version": density_disposition.version,
                                 "canonical_closed_source": canonical_debug,
                                 "voicing_texture_plan": texture_debug,
                                 "voicing_texture_family": texture_debug["primary_disposition_family"],
@@ -238,7 +393,7 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                                 "voicing_texture_state_family_stickiness": texture_state_debug["family_stickiness"],
                                 "voicing_texture_state_runtime_filter": texture_state_runtime_debug,
                                 "voicing_texture_state_runtime_filtering_enabled": texture_state_runtime_debug["enabled"],
-                                **source_rotation_metadata,
+                                **source_rotation_debug,
                             },
                         )
                     )
@@ -667,7 +822,7 @@ def _project_closed_parent_for_named_open_projection(
         policy=policy,
         root_pc=chord.root_pc,
         degrees=degrees,
-        legacy_placement_callback=lambda: _place_content_recipe(
+        legacy_placement_callback=lambda: place_content_recipe_for_projection(
             chord, degrees, family, Disposition.CLOSED, policy, validity_notes
         ),
     )
@@ -702,7 +857,7 @@ def _project_closed_parent_candidates_for_named_open_projection(
     """
 
     seed = _project_closed_parent_for_named_open_projection(chord, degrees, family, policy, validity_notes)
-    variants = _register_variants(seed, policy, Disposition.CLOSED) if seed else []
+    variants = register_variants(seed, policy, Disposition.CLOSED) if seed else []
     if not variants:
         return [seed] if seed else []
     out: list[list[tuple[str, int]]] = []
@@ -716,349 +871,7 @@ def _project_closed_parent_candidates_for_named_open_projection(
     return out
 
 
-def _place_content_recipe(
-    chord: ParsedChord,
-    degrees: list[tuple[str, int]],
-    family,
-    disposition: Disposition,
-    policy: VoicingPolicy,
-    validity_notes: tuple[str, ...] = (),
-) -> list[tuple[str, int]]:
-    # Strict closed 3/4-note compact seed placement has moved to
-    # core.voicing.disposition.closed via project_source_to_disposition().
-    if "triad_4note_doubled_closed_rotation_family" in validity_notes and disposition in {Disposition.CLOSED, Disposition.OPEN}:
-        placed = _place_basic_4note_ordered_stack(chord.root_pc, degrees, policy, disposition)
-        # A density-4 doubled triad must remain a real 4-note source.  If a
-        # specific rotation cannot fit the closed register guard, drop that
-        # rotation rather than falling back to a 3-note triad and polluting the
-        # density-4 audit/listening pool.
-        return placed
-    if family in {ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B}:
-        placed = _place_rootless_ab_ordered_stack(chord.root_pc, degrees, policy, disposition)
-        if placed:
-            return placed
-    if (
-        family == ContentFamily.SEVENTH_BASIC
-        and ("basic_4note_functional_source_family" in validity_notes or "basic_4note_1357_source_family" in validity_notes)
-        and disposition in {Disposition.CLOSED, Disposition.OPEN}
-    ):
-        placed = _place_basic_4note_ordered_stack(chord.root_pc, degrees, policy, disposition)
-        if placed:
-            return placed
-    if (
-        family == ContentFamily.ROOTED_COLOR
-        and "rooted_color_4note_functional_source_family" in validity_notes
-        and disposition in {Disposition.CLOSED, Disposition.OPEN}
-    ):
-        placed = _place_basic_4note_ordered_stack(chord.root_pc, degrees, policy, disposition)
-        if placed:
-            return placed
-    return place_degree_notes(
-        chord.root_pc,
-        degrees,
-        _effective_register_low_for_disposition(policy, disposition),
-        policy.register_high,
-        disposition=disposition,
-        policy=policy,
-    )
 
-
-def _place_rootless_ab_ordered_stack(
-    root_pc: int,
-    degrees: list[tuple[str, int]],
-    policy: VoicingPolicy,
-    disposition: Disposition = Disposition.CLOSED,
-) -> list[tuple[str, int]]:
-    """Place 4-note rootless A/B by preserving the requested degree order.
-
-    The ordinary pitch-class placer sorts notes by nearest pitch class.  That is
-    fine for generic content, but it can turn an intended A/B shape such as
-    3-5-7-9 or 7-9-3-5 into the wrong inversion.  Rootless A/B orientation is
-    a musical contract, so here the stacked degree order is preserved first and
-    register is solved by trying whole-octave placements.
-    """
-
-    if not degrees:
-        return []
-    ordered_offsets: list[tuple[str, int]] = []
-    previous_offset: int | None = None
-    for degree, semitone in degrees:
-        offset = _rootless_ab_ordered_offset(str(degree), int(semitone))
-        while previous_offset is not None and offset <= previous_offset:
-            offset += 12
-        ordered_offsets.append((str(degree), offset))
-        previous_offset = offset
-
-    candidates: list[list[tuple[str, int]]] = []
-    for root_octave in range(24, 85, 12):
-        root_ref = root_octave + int(root_pc)
-        placed = [(degree, root_ref + offset) for degree, offset in ordered_offsets]
-        notes = [note for _, note in placed]
-        low = _effective_register_low_for_disposition(policy, disposition)
-        if not all(low <= note <= policy.register_high for note in notes):
-            continue
-        if max(notes) - min(notes) > policy.max_voicing_span:
-            continue
-        candidates.append(placed)
-    if not candidates:
-        return []
-
-    def placement_cost(placed: list[tuple[str, int]]) -> tuple[float, int]:
-        notes = [note for _, note in placed]
-        avg = sum(notes) / len(notes)
-        center = (policy.comfort_register_low + policy.comfort_register_high) / 2
-        top = max(notes)
-        top_center = (policy.top_voice_low + policy.top_voice_high) / 2
-        return (abs(avg - center) + 0.25 * abs(top - top_center), top)
-
-    return min(candidates, key=placement_cost)
-
-
-
-def _place_basic_4note_ordered_stack(
-    root_pc: int,
-    degrees: list[tuple[str, int]],
-    policy: VoicingPolicy,
-    disposition: Disposition = Disposition.CLOSED,
-) -> list[tuple[str, int]]:
-    """Place basic 4-note 1357 rotations while preserving source order.
-
-    ``1-3-5-7`` belongs to the conservative chord-symbol material pool, but it
-    still needs the same source-derived rotation behavior as rootless A/B.  The
-    ordinary stack placer sorts pitch classes and can erase an intended rotation
-    such as ``3-5-7-1``; this placement keeps the canonical order first, then
-    chooses the octave band closest to the current policy center.
-    """
-
-    if not degrees:
-        return []
-    ordered_offsets: list[tuple[str, int]] = []
-    previous_offset: int | None = None
-    for degree, semitone in degrees:
-        offset = _ordered_compact_offset(str(degree), int(semitone))
-        while previous_offset is not None and offset <= previous_offset:
-            offset += 12
-        ordered_offsets.append((str(degree), offset))
-        previous_offset = offset
-
-    candidates: list[list[tuple[str, int]]] = []
-    for root_octave in range(24, 85, 12):
-        root_ref = root_octave + int(root_pc)
-        placed = [(degree, root_ref + offset) for degree, offset in ordered_offsets]
-        notes = [note for _, note in placed]
-        low = _effective_register_low_for_disposition(policy, disposition)
-        if not all(low <= note <= policy.register_high for note in notes):
-            continue
-        if max(notes) - min(notes) > policy.max_voicing_span:
-            continue
-        candidates.append(placed)
-    if not candidates:
-        return []
-
-    def placement_cost(placed: list[tuple[str, int]]) -> tuple[float, int]:
-        notes = [note for _, note in placed]
-        avg = sum(notes) / len(notes)
-        center = (policy.comfort_register_low + policy.comfort_register_high) / 2
-        top = max(notes)
-        top_center = (policy.top_voice_low + policy.top_voice_high) / 2
-        low = min(notes)
-        # Basic 1357 contains the root, so avoid letting the whole voicing sit too
-        # low/thick when bass is already present.  This is soft placement only.
-        low_penalty = max(0, policy.right_hand_low - low) * 0.12
-        return (abs(avg - center) + 0.22 * abs(top - top_center) + low_penalty, top)
-
-    return min(candidates, key=placement_cost)
-
-
-
-
-
-def _rootless_ab_ordered_offset(degree: str, fallback_stacked_semitone: int) -> int:
-    # A/B orientation uses voicing-order semantics: 13 behaves like the sixth
-    # inside the chord stack when it is placed before the 7th (3-13-7-9), while
-    # 9 still floats above the guide-tone shell when it appears after 7.
-    # Start from compact pitch-class offsets, then the ordering loop above lifts
-    # later voices by octave only when necessary.
-    return _ordered_compact_offset(degree, fallback_stacked_semitone)
-
-
-def _ordered_compact_offset(degree: str, fallback_stacked_semitone: int) -> int:
-    try:
-        return int(degree_to_semitone(degree, stacked=False))
-    except Exception:
-        return int(fallback_stacked_semitone)
-
-
-
-def _triad_4note_metadata(family, validity_notes: tuple[str, ...]) -> dict[str, str | int | bool]:
-    if "triad_4note_functional_source_family" not in validity_notes:
-        return {}
-    functional_content_type = next((note.removeprefix("triad_4note_functional_content_type_") for note in validity_notes if note.startswith("triad_4note_functional_content_type_")), "unknown")
-    content_type = next((note.removeprefix("triad_4note_content_type_") for note in validity_notes if note.startswith("triad_4note_content_type_")), functional_content_type)
-    inversion_index = _triad_4note_inversion_index(validity_notes)
-    source_order = next((note.removeprefix("triad_4note_source_order_") for note in validity_notes if note.startswith("triad_4note_source_order_")), "unknown")
-    degree_order = next((note.removeprefix("triad_4note_degree_order_") for note in validity_notes if note.startswith("triad_4note_degree_order_")), "unknown")
-    source_role_order = next((note.removeprefix("triad_4note_source_role_order_") for note in validity_notes if note.startswith("triad_4note_source_role_order_")), "unknown")
-    degree_role_order = next((note.removeprefix("triad_4note_degree_role_order_") for note in validity_notes if note.startswith("triad_4note_degree_role_order_")), "unknown")
-    return {
-        "triad_4note_source_family": source_role_order if source_role_order != "unknown" else functional_content_type,
-        "triad_4note_content_type": content_type,
-        "triad_4note_functional_content_type": functional_content_type,
-        "triad_4note_inversion_index": inversion_index,
-        "triad_4note_source_order": source_order,
-        "triad_4note_degree_order": degree_order,
-        "triad_4note_source_role_order": source_role_order,
-        "triad_4note_degree_role_order": degree_role_order,
-        "triad_4note_is_doubled_rotation": "triad_4note_doubled_closed_rotation_family" in validity_notes,
-        "triad_4note_source_contract": "plain no-seventh triads use doubled closed rotations such as root-third-fifth-root / third-fifth-root-third / fifth-root-third-fifth; sus2 uses root-second-fifth-root etc.",
-    }
-
-
-def _triad_4note_inversion_index(validity_notes: tuple[str, ...]) -> int:
-    marker = next((note for note in validity_notes if note.startswith("triad_4note_inversion_index_")), None)
-    if not marker:
-        return 0
-    try:
-        return int(marker.removeprefix("triad_4note_inversion_index_"))
-    except ValueError:
-        return 0
-
-
-def _rootless_ab_orientation_metadata(family, validity_notes: tuple[str, ...]) -> dict[str, str | int]:
-    family_value = getattr(family, "value", str(family))
-    if family_value not in {"rootless_A", "rootless_B"}:
-        return {}
-    content_type = next((note.removeprefix("rootless_ab_content_type_") for note in validity_notes if note.startswith("rootless_ab_content_type_")), "unknown")
-    functional_source_type = next((note.removeprefix("rootless_ab_functional_source_type_") for note in validity_notes if note.startswith("rootless_ab_functional_source_type_")), "unknown")
-    orientation = "A" if family_value == "rootless_A" else "B"
-    inversion_index = _rootless_ab_inversion_index(validity_notes)
-    source_order = next((note.removeprefix("rootless_ab_source_order_") for note in validity_notes if note.startswith("rootless_ab_source_order_")), "unknown")
-    degree_order = next((note.removeprefix("rootless_ab_degree_order_") for note in validity_notes if note.startswith("rootless_ab_degree_order_")), "unknown")
-    source_role_order = next((note.removeprefix("rootless_ab_source_role_order_") for note in validity_notes if note.startswith("rootless_ab_source_role_order_")), "unknown")
-    degree_role_order = next((note.removeprefix("rootless_ab_degree_role_order_") for note in validity_notes if note.startswith("rootless_ab_degree_role_order_")), "unknown")
-    pair_key = next((note.removeprefix("rootless_ab_ab_pair_key_") for note in validity_notes if note.startswith("rootless_ab_ab_pair_key_")), f"{orientation}{inversion_index}")
-    inversion_weight = _rootless_ab_inversion_weight(inversion_index)
-    return {
-        "rootless_ab_orientation_family": orientation,
-        "rootless_ab_content_type": content_type,
-        "rootless_ab_functional_source_type": functional_source_type if functional_source_type != "unknown" else content_type,
-        "rootless_ab_inversion_index": inversion_index,
-        "rootless_ab_source_order": source_order,
-        "rootless_ab_degree_order": degree_order,
-        "rootless_ab_source_role_order": source_role_order,
-        "rootless_ab_degree_role_order": degree_role_order,
-        "rootless_ab_functional_source_contract": "source names are functional roles; core harmony resolves accidentals and scale spelling",
-        "rootless_ab_ab_pair_key": pair_key,
-        "rootless_ab_inversion_weight": inversion_weight,
-        "rootless_ab_inversion_weight_ratio": "8:2 preferred-source rotations vs secondary rotations",
-        "rootless_ab_preferred_source_rotation": inversion_weight >= 8,
-        "rootless_ab_orientation_contract": "A/B orientation is separate from content type; each A/B family is derived from canonical source rotations",
-        "rootless_ab_ab_structure_contract": "ii-V or V-I prefers AB with same content type and inversion index; ii-V-I becomes ABA or BAB",
-    }
-
-
-def _basic_4note_metadata(family, validity_notes: tuple[str, ...]) -> dict[str, str | int | bool]:
-    family_value = getattr(family, "value", str(family))
-    if family_value != "seventh_chord_basic" or not ({"basic_4note_functional_source_family", "basic_4note_1357_source_family"} & set(validity_notes)):
-        return {}
-    content_type = next((note.removeprefix("basic_4note_content_type_") for note in validity_notes if note.startswith("basic_4note_content_type_")), "unknown")
-    functional_content_type = next((note.removeprefix("basic_4note_functional_content_type_") for note in validity_notes if note.startswith("basic_4note_functional_content_type_")), "unknown")
-    inversion_index = _basic_4note_inversion_index(validity_notes)
-    source_order = next((note.removeprefix("basic_4note_source_order_") for note in validity_notes if note.startswith("basic_4note_source_order_")), "unknown")
-    degree_order = next((note.removeprefix("basic_4note_degree_order_") for note in validity_notes if note.startswith("basic_4note_degree_order_")), "unknown")
-    source_role_order = next((note.removeprefix("basic_4note_source_role_order_") for note in validity_notes if note.startswith("basic_4note_source_role_order_")), "unknown")
-    degree_role_order = next((note.removeprefix("basic_4note_degree_role_order_") for note in validity_notes if note.startswith("basic_4note_degree_role_order_")), "unknown")
-    rotation_weight = _basic_4note_rotation_weight(inversion_index)
-    legacy_alias = content_type
-    source_family = source_role_order if source_role_order != "unknown" else functional_content_type.removeprefix("root_")
-    return {
-        "basic_4note_source_family": source_family,
-        "basic_4note_legacy_source_family_alias": legacy_alias,
-        "basic_4note_content_type": content_type,
-        "basic_4note_functional_content_type": functional_content_type,
-        "basic_4note_inversion_index": inversion_index,
-        "basic_4note_source_order": source_order,
-        "basic_4note_degree_order": degree_order,
-        "basic_4note_source_role_order": source_role_order,
-        "basic_4note_degree_role_order": degree_role_order,
-        "basic_4note_rotation_weight": rotation_weight,
-        "basic_4note_rotation_weight_ratio": "8:2 preferred-source rotations vs secondary rotations",
-        "basic_4note_preferred_source_rotation": rotation_weight >= 8,
-        "basic_4note_source_contract": "root-third-fifth-seventh is conservative chord-symbol material; core harmony resolves concrete accidentals",
-        "basic_4note_functional_source_contract": "source names are functional roles; core harmony resolves accidentals and scale spelling",
-    }
-
-
-def _rooted_color_4note_metadata(family, validity_notes: tuple[str, ...]) -> dict[str, str | int | bool]:
-    family_value = getattr(family, "value", str(family))
-    if family_value != "rooted_color" or "rooted_color_4note_functional_source_family" not in validity_notes:
-        return {}
-    content_type = next((note.removeprefix("rooted_color_4note_content_type_") for note in validity_notes if note.startswith("rooted_color_4note_content_type_")), "unknown")
-    functional_content_type = next((note.removeprefix("rooted_color_4note_functional_content_type_") for note in validity_notes if note.startswith("rooted_color_4note_functional_content_type_")), "unknown")
-    inversion_index = _rooted_color_4note_inversion_index(validity_notes)
-    source_order = next((note.removeprefix("rooted_color_4note_source_order_") for note in validity_notes if note.startswith("rooted_color_4note_source_order_")), "unknown")
-    degree_order = next((note.removeprefix("rooted_color_4note_degree_order_") for note in validity_notes if note.startswith("rooted_color_4note_degree_order_")), "unknown")
-    source_role_order = next((note.removeprefix("rooted_color_4note_source_role_order_") for note in validity_notes if note.startswith("rooted_color_4note_source_role_order_")), "unknown")
-    degree_role_order = next((note.removeprefix("rooted_color_4note_degree_role_order_") for note in validity_notes if note.startswith("rooted_color_4note_degree_role_order_")), "unknown")
-    return {
-        "rooted_color_4note_source_family": source_role_order,
-        "rooted_color_4note_legacy_source_family_alias": content_type,
-        "rooted_color_4note_content_type": content_type,
-        "rooted_color_4note_functional_content_type": functional_content_type,
-        "rooted_color_4note_inversion_index": inversion_index,
-        "rooted_color_4note_source_order": source_order,
-        "rooted_color_4note_degree_order": degree_order,
-        "rooted_color_4note_source_role_order": source_role_order,
-        "rooted_color_4note_degree_role_order": degree_role_order,
-        "rooted_color_4note_source_contract": "rooted color sources are named as functional roles; core harmony resolves concrete color/accidental spelling",
-    }
-
-
-def _rooted_color_4note_inversion_index(validity_notes: tuple[str, ...]) -> int:
-    marker = next((note for note in validity_notes if note.startswith("rooted_color_4note_inversion_index_")), None)
-    if not marker:
-        return 0
-    try:
-        return int(marker.removeprefix("rooted_color_4note_inversion_index_"))
-    except ValueError:
-        return 0
-
-
-def _basic_4note_inversion_index(validity_notes: tuple[str, ...]) -> int:
-    marker = next((note for note in validity_notes if note.startswith("basic_4note_inversion_index_")), None)
-    if not marker:
-        return 0
-    try:
-        return int(marker.removeprefix("basic_4note_inversion_index_"))
-    except ValueError:
-        return 0
-
-
-def _basic_4note_rotation_weight(inversion_index: int) -> int:
-    return 8 if int(inversion_index) in {0, 2} else 2
-
-
-def _rootless_ab_inversion_index(validity_notes: tuple[str, ...]) -> int:
-    marker = next((note for note in validity_notes if note.startswith("rootless_ab_inversion_index_")), None)
-    if not marker:
-        return 0
-    try:
-        return int(marker.removeprefix("rootless_ab_inversion_index_"))
-    except ValueError:
-        return 0
-
-
-def _rootless_ab_inversion_weight(inversion_index: int) -> int:
-    """Return the v2_1_16 source-rotation prior for rootless A/B.
-
-    The compact source rotations 3-5-7-9 and 7-9-3-5 are the primary shapes
-    inside the current compact-rootless texture plan.  Their paired inversion
-    indexes are 0 and 2 in both A and B families.  The other two rotations
-    remain available for voice-leading rescue but receive the lower side of
-    the 8:2 prior.
-    """
-
-    return 8 if int(inversion_index) in {0, 2} else 2
 
 def _score_candidate(
     notes: list[int],
@@ -1165,126 +978,3 @@ def _explicit_symbol_degrees(chord: ParsedChord | None) -> set[str]:
     if "sus2" in explicit:
         explicit.add("9")
     return explicit
-
-def _policy_for_disposition_guard(policy: VoicingPolicy, disposition: Disposition) -> VoicingPolicy:
-    low = _effective_register_low_for_disposition(policy, disposition)
-    if low == policy.register_low:
-        return policy
-    return replace(policy, register_low=low)
-
-
-def _effective_register_low_for_disposition(policy: VoicingPolicy, disposition: Disposition) -> int:
-    if disposition != Disposition.CLOSED:
-        return int(policy.register_low)
-    return effective_closed_register_low(policy)
-
-
-def _strict_closed_compact_layout_enabled(policy: VoicingPolicy) -> bool:
-    return strict_closed_compact_layout_enabled(policy)
-
-
-def _closed_voicing_compactness_metadata(notes: list[int], policy: VoicingPolicy, disposition: Disposition) -> dict[str, object]:
-    if disposition != Disposition.CLOSED:
-        return {}
-    return closed_compactness_metadata(notes, policy)
-
-
-def _register_variants(placed: list[tuple[str, int]], policy: VoicingPolicy, disposition: Disposition = Disposition.OPEN) -> list[list[tuple[str, int]]]:
-    """Return octave-neighbor variants while preserving degree-note pairing.
-
-    Earlier V2 passes only shifted an entire voicing shape by octave.  That was
-    acceptable for broad 4/5-note voicings, but it made 2-note guide-tone shells
-    less musical because the selector could not choose mixed-octave inversions
-    such as ``B3-F4`` for G7.  For density-2 voicings we therefore also generate
-    per-voice octave-neighbor combinations.  This gives the stateful selector
-    enough candidates to prefer classic guide-tone voice-leading: common tones,
-    half-step resolutions, and small contrary/oblique movement.
-    """
-
-    if not placed:
-        return []
-    base = sorted(((str(degree), int(note)) for degree, note in placed), key=lambda item: item[1])
-    low = _effective_register_low_for_disposition(policy, disposition)
-    high = policy.register_high
-    raw_variants: list[list[tuple[str, int]]] = []
-
-    strict_closed = disposition == Disposition.CLOSED and _strict_closed_compact_layout_enabled(policy) and len(base) in {3, 4}
-    if strict_closed:
-        strict_variants = strict_closed_register_variants(base, policy)
-        if strict_variants:
-            raw_variants.extend(strict_variants)
-        else:
-            # Doubled closed triads intentionally repeat one pitch class
-            # (1351 / 3513 / 5135).  They are already a legal closed seed from
-            # the ordered source placer, so supply octave-neighbor whole-shape
-            # variants instead of rejecting them as duplicate pitch classes.
-            for shift in (0, -12, 12):
-                shifted = [(degree, note + shift) for degree, note in base]
-                if all(low <= note <= high for _, note in shifted):
-                    span = max(note for _, note in shifted) - min(note for _, note in shifted)
-                    if span <= min(int(policy.max_voicing_span), int(dict(policy.metadata or {}).get("strict_closed_max_span", 12))):
-                        raw_variants.append(shifted)
-    else:
-        # Preserve the old whole-shape behavior for all non-strict densities.
-        for shift in (0, -12, 12):
-            shifted = [(degree, note + shift) for degree, note in base]
-            if all(low <= note <= high for _, note in shifted):
-                raw_variants.append(shifted)
-
-    # Add mixed-octave inversions for two-note guide tones and legacy/non-strict
-    # 3-note shell families.  Strict 3-note closed mode deliberately disables the
-    # old color-note octave-shift spacing rule: closed legality is handled first,
-    # and per-source nearest motion decides the concrete closed layout.
-    if len(base) == 2:
-        shifts = (-12, 0, 12)
-        for first_shift in shifts:
-            for second_shift in shifts:
-                shifted = [
-                    (base[0][0], base[0][1] + first_shift),
-                    (base[1][0], base[1][1] + second_shift),
-                ]
-                if not all(low <= note <= high for _, note in shifted):
-                    continue
-                ordered = sorted(shifted, key=lambda item: item[1])
-                span = ordered[-1][1] - ordered[0][1]
-                if span > max(policy.max_voicing_span, 12):
-                    continue
-                raw_variants.append(ordered)
-
-    if len(base) == 3 and (not strict_closed) and _should_generate_three_note_shell_variants(policy):
-        shifts = (-12, 0, 12)
-        for first_shift in shifts:
-            for second_shift in shifts:
-                for third_shift in shifts:
-                    shifted = [
-                        (base[0][0], base[0][1] + first_shift),
-                        (base[1][0], base[1][1] + second_shift),
-                        (base[2][0], base[2][1] + third_shift),
-                    ]
-                    if not all(low <= note <= high for _, note in shifted):
-                        continue
-                    ordered = sorted(shifted, key=lambda item: item[1])
-                    span = ordered[-1][1] - ordered[0][1]
-                    if span > max(policy.max_voicing_span, 12):
-                        continue
-                    raw_variants.append(ordered)
-
-    out: list[list[tuple[str, int]]] = []
-    seen: set[tuple[tuple[str, int], ...]] = set()
-    for variant in raw_variants:
-        ordered = sorted(variant, key=lambda item: item[1])
-        key = tuple((degree, int(note)) for degree, note in ordered)
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(list(key))
-    return out or [base]
-
-
-
-def _should_generate_three_note_shell_variants(policy: VoicingPolicy) -> bool:
-    families = set(policy.allowed_content or ())
-    if policy.preferred_content is not None:
-        families.add(policy.preferred_content)
-    tuned = {ContentFamily.SHELL_PLUS_COLOR, ContentFamily.SHELL_PLUS_5}
-    return bool(families.intersection(tuned))

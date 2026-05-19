@@ -366,7 +366,10 @@ class OpenAICompatibleChatProvider:
         endpoint = self._endpoint()
         payload = {
             "model": self.config.model,
-            "messages": _trim_messages_for_prompt(envelope.messages, self.config.max_prompt_chars),
+            "messages": _normalize_messages_for_chat_completions(
+                envelope.messages,
+                self.config.max_prompt_chars,
+            ),
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_output_tokens,
         }
@@ -483,6 +486,43 @@ def _trim_messages_for_prompt(messages: tuple[dict[str, str], ...], max_chars: i
         remaining -= len(content)
     return list(reversed(output))
 
+
+
+
+def _normalize_messages_for_chat_completions(messages: tuple[dict[str, str], ...], max_chars: int) -> list[dict[str, str]]:
+    """Return a conservative OpenAI-compatible Chat Completions message list.
+
+    Some OpenAI-compatible providers reject newer roles such as ``developer``
+    and non-API preview roles such as ``context``. JamMate's internal
+    envelope may still use those roles for provider-neutral previews, but the
+    actual network payload should use the broadest compatible role set.
+    
+    System/developer/context instructions are merged into one leading system
+    message; user/assistant turns are preserved in order. Other roles are
+    converted to user-visible context instead of being sent as unknown roles.
+    """
+
+    trimmed = _trim_messages_for_prompt(messages, max_chars)
+    system_parts: list[str] = []
+    conversation: list[dict[str, str]] = []
+    for message in trimmed:
+        role = str(message.get("role") or "user").strip().lower()
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        if role in {"system", "developer", "context"}:
+            system_parts.append(content)
+        elif role in {"user", "assistant"}:
+            conversation.append({"role": role, "content": content})
+        elif role == "tool":
+            conversation.append({"role": "user", "content": f"Tool context: {content}"})
+        else:
+            conversation.append({"role": "user", "content": f"Context: {content}"})
+    output: list[dict[str, str]] = []
+    if system_parts:
+        output.append({"role": "system", "content": "\n\n".join(system_parts)})
+    output.extend(conversation)
+    return output
 
 def _extract_chat_content(payload: dict[str, Any]) -> str | None:
     try:
