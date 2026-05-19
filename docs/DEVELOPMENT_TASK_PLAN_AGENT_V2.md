@@ -1051,3 +1051,357 @@ Next phase recommendation:
 ```text
 Stop expanding v2_8. Move to integration handoff or v2_9_x Agent Persistence Implementation planning.
 ```
+
+## v2_9_0_agent_context_persistence_sqlite_backend_store
+
+Status: completed in Agent track.
+
+Goal: start the v2_9_x Agent Persistence Implementation phase by adding an explicit opt-in backend SQLite store for Agent long-term context snapshots.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-store/spec
+POST /agent/context/persistence-sqlite-backend-store/execute
+CLI  /context-persistence-sqlite-backend-store [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_STORE_V2_9_0.md
+tests/test_v2_9_0_agent_context_persistence_sqlite_backend_store.py
+```
+
+Required write gates:
+
+```text
+backendPersistenceEnabled=true
+executeBackendPersistence=true
+userDecision=approved
+confirmationStatus=user_approved_future_executor_required
+environment in dev/local_dev/test
+safe sqliteDbPath ending .db/.sqlite/.sqlite3
+traceId present
+idempotencyKey present or derived
+storageBoundaryCheckPassed=true
+redactionCheckPassed=true
+schemaPreviewAccepted=true
+```
+
+Boundary:
+
+```text
+Allows real backend SQLite context snapshot write only after explicit gates.
+No HarmonyOS local write by Agent.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No LLM call by persistence route/CLI.
+No tool execution.
+No production persistence enablement.
+No Engine music generation change.
+No frontend_fixtures/harmonyos change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_1_agent_context_persistence_sqlite_backend_readback_context_recovery
+```
+
+## v2_9_1_agent_context_persistence_sqlite_backend_readback_context_recovery
+
+Status: completed in Agent track.
+
+Goal: read records written by the v2_9_0 SQLite backend store and convert them into the same persisted-context recovery packet shape used by today-practice guidance.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-readback-context-recovery/spec
+POST /agent/context/persistence-sqlite-backend-readback-context-recovery/preview
+CLI  /context-persistence-sqlite-backend-readback-context-recovery [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_READBACK_CONTEXT_RECOVERY_V2_9_1.md
+tests/test_v2_9_1_agent_context_persistence_sqlite_backend_readback_context_recovery.py
+```
+
+Required readback gates:
+
+```text
+backendReadbackEnabled=true
+executeBackendReadback=true
+environment in dev/local_dev/test
+safe sqliteDbPath ending .db/.sqlite/.sqlite3
+optional idempotencyKey / traceId / userId / candidate filters
+no forbidden client-local/MIDI/API-key fields
+```
+
+Boundary:
+
+```text
+Allows read-only backend SQLite context recovery from existing persistence records.
+No backend SQLite write.
+No SQLite table creation.
+No HarmonyOS local write by Agent.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No LLM call by readback route/CLI.
+No tool execution.
+No production persistence enablement.
+No Engine music generation change.
+No frontend_fixtures/harmonyos change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_2_agent_context_persistence_sqlite_backend_today_guidance_recovery_e2e
+```
+
+## v2_9_2_agent_context_persistence_sqlite_backend_today_guidance_recovery_e2e
+
+Status: completed in Agent track.
+
+Goal: compose the v2_9_1 read-only SQLite backend context recovery with the existing v2_8_17 today-practice guidance persisted-context recovery, producing a display-only guidance preview from real backend persistence records.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-today-guidance-recovery-e2e/spec
+POST /agent/context/persistence-sqlite-backend-today-guidance-recovery-e2e/preview
+CLI  /context-persistence-sqlite-backend-today-guidance-recovery-e2e [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_TODAY_GUIDANCE_RECOVERY_E2E_V2_9_2.md
+tests/test_v2_9_2_agent_context_persistence_sqlite_backend_today_guidance_recovery_e2e.py
+```
+
+Composition flow:
+
+```text
+v2_9_0 SQLite backend store
+        ↓
+v2_9_1 read-only SQLite backend context recovery
+        ↓
+ContextBuilder-ready contextPersistenceSnapshotContextIntake
+        ↓
+v2_8_17 persisted-context today-practice guidance recovery
+        ↓
+display-only guidance / Routine candidate preview
+```
+
+Boundary:
+
+```text
+Allows read-only backend SQLite context recovery after explicit gates.
+Allows display-only today-practice guidance preview from recovered context.
+No backend SQLite write.
+No SQLite table creation.
+No HarmonyOS local write by Agent.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No tool execution.
+No Engine music generation change.
+No frontend_fixtures/harmonyos change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_3_agent_context_persistence_sqlite_backend_terminal_memory_autoload_preview
+```
+
+## v2_9_3_agent_context_persistence_sqlite_backend_terminal_memory_autoload_preview
+
+Status: completed in Agent track.
+
+Goal: let terminal chat explicitly read SQLite backend context records into current session memory so a following ordinary “今天该练什么” turn can reuse recovered persisted context without manually pasting the recovery packet.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-terminal-memory-autoload-preview/spec
+POST /agent/context/persistence-sqlite-backend-terminal-memory-autoload-preview/preview
+CLI  /persisted-context-autoload-sqlite [json_payload]
+CLI  /context-persistence-sqlite-backend-terminal-memory-autoload-preview [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_AUTOLOAD_PREVIEW_V2_9_3.md
+tests/test_v2_9_3_agent_context_persistence_sqlite_backend_terminal_memory_autoload_preview.py
+```
+
+Composition flow:
+
+```text
+v2_9_0 SQLite backend store
+        ↓
+v2_9_1 read-only SQLite backend context recovery
+        ↓
+terminal session-memory preview compatible with v2_8_18
+        ↓
+CLI-local TerminalChatSession.persisted_context_memory
+        ↓
+ordinary “今天该练什么” terminal turn reuses loaded memory
+```
+
+Boundary:
+
+```text
+Allows read-only backend SQLite context recovery after explicit gates.
+Allows CLI-only in-process session memory loading.
+API surface remains preview-only and does not mutate server-side memory.
+No backend SQLite write.
+No SQLite table creation.
+No HarmonyOS local write by Agent.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No tool execution.
+No Engine music generation change.
+No frontend_fixtures/harmonyos change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_4_agent_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke
+```
+
+## v2_9_4_agent_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke
+
+Status: completed in Agent track.
+
+Goal: provide a compact terminal smoke chain that verifies real backend persistence can write a context snapshot into SQLite, autoload it into current terminal session memory, and immediately preview a normal “今天该练什么” response from that recovered memory.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-terminal-memory-to-guidance-smoke/spec
+POST /agent/context/persistence-sqlite-backend-terminal-memory-to-guidance-smoke/preview
+CLI  /sqlite-memory-guidance-smoke [json_payload]
+CLI  /context-persistence-sqlite-backend-terminal-memory-to-guidance-smoke [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_TO_GUIDANCE_SMOKE_V2_9_4.md
+tests/test_v2_9_4_agent_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke.py
+```
+
+Composition flow:
+
+```text
+v2_9_0 SQLite backend store
+        ↓ explicit backendPersistenceEnabled / executeBackendPersistence / user approval gates
+v2_9_3 terminal memory autoload preview
+        ↓ CLI-local TerminalChatSession.persisted_context_memory
+ordinary “今天该练什么” terminal guidance turn
+        ↓
+display-only persisted-context guidance preview
+```
+
+Boundary:
+
+```text
+Allows SQLite backend write only through v2_9_0 explicit opt-in gates.
+Allows read-only backend SQLite context recovery after explicit readback gates.
+Allows CLI-only in-process session memory loading.
+Allows display-only today-practice guidance preview from loaded terminal memory.
+API surface remains preview-oriented and does not mutate server-side memory.
+No HarmonyOS local write by Agent.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No tool execution.
+No Engine music generation change.
+No frontend_fixtures/harmonyos change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_5_agent_context_persistence_sqlite_backend_api_memory_debug_pack
+```
+
+
+## v2_9_5_agent_context_persistence_sqlite_backend_api_memory_debug_pack
+
+- Added API debug pack for the v2_9_0 → v2_9_4 SQLite backend persistence/readback/memory/guidance surfaces.
+- Added `GET /agent/context/persistence-sqlite-backend-api-memory-debug-pack/spec`.
+- Added `POST /agent/context/persistence-sqlite-backend-api-memory-debug-pack/preview`.
+- Added terminal commands `/sqlite-api-memory-debug-pack [json_payload]` and `/context-persistence-sqlite-backend-api-memory-debug-pack [json_payload]`.
+- Added `docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_V2_9_5.md`.
+- Added tests for contract/spec metadata, core route catalog/request examples/response paths, redaction, API preview no-side-effect behavior, terminal command output, TerminalChatSession no memory mutation, manifest exposure, and Agent/Engine boundary.
+- The debug pack is preview-only: it does not call packaged routes, open SQLite, write/read SQLite, mutate server memory, call LLM, execute tools, start Routine, call `/accompaniment/generate`, call Engine, create MIDI, start playback, or create a post-session recommendation card.
+- The pack includes frontend-safe notes clarifying that API autoload is preview-only and TerminalChatSession memory loading remains CLI-local.
+
+Recommended next Agent task:
+
+```text
+v2_9_6_agent_context_persistence_sqlite_backend_harmonyos_api_fixture_pack
+```
+
+## v2_9_6_agent_context_persistence_sqlite_backend_harmonyos_api_fixture_pack
+
+Status: completed in Agent track.
+
+Goal: package v2_9 SQLite backend persistence/readback/guidance API fixtures for HarmonyOS联调 while avoiding shared integration-file conflicts.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-harmonyos-api-fixture-pack/spec
+POST /agent/context/persistence-sqlite-backend-harmonyos-api-fixture-pack/preview
+CLI  /sqlite-harmonyos-api-fixture-pack [json_payload]
+CLI  /context-persistence-sqlite-backend-harmonyos-api-fixture-pack [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_V2_9_6.md
+tests/test_v2_9_6_agent_context_persistence_sqlite_backend_harmonyos_api_fixture_pack.py
+```
+
+Composition flow:
+
+```text
+v2_9_5 API memory debug pack
+        ↓ reuse route catalog / request examples
+HarmonyOS API fixture pack
+        ↓ copyable request examples + response assertions + ArkTS fetch sketch
+frontend/backend manual联调
+```
+
+Boundary:
+
+```text
+Preview-only pack generation.
+No SQLite connection/read/write by the fixture pack itself.
+No packaged route execution.
+No API/server memory mutation.
+No TerminalChatSession memory write.
+No frontend_fixtures/harmonyos write.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No Engine music generation change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended Agent task:
+
+```text
+v2_9_7_agent_context_persistence_sqlite_backend_api_error_shape_matrix
+```

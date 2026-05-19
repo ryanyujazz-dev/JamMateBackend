@@ -37,6 +37,13 @@ from jammate_agent.core.tool_invocation import (
     TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
     TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
     AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_STORE_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_READBACK_CONTEXT_RECOVERY_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_TODAY_GUIDANCE_RECOVERY_E2E_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_AUTOLOAD_PREVIEW_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_TO_GUIDANCE_SMOKE_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_VERSION,
+    CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -88,6 +95,13 @@ class CapabilityManifest:
     supports_today_practice_guidance_harmonyos_debug_fixture_api_request_pack: bool = True
     supports_today_practice_guidance_terminal_product_smoke_polish: bool = True
     supports_agent_v2_8_phase_cleanup_regression_handoff: bool = True
+    supports_context_persistence_sqlite_backend_store: bool = True
+    supports_context_persistence_sqlite_backend_readback_context_recovery: bool = True
+    supports_context_persistence_sqlite_backend_today_guidance_recovery_e2e: bool = True
+    supports_context_persistence_sqlite_backend_terminal_memory_autoload_preview: bool = True
+    supports_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke: bool = True
+    supports_context_persistence_sqlite_backend_api_memory_debug_pack: bool = True
+    supports_context_persistence_sqlite_backend_harmonyos_api_fixture_pack: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -131,6 +145,13 @@ class CapabilityManifest:
             "supports_today_practice_guidance_harmonyos_debug_fixture_api_request_pack": self.supports_today_practice_guidance_harmonyos_debug_fixture_api_request_pack,
             "supports_today_practice_guidance_terminal_product_smoke_polish": self.supports_today_practice_guidance_terminal_product_smoke_polish,
             "supports_agent_v2_8_phase_cleanup_regression_handoff": self.supports_agent_v2_8_phase_cleanup_regression_handoff,
+            "supports_context_persistence_sqlite_backend_store": self.supports_context_persistence_sqlite_backend_store,
+            "supports_context_persistence_sqlite_backend_readback_context_recovery": self.supports_context_persistence_sqlite_backend_readback_context_recovery,
+            "supports_context_persistence_sqlite_backend_today_guidance_recovery_e2e": self.supports_context_persistence_sqlite_backend_today_guidance_recovery_e2e,
+            "supports_context_persistence_sqlite_backend_terminal_memory_autoload_preview": self.supports_context_persistence_sqlite_backend_terminal_memory_autoload_preview,
+            "supports_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke": self.supports_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke,
+            "supports_context_persistence_sqlite_backend_api_memory_debug_pack": self.supports_context_persistence_sqlite_backend_api_memory_debug_pack,
+            "supports_context_persistence_sqlite_backend_harmonyos_api_fixture_pack": self.supports_context_persistence_sqlite_backend_harmonyos_api_fixture_pack,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -356,6 +377,13 @@ class ContextBuilder:
                 "today_practice_guidance_harmonyos_debug_fixture_api_request_pack_version": TODAY_PRACTICE_GUIDANCE_HARMONYOS_DEBUG_FIXTURE_API_REQUEST_PACK_VERSION,
                 "today_practice_guidance_terminal_product_smoke_polish_version": TODAY_PRACTICE_GUIDANCE_TERMINAL_PRODUCT_SMOKE_POLISH_VERSION,
                 "agent_v2_8_phase_cleanup_regression_handoff_version": AGENT_V2_8_PHASE_CLEANUP_REGRESSION_HANDOFF_VERSION,
+                "context_persistence_sqlite_backend_store_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_STORE_VERSION,
+                "context_persistence_sqlite_backend_readback_context_recovery_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_READBACK_CONTEXT_RECOVERY_VERSION,
+                "context_persistence_sqlite_backend_today_guidance_recovery_e2e_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_TODAY_GUIDANCE_RECOVERY_E2E_VERSION,
+                "context_persistence_sqlite_backend_terminal_memory_autoload_preview_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_AUTOLOAD_PREVIEW_VERSION,
+                "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_TERMINAL_MEMORY_TO_GUIDANCE_SMOKE_VERSION,
+                "context_persistence_sqlite_backend_api_memory_debug_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_API_MEMORY_DEBUG_PACK_VERSION,
+                "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_version": CONTEXT_PERSISTENCE_SQLITE_BACKEND_HARMONYOS_API_FIXTURE_PACK_VERSION,
                 "context_persistence_snapshot_context_intake_present": bool(snapshot_context_intake),
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),

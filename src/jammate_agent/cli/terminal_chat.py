@@ -124,6 +124,20 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_dev_sqlite_fixture_store_summary,
     build_context_persistence_dev_fixture_readback_replay_payload,
     build_context_persistence_dev_fixture_readback_replay_summary,
+    build_context_persistence_sqlite_backend_store_payload,
+    build_context_persistence_sqlite_backend_store_summary,
+    build_context_persistence_sqlite_backend_readback_context_recovery_payload,
+    build_context_persistence_sqlite_backend_readback_context_recovery_summary,
+    build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload,
+    build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary,
+    build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload,
+    build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary,
+    build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload,
+    build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary,
+    build_context_persistence_sqlite_backend_api_memory_debug_pack_payload,
+    build_context_persistence_sqlite_backend_api_memory_debug_pack_summary,
+    build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload,
+    build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary,
     build_context_persistence_profile_plan_history_snapshot_context_intake_payload,
     build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
     build_today_practice_guidance_persisted_context_recovery_e2e_payload,
@@ -156,6 +170,13 @@ from jammate_agent.core.tool_invocation import (
     context_persistence_dev_sqlite_fixture_write_dry_run_contract,
     context_persistence_dev_sqlite_fixture_store_contract,
     context_persistence_dev_fixture_readback_replay_contract,
+    context_persistence_sqlite_backend_store_contract,
+    context_persistence_sqlite_backend_readback_context_recovery_contract,
+    context_persistence_sqlite_backend_today_guidance_recovery_e2e_contract,
+    context_persistence_sqlite_backend_terminal_memory_autoload_preview_contract,
+    context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract,
+    context_persistence_sqlite_backend_api_memory_debug_pack_contract,
+    context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract,
     context_persistence_profile_plan_history_snapshot_context_intake_contract,
     today_practice_guidance_persisted_context_recovery_e2e_contract,
     today_practice_guidance_persisted_context_terminal_memory_controls_contract,
@@ -1801,6 +1822,369 @@ class TerminalChatSession:
         }
 
 
+    def context_persistence_sqlite_backend_store(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_store", "/context-persistence-sqlite-backend-store")
+        payload = build_context_persistence_sqlite_backend_store_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_store",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_store_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_store_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_store_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_sqlite_backend_store_executed", {"ok": True, "command": "/context-persistence-sqlite-backend-store", "summary": summary, "storage_written": summary.get("storage_written", False), "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-sqlite-backend-store",
+            "context_persistence_sqlite_backend_store_version": context_persistence_sqlite_backend_store_contract()["version"],
+            "context_persistence_sqlite_backend_store_payload": payload_dict,
+            "context_persistence_sqlite_backend_store_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": summary.get("storage_written", False),
+            "backend_database_written": summary.get("backend_database_written", False),
+            "local_device_written": False,
+            "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+            "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+            "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+            "sqlite_row_count_written": summary.get("sqlite_row_count_written", 0),
+            "durable_backend_write_executed": summary.get("durable_backend_write_executed", False),
+            "transaction_committed": summary.get("transaction_committed", False),
+            "idempotent_replay": summary.get("idempotent_replay", False),
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+
+    def context_persistence_sqlite_backend_terminal_memory_autoload_preview(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_terminal_memory_autoload_preview", "/persisted-context-autoload-sqlite")
+        payload = build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_terminal_memory_autoload_preview",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary(payload=payload, source="terminal_chat_cli")
+        terminal_memory_preview = payload_dict.get("terminal_memory_preview") if isinstance(payload_dict.get("terminal_memory_preview"), dict) else {}
+        terminal_session_memory = terminal_memory_preview.get("terminal_session_memory") if isinstance(terminal_memory_preview.get("terminal_session_memory"), dict) else {}
+        memory_loaded = bool(summary.get("accepted") and terminal_session_memory.get("loaded"))
+        if memory_loaded:
+            self.persisted_context_memory = terminal_session_memory
+            summary = {**summary, "terminal_session_memory_loaded_by_cli": True}
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_sqlite_backend_terminal_memory_autoload_loaded" if memory_loaded else "context_persistence_sqlite_backend_terminal_memory_autoload_blocked", {"ok": memory_loaded, "command": "/persisted-context-autoload-sqlite", "summary": summary, "storage_written": False, "backend_database_read": summary.get("backend_database_read", False), "terminal_session_memory_loaded": memory_loaded, "llm_called": False})
+        return {
+            "ok": memory_loaded,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/persisted-context-autoload-sqlite",
+            "context_persistence_sqlite_backend_terminal_memory_autoload_preview_version": context_persistence_sqlite_backend_terminal_memory_autoload_preview_contract()["version"],
+            "persisted_context_terminal_memory_controls_version": TODAY_PRACTICE_GUIDANCE_PERSISTED_CONTEXT_TERMINAL_MEMORY_CONTROLS_VERSION,
+            "context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload": payload_dict,
+            "context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary": summary,
+            "memory_loaded": memory_loaded,
+            "will_inject_into_next_today_practice_guidance_turn": memory_loaded,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": summary.get("backend_database_read", False),
+            "local_device_written": False,
+            "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+            "terminal_session_memory_write_previewed": summary.get("terminal_session_memory_write_previewed", False),
+            "terminal_session_memory_loaded_by_cli": memory_loaded,
+            "durable_backend_write_executed": False,
+            "transaction_committed": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Run compact terminal smoke: SQLite store → autoload memory → guidance."""
+
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke", "/sqlite-memory-guidance-smoke")
+        args = dict(arguments or {})
+        payload = build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke",
+            provider=self.provider,
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary_recorded", summary)
+
+        autoload_payload = payload_dict.get("terminal_memory_autoload_payload") if isinstance(payload_dict.get("terminal_memory_autoload_payload"), dict) else {}
+        preview = autoload_payload.get("terminal_memory_preview") if isinstance(autoload_payload.get("terminal_memory_preview"), dict) else {}
+        terminal_session_memory = preview.get("terminal_session_memory") if isinstance(preview.get("terminal_session_memory"), dict) else {}
+        memory_loaded = bool(summary.get("will_load_terminal_session_memory_in_cli") and terminal_session_memory.get("loaded"))
+        if memory_loaded:
+            self.persisted_context_memory = terminal_session_memory
+
+        guidance_response: dict[str, Any] = {}
+        if memory_loaded:
+            guidance_response = self.respond_today_practice_guidance(str(args.get("userInput") or args.get("user_input") or "今天该练什么"))
+
+        guidance_summary = guidance_response.get("today_practice_guidance_action_card_summary") if isinstance(guidance_response.get("today_practice_guidance_action_card_summary"), dict) else {}
+        ok = bool(summary.get("accepted") and memory_loaded and guidance_response.get("ok"))
+        self._finish_trace(
+            trace,
+            "sqlite_backend_terminal_memory_to_guidance_smoke_ready" if ok else "sqlite_backend_terminal_memory_to_guidance_smoke_blocked",
+            {
+                "ok": ok,
+                "command": "/sqlite-memory-guidance-smoke",
+                "summary": summary,
+                "memory_loaded": memory_loaded,
+                "guidance_response_ok": bool(guidance_response.get("ok")),
+                "storage_written": summary.get("storage_written", False),
+                "backend_database_written": summary.get("backend_database_written", False),
+                "backend_database_read": summary.get("backend_database_read", False),
+                "llm_called": bool(guidance_response.get("llm_called") or summary.get("llm_called", False)),
+                "engine_adapter_called": False,
+                "midi_asset_created": False,
+                "playback_started": False,
+                "routine_start_enabled": False,
+            },
+        )
+        return {
+            "ok": ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/sqlite-memory-guidance-smoke",
+            "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_version": context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract()["version"],
+            "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload": payload_dict,
+            "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary": summary,
+            "memory_loaded": memory_loaded,
+            "terminal_session_memory_loaded_by_cli": memory_loaded,
+            "guidance_response_preview": guidance_response,
+            "guidance_preview_ready": bool(guidance_response.get("today_practice_guidance_action_card_payload")),
+            "routine_candidate_count": guidance_summary.get("routine_candidate_count", summary.get("routine_candidate_count", 0)),
+            "persisted_context_terminal_memory_used": bool(guidance_response.get("persisted_context_terminal_memory_used", False)),
+            "llm_called": bool(guidance_response.get("llm_called") or summary.get("llm_called", False)),
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": summary.get("storage_written", False),
+            "backend_database_written": summary.get("backend_database_written", False),
+            "backend_database_read": summary.get("backend_database_read", False),
+            "local_device_written": False,
+            "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+            "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+            "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+            "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+            "durable_backend_write_executed": summary.get("durable_backend_write_executed", False),
+            "transaction_committed": summary.get("transaction_committed", False),
+            "idempotent_replay": summary.get("idempotent_replay", False),
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_sqlite_backend_api_memory_debug_pack(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Preview API debug pack for SQLite backend persistence/memory routes."""
+
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_api_memory_debug_pack", "/sqlite-api-memory-debug-pack")
+        args = dict(arguments or {})
+        payload = build_context_persistence_sqlite_backend_api_memory_debug_pack_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_api_memory_debug_pack",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_api_memory_debug_pack_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_api_memory_debug_pack_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_api_memory_debug_pack_summary_recorded", summary)
+        ok = bool(summary.get("accepted", False))
+        self._finish_trace(trace, "sqlite_backend_api_memory_debug_pack_ready" if ok else "sqlite_backend_api_memory_debug_pack_blocked", {"ok": ok, "command": "/sqlite-api-memory-debug-pack", "summary": summary, "storage_written": False, "backend_database_written": False, "backend_database_read": False, "llm_called": False})
+        return {
+            "ok": ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/sqlite-api-memory-debug-pack",
+            "context_persistence_sqlite_backend_api_memory_debug_pack_version": context_persistence_sqlite_backend_api_memory_debug_pack_contract()["version"],
+            "context_persistence_sqlite_backend_api_memory_debug_pack_payload": payload_dict,
+            "context_persistence_sqlite_backend_api_memory_debug_pack_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "terminal_session_memory_loaded_by_api": False,
+            "terminal_session_memory_loaded_by_cli": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_sqlite_backend_harmonyos_api_fixture_pack(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Preview HarmonyOS API fixture pack for SQLite backend routes."""
+
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_harmonyos_api_fixture_pack", "/sqlite-harmonyos-api-fixture-pack")
+        args = dict(arguments or {})
+        payload = build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_harmonyos_api_fixture_pack",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary_recorded", summary)
+        ok = bool(summary.get("accepted", False))
+        self._finish_trace(trace, "sqlite_backend_harmonyos_api_fixture_pack_ready" if ok else "sqlite_backend_harmonyos_api_fixture_pack_blocked", {"ok": ok, "command": "/sqlite-harmonyos-api-fixture-pack", "summary": summary, "storage_written": False, "backend_database_written": False, "backend_database_read": False, "llm_called": False})
+        return {
+            "ok": ok,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/sqlite-harmonyos-api-fixture-pack",
+            "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_version": context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract()["version"],
+            "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload": payload_dict,
+            "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "fixture_files_written": False,
+            "frontend_fixtures_directory_written": False,
+            "terminal_session_memory_loaded_by_api": False,
+            "terminal_session_memory_loaded_by_cli": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+        }
+
+
+    def context_persistence_sqlite_backend_today_guidance_recovery_e2e(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_today_guidance_recovery_e2e", "/context-persistence-sqlite-backend-today-guidance-recovery-e2e")
+        payload = build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_today_guidance_recovery_e2e",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_sqlite_backend_today_guidance_recovery_e2e_previewed", {"ok": True, "command": "/context-persistence-sqlite-backend-today-guidance-recovery-e2e", "summary": summary, "storage_written": False, "backend_database_read": summary.get("backend_database_read", False), "llm_called": summary.get("llm_called", False)})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-sqlite-backend-today-guidance-recovery-e2e",
+            "context_persistence_sqlite_backend_today_guidance_recovery_e2e_version": context_persistence_sqlite_backend_today_guidance_recovery_e2e_contract()["version"],
+            "context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload": payload_dict,
+            "context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary": summary,
+            "llm_called": summary.get("llm_called", False),
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": summary.get("backend_database_read", False),
+            "local_device_written": False,
+            "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+            "durable_backend_write_executed": False,
+            "transaction_committed": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+
+    def context_persistence_sqlite_backend_readback_context_recovery(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        trace = self._start_trace("terminal_context_persistence_sqlite_backend_readback_context_recovery", "/context-persistence-sqlite-backend-readback-context-recovery")
+        payload = build_context_persistence_sqlite_backend_readback_context_recovery_payload(
+            arguments or {},
+            trace_id=self.last_trace_id,
+            source="terminal_context_persistence_sqlite_backend_readback_context_recovery",
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_readback_context_recovery_payload_built", payload_dict)
+        summary = build_context_persistence_sqlite_backend_readback_context_recovery_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_context_persistence_sqlite_backend_readback_context_recovery_summary_recorded", summary)
+        self._finish_trace(trace, "context_persistence_sqlite_backend_readback_context_recovery_previewed", {"ok": True, "command": "/context-persistence-sqlite-backend-readback-context-recovery", "summary": summary, "storage_written": False, "backend_database_read": summary.get("backend_database_read", False), "llm_called": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/context-persistence-sqlite-backend-readback-context-recovery",
+            "context_persistence_sqlite_backend_readback_context_recovery_version": context_persistence_sqlite_backend_readback_context_recovery_contract()["version"],
+            "context_persistence_sqlite_backend_readback_context_recovery_payload": payload_dict,
+            "context_persistence_sqlite_backend_readback_context_recovery_summary": summary,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": summary.get("backend_database_read", False),
+            "local_device_written": False,
+            "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+            "durable_backend_write_executed": False,
+            "transaction_committed": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "post_session_recommendation_card_created": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
     def today_practice_guidance_persisted_context_recovery(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         trace = self._start_trace("terminal_today_practice_guidance_persisted_context_recovery", "/today-practice-guidance-persisted-context-recovery")
         payload = build_today_practice_guidance_persisted_context_recovery_e2e_payload(
@@ -2885,7 +3269,7 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             return True
         _print_context_guidance_skeleton_cleanup(session.context_guidance_skeleton_cleanup(parsed.get("arguments") or {}), stdout)
         return True
-    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop", "/context-persistence-storage-adapter", "/context-persistence-sqlite-dev-preview", "/context-persistence-dev-sqlite-write-gate", "/context-persistence-dev-sqlite-fixture-write-dry-run", "/context-persistence-dev-sqlite-fixture-store", "/context-persistence-dev-fixture-readback-replay", "/context-persistence-snapshot-context-intake")):
+    if user_input.startswith("/context") and not user_input.startswith(("/context-persistence-confirmation", "/context-persistence-executor-noop", "/context-persistence-storage-adapter", "/context-persistence-sqlite-dev-preview", "/context-persistence-dev-sqlite-write-gate", "/context-persistence-dev-sqlite-fixture-write-dry-run", "/context-persistence-dev-sqlite-fixture-store", "/context-persistence-dev-fixture-readback-replay", "/context-persistence-snapshot-context-intake", "/context-persistence-sqlite-backend-store", "/context-persistence-sqlite-backend-readback-context-recovery", "/context-persistence-sqlite-backend-today-guidance-recovery-e2e")):
         full = user_input.strip() in {"/context full", "/context --full", "/context json", "/context --json"}
         _print_context_preview(session.context_packet_preview(full=full), stdout, full=full)
         return True
@@ -3035,6 +3419,100 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         _print_context_persistence_profile_plan_history_snapshot_context_intake(session.context_persistence_profile_plan_history_snapshot_context_intake(parsed.get("arguments") or {}), stdout)
         return True
 
+
+
+
+
+    if user_input.startswith("/sqlite-harmonyos-api-fixture-pack"):
+        parsed = _parse_json_payload_command(user_input, "/sqlite-harmonyos-api-fixture-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_harmonyos_api_fixture_pack(session.context_persistence_sqlite_backend_harmonyos_api_fixture_pack(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-harmonyos-api-fixture-pack"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-harmonyos-api-fixture-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_harmonyos_api_fixture_pack(session.context_persistence_sqlite_backend_harmonyos_api_fixture_pack(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/sqlite-api-memory-debug-pack"):
+        parsed = _parse_json_payload_command(user_input, "/sqlite-api-memory-debug-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_api_memory_debug_pack(session.context_persistence_sqlite_backend_api_memory_debug_pack(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-api-memory-debug-pack"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-api-memory-debug-pack")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_api_memory_debug_pack(session.context_persistence_sqlite_backend_api_memory_debug_pack(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/sqlite-memory-guidance-smoke"):
+        parsed = _parse_json_payload_command(user_input, "/sqlite-memory-guidance-smoke")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke(session.context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-terminal-memory-to-guidance-smoke"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-terminal-memory-to-guidance-smoke")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke(session.context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/persisted-context-autoload-sqlite"):
+        parsed = _parse_json_payload_command(user_input, "/persisted-context-autoload-sqlite")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_terminal_memory_autoload_preview(session.context_persistence_sqlite_backend_terminal_memory_autoload_preview(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-terminal-memory-autoload-preview"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-terminal-memory-autoload-preview")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_terminal_memory_autoload_preview(session.context_persistence_sqlite_backend_terminal_memory_autoload_preview(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-today-guidance-recovery-e2e"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-today-guidance-recovery-e2e")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_today_guidance_recovery_e2e(session.context_persistence_sqlite_backend_today_guidance_recovery_e2e(parsed.get("arguments") or {}), stdout)
+        return True
+
+
+    if user_input.startswith("/context-persistence-sqlite-backend-readback-context-recovery"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-readback-context-recovery")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_readback_context_recovery(session.context_persistence_sqlite_backend_readback_context_recovery(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/context-persistence-sqlite-backend-store"):
+        parsed = _parse_json_payload_command(user_input, "/context-persistence-sqlite-backend-store")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_context_persistence_sqlite_backend_store(session.context_persistence_sqlite_backend_store(parsed.get("arguments") or {}), stdout)
+        return True
     if user_input.startswith("/context-persistence-dev-fixture-readback-replay"):
         parsed = _parse_json_payload_command(user_input, "/context-persistence-dev-fixture-readback-replay")
         if not parsed["ok"]:
@@ -3625,6 +4103,218 @@ def _print_routine_history_persistence_candidate(response: dict[str, Any], stdou
 
 
 
+
+
+
+
+def _print_context_persistence_sqlite_backend_harmonyos_api_fixture_pack(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        _print_command_error(response, stdout)
+        return
+    summary = response.get("context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary") or {}
+    print("ContextPersistenceSqliteBackendHarmonyOSApiFixturePack>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_harmonyos_api_fixture_pack_version')}", file=stdout)
+    print(f"  command: {response.get('command')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  fixture_pack_preview_only: {str(summary.get('fixture_pack_preview_only', False)).lower()}", file=stdout)
+    print(f"  request_count: {summary.get('request_count')}", file=stdout)
+    print(f"  base_url: {summary.get('base_url')}", file=stdout)
+    print(f"  contains_store_execute_fixture: {str(summary.get('contains_store_execute_fixture', False)).lower()}", file=stdout)
+    print(f"  contains_today_guidance_fixture: {str(summary.get('contains_today_guidance_fixture', False)).lower()}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  backend_database_read: false", file=stdout)
+    print("  fixture_files_written: false", file=stdout)
+    print("  frontend_fixtures_directory_written: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_sqlite_backend_api_memory_debug_pack(response: dict[str, Any], stdout: TextIO) -> None:
+    summary = response.get("context_persistence_sqlite_backend_api_memory_debug_pack_summary") or {}
+    print("ContextPersistenceSqliteBackendApiMemoryDebugPack>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_api_memory_debug_pack_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {str(summary.get('accepted', False)).lower()}", file=stdout)
+    print(f"  route_count: {summary.get('route_count')}", file=stdout)
+    print(f"  request_example_count: {summary.get('request_example_count')}", file=stdout)
+    print(f"  response_path_count: {summary.get('response_path_count')}", file=stdout)
+    print(f"  api_debug_pack_preview_only: {str(summary.get('api_debug_pack_preview_only', True)).lower()}", file=stdout)
+    print(f"  storage_written: {str(summary.get('storage_written', False)).lower()}", file=stdout)
+    print(f"  backend_database_written: {str(summary.get('backend_database_written', False)).lower()}", file=stdout)
+    print(f"  backend_database_read: {str(summary.get('backend_database_read', False)).lower()}", file=stdout)
+    print(f"  terminal_session_memory_loaded_by_api: {str(summary.get('terminal_session_memory_loaded_by_api', False)).lower()}", file=stdout)
+    print(f"  routine_start_enabled: {str(summary.get('routine_start_enabled', False)).lower()}", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {json.dumps(summary.get('blocked_reasons'), ensure_ascii=False)}", file=stdout)
+
+
+def _print_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceSqliteBackendTerminalMemoryToGuidanceSmoke guarded.", file=stdout)
+    summary = response.get("context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary") or {}
+    print("ContextPersistenceSqliteBackendTerminalMemoryToGuidanceSmoke>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  storage_written: {str(response.get('storage_written', False)).lower()}", file=stdout)
+    print(f"  backend_database_written: {str(response.get('backend_database_written', False)).lower()}", file=stdout)
+    print(f"  backend_database_read: {str(response.get('backend_database_read', False)).lower()}", file=stdout)
+    print(f"  sqlite_db_path: {summary.get('sqlite_db_path')}", file=stdout)
+    print(f"  sqlite_rows_written: {str(response.get('sqlite_rows_written', False)).lower()}", file=stdout)
+    print(f"  sqlite_rows_read: {response.get('sqlite_rows_read', 0)}", file=stdout)
+    print(f"  memory_loaded: {str(response.get('memory_loaded', False)).lower()}", file=stdout)
+    print(f"  terminal_session_memory_loaded_by_cli: {str(response.get('terminal_session_memory_loaded_by_cli', False)).lower()}", file=stdout)
+    print(f"  persisted_context_terminal_memory_used: {str(response.get('persisted_context_terminal_memory_used', False)).lower()}", file=stdout)
+    print(f"  guidance_preview_ready: {str(response.get('guidance_preview_ready', False)).lower()}", file=stdout)
+    print(f"  routine_candidate_count: {response.get('routine_candidate_count')}", file=stdout)
+    print(f"  llm_called: {str(response.get('llm_called', False)).lower()}", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_sqlite_backend_terminal_memory_autoload_preview(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceSqliteBackendTerminalMemoryAutoloadPreview failed.", file=stdout)
+    summary = response.get("context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary") or {}
+    print("ContextPersistenceSqliteBackendTerminalMemoryAutoloadPreview>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_terminal_memory_autoload_preview_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  memory_loaded: {str(response.get('memory_loaded', False)).lower()}", file=stdout)
+    print(f"  backend_database_read: {summary.get('backend_database_read')}", file=stdout)
+    print(f"  sqlite_db_path: {summary.get('sqlite_db_path')}", file=stdout)
+    print(f"  sqlite_connection_created: {summary.get('sqlite_connection_created')}", file=stdout)
+    print(f"  sqlite_rows_read: {summary.get('sqlite_rows_read')}", file=stdout)
+    print(f"  terminal_session_memory_write_previewed: {summary.get('terminal_session_memory_write_previewed')}", file=stdout)
+    print(f"  terminal_session_memory_loaded_by_cli: {str(response.get('terminal_session_memory_loaded_by_cli', False)).lower()}", file=stdout)
+    print(f"  will_inject_into_next_today_practice_guidance_turn: {str(response.get('will_inject_into_next_today_practice_guidance_turn', False)).lower()}", file=stdout)
+    print(f"  profile_context_recovered: {summary.get('profile_context_recovered')}", file=stdout)
+    print(f"  active_plan_context_recovered: {summary.get('active_plan_context_recovered')}", file=stdout)
+    print(f"  routine_history_context_recovered: {summary.get('routine_history_context_recovered')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+def _print_context_persistence_sqlite_backend_today_guidance_recovery_e2e(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceSqliteBackendTodayGuidanceRecoveryE2E failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary") or {}
+    print("ContextPersistenceSqliteBackendTodayGuidanceRecoveryE2E>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_today_guidance_recovery_e2e_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  backend_database_read: {summary.get('backend_database_read')}", file=stdout)
+    print(f"  sqlite_db_path: {summary.get('sqlite_db_path')}", file=stdout)
+    print(f"  sqlite_connection_created: {summary.get('sqlite_connection_created')}", file=stdout)
+    print(f"  sqlite_rows_read: {summary.get('sqlite_rows_read')}", file=stdout)
+    print(f"  profile_context_recovered: {summary.get('profile_context_recovered')}", file=stdout)
+    print(f"  active_plan_context_recovered: {summary.get('active_plan_context_recovered')}", file=stdout)
+    print(f"  routine_history_context_recovered: {summary.get('routine_history_context_recovered')}", file=stdout)
+    print(f"  guidance_action_card_is_valid: {summary.get('guidance_action_card_is_valid')}", file=stdout)
+    print(f"  routine_candidate_count: {summary.get('routine_candidate_count')}", file=stdout)
+    print(f"  llm_called: {summary.get('llm_called')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    print("  playback_started: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+def _print_context_persistence_sqlite_backend_readback_context_recovery(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceSqliteBackendReadbackContextRecovery failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_sqlite_backend_readback_context_recovery_summary") or {}
+    print("ContextPersistenceSqliteBackendReadbackContextRecovery>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_readback_context_recovery_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  backend_database_read: {summary.get('backend_database_read')}", file=stdout)
+    print(f"  sqlite_db_path: {summary.get('sqlite_db_path')}", file=stdout)
+    print(f"  sqlite_connection_created: {summary.get('sqlite_connection_created')}", file=stdout)
+    print(f"  sqlite_rows_read: {summary.get('sqlite_rows_read')}", file=stdout)
+    print(f"  context_packet_section_ready: {summary.get('context_packet_section_ready')}", file=stdout)
+    print(f"  profile_context_recovered: {summary.get('profile_context_recovered')}", file=stdout)
+    print(f"  active_plan_context_recovered: {summary.get('active_plan_context_recovered')}", file=stdout)
+    print(f"  routine_history_context_recovered: {summary.get('routine_history_context_recovered')}", file=stdout)
+    print("  storage_written: false", file=stdout)
+    print("  backend_database_written: false", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  sqlite_tables_created: false", file=stdout)
+    print("  sqlite_rows_written: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
+
+
+def _print_context_persistence_sqlite_backend_store(response: dict[str, Any], stdout: TextIO) -> None:
+    if not response.get("ok"):
+        print("ContextPersistenceSqliteBackendStore failed.", file=stdout)
+        return
+    summary = response.get("context_persistence_sqlite_backend_store_summary") or {}
+    print("ContextPersistenceSqliteBackendStore>", file=stdout)
+    print(f"  version: {response.get('context_persistence_sqlite_backend_store_version')}", file=stdout)
+    print(f"  validation_status: {summary.get('validation_status')}", file=stdout)
+    print(f"  accepted: {summary.get('accepted')}", file=stdout)
+    print(f"  storage_written: {summary.get('storage_written')}", file=stdout)
+    print(f"  backend_database_written: {summary.get('backend_database_written')}", file=stdout)
+    print(f"  sqlite_db_path: {summary.get('sqlite_db_path')}", file=stdout)
+    print(f"  sqlite_connection_created: {summary.get('sqlite_connection_created')}", file=stdout)
+    print(f"  sqlite_tables_created: {summary.get('sqlite_tables_created')}", file=stdout)
+    print(f"  sqlite_rows_written: {summary.get('sqlite_rows_written')}", file=stdout)
+    print(f"  sqlite_row_count_written: {summary.get('sqlite_row_count_written')}", file=stdout)
+    print(f"  idempotent_replay: {summary.get('idempotent_replay')}", file=stdout)
+    print(f"  readback_record_found: {summary.get('readback_record_found')}", file=stdout)
+    print("  local_device_written: false", file=stdout)
+    print("  llm_called: false", file=stdout)
+    print("  tool_executed: false", file=stdout)
+    print("  engine_adapter_called: false", file=stdout)
+    print("  midi_asset_created: false", file=stdout)
+    print("  routine_start_enabled: false", file=stdout)
+    if summary.get("blocked_reasons"):
+        print(f"  blocked_reasons: {summary.get('blocked_reasons')}", file=stdout)
+    if summary.get("warnings"):
+        print(f"  warnings: {summary.get('warnings')}", file=stdout)
 
 def _print_context_persistence_dev_sqlite_fixture_store(response: dict[str, Any], stdout: TextIO) -> None:
     if not response.get("ok"):

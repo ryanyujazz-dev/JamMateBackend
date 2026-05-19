@@ -63,6 +63,13 @@ from jammate_agent.core.contracts import (
     today_practice_guidance_harmonyos_debug_fixture_api_request_pack_contract,
     today_practice_guidance_terminal_product_smoke_polish_contract,
     agent_v2_8_phase_cleanup_regression_handoff_contract,
+    context_persistence_sqlite_backend_store_contract,
+    context_persistence_sqlite_backend_readback_context_recovery_contract,
+    context_persistence_sqlite_backend_today_guidance_recovery_e2e_contract,
+    context_persistence_sqlite_backend_terminal_memory_autoload_preview_contract,
+    context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract,
+    context_persistence_sqlite_backend_api_memory_debug_pack_contract,
+    context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -124,6 +131,20 @@ from jammate_agent.core.tool_invocation import (
     build_today_practice_guidance_terminal_product_smoke_polish_summary,
     build_agent_v2_8_phase_cleanup_regression_handoff_payload,
     build_agent_v2_8_phase_cleanup_regression_handoff_summary,
+    build_context_persistence_sqlite_backend_store_payload,
+    build_context_persistence_sqlite_backend_store_summary,
+    build_context_persistence_sqlite_backend_readback_context_recovery_payload,
+    build_context_persistence_sqlite_backend_readback_context_recovery_summary,
+    build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload,
+    build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary,
+    build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload,
+    build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary,
+    build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload,
+    build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary,
+    build_context_persistence_sqlite_backend_api_memory_debug_pack_payload,
+    build_context_persistence_sqlite_backend_api_memory_debug_pack_summary,
+    build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload,
+    build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -883,6 +904,246 @@ def preview_today_practice_guidance_terminal_memory_to_harmonyos_debug_fixture_r
         "accompaniment_generate_call_enabled": False,
         "routine_start_enabled": False,
         "post_session_recommendation_card_created": False,
+    }
+
+
+
+@router.get("/context/persistence-sqlite-backend-terminal-memory-autoload-preview/spec")
+def get_context_persistence_sqlite_backend_terminal_memory_autoload_preview_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_terminal_memory_autoload_preview_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-terminal-memory-autoload-preview/preview")
+def preview_context_persistence_sqlite_backend_terminal_memory_autoload_preview_request(request: dict) -> dict:
+    """Preview read-only SQLite backend context as terminal session memory."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_terminal_memory_autoload_preview",
+    )
+    summary = build_context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_terminal_memory_autoload_preview_version": context_persistence_sqlite_backend_terminal_memory_autoload_preview_contract()["version"],
+        "context_persistence_sqlite_backend_terminal_memory_autoload_preview_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_terminal_memory_autoload_preview_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": summary.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+        "terminal_session_memory_write_previewed": summary.get("terminal_session_memory_write_previewed", False),
+        "terminal_session_memory_loaded_by_api": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-sqlite-backend-terminal-memory-to-guidance-smoke/spec")
+def get_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-terminal-memory-to-guidance-smoke/preview")
+def preview_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_request(request: dict) -> dict:
+    """Run compact SQLite store → memory autoload → guidance smoke preview."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke",
+    )
+    summary = build_context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_version": context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_contract()["version"],
+        "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_terminal_memory_to_guidance_smoke_summary": summary,
+        "llm_called": summary.get("llm_called", False),
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": summary.get("storage_written", False),
+        "backend_database_written": summary.get("backend_database_written", False),
+        "backend_database_read": summary.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+        "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+        "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+        "terminal_session_memory_write_previewed": summary.get("terminal_session_memory_write_previewed", False),
+        "terminal_session_memory_loaded_by_api": False,
+        "guidance_preview_ready": summary.get("guidance_preview_ready", False),
+        "routine_candidate_count": summary.get("routine_candidate_count", 0),
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-sqlite-backend-api-memory-debug-pack/spec")
+def get_context_persistence_sqlite_backend_api_memory_debug_pack_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_api_memory_debug_pack_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-api-memory-debug-pack/preview")
+def preview_context_persistence_sqlite_backend_api_memory_debug_pack_request(request: dict) -> dict:
+    """Build an API debug pack for SQLite persistence/readback/guidance routes."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_api_memory_debug_pack_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_api_memory_debug_pack",
+    )
+    summary = build_context_persistence_sqlite_backend_api_memory_debug_pack_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_api_memory_debug_pack_version": context_persistence_sqlite_backend_api_memory_debug_pack_contract()["version"],
+        "context_persistence_sqlite_backend_api_memory_debug_pack_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_api_memory_debug_pack_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "terminal_session_memory_loaded_by_api": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+@router.get("/context/persistence-sqlite-backend-harmonyos-api-fixture-pack/spec")
+def get_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-harmonyos-api-fixture-pack/preview")
+def preview_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_request(request: dict) -> dict:
+    """Build a HarmonyOS API fixture pack for SQLite persistence routes.
+
+    This route prepares copyable endpoint/body/response-shape examples only. It
+    does not call those routes, open SQLite, write/read storage, mutate API
+    memory, write frontend fixtures, call LLM, execute tools, start Routine,
+    call /accompaniment/generate, call engine adapters, create MIDI assets, or
+    start playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_harmonyos_api_fixture_pack",
+    )
+    summary = build_context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_version": context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract()["version"],
+        "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_harmonyos_api_fixture_pack_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-sqlite-backend-today-guidance-recovery-e2e/spec")
+def get_context_persistence_sqlite_backend_today_guidance_recovery_e2e_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_today_guidance_recovery_e2e_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-today-guidance-recovery-e2e/preview")
+def preview_context_persistence_sqlite_backend_today_guidance_recovery_e2e_request(request: dict) -> dict:
+    """Read SQLite backend context and preview today-practice guidance without side effects."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_today_guidance_recovery_e2e",
+    )
+    summary = build_context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_today_guidance_recovery_e2e_version": context_persistence_sqlite_backend_today_guidance_recovery_e2e_contract()["version"],
+        "context_persistence_sqlite_backend_today_guidance_recovery_e2e_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_today_guidance_recovery_e2e_summary": summary,
+        "llm_called": summary.get("llm_called", False),
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": summary.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+        "durable_backend_write_executed": False,
+        "transaction_committed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
     }
 
 
@@ -2245,6 +2506,111 @@ def preview_context_persistence_dev_sqlite_fixture_store_request(request: dict) 
         "accompaniment_generate_call_enabled": False,
         "routine_start_enabled": False,
     }
+
+
+@router.get("/context/persistence-sqlite-backend-store/spec")
+def get_context_persistence_sqlite_backend_store_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_store_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-store/execute")
+def execute_context_persistence_sqlite_backend_store_request(request: dict) -> dict:
+    """Execute explicit backend SQLite context persistence after all gates pass.
+
+    This route may create/write a local backend SQLite database only when the
+    request has backendPersistenceEnabled=true, executeBackendPersistence=true,
+    user approval, a safe dev/test SQLite path, trace id, idempotency, redaction,
+    and storage-boundary checks. It never calls LLMs/tools/Engine, starts
+    Routine/playback, creates MIDI, or writes HarmonyOS local state.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_store_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_store",
+    )
+    summary = build_context_persistence_sqlite_backend_store_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_store_version": context_persistence_sqlite_backend_store_contract()["version"],
+        "context_persistence_sqlite_backend_store_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_store_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": summary.get("storage_written", False),
+        "backend_database_written": summary.get("backend_database_written", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+        "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+        "sqlite_row_count_written": summary.get("sqlite_row_count_written", 0),
+        "durable_backend_write_executed": summary.get("durable_backend_write_executed", False),
+        "transaction_committed": summary.get("transaction_committed", False),
+        "idempotent_replay": summary.get("idempotent_replay", False),
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
+@router.get("/context/persistence-sqlite-backend-readback-context-recovery/spec")
+def get_context_persistence_sqlite_backend_readback_context_recovery_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_readback_context_recovery_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-readback-context-recovery/preview")
+def preview_context_persistence_sqlite_backend_readback_context_recovery_request(request: dict) -> dict:
+    """Read persisted SQLite backend context into a recovery packet without writes.
+
+    This route opens an existing dev/test SQLite backend store in read-only mode
+    after explicit readback gates pass, then builds the same snapshot-context
+    section used by today-practice guidance recovery. It never writes storage,
+    calls LLMs/tools/Engine, starts Routine/playback, or creates MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_readback_context_recovery_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_readback_context_recovery",
+    )
+    summary = build_context_persistence_sqlite_backend_readback_context_recovery_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_readback_context_recovery_version": context_persistence_sqlite_backend_readback_context_recovery_contract()["version"],
+        "context_persistence_sqlite_backend_readback_context_recovery_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_readback_context_recovery_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": summary.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+        "durable_backend_write_executed": False,
+        "transaction_committed": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "post_session_recommendation_card_created": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+    }
+
 
 
 @router.get("/context/persistence-dev-fixture-readback-replay/spec")
