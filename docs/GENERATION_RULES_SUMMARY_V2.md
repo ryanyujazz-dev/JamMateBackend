@@ -961,3 +961,29 @@ Expected Misty three-chorus guardrails:
 lower_upper_too_wide_events:0
 top_note_max <= 74
 ```
+
+## v2_6_40 Ballad SPREAD Phrase-State Anchor Policy Gate
+
+`VoicingStateAdvanceAnchor` is a core voicing runtime helper, but production resolver consumption must be explicitly authorized by style policy.
+
+Runtime rule:
+
+```text
+candidate has state_anchor_notes
+AND policy.metadata.voicing_state_advance_anchor_policy_gate_enabled = true
+AND candidate scope is allowed by policy.metadata.voicing_state_advance_anchor_allowed_scopes
+```
+
+Current allowed Jazz Ballad scope:
+
+```text
+ballad_spread_phrase_scope_wide_gap_candidate_availability
+```
+
+Default global behavior:
+
+```text
+disabled without explicit policy gate
+```
+
+This prevents the realized-notes/state-anchor separation from silently becoming a global voicing behavior. Future styles may opt in only with a clear policy gate, audit fields, and regression tests.

@@ -18,6 +18,9 @@ PIANO_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION = "v2_6_35"
 PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION = "v2_6_36"
 PIANO_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION = "v2_6_37"
 PIANO_POST_CONTINUITY_LISTENING_CHECKPOINT_VERSION = "v2_6_39"
+PIANO_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION = "v2_6_40"
+PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION = "v2_6_41"
+PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION = "v2_6_42"
 
 
 @dataclass(frozen=True)
@@ -54,6 +57,7 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         rows,
         debug.get("timing_policy") or {},
     )
+    same_chord_reattack_continuity = _annotate_same_chord_reattack_continuity(rows)
     warnings: list[str] = []
 
     style_counter: Counter[str] = Counter()
@@ -161,10 +165,22 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
     spread_phrase_state_boundary_helper_anchor_events = 0
     spread_phrase_state_boundary_helper_legacy_alias_match_events = 0
     spread_phrase_state_boundary_helper_previous_state_anchor_events = 0
+    spread_phrase_state_anchor_policy_boundary_events = 0
+    spread_phrase_state_anchor_policy_boundary_gate_required_events = 0
+    spread_phrase_state_anchor_policy_boundary_scopes: Counter[str] = Counter()
+    spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events = 0
     lower_upper_gap_comfort_min = 2
     lower_upper_gap_comfort_max = 7
     all_midi_notes: list[int] = []
     top_note_ge_75_events = 0
+    major_seventh_events = 0
+    major_seventh_color_events = 0
+    major_seventh_safe_color_events = 0
+    major_seventh_unnotated_sharp11_events = 0
+    major_seventh_explicit_sharp11_events = 0
+    major_seventh_colors: Counter[str] = Counter()
+    major_seventh_colors_by_chord: dict[str, Counter[str]] = {}
+    major_seventh_non_safe_color_events_by_chord: Counter[str] = Counter()
 
     for row in rows:
         style_counter.update([str(debug.get("style", "unknown"))])
@@ -266,6 +282,13 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
                 spread_phrase_state_boundary_helper_legacy_alias_match_events += 1
         if row.get("previous_voicing_state_state_advance_anchor_enabled"):
             spread_phrase_state_boundary_helper_previous_state_anchor_events += 1
+        if row.get("spread_phrase_state_anchor_policy_boundary_applied"):
+            spread_phrase_state_anchor_policy_boundary_events += 1
+            spread_phrase_state_anchor_policy_boundary_scopes.update([str(row.get("spread_phrase_state_anchor_policy_boundary_scope") or "unknown")])
+        if row.get("voicing_state_advance_anchor_policy_gate_required"):
+            spread_phrase_state_anchor_policy_boundary_gate_required_events += 1
+        if row.get("previous_voicing_state_state_advance_anchor_policy_gate_consumed"):
+            spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events += 1
         if row.get("spread_phrase_scope_wide_gap_candidate_availability_applied"):
             spread_phrase_scope_wide_gap_events_by_recipe.update([str(row.get("recipe_id") or "unknown")])
             spread_phrase_scope_wide_gap_events_by_grouping.update([str(row.get("functional_grouping") or "unknown")])
@@ -333,6 +356,22 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             all_midi_notes.extend(midi_notes)
             if max(midi_notes) >= 75:
                 top_note_ge_75_events += 1
+        major_color_detail = _major_seventh_color_detail(row)
+        if major_color_detail["is_major_seventh"]:
+            major_seventh_events += 1
+            colors = tuple(major_color_detail["colors"])
+            if colors:
+                major_seventh_color_events += 1
+            major_seventh_colors.update(colors)
+            chord_key = str(row.get("chord_symbol") or "unknown")
+            major_seventh_colors_by_chord.setdefault(chord_key, Counter()).update(colors)
+            if major_color_detail["safe_only"]:
+                major_seventh_safe_color_events += 1
+            if major_color_detail["unnotated_sharp11"]:
+                major_seventh_unnotated_sharp11_events += 1
+                major_seventh_non_safe_color_events_by_chord.update([chord_key])
+            if major_color_detail["explicit_sharp11"]:
+                major_seventh_explicit_sharp11_events += 1
         note_counts.append(int(row["realized_note_count"]))
         if row["duration_beats"] is not None:
             durations.append(float(row["duration_beats"]))
@@ -493,6 +532,11 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         "spread_phrase_state_boundary_helper_state_anchor_events": spread_phrase_state_boundary_helper_anchor_events,
         "spread_phrase_state_boundary_helper_legacy_alias_match_events": spread_phrase_state_boundary_helper_legacy_alias_match_events,
         "spread_phrase_state_boundary_helper_previous_state_anchor_events": spread_phrase_state_boundary_helper_previous_state_anchor_events,
+        "spread_phrase_state_anchor_policy_boundary_version": PIANO_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION,
+        "spread_phrase_state_anchor_policy_boundary_events": spread_phrase_state_anchor_policy_boundary_events,
+        "spread_phrase_state_anchor_policy_boundary_gate_required_events": spread_phrase_state_anchor_policy_boundary_gate_required_events,
+        "spread_phrase_state_anchor_policy_boundary_scopes": dict(spread_phrase_state_anchor_policy_boundary_scopes),
+        "spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events": spread_phrase_state_anchor_policy_boundary_previous_gate_consumed_events,
         "spread_phrase_state_boundary_review_version": PIANO_PHRASE_STATE_BOUNDARY_REVIEW_VERSION,
         "spread_phrase_state_boundary_review_events": int(phrase_state_boundary_review.get("review_events", 0)),
         "spread_phrase_state_boundary_review_next_events_found": int(phrase_state_boundary_review.get("next_events_found", 0)),
@@ -512,6 +556,32 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         "post_continuity_anchor_projection_trim_events": int(post_continuity_checkpoint.get("anchor_projection_trim_events", 0)),
         "post_continuity_warning_events": int(post_continuity_checkpoint.get("warning_events", 0)),
         "post_continuity_checkpoint_passed": bool(post_continuity_checkpoint.get("checkpoint_passed", False)),
+        "ballad_spread_same_chord_reattack_continuity_version": PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION,
+        "same_chord_reattack_regions_reviewed": int(same_chord_reattack_continuity.get("regions_reviewed", 0)),
+        "same_chord_reattack_events": int(same_chord_reattack_continuity.get("reattack_events", 0)),
+        "same_chord_reattack_region_voicing_reused_events": int(same_chord_reattack_continuity.get("region_voicing_reused_events", 0)),
+        "same_chord_reattack_exact_voicing_reuse_events": int(same_chord_reattack_continuity.get("exact_voicing_reuse_events", 0)),
+        "same_chord_reattack_foundation_stable_events": int(same_chord_reattack_continuity.get("foundation_stable_events", 0)),
+        "same_chord_reattack_projection_or_retouch_events": int(same_chord_reattack_continuity.get("projection_or_retouch_events", 0)),
+        "same_chord_reattack_fresh_revoicing_events": int(same_chord_reattack_continuity.get("fresh_revoicing_events", 0)),
+        "same_chord_reattack_changed_voicing_warning_events": int(same_chord_reattack_continuity.get("changed_voicing_warning_events", 0)),
+        "same_chord_reattack_continuity_warning_events": int(same_chord_reattack_continuity.get("warning_events", 0)),
+        "same_chord_reattack_continuity_checkpoint_passed": bool(same_chord_reattack_continuity.get("checkpoint_passed", False)),
+        "ballad_spread_safe_extension_frequency_calibration_version": PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION,
+        "major_seventh_safe_extension_events": major_seventh_events,
+        "major_seventh_safe_extension_color_events": major_seventh_color_events,
+        "major_seventh_safe_extension_warm_color_events": major_seventh_safe_color_events,
+        "major_seventh_safe_extension_degree_counts": dict(major_seventh_colors),
+        "major_seventh_safe_extension_degree_counts_by_chord": {key: dict(counter) for key, counter in major_seventh_colors_by_chord.items()},
+        "major_seventh_safe_extension_non_safe_color_events_by_chord": dict(major_seventh_non_safe_color_events_by_chord),
+        "major_seventh_unnotated_sharp11_events": major_seventh_unnotated_sharp11_events,
+        "major_seventh_explicit_sharp11_events": major_seventh_explicit_sharp11_events,
+        "major_seventh_safe_extension_preferred_colors": ["9", "13"],
+        "major_seventh_safe_extension_checkpoint_passed": bool(
+            major_seventh_events
+            and major_seventh_unnotated_sharp11_events == 0
+            and set(major_seventh_colors).issubset({"9", "13"})
+        ),
         "low_note_min": min(all_midi_notes) if all_midi_notes else None,
         "top_note_max": max(all_midi_notes) if all_midi_notes else None,
         "top_note_ge_75_events": top_note_ge_75_events,
@@ -621,6 +691,10 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     lines.append(f"- Phrase state boundary next-event motion max: top `{summary.get('spread_phrase_state_boundary_review_next_event_top_motion_max')}`, voice-leading `{summary.get('spread_phrase_state_boundary_review_next_event_voice_leading_distance_max')}`")
     lines.append(f"- Post-continuity checkpoint pass / warnings: `{summary.get('post_continuity_checkpoint_passed')}` / `{summary.get('post_continuity_warning_events')}`")
     lines.append(f"- Post-continuity bars found: `{summary.get('post_continuity_problem_bars_found')}`")
+    lines.append(f"- Same-chord reattack reuse / warnings: `{summary.get('same_chord_reattack_region_voicing_reused_events')}` / `{summary.get('same_chord_reattack_continuity_warning_events')}`")
+    lines.append(f"- Same-chord reattack exact voicing / foundation stable: `{summary.get('same_chord_reattack_exact_voicing_reuse_events')}` / `{summary.get('same_chord_reattack_foundation_stable_events')}`")
+    lines.append(f"- Maj7 safe extension colors: `{summary.get('major_seventh_safe_extension_degree_counts')}`; unnotated #11 events: `{summary.get('major_seventh_unnotated_sharp11_events')}`")
+    lines.append(f"- Maj7 safe extension checkpoint: `{summary.get('major_seventh_safe_extension_checkpoint_passed')}`")
     lines.append(f"- Lower foundation notes by grouping: `{summary.get('lower_foundation_notes_by_grouping')}`")
     lines.append(f"- Lower foundation recipe counts: `{summary.get('lower_foundation_recipe_counts')}`")
     lines.append(f"- Lower foundation low-register events: `{summary.get('lower_foundation_low_register_events')}`")
@@ -726,6 +800,97 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     lines.append("")
     return "\n".join(lines)
 
+
+
+
+def _annotate_same_chord_reattack_continuity(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit same-chord reattack voicing stability inside one chord region.
+
+    v2_6_41 is intentionally conservative.  The realizer already owns the
+    one-default-voicing-per-chord-region cache, which is the correct boundary
+    for Ballad re-touches: repeated touches should reuse the same voicing unless
+    an event explicitly asks for fresh revoicing.  This audit makes that behavior
+    visible before any future same-chord movement/fill exceptions are added.
+    """
+
+    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = (str(row.get("region_id") or ""), str(row.get("chord_symbol") or ""), str(row.get("event_id") or "").split("_")[-1] if False else "piano")
+        grouped.setdefault(key, []).append(row)
+
+    regions_reviewed = 0
+    reattack_events = 0
+    region_voicing_reused_events = 0
+    exact_voicing_reuse_events = 0
+    foundation_stable_events = 0
+    projection_or_retouch_events = 0
+    fresh_revoicing_events = 0
+    changed_voicing_warning_events = 0
+    warning_events = 0
+
+    for group_rows in grouped.values():
+        ordered = sorted(group_rows, key=lambda row: (float(row.get("onset_beat") or 0.0), int(row.get("index") or 0)))
+        if len(ordered) <= 1:
+            continue
+        anchor = ordered[0]
+        anchor_event_id = str(anchor.get("event_id") or "")
+        anchor_notes = tuple(int(note) for note in anchor.get("midi_notes") or ())
+        anchor_lower = tuple(int(note) for note in anchor.get("lower_group_notes") or ())
+        if not anchor_notes:
+            continue
+        regions_reviewed += 1
+        for row in ordered[1:]:
+            reattack_events += 1
+            notes = tuple(int(note) for note in row.get("midi_notes") or ())
+            lower = tuple(int(note) for note in row.get("lower_group_notes") or ())
+            reused = bool(row.get("region_voicing_reused")) and str(row.get("region_voicing_source_event_id") or "") == anchor_event_id
+            exact_reuse = notes == anchor_notes
+            foundation_stable = lower == anchor_lower
+            projection_or_retouch = str(row.get("gesture_type") or "") in {"inner_movement", "simultaneous_onset"} and str(row.get("expression_profile") or "") in {"soft_retouch", "soft_answer", "soft_whisper"}
+            warning = not reused or not exact_reuse or not foundation_stable
+            if reused:
+                region_voicing_reused_events += 1
+            else:
+                fresh_revoicing_events += 1
+            if exact_reuse:
+                exact_voicing_reuse_events += 1
+            else:
+                changed_voicing_warning_events += 1
+            if foundation_stable:
+                foundation_stable_events += 1
+            if projection_or_retouch:
+                projection_or_retouch_events += 1
+            if warning:
+                warning_events += 1
+            row.update(
+                {
+                    "same_chord_reattack_continuity_version": PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION,
+                    "same_chord_reattack_continuity_applied": True,
+                    "same_chord_reattack_anchor_event_id": anchor_event_id,
+                    "same_chord_reattack_region_voicing_reused": reused,
+                    "same_chord_reattack_exact_voicing_reuse": exact_reuse,
+                    "same_chord_reattack_foundation_stable": foundation_stable,
+                    "same_chord_reattack_projection_or_retouch": projection_or_retouch,
+                    "same_chord_reattack_warning": warning,
+                    "same_chord_reattack_scope": "same_chord_region_cached_voicing_reuse_until_explicit_fresh_revoicing",
+                    "same_chord_reattack_no_density_lane_change": True,
+                    "same_chord_reattack_no_selector_change": True,
+                }
+            )
+
+    checkpoint_passed = reattack_events > 0 and warning_events == 0 and region_voicing_reused_events == reattack_events
+    return {
+        "regions_reviewed": regions_reviewed,
+        "reattack_events": reattack_events,
+        "region_voicing_reused_events": region_voicing_reused_events,
+        "exact_voicing_reuse_events": exact_voicing_reuse_events,
+        "foundation_stable_events": foundation_stable_events,
+        "projection_or_retouch_events": projection_or_retouch_events,
+        "fresh_revoicing_events": fresh_revoicing_events,
+        "changed_voicing_warning_events": changed_voicing_warning_events,
+        "warning_events": warning_events,
+        "checkpoint_passed": checkpoint_passed,
+    }
 
 
 def _annotate_post_continuity_listening_checkpoint(
@@ -1023,6 +1188,9 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "closed_voicing_lowest_note_floor": voicing_metadata.get("closed_voicing_lowest_note_floor"),
         "region_voicing_reused": bool(voicing_metadata.get("region_voicing_reused", False)),
         "region_voicing_source_event_id": voicing_metadata.get("region_voicing_source_event_id"),
+        "same_chord_reattack_continuity_metadata_version": voicing_metadata.get("same_chord_reattack_continuity_version"),
+        "same_chord_reattack_continuity_region_cache_reuse": bool(voicing_metadata.get("same_chord_reattack_continuity_region_cache_reuse", False)),
+        "same_chord_reattack_continuity_contract": voicing_metadata.get("same_chord_reattack_continuity_contract"),
         "voicing_texture_scope_id": _texture_scope_id_from_metadata(voicing_metadata),
         "voicing_texture_contrast_role": _texture_contrast_role_from_metadata(voicing_metadata),
         "voicing_texture_open_method_weights": _texture_open_method_weights_from_metadata(voicing_metadata),
@@ -1053,6 +1221,8 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "previous_voicing_state_group_gap_semitones": ((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("group_gap_semitones"),
         "previous_voicing_state_state_advance_anchor_enabled": bool(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_enabled", False)),
         "previous_voicing_state_state_advance_anchor_notes": list(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_notes") or []),
+        "previous_voicing_state_state_advance_anchor_policy_gate_consumed": bool(((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_policy_gate_consumed", False)),
+        "previous_voicing_state_state_advance_anchor_policy_gate_scope": ((voicing_metadata.get("previous_voicing_state") or {}).get("metadata") or {}).get("state_advance_anchor_policy_gate_scope"),
         "spread_gap_aware_candidate_scope_micro_calibration_applied": bool(voicing_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_applied", False)),
         "spread_gap_aware_candidate_scope_micro_calibration_version": voicing_metadata.get("spread_gap_aware_candidate_scope_micro_calibration_version"),
         "spread_gap_aware_original_gap": voicing_metadata.get("spread_gap_aware_original_gap"),
@@ -1126,6 +1296,9 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "spread_phrase_scope_wide_gap_reason": voicing_metadata.get("spread_phrase_scope_wide_gap_reason"),
         "voicing_state_advance_anchor_helper_version": voicing_metadata.get("voicing_state_advance_anchor_helper_version"),
         "voicing_state_advance_anchor_enabled": bool(voicing_metadata.get("voicing_state_advance_anchor_enabled", False)),
+        "voicing_state_advance_anchor_policy_gate_version": voicing_metadata.get("voicing_state_advance_anchor_policy_gate_version"),
+        "voicing_state_advance_anchor_policy_gate_required": bool(voicing_metadata.get("voicing_state_advance_anchor_policy_gate_required", False)),
+        "voicing_state_advance_anchor_policy_gate_scope": voicing_metadata.get("voicing_state_advance_anchor_policy_gate_scope"),
         "voicing_state_advance_anchor_notes": list(voicing_metadata.get("voicing_state_advance_anchor_notes") or []),
         "voicing_state_advance_anchor_degrees": list(voicing_metadata.get("voicing_state_advance_anchor_degrees") or []),
         "voicing_state_advance_anchor_reason": voicing_metadata.get("voicing_state_advance_anchor_reason"),
@@ -1134,6 +1307,10 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "spread_phrase_state_boundary_helper_cleanup_contract": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_contract"),
         "spread_phrase_state_boundary_helper_cleanup_state_anchor_owner": voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_state_anchor_owner"),
         "spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor": bool(voicing_metadata.get("spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor", False)),
+        "spread_phrase_state_anchor_policy_boundary_version": voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_version"),
+        "spread_phrase_state_anchor_policy_boundary_applied": bool(voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_applied", False)),
+        "spread_phrase_state_anchor_policy_boundary_contract": voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_contract"),
+        "spread_phrase_state_anchor_policy_boundary_scope": voicing_metadata.get("spread_phrase_state_anchor_policy_boundary_scope"),
         "disposition_projection_spec": dict(voicing_metadata.get("disposition_projection_spec") or {}),
         "legacy_projection_callback_used": bool(voicing_metadata.get("legacy_projection_callback_used", False)),
         "legacy_projection_cleanup_required": bool(voicing_metadata.get("legacy_projection_cleanup_required", False)),
@@ -1205,6 +1382,30 @@ def _drop_projection_method_from_metadata(metadata: Mapping[str, Any]) -> str | 
         if bool(metadata.get(marker)):
             return method
     return None
+
+
+def _major_seventh_color_detail(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Return maj7 safe-extension audit details for an already-realized event.
+
+    This is observational only: it does not re-plan chord material.  The
+    Ballad default is intentionally warm, so ordinary major-seventh expansion
+    should expose 9/13 and avoid unnotated #11 unless the chart or a later
+    policy explicitly asks for Lydian/bright color.
+    """
+
+    chord = str(row.get("chord_symbol") or "")
+    chord_lower = chord.lower()
+    is_major_seventh = "maj7" in chord_lower or "ma7" in chord_lower or "△7" in chord
+    degrees = [str(degree) for degree in row.get("degrees") or []]
+    colors = [degree for degree in degrees if degree in {"9", "11", "#11", "13", "b9", "#9", "b13"}]
+    explicit_sharp11 = "#11" in chord or "♯11" in chord
+    return {
+        "is_major_seventh": is_major_seventh,
+        "colors": colors,
+        "safe_only": bool(colors) and set(colors).issubset({"9", "13"}),
+        "unnotated_sharp11": bool(is_major_seventh and "#11" in degrees and not explicit_sharp11),
+        "explicit_sharp11": bool(is_major_seventh and "#11" in degrees and explicit_sharp11),
+    }
 
 
 def _counter_percentages_by_key(counters: Mapping[str, Counter[str]]) -> dict[str, dict[str, float]]:

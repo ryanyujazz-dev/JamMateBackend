@@ -108,6 +108,7 @@ class VoicingResolver:
             metadata=candidate.metadata,
             realized_notes=[note.midi_note for note in voiced],
             realized_degrees=[note.degree for note in voiced],
+            policy_metadata=policy.metadata,
         )
         state_metadata = {
             "score_breakdown": dict(candidate.metadata.get("score_breakdown", {})),

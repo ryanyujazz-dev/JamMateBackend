@@ -414,3 +414,34 @@ Next recommended voicing-only task: `v2_6_33_engine_ballad_spread_wide_gap_defer
 - Confirmed the accepted Ballad SPREAD guardrails remain stable after the continuity bugfix: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, zero lower/upper gap outliers, and `top_note_max:72`.
 - Confirmed the v2_6_35/v2_6_37 phrase-state anchor boundary remains valid: two protected events, two next events found, zero boundary warnings.
 - Added `docs/ENGINE_VOICING_BALLAD_SPREAD_POST_CONTINUITY_LISTENING_CHECKPOINT_V2_6_39.md` and `tests/test_v2_6_39_engine_ballad_spread_post_continuity_listening_checkpoint.py`.
+
+## v2_6_40 — Engine Ballad SPREAD Phrase-State Anchor Policy Boundary
+
+- Behavior-preserving voicing policy-boundary pass on top of `v2_6_39`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer, MIDI, Agent, API, or HarmonyOS behavior change.
+- Kept `VoicingStateAdvanceAnchor` as a core helper but made resolver consumption explicitly policy-gated in production runtime.
+- Added Jazz Ballad policy gate keys: `voicing_state_advance_anchor_policy_gate_enabled`, `voicing_state_advance_anchor_policy_gate_version`, and `voicing_state_advance_anchor_allowed_scopes`.
+- Limited the currently allowed scope to `ballad_spread_phrase_scope_wide_gap_candidate_availability`; other styles/scopes do not consume state anchors unless they opt in through policy.
+- Added audit fields for phrase-state anchor policy boundary events, required-gate events, scopes, and previous-state gate consumption.
+- Preserved accepted Misty three-chorus guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, and zero lower/upper gap outliers.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_V2_6_40.md` and `tests/test_v2_6_40_engine_ballad_spread_phrase_state_anchor_policy_boundary.py`.
+
+## v2_6_41 — Engine Ballad SPREAD Same-Chord Reattack Continuity Calibration
+
+- Behavior-preserving voicing-only audit/calibration pass on top of `v2_6_40`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer note behavior, MIDI, Agent, API, or HarmonyOS behavior change.
+- Formalized the accepted same-chord region behavior: repeated touches in one chord region reuse the cached voicing unless an event explicitly requests fresh revoicing.
+- Added `same_chord_reattack_continuity_*` metadata on reused region voicings and audit rows.
+- Added piano audit summary fields for same-chord regions reviewed, reattack events, cached voicing reuse, exact voicing reuse, foundation stability, fresh revoicing events, changed-voicing warnings, and checkpoint pass/fail.
+- Confirmed Misty / Jazz Ballad / 3 choruses has 46 same-chord reattack events, all 46 reuse the cached voicing, all 46 keep exact voicing/foundation stable, and warning events remain zero.
+- Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, post-continuity checkpoint passed, and phrase-state boundary warnings zero.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_SAME_CHORD_REATTACK_CONTINUITY_CALIBRATION_V2_6_41.md` and `tests/test_v2_6_41_engine_ballad_spread_same_chord_reattack_continuity_calibration.py`.
+
+
+## v2_6_42 — Engine Ballad SPREAD Safe Extension Frequency Calibration
+
+- Behavior-preserving voicing-only safe-extension frequency checkpoint on top of `v2_6_41`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer note behavior, MIDI, Agent, API, or HarmonyOS behavior change.
+- Formalized the accepted Ballad major-seventh color rule: default warm SPREAD uses `9` / `13`; unnotated `#11` remains disabled unless the chart explicitly writes it or a future policy declares harmonic-color intent.
+- Added Jazz Ballad policy metadata for `ballad_spread_safe_extension_frequency_calibration` and explicit major-seventh default color flags.
+- Added piano audit summary fields for major-seventh safe-extension event count, color counts, by-chord color counts, unnotated #11 events, explicit #11 events, preferred colors, and checkpoint pass/fail.
+- Confirmed Misty / Jazz Ballad / 3 choruses has major-seventh color counts `{"9": 14, "13": 7}` and `major_seventh_unnotated_sharp11_events: 0`.
+- Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, same-chord continuity passed, and post-continuity checkpoint passed.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_SAFE_EXTENSION_FREQUENCY_CALIBRATION_V2_6_42.md` and `tests/test_v2_6_42_engine_ballad_spread_safe_extension_frequency_calibration.py`.

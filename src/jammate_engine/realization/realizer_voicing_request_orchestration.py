@@ -9,6 +9,7 @@ from jammate_engine.core.voicing import VoicingPlan, VoicingPolicy, VoicingReque
 from jammate_engine.realization.voicing_policy_context_adapter import policy_with_event_voicing_context
 
 REALIZER_VOICING_REQUEST_ORCHESTRATION_VERSION = "v2_6_25"
+REALIZER_SAME_CHORD_REATTACK_CONTINUITY_VERSION = "v2_6_41"
 
 REALIZER_VOICING_REQUEST_ORCHESTRATION_OWNED_RESPONSIBILITIES: tuple[str, ...] = (
     "style_voicing_policy_input_coercion",
@@ -143,6 +144,9 @@ def reuse_region_voicing(voicing: VoicingPlan, event_id: str) -> VoicingPlan:
             "region_voicing_source_event_id": voicing.event_id,
             "region_voicing_contract": "one_default_voicing_selection_per_chord_region_until_explicit_gesture_revoices",
             "realizer_voicing_request_orchestration_version": REALIZER_VOICING_REQUEST_ORCHESTRATION_VERSION,
+            "same_chord_reattack_continuity_version": REALIZER_SAME_CHORD_REATTACK_CONTINUITY_VERSION,
+            "same_chord_reattack_continuity_contract": "reuse_cached_region_voicing_until_explicit_fresh_revoicing",
+            "same_chord_reattack_continuity_region_cache_reuse": True,
         }
     )
     return replace(voicing, event_id=event_id, metadata=metadata)

@@ -857,3 +857,129 @@ v2_6_40_engine_ballad_spread_phrase_state_anchor_policy_boundary
 ```
 
 Next task should decide the policy boundary for `realized_notes` versus `state_anchor_notes`: keep it as a narrow Ballad SPREAD mechanism, or expose it as a policy-gated core voicing capability. Do not generalize it globally without an explicit gate and regression tests.
+
+## v2_6_40_engine_ballad_spread_phrase_state_anchor_policy_boundary
+
+Status: completed on top of the merged `v2_8_24` integration baseline plus Engine v2_6_39.
+
+Scope:
+
+```text
+Engine voicing policy-boundary pass
+Behavior-preserving
+No runtime candidate/source/density change
+No new Pattern / Anticipation / Expression / Realizer / MIDI behavior
+No Agent / API / HarmonyOS/shared integration changes
+```
+
+Implemented:
+
+- Added a policy gate around production consumption of `VoicingStateAdvanceAnchor`.
+- Kept the helper in core voicing runtime, but required explicit style `VoicingPolicy.metadata` permission before resolver state advancement may use anchor notes instead of realized notes.
+- Enabled the gate only for the accepted Jazz Ballad SPREAD scope: `ballad_spread_phrase_scope_wide_gap_candidate_availability`.
+- Added audit fields to confirm two current Ballad SPREAD anchor events require the gate and three subsequent rows observe the consumed previous-state gate.
+- Preserved the accepted Ballad SPREAD voicing and post-continuity guardrails.
+
+Current Misty / Jazz Ballad / 3-chorus guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+policy_boundary_events: 2
+policy_boundary_previous_gate_consumed_events: 3
+phrase_state_boundary_warning_events: 0
+```
+
+Recommended next task:
+
+```text
+v2_6_41_engine_ballad_spread_same_chord_reattack_continuity_calibration
+```
+
+Next task should review same-chord reattack continuity. Do not change density lanes; focus on whether repeated touches in the same chord region should reuse the previous foundation/voicing or only move upper/projection notes when explicitly marked as movement/fill.
+
+## v2_6_41_engine_ballad_spread_same_chord_reattack_continuity_calibration
+
+Status: completed on top of the merged `v2_8_24` integration baseline plus Engine v2_6_40.
+
+Scope:
+
+```text
+Engine voicing-only same-chord reattack continuity audit
+Behavior-preserving
+No runtime candidate/source/density change
+No new Pattern / Anticipation / Expression / MIDI behavior
+No Agent / API / HarmonyOS/shared integration changes
+```
+
+Implemented:
+
+- Kept the existing one-default-voicing-per-chord-region cache as the correct boundary for same-chord reattacks.
+- Added explicit metadata and audit fields confirming later events in the same chord region reuse the cached voicing unless a future event opts into fresh revoicing.
+- Confirmed repeated re-touch / answer / whisper events keep exact voicing and lower/foundation stability while expression/realization handles any projection-group partial reattack.
+- Preserved the accepted Ballad SPREAD density, gap, top-register, post-continuity, and phrase-state boundary guardrails.
+
+Current Misty / Jazz Ballad / 3-chorus guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+same_chord_reattack_events: 46
+same_chord_reattack_region_voicing_reused_events: 46
+same_chord_reattack_exact_voicing_reuse_events: 46
+same_chord_reattack_foundation_stable_events: 46
+same_chord_reattack_continuity_warning_events: 0
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+```
+
+Recommended next task:
+
+```text
+v2_6_42_engine_ballad_spread_safe_extension_frequency_calibration
+```
+
+Next task should tune Ballad SPREAD harmonic color frequency, especially safe extensions and maj7 color behavior, without changing density lanes or same-chord reattack continuity.
+
+
+## v2_6_42_engine_ballad_spread_safe_extension_frequency_calibration — Completed
+
+Scope: Engine voicing-only safe-extension frequency checkpoint.
+
+Accepted Misty / Jazz Ballad / 3-chorus checkpoint:
+
+```text
+major_seventh_safe_extension_degree_counts: {"9": 14, "13": 7}
+major_seventh_unnotated_sharp11_events: 0
+major_seventh_safe_extension_checkpoint_passed: true
+5-note: 124
+6-note: 72
+1+4: 10
+4-note: 0
+7-note: 0
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+```
+
+Recommended next task:
+
+```text
+v2_6_43_engine_ballad_spread_lower_foundation_weight_and_register_final_pass
+```

@@ -18,6 +18,7 @@ SPREAD_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_VERSION = "v2_6_33"
 SPREAD_WIDE_GAP_SOURCE_INVENTORY_PLAN_VERSION = "v2_6_34"
 SPREAD_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_VERSION = "v2_6_35"
 SPREAD_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_VERSION = "v2_6_37"
+SPREAD_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION = "v2_6_40"
 
 
 def select_candidate(
@@ -494,6 +495,7 @@ def _maybe_replace_gap_outlier_with_same_recipe_candidate(
                 lower_group_placed_degrees=tuple(str(degree) for degree in original_metadata.get("lower_group_placed_degrees") or ()),
                 group_gap_semitones=original_metadata.get("group_gap_semitones"),
                 reason="phrase_scope_wide_gap_candidate_availability_preserve_original_phrase_anchor",
+                policy_gate_scope="ballad_spread_phrase_scope_wide_gap_candidate_availability",
             )
             return replace(
                 top_stable_replacement,
@@ -507,6 +509,10 @@ def _maybe_replace_gap_outlier_with_same_recipe_candidate(
                     "spread_phrase_state_boundary_helper_cleanup_contract": "realized_notes_separate_from_state_anchor",
                     "spread_phrase_state_boundary_helper_cleanup_state_anchor_owner": "VoicingStateAdvanceAnchor",
                     "spread_phrase_state_boundary_helper_cleanup_resolver_consumes_anchor": True,
+                    "spread_phrase_state_anchor_policy_boundary_version": SPREAD_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_VERSION,
+                    "spread_phrase_state_anchor_policy_boundary_applied": True,
+                    "spread_phrase_state_anchor_policy_boundary_contract": "core_helper_requires_explicit_policy_gate",
+                    "spread_phrase_state_anchor_policy_boundary_scope": "ballad_spread_phrase_scope_wide_gap_candidate_availability",
                 },
             )
 
