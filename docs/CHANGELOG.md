@@ -1,5 +1,16 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_10_8 — Integration Agent / Engine Merge
+
+- Merged Engine Track through `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff`.
+- Merged Agent Track through `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
+- Reconciled integration-owned shared files: `README.md`, `agent.md`, `VERSION`, `pyproject.toml`, `docs/ARCHITECTURE_V2.md`, `docs/API_CONTRACT_V2.md`, `docs/DEVELOPMENT_TASK_PLAN_V2.md`, `docs/CHANGELOG.md`, and `frontend_fixtures/harmonyos/`.
+- Preserved the direct HarmonyOS `/accompaniment/generate` response shape with top-level `ok`, `asset.format`, `asset.midi_base64`, `asset.midi_path`, `asset.cache_key`, and top-level `debug_summary`.
+- Preserved Agent contract / trace / tool-preview / context-guidance / persistence-preview / HarmonyOS product route boundaries without moving Agent logic into Engine runtime.
+- Preserved V2 Pattern / Gesture / Expression / Voicing / Realization boundaries; no new music-generation rule or V1 code migration was added by this integration pass.
+- Engine-side changes since v2_8_24 include frozen Ballad SPREAD guardrails, lower-foundation calibration, safe extension frequency calibration, and phrase-state anchor policy.
+- Agent-side changes since v2_8_24 include routine-completion-record persistence, today-practice-guidance with SQLite backend readback, and HarmonyOS runtime smoke.
+
 ## v2_8_24 — Integration Agent / Engine Merge
 
 - Merged Engine Track through `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration`.
