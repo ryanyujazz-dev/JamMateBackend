@@ -1,6 +1,6 @@
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_6_1`.
+Current version: `v2_8_24`.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -132,9 +132,14 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_6_1_branch_boundary_and_track_ownership_hardening` is the active integrated governance baseline. It merges the Agent workflow line through `v2_4_13` into the official engine-deepening line through `v2_5_9`. Engine runtime/style/gesture/expression/voicing behavior stays owned by the engine track; Agent terminal/LLM context/tool-preview/trace contracts stay owned by the Agent track. Do not migrate V1 code, create V1-style runtime mirrors, bind patterns to voicing textures, or put inner movement into ordinary pattern cells. Do not let Agent code import `jammate_engine` except through adapters, and do not let engine code import `jammate_agent`. Consult `docs/BRANCH_AND_TRACK_OWNERSHIP_V2.md` before further two-track development.
+`v2_8_24_integration_agent_engine_merge` is the active integration baseline for `integration/agent-engine-merge`. It merges Engine Track `v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration` and Agent Track `v2_8_23_agent_v2_8_phase_cleanup_regression_handoff`.
 
-Agent integration note: the `v2_4_13_agent_tool_call_preview_trace_contract` remains preserved inside the integrated `v2_6_1` package.
+Strict boundaries remain active:
 
+- Engine runtime/style/pattern/gesture/expression/voicing/realization behavior stays owned by the Engine Track.
+- Agent terminal, LLM/provider boundary, trace, tool-preview, context, and guidance contracts stay owned by the Agent Track; the `v2_4_13_agent_tool_call_preview_trace_contract` tool-call preview trace contract remains preserved.
+- Shared files, frontend fixtures, version surfaces, and public API docs are integration-task territory.
+- Do not migrate V1 code, create V1-style runtime mirrors, bind patterns to voicing textures, or place Agent practice orchestration inside engine generation runtime.
+- Do not let `jammate_engine` import `jammate_agent`; do not let `jammate_agent` import `jammate_engine` except through adapters.
 
-Agent integration note: the v2_4_13_agent_tool_call_preview_trace_contract keeps the tool-call preview trace contract preserved inside the integrated v2_6_1 package.
+The direct HarmonyOS accompaniment response shape remains protected: `{ ok, asset: { format, midi_base64, midi_path, cache_key }, debug_summary }`.

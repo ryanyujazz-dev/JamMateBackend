@@ -87,6 +87,16 @@ def generate_direct_accompaniment(request: DirectAccompanimentGenerateRequest) -
         return {"ok": False, "error_code": "GENERATION_FAILED", "message": "JamMateEngine generation failed.", "debug": result.debug}
     midi_path = Path(result.midi_path)
     midi_base64 = base64.b64encode(midi_path.read_bytes()).decode("ascii")
+    debug_summary = {
+        "path": "direct_accompaniment_api",
+        "chart_source": chart_source,
+        "inline_leadsheet_schema_version": leadsheet.get("schema_version"),
+        "leadsheet_signature": _leadsheet_signature(leadsheet),
+        "engine_version": result.version,
+        "style": result.style,
+        "tempo": result.tempo,
+        "choruses": request.choruses,
+    }
     return {
         "ok": True,
         "asset": {
@@ -94,17 +104,9 @@ def generate_direct_accompaniment(request: DirectAccompanimentGenerateRequest) -
             "midi_base64": midi_base64,
             "midi_path": str(midi_path),
             "cache_key": _cache_key(leadsheet, request.style, request.tempo, request.choruses),
-            "debug_summary": {
-                "path": "direct_accompaniment_api",
-                "chart_source": chart_source,
-                "inline_leadsheet_schema_version": leadsheet.get("schema_version"),
-                "leadsheet_signature": _leadsheet_signature(leadsheet),
-                "engine_version": result.version,
-                "style": result.style,
-                "tempo": result.tempo,
-                "choruses": request.choruses,
-            },
+            "debug_summary": debug_summary,
         },
+        "debug_summary": debug_summary,
     }
 
 

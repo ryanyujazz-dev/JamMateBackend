@@ -1,4 +1,4 @@
-// JamMate Playback / Accompaniment Types v2_6_1
+// JamMate Playback / Accompaniment Types v2_8_24
 // Copy target: entry/src/main/ets/features/practice/model/PlaybackTypes.ets
 // Client-domain types are camelCase. Duration is a practice-timer concern.
 
@@ -94,6 +94,7 @@ export interface PlaybackState {
 export interface DirectAccompanimentGenerateResponse {
   ok: boolean
   asset?: AccompanimentAsset
+  debugSummary?: Record<string, unknown>
   errorCode?: string
   message?: string
   options?: Array<Record<string, unknown>>
