@@ -1,5 +1,16 @@
 ## v2_6_28 Engine Ballad SPREAD — top voice/register micro calibration
 
+## v2_6_30 Engine Ballad SPREAD — 1+4 / lower foundation calibration
+
+- Restored Ballad SPREAD `1+4` as a low-frequency 5-note upper4 color lane instead of a high-frequency default body.
+- Preserved the current Jazz Ballad voicing guardrails: 5-note / 6-note remains near 6:4, 4-note SPREAD remains 0, 7-note remains 0 in the default Misty seed, and unnotated maj7#11 remains 0.
+- Added lower foundation audit fields to `generation/piano_audit.py` for lower note min/max/average, lower span, grouping/density buckets, recipe counts, low-register events, and span violations.
+- Tightened 3-note lower foundation placement so lower group spans stay within one octave.
+- Updated the v2_6_27-v2_6_29 focused regression expectations to reflect the new v2_6_30 low-frequency `1+4` baseline.
+
+Next recommended voicing-only task: `v2_6_31_engine_ballad_spread_lower_upper_gap_and_weight_balance`.
+
+
 - Listening calibration pass: added a narrow grouped-SPREAD top-register micro bias for Jazz Ballad.
 - The bias only shapes already-legal SPREAD candidates during selector/groupwise realization collapse; it does not construct sources, change color permission, alter density lanes, project notes, or touch MIDI/expression.
 - Opening Misty Ebmaj7 now avoids selecting the highest legal top at 77; the three-chorus audit caps top voice at 74.
@@ -269,3 +280,14 @@ This file records engine-track changes to reduce conflicts in the global `docs/C
 - Tuned the deterministic extra 6-note support slot and selected-contract bias so Misty remains near 5-note:6-note = 6:4 after 1+4 is removed from ordinary runtime.
 - Preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
 - Added `docs/ENGINE_VOICING_BALLAD_SPREAD_LISTENING_CALIBRATION_V2_6_27.md` and `tests/test_v2_6_27_engine_ballad_spread_listening_calibration.py`.
+
+## v2_6_29 — Engine Voicing Drop Projection Audit Counts
+
+- Voicing-only audit/diagnostics pass; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / shared version changes.
+- Added `PIANO_DROP_PROJECTION_AUDIT_VERSION = v2_6_29` to `src/jammate_engine/generation/piano_audit.py`.
+- Added audit counters for total drop projection methods and scope-specific counts:
+  - `main_voicing`
+  - `spread_upper_group`
+- Added SPREAD upper-group drop counters by density, grouping, and recipe so 5-note / 6-note / 7-note grouped SPREAD can expose internal DROP2 / DROP3 usage.
+- Preserved v2_6_28 Misty Ballad output: 5-note:6-note remains near 6:4, 4-note SPREAD remains zero, 1+4 remains zero by default, top note remains capped at 74, and default maj7#11 remains zero.
+- Added `docs/ENGINE_VOICING_DROP_PROJECTION_AUDIT_COUNTS_V2_6_29.md` and `tests/test_v2_6_29_engine_voicing_drop_projection_audit_counts.py`.

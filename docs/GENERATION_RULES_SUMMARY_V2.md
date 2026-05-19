@@ -1,5 +1,16 @@
 ## Voicing Rule Update: v2_6_28 Ballad SPREAD Top Voice / Register Micro Calibration
 
+## v2_6_30 Jazz Ballad SPREAD voicing calibration
+
+Jazz Ballad SPREAD now treats `1+4` as a low-frequency 5-note upper4 color lane. It is not a default comping body and must not leak through zero-weight compatible-neighbor routing. The main Ballad SPREAD body remains `2+3` for 5-note and `2+4` for 6-note, with `3+3` as a low-frequency 6-note thickness lane.
+
+Current Misty / 3-chorus audit target: roughly 120 5-note events and 76 6-note events, with `1+4` around 4-10 events, 4-note SPREAD at 0, 7-note at 0 for the default seed, no unnotated maj7#11, and top register capped at or below 74.
+
+Lower foundation groups should stay compact: lower group spans should remain within one octave, low-register density remains guarded, and audit must expose lower note range, lower span, recipe counts, and low-register events before further tuning.
+
+---
+
+
 `v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration` adds a narrow selector-side micro bias for Jazz Ballad grouped SPREAD candidates.
 
 The purpose is not to change the voicing system or density lane. The purpose is to avoid opening or isolated no-previous-state SPREAD choices that jump directly to the highest legal top register before top-line continuity has a previous voicing to compare against.
@@ -867,3 +878,39 @@ Completed voicing-only listening calibration:
 - preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
 
 Next recommended voicing-only task: `v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration`.
+
+## v2_6_29 Voicing Audit Rule — Drop Projection Counts
+
+Piano audit now distinguishes top-level drop projection usage from SPREAD upper-group drop usage.
+
+For ordinary OPEN voicings:
+
+```text
+scope = main_voicing
+method = drop2 / drop3 / drop2_and_4
+```
+
+For grouped SPREAD voicings:
+
+```text
+scope = spread_upper_group
+method = upper_projection_method when it is drop2 / drop3 / drop2_and_4
+```
+
+The audit must include upper group drop usage in 5-note / 6-note / 7-note SPREAD counts, because grouped SPREAD may have a whole-voicing disposition of `spread` while its upper group internally reuses DROP2 or DROP3 projection resources.
+
+Current Misty Ballad v2_6_29 expected upper-group drop counts:
+
+```text
+spread_upper_projection_methods:
+  closed_upper_stack: 120
+  drop2: 12
+  drop3: 64
+
+spread_upper_drop_projection_methods_by_density:
+  6:
+    drop2: 12
+    drop3: 64
+```
+
+These audit fields are observational only and must not influence runtime selection.

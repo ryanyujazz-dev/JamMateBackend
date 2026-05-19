@@ -446,18 +446,18 @@ BALLAD_SPREAD_GROUPING_MIX_DEFAULT_WEIGHTS: dict[str, dict[str, int]] = {
         # 4-note SPREAD, but it also should not become constantly huge.  The
         # 5-note 2+3 contract is the default grouped-spread body; 2+4/3+3 are
         # reserved for lift/climax or occasional fuller support.
-        # v2_6_27: 1+4 remains an available upper4-color contract, but it is
-        # not part of ordinary default Ballad comping.  The stable 5-note body
-        # is 2+3; 6-note support comes from 2+4/3+3.
-        "spread_1plus4_contract": 0,
-        "spread_2plus3_contract": 74,
+        # v2_6_30: 1+4 returns as a low-frequency upper4-color lane.
+        # The stable 5-note body remains 2+3; 6-note support still comes from
+        # 2+4/3+3, so 1+4 must not become the default comping body.
+        "spread_1plus4_contract": 4,
+        "spread_2plus3_contract": 70,
         "spread_2plus4_contract": 22,
         "spread_3plus3_contract": 4,
         "spread_3plus4_contract": 0,
     },
     BalladSpreadGroupingMixScene.CHORUS_LIFT.value: {
-        "spread_1plus4_contract": 0,
-        "spread_2plus3_contract": 48,
+        "spread_1plus4_contract": 3,
+        "spread_2plus3_contract": 45,
         "spread_2plus4_contract": 36,
         "spread_3plus3_contract": 14,
         "spread_3plus4_contract": 2,
@@ -744,10 +744,10 @@ def _ballad_spread_grouping_texture_state(
         weights[primary] = max(int(weights[primary]), int(sum(weights.values()) * 0.55) or int(weights[primary]))
     if not any(int(value) > 0 for value in weights.values()):
         weights = dict(base_weights)
-    # v2_6_27: a contract with zero weight is not part of the ordinary
-    # compatible runtime pool.  This lets 1+4 remain an available contract for
-    # explicit upper4-color/listening isolation without being selected as a
-    # default Ballad comping neighbor.
+    # v2_6_30: a contract with zero weight is not part of the ordinary
+    # compatible runtime pool.  1+4 now enters only when its explicit
+    # low-frequency weight is positive; it must not leak in as a zero-weight
+    # neighbor.
     active_compatible = tuple(contract for contract in compatible if int(weights.get(contract, 0)) > 0)
     if not active_compatible:
         active_compatible = tuple(contract for contract, value in weights.items() if int(value) > 0)

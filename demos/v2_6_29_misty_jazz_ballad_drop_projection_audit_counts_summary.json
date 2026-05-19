@@ -1,0 +1,99 @@
+{
+  "version": "v2_6_29",
+  "task": "engine_voicing_drop_projection_audit_counts",
+  "style": "jazz_ballad",
+  "tune": "Misty",
+  "tempo": 72,
+  "choruses": 3,
+  "seed": 26912,
+  "piano_audit_events": 196,
+  "density": {
+    "6": 81,
+    "5": 115
+  },
+  "grouping": {
+    "2+4": 76,
+    "2+3": 115,
+    "3+3": 5
+  },
+  "recipe_id": {
+    "spread_2plus4_contract": 76,
+    "spread_2plus3_contract": 115,
+    "spread_3plus3_contract": 5
+  },
+  "disposition": {
+    "spread": 196
+  },
+  "five_note": 115,
+  "six_note": 81,
+  "five_to_six_ratio": 0.5867,
+  "four_note": 0,
+  "seven_note": 0,
+  "one_plus_four_events": 0,
+  "top_note_max": 74,
+  "top_note_ge_75_events": 0,
+  "top_note_distribution": {
+    "68": 31,
+    "69": 4,
+    "70": 152,
+    "72": 6,
+    "73": 1,
+    "74": 2
+  },
+  "average_pitch_max": 61.4,
+  "low_note_min": 41,
+  "low_note_lt_43_events": 28,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "sharp11_events": 0,
+  "drop_projection_audit_version": "v2_6_29",
+  "drop_projection_methods_total": {
+    "drop2": 12,
+    "drop3": 64
+  },
+  "drop_projection_methods_by_scope": {
+    "spread_upper_group": {
+      "drop2": 12,
+      "drop3": 64
+    }
+  },
+  "spread_upper_projection_methods": {
+    "drop2": 12,
+    "closed_upper_stack": 120,
+    "drop3": 64
+  },
+  "spread_upper_drop_projection_methods": {
+    "drop2": 12,
+    "drop3": 64
+  },
+  "spread_upper_drop_projection_events": 76,
+  "spread_upper_drop_projection_methods_by_density": {
+    "6": {
+      "drop2": 12,
+      "drop3": 64
+    }
+  },
+  "spread_upper_drop_projection_methods_by_grouping": {
+    "2+4": {
+      "drop2": 12,
+      "drop3": 64
+    }
+  },
+  "spread_upper_drop_projection_methods_by_recipe": {
+    "spread_2plus4_contract": {
+      "drop2": 12,
+      "drop3": 64
+    }
+  },
+  "spread_upper_drop_projection_events_by_density": {
+    "6": 76
+  },
+  "guardrails": {
+    "runtime_behavior_unchanged_from_v2_6_28": true,
+    "four_note_spread_zero": true,
+    "one_plus_four_zero": true,
+    "maj7_sharp11_zero": true,
+    "top_note_capped_at_74": true,
+    "spread_upper_drop_counts_include_density_breakdown": true
+  }
+}

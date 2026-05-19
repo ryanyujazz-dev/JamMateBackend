@@ -50,25 +50,41 @@ def test_v2_6_27_policy_demotes_1plus4_from_ordinary_runtime_body() -> None:
     policy = get_voicing_policy()
     metadata = dict(policy.metadata or {})
     calibration = dict(metadata.get("ballad_spread_listening_calibration") or {})
-    assert calibration["version"] == "v2_6_27"
-    assert calibration["ordinary_runtime_groupings"] == ["2+3", "2+4", "3+3"]
+    assert calibration["version"] == "v2_6_30"
+    assert calibration["ordinary_runtime_groupings"] == ["2+3", "2+4", "3+3", "1+4_low_frequency"]
     assert "upper4 color lane" in calibration["one_plus_four_role"]
 
     runtime_ids = tuple(metadata.get("spread_density_runtime_contract_ids") or ())
     assert runtime_ids == (
+        "spread_1plus4_contract",
         "spread_2plus3_contract",
         "spread_2plus4_contract",
         "spread_3plus3_contract",
     )
 
     weights_by_scene = metadata["ballad_spread_grouping_mix_policy"]["weights_by_scene"]
-    for scene in ("normal_comping", "chorus_lift", "ending_climax"):
-        assert int(weights_by_scene[scene]["spread_1plus4_contract"]) == 0
+    assert int(weights_by_scene["normal_comping"]["spread_1plus4_contract"]) == 4
+    assert int(weights_by_scene["chorus_lift"]["spread_1plus4_contract"]) == 3
+    assert int(weights_by_scene["ending_climax"]["spread_1plus4_contract"]) == 0
     assert float(metadata["spread_grouping_mix_selected_6note_contract_bias"]) == 3.0
 
 
 def test_v2_6_27_zero_weight_compatible_contracts_are_filtered_from_texture_state() -> None:
     policy = get_voicing_policy()
+    metadata = dict(policy.metadata or {})
+    mix = dict(metadata.get("ballad_spread_grouping_mix_policy") or {})
+    weights_by_scene = {
+        scene: {**dict(weights), "spread_1plus4_contract": 0}
+        for scene, weights in dict(mix.get("weights_by_scene") or {}).items()
+    }
+    from dataclasses import replace
+    policy = replace(
+        policy,
+        metadata={
+            **metadata,
+            "ballad_spread_grouping_mix_policy": {**mix, "weights_by_scene": weights_by_scene},
+        },
+    )
     found_normal_5_lane = False
     for bar in range(32):
         decision = resolve_ballad_spread_grouping_mix_policy(
@@ -118,8 +134,8 @@ def test_v2_6_27_misty_ballad_runtime_removes_default_1plus4_but_keeps_6_to_4_ba
     assert set(dispositions) == {"spread"}
     assert densities[4] == 0
     assert densities[7] <= 2
-    assert groupings["1+4"] == 0
-    assert recipes["spread_1plus4_contract"] == 0
+    assert 4 <= groupings["1+4"] <= 10
+    assert recipes["spread_1plus4_contract"] == groupings["1+4"]
     assert "1+3" not in groupings
     assert "2+2" not in groupings
 
@@ -127,8 +143,8 @@ def test_v2_6_27_misty_ballad_runtime_removes_default_1plus4_but_keeps_6_to_4_ba
     six = densities[6]
     assert five > 0 and six > 0
     ratio = five / float(five + six)
-    assert 0.58 <= ratio <= 0.62
-    assert groupings["2+3"] == five
+    assert 0.60 <= ratio <= 0.62
+    assert groupings["2+3"] + groupings["1+4"] == five
     assert groupings["2+4"] + groupings["3+3"] == six
 
     note_sets = [_notes(voicing) for voicing in voicings]

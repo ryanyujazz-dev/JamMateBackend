@@ -202,37 +202,36 @@ _LOWER_GROUP_RECIPE_INVENTORY: tuple[LowerGroupRecipeInventoryItem, ...] = (
     LowerGroupRecipeInventoryItem(LowerGroupRecipeId.ROOT_THIRD, 2, ("root", "third")),
     LowerGroupRecipeInventoryItem(LowerGroupRecipeId.ROOT_FIFTH, 2, ("root", "fifth")),
     LowerGroupRecipeInventoryItem(LowerGroupRecipeId.THIRD_SEVENTH, 2, ("third", "seventh")),
-    # v2_2_68: rooted 3-note lower/foundation recipes now align with
-    # the 2+3 lower-foundation family.  Root+3+7 returns as the shell
-    # foundation option, root+5+7 is removed, and wider upper-root/upper3
-    # shapes may span up to 16 semitones after root octave anchoring.
+    # v2_6_30: lower/foundation groups stay compact.  Even 3-note
+    # lower recipes must remain within one octave so SPREAD support does not
+    # become muddy or read as a separate left-hand voicing.
     LowerGroupRecipeInventoryItem(
         LowerGroupRecipeId.ROOT_FIFTH_UPPER_ROOT,
         3,
         ("root", "fifth", "upper_root"),
-        requires_within_octave=False,
-        max_span_semitones=16,
+        requires_within_octave=True,
+        max_span_semitones=12,
     ),
     LowerGroupRecipeInventoryItem(
         LowerGroupRecipeId.ROOT_THIRD_SEVENTH,
         3,
         ("root", "third", "seventh"),
-        requires_within_octave=False,
-        max_span_semitones=16,
+        requires_within_octave=True,
+        max_span_semitones=12,
     ),
     LowerGroupRecipeInventoryItem(
         LowerGroupRecipeId.ROOT_SEVENTH_UPPER_THIRD,
         3,
         ("root", "seventh", "upper3"),
-        requires_within_octave=False,
-        max_span_semitones=16,
+        requires_within_octave=True,
+        max_span_semitones=12,
     ),
     LowerGroupRecipeInventoryItem(
         LowerGroupRecipeId.ROOT_FIFTH_UPPER_THIRD,
         3,
         ("root", "fifth", "upper3"),
-        requires_within_octave=False,
-        max_span_semitones=16,
+        requires_within_octave=True,
+        max_span_semitones=12,
     ),
 )
 

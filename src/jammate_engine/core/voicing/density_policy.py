@@ -22,6 +22,7 @@ SPREAD_ACTIVE_RUNTIME_CONTRACT_IDS: tuple[str, ...] = (
 )
 
 SPREAD_DEFAULT_BALLAD_RUNTIME_CONTRACT_IDS: tuple[str, ...] = (
+    "spread_1plus4_contract",
     "spread_2plus3_contract",
     "spread_2plus4_contract",
     "spread_3plus3_contract",
@@ -62,9 +63,8 @@ def density_disposition_decision(
     The first hardening rule is deliberately narrow: block legacy source-level
     4-note SPREAD, but leave CLOSED/OPEN and 5+/grouped SPREAD untouched.
 
-    v2_6_27 only changes the ordinary Ballad default runtime contract list:
-    1+4 remains an active contract for explicit upper4-color usage but is no
-    longer in the default comping body.
+    v2_6_30 restores 1+4 as a low-frequency Ballad SPREAD runtime lane while
+    keeping legacy 4-note 1+3/2+2 groupings retired.
     """
 
     disp_value = disposition.value if isinstance(disposition, Disposition) else str(disposition)

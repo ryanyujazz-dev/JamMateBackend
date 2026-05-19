@@ -55,7 +55,7 @@ def test_v2_6_28_policy_enables_narrow_spread_top_register_micro_bias() -> None:
     assert SPREAD_TOP_REGISTER_MICRO_CALIBRATION_VERSION == "v2_6_28"
     assert calibration["version"] == "v2_6_28"
     assert calibration["density_lane_unchanged"] is True
-    assert calibration["one_plus_four_remains_disabled_by_default"] is True
+    assert calibration["one_plus_four_restored_low_frequency"] is True
     assert metadata["spread_top_register_micro_calibration_enabled"] is True
     assert metadata["spread_top_register_micro_calibration_version"] == "v2_6_28"
     assert int(metadata["spread_top_register_micro_soft_high"]) == 74
@@ -63,6 +63,7 @@ def test_v2_6_28_policy_enables_narrow_spread_top_register_micro_bias() -> None:
 
     runtime_ids = tuple(metadata.get("spread_density_runtime_contract_ids") or ())
     assert runtime_ids == (
+        "spread_1plus4_contract",
         "spread_2plus3_contract",
         "spread_2plus4_contract",
         "spread_3plus3_contract",
@@ -94,8 +95,8 @@ def test_v2_6_28_misty_ballad_runtime_keeps_density_but_softens_top_ceiling(tmp_
     assert set(dispositions) == {"spread"}
     assert densities[4] == 0
     assert densities[7] == 0
-    assert groupings["1+4"] == 0
-    assert recipes["spread_1plus4_contract"] == 0
+    assert 4 <= groupings["1+4"] <= 10
+    assert recipes["spread_1plus4_contract"] == groupings["1+4"]
     assert "1+3" not in groupings
     assert "2+2" not in groupings
 
@@ -103,8 +104,8 @@ def test_v2_6_28_misty_ballad_runtime_keeps_density_but_softens_top_ceiling(tmp_
     six = densities[6]
     assert five > 0 and six > 0
     ratio = five / float(five + six)
-    assert 0.58 <= ratio <= 0.60
-    assert groupings["2+3"] == five
+    assert 0.60 <= ratio <= 0.62
+    assert groupings["2+3"] + groupings["1+4"] == five
     assert groupings["2+4"] + groupings["3+3"] == six
 
     note_sets = [_notes(voicing) for voicing in voicings]
@@ -121,7 +122,7 @@ def test_v2_6_28_misty_ballad_runtime_keeps_density_but_softens_top_ceiling(tmp_
     first_profile = voicings[0].get("metadata", {}).get("spread_top_register_micro_calibration_profile")
     assert first_profile["version"] == "v2_6_28"
     assert first_profile["enabled"] is True
-    assert first_profile["top_note"] == 74
+    assert first_profile["top_note"] <= 74
     assert first_profile["does_not_change_density_lane"] is True
 
     maj7_sharp11 = [

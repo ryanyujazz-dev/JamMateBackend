@@ -1,5 +1,34 @@
 ## v2_6_28 Completed — Engine Ballad SPREAD Top Voice / Register Micro Calibration
 
+## Latest Engine Task Completed
+
+```text
+v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration
+```
+
+Goal: restore Ballad SPREAD `1+4` at low frequency while adding lower foundation register/thickness audit visibility.
+
+Completed scope:
+
+- restored `spread_1plus4_contract` as a low-frequency Jazz Ballad SPREAD runtime lane;
+- kept `2+3` as the main 5-note body and `2+4` as the main 6-note body;
+- preserved 5-note / 6-note near 6:4, 4-note SPREAD disabled, and default maj7#11 absence;
+- added lower foundation note/span/recipe/low-register diagnostics to the piano audit summary;
+- tightened 3-note lower foundation placement to stay within one octave;
+- added `docs/ENGINE_VOICING_BALLAD_SPREAD_1PLUS4_LOWER_FOUNDATION_CALIBRATION_V2_6_30.md`;
+- added `tests/test_v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration.py`.
+
+Next recommended Engine/Voicing task:
+
+```text
+v2_6_31_engine_ballad_spread_lower_upper_gap_and_weight_balance
+```
+
+Goal: use the new lower foundation audit fields plus listening demo to balance lower/upper gap and lower foundation weight without changing Pattern, Anticipation, Expression, MIDI, Agent, API, or shared integration docs.
+
+---
+
+
 Completed voicing-only listening calibration:
 
 - added a narrow grouped-SPREAD top-register micro bias in `selection/selector.py`;
@@ -462,3 +491,16 @@ Completed voicing-only listening calibration:
 - preserved zero default 4-note SPREAD and zero default unnotated maj7#11.
 
 Next recommended voicing-only task: `v2_6_28_engine_ballad_spread_top_voice_and_register_micro_calibration`.
+
+## v2_6_29 Completed — Engine Voicing Drop Projection Audit Counts
+
+Completed voicing-only audit visibility pass:
+
+- kept all runtime musical behavior unchanged from v2_6_28;
+- added drop projection audit counters to `piano_audit.py`;
+- counted ordinary top-level OPEN drop usage separately from SPREAD upper-group drop usage;
+- added density/grouping/recipe breakdowns so upper group DROP2 / DROP3 inside 5-note, 6-note, and 7-note SPREAD voicings is visible;
+- confirmed current Misty Ballad runtime has 76 upper-drop events inside 6-note `2+4` SPREAD: `drop2=12`, `drop3=64`;
+- preserved zero default 4-note SPREAD, zero default `1+4`, and zero unnotated maj7#11.
+
+Next recommended voicing-only task: `v2_6_30_engine_ballad_spread_lower_foundation_register_micro_calibration`.
