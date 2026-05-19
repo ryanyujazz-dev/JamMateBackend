@@ -1,3 +1,54 @@
+## v2_6_44 Ballad SPREAD Voicing Phase Handoff
+
+The current Jazz Ballad SPREAD reference is frozen as an accepted baseline rather than an area for continued micro-patching.
+
+Accepted Misty / Jazz Ballad / 3-chorus guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower/upper tight gap events: 0
+lower/upper wide gap events: 0
+top_note_max <= 74
+unnotated maj7#11 events: 0
+post-continuity checkpoint: pass
+same-chord reattack checkpoint: pass
+phrase-state boundary warnings: 0
+```
+
+Default Ballad SPREAD remains centered on `2+3` and `2+4`, with `1+4` as a low-frequency color lane and `3+3` as a very low-frequency thick lane. `4-note` and `7-note` SPREAD remain disabled in the default body.
+
+Future Ballad SPREAD changes should be driven by a specific listening regression, not by continued broad scorer changes. The next voicing work should move to a new area such as Medium Swing open/drop method-lock calibration, Bossa voicing-policy boundary, Upper Structure policy-gated runtime expansion, or minor dominant / altered light-gate planning.
+
+## v2_6_31 Ballad SPREAD Lower/Upper Gap Audit Rule
+
+The piano audit must expose grouped-SPREAD lower/upper gap behavior without reselecting notes.
+
+Audit comfort band:
+
+```text
+2 <= lower/upper group gap <= 7 semitones
+```
+
+Required observational fields:
+
+```text
+lower_upper_gap_audit_version
+lower_upper_group_gap_by_grouping
+lower_upper_group_gap_by_density
+lower_upper_group_gap_by_recipe
+lower_upper_group_gap_too_tight_events_by_grouping
+lower_upper_group_gap_too_wide_events_by_grouping
+```
+
+This audit is a voicing observability layer only. It must not change Pattern, Anticipation, Expression, Gesture, MIDI, or the current Ballad density lane.
+
 ## Voicing Rule Update: v2_6_28 Ballad SPREAD Top Voice / Register Micro Calibration
 
 ## v2_6_30 Jazz Ballad SPREAD voicing calibration
@@ -914,3 +965,53 @@ spread_upper_drop_projection_methods_by_density:
 ```
 
 These audit fields are observational only and must not influence runtime selection.
+
+## v2_6_35 Ballad SPREAD Phrase-Scope Wide Gap Rule
+
+For Jazz Ballad SPREAD, the two known `2+3 Fm7` wide-gap rows may use a narrow phrase-scope candidate availability rule:
+
+```text
+only spread_2plus3_contract
+same-recipe only
+use top-stable replacement candidate
+realized gap target <= 7 semitones
+advance VoicingState with original phrase anchor
+no broad scorer
+no density lane reopening
+```
+
+Expected Misty three-chorus guardrails:
+
+```text
+5-note:124 / 6-note:72
+1+4:10
+4-note:0 / 7-note:0
+lower_upper_too_wide_events:0
+top_note_max <= 74
+```
+
+## v2_6_40 Ballad SPREAD Phrase-State Anchor Policy Gate
+
+`VoicingStateAdvanceAnchor` is a core voicing runtime helper, but production resolver consumption must be explicitly authorized by style policy.
+
+Runtime rule:
+
+```text
+candidate has state_anchor_notes
+AND policy.metadata.voicing_state_advance_anchor_policy_gate_enabled = true
+AND candidate scope is allowed by policy.metadata.voicing_state_advance_anchor_allowed_scopes
+```
+
+Current allowed Jazz Ballad scope:
+
+```text
+ballad_spread_phrase_scope_wide_gap_candidate_availability
+```
+
+Default global behavior:
+
+```text
+disabled without explicit policy gate
+```
+
+This prevents the realized-notes/state-anchor separation from silently becoming a global voicing behavior. Future styles may opt in only with a clear policy gate, audit fields, and regression tests.

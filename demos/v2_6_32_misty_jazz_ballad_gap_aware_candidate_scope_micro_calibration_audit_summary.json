@@ -1,0 +1,471 @@
+{
+  "contract_version": "v2_2_38",
+  "title": "Misty",
+  "style": "jazz_ballad",
+  "events": 196,
+  "note_events_by_track": {
+    "piano": 1042,
+    "bass": 150
+  },
+  "timing_policy": {
+    "version": "v2_0_43",
+    "feel": "swing",
+    "swing_ratio": 0.6666666666666666,
+    "half_beat_grid": 0.5,
+    "humanization": {
+      "enabled": false,
+      "max_offset_beats": 0.0,
+      "velocity_jitter": 0,
+      "seed": 0,
+      "affect_tracks": [],
+      "humanize_literal": false,
+      "profile_name": "jazz_ballad_swing8_disabled_default"
+    },
+    "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
+    "metadata": {
+      "style": "jazz_ballad",
+      "stage": "v2_5_9_ballad_default_swing8_timing"
+    }
+  },
+  "top_patterns": [
+    [
+      "ballad_piano_two_beat_soft_anchor",
+      75
+    ],
+    [
+      "ballad_phrase_two_chord_soft_marks",
+      44
+    ],
+    [
+      "ballad_piano_soft_downbeat_sustain",
+      29
+    ],
+    [
+      "ballad_piano_two_beat_light_retouch",
+      22
+    ],
+    [
+      "ballad_phrase_breath_answer_inner_motion",
+      10
+    ],
+    [
+      "ballad_piano_downbeat_midbar_retouch",
+      8
+    ],
+    [
+      "ballad_piano_downbeat_1and_whisper",
+      6
+    ],
+    [
+      "ballad_piano_downbeat_3and_answer",
+      2
+    ]
+  ],
+  "gestures": {
+    "simultaneous_onset": 191,
+    "inner_movement": 5
+  },
+  "expression_profiles": {
+    "soft_sustain": 150,
+    "soft_retouch": 37,
+    "soft_answer": 6,
+    "soft_whisper": 3
+  },
+  "articulations": {
+    "sustain": 196
+  },
+  "content_families": {
+    "shell_plus_color": 52,
+    "shell_plus_5": 66,
+    "rooted_color": 34,
+    "seventh_chord_basic": 44
+  },
+  "densities": {
+    "5": 124,
+    "6": 72
+  },
+  "functional_groupings": {
+    "2+3": 114,
+    "2+4": 68,
+    "1+4": 10,
+    "3+3": 4
+  },
+  "dispositions": {
+    "spread": 196
+  },
+  "disposition_projection_families": {
+    "unknown": 196
+  },
+  "disposition_projection_methods": {
+    "unknown": 196
+  },
+  "drop_projection_audit_version": "v2_6_29",
+  "drop_projection_methods_total": {
+    "drop3": 72,
+    "drop2": 6
+  },
+  "drop_projection_methods_by_scope": {
+    "spread_upper_group": {
+      "drop3": 72,
+      "drop2": 6
+    }
+  },
+  "spread_upper_projection_methods": {
+    "closed_upper_stack": 118,
+    "drop3": 72,
+    "drop2": 6
+  },
+  "spread_upper_drop_projection_methods": {
+    "drop3": 72,
+    "drop2": 6
+  },
+  "spread_upper_drop_projection_events": 78,
+  "spread_upper_drop_projection_methods_by_density": {
+    "6": {
+      "drop3": 62,
+      "drop2": 6
+    },
+    "5": {
+      "drop3": 10
+    }
+  },
+  "spread_upper_drop_projection_methods_by_grouping": {
+    "2+4": {
+      "drop3": 62,
+      "drop2": 6
+    },
+    "1+4": {
+      "drop3": 10
+    }
+  },
+  "spread_upper_drop_projection_methods_by_recipe": {
+    "spread_2plus4_contract": {
+      "drop3": 62,
+      "drop2": 6
+    },
+    "spread_1plus4_contract": {
+      "drop3": 10
+    }
+  },
+  "spread_upper_drop_projection_events_by_density": {
+    "6": 68,
+    "5": 10
+  },
+  "lower_foundation_audit_version": "v2_6_30",
+  "lower_foundation_note_min": 41,
+  "lower_foundation_note_max": 58,
+  "lower_foundation_note_average": 49.93,
+  "lower_foundation_span_max": 11,
+  "lower_foundation_span_average": 6.138,
+  "lower_foundation_notes_by_grouping": {
+    "2+3": {
+      "count": 228,
+      "min": 41,
+      "max": 58,
+      "average": 51.855
+    },
+    "2+4": {
+      "count": 136,
+      "min": 41,
+      "max": 55,
+      "average": 46.603
+    },
+    "1+4": {
+      "count": 10,
+      "min": 48,
+      "max": 49,
+      "average": 48.4
+    },
+    "3+3": {
+      "count": 12,
+      "min": 48,
+      "max": 58,
+      "average": 52.333
+    }
+  },
+  "lower_foundation_notes_by_density": {
+    "5": {
+      "count": 238,
+      "min": 41,
+      "max": 58,
+      "average": 51.71
+    },
+    "6": {
+      "count": 148,
+      "min": 41,
+      "max": 58,
+      "average": 47.068
+    }
+  },
+  "lower_foundation_spans_by_grouping": {
+    "2+3": {
+      "count": 114,
+      "min": 4,
+      "max": 11,
+      "average": 6.43
+    },
+    "2+4": {
+      "count": 68,
+      "min": 3,
+      "max": 11,
+      "average": 6.324
+    },
+    "1+4": {
+      "count": 10,
+      "min": 0,
+      "max": 0,
+      "average": 0
+    },
+    "3+3": {
+      "count": 4,
+      "min": 10,
+      "max": 10,
+      "average": 10
+    }
+  },
+  "lower_foundation_spans_by_density": {
+    "5": {
+      "count": 124,
+      "min": 0,
+      "max": 11,
+      "average": 5.911
+    },
+    "6": {
+      "count": 72,
+      "min": 3,
+      "max": 11,
+      "average": 6.528
+    }
+  },
+  "lower_foundation_recipe_counts": {
+    "lower_2note_root_3": 109,
+    "lower_2note_root_7": 73,
+    "lower_1note_root": 10,
+    "lower_3note_root_3_7": 4
+  },
+  "lower_foundation_low_register_events": 28,
+  "lower_foundation_low_register_events_by_grouping": {
+    "2+4": 26,
+    "2+3": 2
+  },
+  "lower_foundation_low_register_events_by_density": {
+    "6": 26,
+    "5": 2
+  },
+  "lower_foundation_span_violation_events": 0,
+  "lower_upper_gap_audit_version": "v2_6_31",
+  "lower_upper_gap_comfort_min": 2,
+  "lower_upper_gap_comfort_max": 7,
+  "lower_upper_group_gap_min": 2,
+  "lower_upper_group_gap_max": 12,
+  "lower_upper_group_gap_average": 5.153,
+  "lower_upper_group_gap_by_grouping": {
+    "2+3": {
+      "count": 114,
+      "min": 5,
+      "max": 12,
+      "average": 6.123
+    },
+    "2+4": {
+      "count": 68,
+      "min": 2,
+      "max": 7,
+      "average": 3.706
+    },
+    "1+4": {
+      "count": 10,
+      "min": 4,
+      "max": 4,
+      "average": 4
+    },
+    "3+3": {
+      "count": 4,
+      "min": 5,
+      "max": 5,
+      "average": 5
+    }
+  },
+  "lower_upper_group_gap_by_density": {
+    "5": {
+      "count": 124,
+      "min": 4,
+      "max": 12,
+      "average": 5.952
+    },
+    "6": {
+      "count": 72,
+      "min": 2,
+      "max": 7,
+      "average": 3.778
+    }
+  },
+  "lower_upper_group_gap_by_recipe": {
+    "spread_2plus3_contract": {
+      "count": 114,
+      "min": 5,
+      "max": 12,
+      "average": 6.123
+    },
+    "spread_2plus4_contract": {
+      "count": 68,
+      "min": 2,
+      "max": 7,
+      "average": 3.706
+    },
+    "spread_1plus4_contract": {
+      "count": 10,
+      "min": 4,
+      "max": 4,
+      "average": 4
+    },
+    "spread_3plus3_contract": {
+      "count": 4,
+      "min": 5,
+      "max": 5,
+      "average": 5
+    }
+  },
+  "lower_upper_group_gap_too_tight_events": 0,
+  "lower_upper_group_gap_too_tight_events_by_grouping": {},
+  "lower_upper_group_gap_too_wide_events": 2,
+  "lower_upper_group_gap_too_wide_events_by_grouping": {
+    "2+3": 2
+  },
+  "spread_gap_aware_candidate_scope_micro_calibration_version": "v2_6_32",
+  "spread_gap_aware_candidate_scope_micro_calibration_events": 3,
+  "spread_gap_aware_candidate_scope_micro_calibration_events_by_recipe": {
+    "spread_2plus4_contract": 3
+  },
+  "spread_gap_aware_candidate_scope_micro_calibration_events_by_grouping": {
+    "2+4": 3
+  },
+  "spread_gap_aware_original_gap_min": 1,
+  "spread_gap_aware_original_gap_max": 1,
+  "spread_gap_aware_replacement_gap_min": 3,
+  "spread_gap_aware_replacement_gap_max": 3,
+  "low_note_min": 41,
+  "top_note_max": 72,
+  "top_note_ge_75_events": 0,
+  "voicing_texture_scope_counts": {
+    "unknown": 196
+  },
+  "voicing_texture_contrast_roles": {
+    "unknown": 196
+  },
+  "voicing_texture_methods_by_contrast_role": {
+    "unknown": {
+      "unknown": 196
+    }
+  },
+  "voicing_texture_method_percentages_by_contrast_role": {
+    "unknown": {
+      "unknown": 1.0
+    }
+  },
+  "voicing_texture_methods_by_scope": {
+    "unknown": {
+      "unknown": 196
+    }
+  },
+  "voicing_texture_open_method_weight_plans_by_contrast_role": {},
+  "migrated_projection_paths": {},
+  "legacy_projection_callback_used_count": 0,
+  "legacy_projection_cleanup_required_count": 0,
+  "open_named_projection_methods": {},
+  "open_named_projection_events": 0,
+  "avg_open_named_projection_span": 0.0,
+  "max_open_named_projection_span": null,
+  "min_open_named_projection_lowest_note": null,
+  "avg_open_named_projection_parent_closed_span": 0.0,
+  "max_open_named_projection_parent_closed_span": null,
+  "open_drop2_events": 0,
+  "avg_open_drop2_span": 0.0,
+  "max_open_drop2_span": null,
+  "min_open_drop2_lowest_note": null,
+  "avg_open_drop2_parent_closed_span": 0.0,
+  "max_open_drop2_parent_closed_span": null,
+  "root_support": {
+    "rootless_allowed": 196
+  },
+  "rootless_events": 0,
+  "root_included_events": 196,
+  "four_note_source_balance_gate_modes": {},
+  "four_note_source_balance_keys": {},
+  "three_note_source_types": {},
+  "three_note_source_role_orders": {},
+  "three_note_degree_orders": {},
+  "triad_4note_source_types": {},
+  "triad_4note_source_role_orders": {},
+  "triad_4note_degree_orders": {},
+  "avg_four_note_source_balance_score": 0.0,
+  "avg_chart_color_fidelity_score": 0.0,
+  "region_voicing_reuse_count": 46,
+  "closed_minimum_motion_events": 0,
+  "closed_3note_minimum_motion_events": 0,
+  "closed_4note_minimum_motion_events": 0,
+  "avg_closed_3note_source_collapse_distance": 0.0,
+  "max_closed_3note_source_collapse_distance": 0.0,
+  "avg_closed_3note_source_collapse_total_motion": 0.0,
+  "max_closed_3note_source_collapse_total_motion": 0.0,
+  "avg_closed_4note_source_collapse_distance": 0.0,
+  "max_closed_4note_source_collapse_distance": 0.0,
+  "avg_closed_4note_source_collapse_total_motion": 0.0,
+  "max_closed_4note_source_collapse_total_motion": 0.0,
+  "min_closed_voicing_lowest_note": 41,
+  "max_closed_voicing_span": null,
+  "avg_realized_notes_per_event": 5.316,
+  "avg_duration_beats": 1.854,
+  "avg_velocity": 46.735,
+  "failed_register_guard_count": 0,
+  "missing_note_events": 0,
+  "register_guard_reasons": {},
+  "expression_audit": {
+    "contract_version": "v2_0_45",
+    "style_id": "jazz_ballad",
+    "track_filter": "piano",
+    "events": 196,
+    "profiles": {
+      "soft_sustain": 150,
+      "soft_retouch": 37,
+      "soft_answer": 6,
+      "soft_whisper": 3
+    },
+    "articulations": {
+      "sustain": 196
+    },
+    "pedal_modes": {
+      "sustain": 128,
+      "light": 68
+    },
+    "touches": {
+      "warm": 150,
+      "light": 46
+    },
+    "avg_duration_beats": 1.854,
+    "avg_release_beats": 0.106,
+    "avg_velocity": 46.735,
+    "short_event_count": 0,
+    "sustain_event_count": 196,
+    "short_overlap_count": 0,
+    "cross_region_count": 0,
+    "cross_next_event_count": 49,
+    "sustain_chop_risk_count": 0,
+    "missing_expression_count": 0,
+    "warning_count": 54,
+    "anticipation_tie_event_count": 22,
+    "anticipation_pedal_release_micro_tuned_count": 22,
+    "anticipation_duration_micro_tuned_count": 4,
+    "anticipation_pedal_modes": {
+      "light": 22
+    },
+    "anticipation_avg_release_beats": 0.08,
+    "flag_counts": {
+      "ballad_soft_sustain_too_short": 5,
+      "crosses_next_same_track_event": 49
+    }
+  },
+  "expression_flags": {
+    "ballad_soft_sustain_too_short": 5,
+    "crosses_next_same_track_event": 49
+  }
+}

@@ -181,22 +181,22 @@ def test_v2_6_29_misty_audit_counts_spread_upper_drop_inside_six_note_runtime(tm
     audit = build_piano_musical_audit(result.debug).summary
 
     assert audit["drop_projection_audit_version"] == "v2_6_29"
-    assert audit["densities"] == {"5": 120, "6": 76}
-    assert audit["functional_groupings"] == {"2+3": 110, "2+4": 72, "1+4": 10, "3+3": 4}
+    assert audit["densities"] == {"5": 124, "6": 72}
+    assert audit["functional_groupings"] == {"2+3": 114, "2+4": 68, "1+4": 10, "3+3": 4}
     assert audit["spread_upper_projection_methods"] == {
-        "closed_upper_stack": 114,
+        "closed_upper_stack": 118,
         "drop3": 72,
-        "drop2": 10,
+        "drop2": 6,
     }
-    assert audit["spread_upper_drop_projection_methods"] == {"drop3": 72, "drop2": 10}
-    assert audit["spread_upper_drop_projection_events"] == 82
-    assert audit["drop_projection_methods_total"] == {"drop3": 72, "drop2": 10}
-    assert audit["drop_projection_methods_by_scope"] == {"spread_upper_group": {"drop3": 72, "drop2": 10}}
-    assert audit["spread_upper_drop_projection_methods_by_density"] == {"6": {"drop3": 62, "drop2": 10}, "5": {"drop3": 10}}
-    assert audit["spread_upper_drop_projection_events_by_density"] == {"6": 72, "5": 10}
-    assert audit["spread_upper_drop_projection_methods_by_grouping"] == {"2+4": {"drop3": 62, "drop2": 10}, "1+4": {"drop3": 10}}
+    assert audit["spread_upper_drop_projection_methods"] == {"drop3": 72, "drop2": 6}
+    assert audit["spread_upper_drop_projection_events"] == 78
+    assert audit["drop_projection_methods_total"] == {"drop3": 72, "drop2": 6}
+    assert audit["drop_projection_methods_by_scope"] == {"spread_upper_group": {"drop3": 72, "drop2": 6}}
+    assert audit["spread_upper_drop_projection_methods_by_density"] == {"6": {"drop3": 62, "drop2": 6}, "5": {"drop3": 10}}
+    assert audit["spread_upper_drop_projection_events_by_density"] == {"6": 68, "5": 10}
+    assert audit["spread_upper_drop_projection_methods_by_grouping"] == {"2+4": {"drop3": 62, "drop2": 6}, "1+4": {"drop3": 10}}
     assert audit["spread_upper_drop_projection_methods_by_recipe"] == {
-        "spread_2plus4_contract": {"drop3": 62, "drop2": 10},
+        "spread_2plus4_contract": {"drop3": 62, "drop2": 6},
         "spread_1plus4_contract": {"drop3": 10},
     }
 

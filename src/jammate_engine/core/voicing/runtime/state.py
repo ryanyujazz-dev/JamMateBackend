@@ -1,7 +1,187 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Mapping, Sequence
+
+
+VOICING_STATE_ADVANCE_ANCHOR_HELPER_VERSION = "v2_6_37"
+VOICING_STATE_ADVANCE_ANCHOR_POLICY_GATE_VERSION = "v2_6_40"
+
+
+def _int_tuple(values: Sequence[Any] | None) -> tuple[int, ...]:
+    return tuple(int(value) for value in (values or ()))
+
+
+def _str_tuple(values: Sequence[Any] | None) -> tuple[str, ...]:
+    return tuple(str(value) for value in (values or ()))
+
+
+def _bool(value: Any, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on", "enabled"}
+    return bool(value)
+
+
+def _str_set(values: Any) -> set[str]:
+    if values is None:
+        return set()
+    if isinstance(values, str):
+        return {values}
+    try:
+        return {str(value) for value in values}
+    except TypeError:
+        return {str(values)}
+
+
+@dataclass(frozen=True)
+class VoicingStateAdvanceAnchor:
+    """Separate the realized notes from the phrase-state continuity anchor.
+
+    Most voicing events should advance continuity state from their realized notes.
+    A small class of phrase-scope repairs, such as the Ballad SPREAD wide-gap
+    fix, intentionally realizes a safer current voicing while keeping the
+    original phrase anchor for the next event's voice-leading state.  This helper
+    centralizes that contract so selector code only declares the anchor and the
+    resolver consumes one stable runtime surface.
+    """
+
+    notes: tuple[int, ...]
+    degrees: tuple[str, ...] = ()
+    lower_group_notes: tuple[int, ...] = ()
+    upper_group_notes: tuple[int, ...] = ()
+    upper_group_degrees: tuple[str, ...] = ()
+    lower_group_placed_degrees: tuple[str, ...] = ()
+    group_gap_semitones: int | float | None = None
+    reason: str = ""
+    policy_gate_scope: str = ""
+
+    @classmethod
+    def from_metadata(cls, metadata: Mapping[str, Any]) -> "VoicingStateAdvanceAnchor | None":
+        data = dict(metadata or {})
+        notes = data.get("voicing_state_advance_anchor_notes") or data.get("voicing_state_advance_override_notes")
+        if not notes:
+            return None
+        return cls(
+            notes=_int_tuple(notes),
+            degrees=_str_tuple(data.get("voicing_state_advance_anchor_degrees") or data.get("voicing_state_advance_override_degrees")),
+            lower_group_notes=_int_tuple(data.get("voicing_state_advance_anchor_lower_group_notes") or data.get("voicing_state_advance_override_lower_group_notes")),
+            upper_group_notes=_int_tuple(data.get("voicing_state_advance_anchor_upper_group_notes") or data.get("voicing_state_advance_override_upper_group_notes")),
+            upper_group_degrees=_str_tuple(data.get("voicing_state_advance_anchor_upper_group_degrees") or data.get("voicing_state_advance_override_upper_group_degrees")),
+            lower_group_placed_degrees=_str_tuple(data.get("voicing_state_advance_anchor_lower_group_placed_degrees") or data.get("voicing_state_advance_override_lower_group_placed_degrees")),
+            group_gap_semitones=data.get("voicing_state_advance_anchor_group_gap_semitones", data.get("voicing_state_advance_override_group_gap_semitones")),
+            reason=str(data.get("voicing_state_advance_anchor_reason") or data.get("spread_phrase_scope_wide_gap_reason") or ""),
+            policy_gate_scope=str(data.get("voicing_state_advance_anchor_policy_gate_scope") or data.get("spread_phrase_scope_wide_gap_candidate_availability_scope") or ""),
+        )
+
+    def to_metadata(self) -> dict[str, Any]:
+        """Return new v2_6_37 fields plus legacy aliases for older audits/tests."""
+
+        data: dict[str, Any] = {
+            "voicing_state_advance_anchor_helper_version": VOICING_STATE_ADVANCE_ANCHOR_HELPER_VERSION,
+            "voicing_state_advance_anchor_enabled": True,
+            "voicing_state_advance_anchor_policy_gate_version": VOICING_STATE_ADVANCE_ANCHOR_POLICY_GATE_VERSION,
+            "voicing_state_advance_anchor_policy_gate_required": True,
+            "voicing_state_advance_anchor_notes": list(self.notes),
+            "voicing_state_advance_anchor_degrees": list(self.degrees),
+            "voicing_state_advance_anchor_reason": self.reason,
+            # Legacy aliases retained so existing audit rows and focused tests do
+            # not need to understand the new helper name immediately.
+            "voicing_state_advance_override_notes": list(self.notes),
+            "voicing_state_advance_override_degrees": list(self.degrees),
+        }
+        if self.policy_gate_scope:
+            data["voicing_state_advance_anchor_policy_gate_scope"] = self.policy_gate_scope
+        if self.lower_group_notes:
+            data["voicing_state_advance_anchor_lower_group_notes"] = list(self.lower_group_notes)
+            data["voicing_state_advance_override_lower_group_notes"] = list(self.lower_group_notes)
+        if self.upper_group_notes:
+            data["voicing_state_advance_anchor_upper_group_notes"] = list(self.upper_group_notes)
+            data["voicing_state_advance_override_upper_group_notes"] = list(self.upper_group_notes)
+        if self.upper_group_degrees:
+            data["voicing_state_advance_anchor_upper_group_degrees"] = list(self.upper_group_degrees)
+            data["voicing_state_advance_override_upper_group_degrees"] = list(self.upper_group_degrees)
+        if self.lower_group_placed_degrees:
+            data["voicing_state_advance_anchor_lower_group_placed_degrees"] = list(self.lower_group_placed_degrees)
+            data["voicing_state_advance_override_lower_group_placed_degrees"] = list(self.lower_group_placed_degrees)
+        if self.group_gap_semitones is not None:
+            data["voicing_state_advance_anchor_group_gap_semitones"] = self.group_gap_semitones
+            data["voicing_state_advance_override_group_gap_semitones"] = self.group_gap_semitones
+        return data
+
+    def to_state_metadata(self, fallback: Mapping[str, Any]) -> dict[str, Any]:
+        """Overlay anchor group state onto the resolver's state metadata."""
+
+        data = dict(fallback or {})
+        if self.policy_gate_scope:
+            data["voicing_state_advance_anchor_policy_gate_scope"] = self.policy_gate_scope
+        if self.lower_group_notes:
+            data["lower_group_notes"] = list(self.lower_group_notes)
+        if self.upper_group_notes:
+            data["upper_group_notes"] = list(self.upper_group_notes)
+        if self.upper_group_degrees:
+            data["upper_group_degrees"] = list(self.upper_group_degrees)
+        if self.lower_group_placed_degrees:
+            data["lower_group_placed_degrees"] = list(self.lower_group_placed_degrees)
+        if self.group_gap_semitones is not None:
+            data["group_gap_semitones"] = self.group_gap_semitones
+        data["state_advance_anchor_helper_version"] = VOICING_STATE_ADVANCE_ANCHOR_HELPER_VERSION
+        data["state_advance_anchor_policy_gate_version"] = VOICING_STATE_ADVANCE_ANCHOR_POLICY_GATE_VERSION
+        data["state_advance_anchor_policy_gate_scope"] = self.policy_gate_scope
+        data["state_advance_anchor_policy_gate_consumed"] = True
+        data["state_advance_anchor_enabled"] = True
+        data["state_advance_anchor_notes"] = list(self.notes)
+        data["state_advance_anchor_reason"] = self.reason
+        return data
+
+
+def state_advance_anchor_from_candidate_metadata(metadata: Mapping[str, Any]) -> VoicingStateAdvanceAnchor | None:
+    return VoicingStateAdvanceAnchor.from_metadata(metadata)
+
+
+def state_advance_anchor_allowed_by_policy(
+    *,
+    metadata: Mapping[str, Any],
+    policy_metadata: Mapping[str, Any] | None,
+) -> bool:
+    """Return whether an anchor may override runtime state advancement.
+
+    ``VoicingStateAdvanceAnchor`` is a core helper, but v2_6_40 makes its
+    runtime consumption opt-in from style/voicing policy.  Direct unit tests
+    that call the helper without a policy keep legacy behavior; the resolver
+    always passes policy metadata, so production use is gated.
+    """
+
+    if policy_metadata is None:
+        return True
+    policy_data = dict(policy_metadata or {})
+    if not _bool(policy_data.get("voicing_state_advance_anchor_policy_gate_enabled"), default=False):
+        return False
+    scope = str(
+        (metadata or {}).get("voicing_state_advance_anchor_policy_gate_scope")
+        or (metadata or {}).get("spread_phrase_scope_wide_gap_candidate_availability_scope")
+        or ""
+    )
+    allowed_scopes = _str_set(policy_data.get("voicing_state_advance_anchor_allowed_scopes"))
+    if allowed_scopes and scope not in allowed_scopes:
+        return False
+    return True
+
+
+def state_advance_notes_and_degrees(
+    *,
+    metadata: Mapping[str, Any],
+    realized_notes: Sequence[int],
+    realized_degrees: Sequence[str],
+    policy_metadata: Mapping[str, Any] | None = None,
+) -> tuple[tuple[int, ...], tuple[str, ...], VoicingStateAdvanceAnchor | None]:
+    anchor = state_advance_anchor_from_candidate_metadata(metadata)
+    if anchor is None or not state_advance_anchor_allowed_by_policy(metadata=metadata, policy_metadata=policy_metadata):
+        return _int_tuple(realized_notes), _str_tuple(realized_degrees), None
+    return anchor.notes, (anchor.degrees or _str_tuple(realized_degrees)), anchor
 
 
 @dataclass(frozen=True)

@@ -42,12 +42,13 @@ def test_v2_5_9_ballad_1and_anchor_duration_reaches_performed_swing_upbeat() -> 
     assert comping_patterns.PATTERN_LIBRARY_VERSION == "v2_5_9"
     assert plan.events[1].local_beat == 0.5
     assert plan.events[1].metadata["timing_intent"] == "swing_upbeat"
-    # The prior v2_5_7 clamp used the logical 0.5 gap, so the anchor released
-    # before the rendered 2/3 upbeat and sounded like a hiccup.  The expression
-    # clamp now consumes the event timing intent and sustains exactly to 2/3.
-    assert round(anchor.duration_beats, 6) == round(2.0 / 3.0, 6)
-    assert anchor.metadata["duration_next_event_clamp_applied"] is True
-    assert round(anchor.metadata["duration_next_event_gap_beats"], 6) == round(2.0 / 3.0, 6)
+    # v2_6_38 supersedes the earlier full-chord clamp: the 1& whisper is now
+    # a non-interrupting upper/projection-group re-touch, so the beat-1
+    # foundation must keep its warm sustain instead of being shortened.
+    assert round(anchor.duration_beats, 6) == 3.5
+    assert anchor.metadata["duration_next_event_clamp_applied"] is False
+    assert plan.events[1].gesture_type == "inner_movement"
+    assert tuple(plan.events[1].gesture.projection_refs) == ("projection_group",)
     assert second.profile_name == "soft_whisper"
 
 

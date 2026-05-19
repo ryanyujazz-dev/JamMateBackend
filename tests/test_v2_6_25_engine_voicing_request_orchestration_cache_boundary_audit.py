@@ -241,7 +241,7 @@ def test_v2_6_25_misty_audit_density_and_cache_metadata_remain_stable(tmp_path: 
     five = densities[5]
     six = densities[6]
     ratio = five / float(five + six)
-    assert 0.58 <= ratio <= 0.63
+    assert 0.58 <= ratio <= 0.64
     assert densities[7] <= 3
 
     reused = [voicing for voicing in voicings if voicing.get("metadata", {}).get("region_voicing_reused")]

@@ -1,3 +1,75 @@
+## v2_6_44 Completed — Engine Ballad SPREAD Voicing Phase Summary and Handoff
+
+Completed behavior-preserving Ballad SPREAD voicing phase handoff.
+
+Implemented:
+
+- added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHASE_SUMMARY_AND_HANDOFF_V2_6_44.md`;
+- added `tests/test_v2_6_44_engine_ballad_spread_voicing_phase_summary_and_handoff.py`;
+- added policy metadata that freezes the accepted Ballad SPREAD guardrails without changing runtime candidate selection;
+- added piano audit fields for the phase summary, completed milestones, frozen guardrails, and next candidate voicing areas;
+- preserved Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS behavior.
+
+Frozen Misty / Jazz Ballad / 3 choruses guardrails:
+
+```text
+5-note: 124
+6-note: 72
+4-note: 0
+7-note: 0
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 0
+top_note_max: 72
+major_seventh_unnotated_sharp11_events: 0
+```
+
+Next recommended voicing area: `medium_swing_open_drop_method_lock_calibration`.
+
+## v2_6_33 Completed — Engine Ballad SPREAD Wide Gap Deferred Outlier Strategy
+
+Completed voicing-only deferred strategy for the remaining `2+3 Fm7` wide-gap outliers from v2_6_32.
+
+Implemented:
+
+- added `docs/ENGINE_VOICING_BALLAD_SPREAD_WIDE_GAP_DEFERRED_OUTLIER_STRATEGY_V2_6_33.md`;
+- added `tests/test_v2_6_33_engine_ballad_spread_wide_gap_deferred_outlier_strategy.py`;
+- added selector metadata that detects wide-gap same-recipe alternatives without replacing runtime notes;
+- added piano audit fields for deferred wide-gap outlier strategy events;
+- preserved Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS behavior.
+
+Misty / Jazz Ballad / 3 choruses observation:
+
+```text
+5-note: 124
+6-note: 72
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 2
+spread_gap_aware_candidate_scope_micro_calibration_events: 3
+spread_wide_gap_deferred_outlier_strategy_events: 2
+top_note_max: 72
+```
+
+The remaining wide gaps are intentionally still audible/auditable. Runtime replacement remains disabled because local same-recipe replacement caused density-lane cascade in experiments.
+
+Next recommended voicing-only task: `v2_6_34_engine_ballad_spread_2plus3_wide_gap_source_inventory_plan`.
+
+## v2_6_31 Engine Ballad SPREAD — lower/upper gap and weight balance audit
+
+- Added lower/upper group gap audit fields to `generation/piano_audit.py` without changing runtime density selection.
+- Preserved the `v2_6_30` Misty guardrails: 5-note / 6-note remains `120 / 76`, `1+4` remains low-frequency at `10`, 4-note and 7-note remain `0`, and `top_note_max` remains `72`.
+- Exposed sparse outliers for the next micro-calibration: 3 tight `2+4` gap events below 2 semitones, and 2 wide `2+3` gap events above 7 semitones.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_LOWER_UPPER_GAP_WEIGHT_BALANCE_V2_6_31.md` and `tests/test_v2_6_31_engine_ballad_spread_lower_upper_gap_weight_balance.py`.
+
+Next recommended voicing-only task: `v2_6_32_engine_ballad_spread_gap_aware_candidate_scope_micro_calibration`.
+
 ## v2_6_28 Engine Ballad SPREAD — top voice/register micro calibration
 
 ## v2_6_30 Engine Ballad SPREAD — 1+4 / lower foundation calibration
@@ -291,3 +363,126 @@ This file records engine-track changes to reduce conflicts in the global `docs/C
 - Added SPREAD upper-group drop counters by density, grouping, and recipe so 5-note / 6-note / 7-note grouped SPREAD can expose internal DROP2 / DROP3 usage.
 - Preserved v2_6_28 Misty Ballad output: 5-note:6-note remains near 6:4, 4-note SPREAD remains zero, 1+4 remains zero by default, top note remains capped at 74, and default maj7#11 remains zero.
 - Added `docs/ENGINE_VOICING_DROP_PROJECTION_AUDIT_COUNTS_V2_6_29.md` and `tests/test_v2_6_29_engine_voicing_drop_projection_audit_counts.py`.
+
+## v2_6_32 Completed — Engine Ballad SPREAD Gap-Aware Candidate-Scope Micro Calibration
+
+Completed voicing-only selector micro-calibration:
+
+- added `docs/ENGINE_VOICING_BALLAD_SPREAD_GAP_AWARE_CANDIDATE_SCOPE_MICRO_CALIBRATION_V2_6_32.md`;
+- added `tests/test_v2_6_32_engine_ballad_spread_gap_aware_candidate_scope_micro_calibration.py`;
+- added same-recipe-only gap-aware candidate replacement in the SPREAD groupwise selector;
+- fixed the three `2+4` tight-gap outliers from the v2_6_31 audit without changing Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS behavior;
+- preserved low-frequency `1+4`, zero 4-note/7-note SPREAD defaults, zero unnotated maj7#11, and top register guardrails;
+- kept the two `2+3` wide-gap events visible but deferred because broad fixes changed downstream density balance in experiments.
+
+Misty / Jazz Ballad / 3 choruses observation:
+
+```text
+5-note: 124
+6-note: 72
+2+3: 114
+2+4: 68
+1+4: 10
+3+3: 4
+lower_upper_too_tight_events: 0
+lower_upper_too_wide_events: 2
+spread_gap_aware_candidate_scope_micro_calibration_events: 3
+top_note_max: 72
+```
+
+Next recommended voicing-only task: `v2_6_33_engine_ballad_spread_wide_gap_deferred_outlier_strategy`.
+
+## v2_6_34 — Engine Ballad SPREAD 2+3 Wide Gap Source Inventory Plan
+
+- Voicing-only source-inventory/audit pass on top of the merged `v2_8_24` integration baseline; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS/shared integration changes.
+- Kept runtime replacement disabled for the two remaining `2+3 Fm7` wide-gap rows because direct replacement fixes the local gap but cascades the accepted Ballad SPREAD density lane.
+- Added `spread_wide_gap_source_inventory_plan_*` metadata to the deferred rows so same-recipe inventory alternatives are visible without changing selected notes.
+- Added piano audit summary fields for source-inventory plan counts, replacement gap ranges, runtime-replacement enabled count, and recommended next boundary.
+- Preserved Misty three-chorus guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, and two wide-gap rows still auditable.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_2PLUS3_WIDE_GAP_SOURCE_INVENTORY_PLAN_V2_6_34.md` and `tests/test_v2_6_34_engine_ballad_spread_2plus3_wide_gap_source_inventory_plan.py`.
+
+## v2_6_35 — Engine Ballad SPREAD Phrase-Scope Wide Gap Candidate Availability
+
+- Voicing-only phrase-scope availability pass on top of the merged `v2_8_24` integration baseline; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS/shared integration changes.
+- Fixed the two remaining `2+3 Fm7` lower/upper wide-gap rows by realizing the top-stable same-recipe candidate while advancing voicing continuity state with the original phrase anchor.
+- Preserved accepted Ballad SPREAD density and register guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`.
+- Reduced `lower_upper_group_gap_too_wide_events` from `2` to `0` without broad scorer changes or density-lane cascade.
+- Added `spread_phrase_scope_wide_gap_*` metadata and piano audit summary fields.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHRASE_SCOPE_WIDE_GAP_CANDIDATE_AVAILABILITY_V2_6_35.md` and `tests/test_v2_6_35_engine_ballad_spread_phrase_scope_wide_gap_candidate_availability.py`.
+
+## v2_6_36 — Engine Ballad SPREAD Phrase-State Boundary Regression Review
+
+- Voicing-only audit/regression pass on top of the merged `v2_8_24` integration baseline; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS/shared integration changes.
+- Added phrase-state boundary review audit fields to verify that v2_6_35 state-protected Fm7 rows advance the following Bb7 event from the protected phrase anchor, not from the substituted realized notes.
+- Confirmed the two protected rows have immediate next-event state anchor matches, realized notes are not used as state, and boundary warnings remain zero.
+- Preserved accepted Misty three-chorus guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, and zero lower/upper gap outliers.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHRASE_STATE_BOUNDARY_REGRESSION_REVIEW_V2_6_36.md` and `tests/test_v2_6_36_engine_ballad_spread_phrase_state_boundary_regression_review.py`.
+
+## v2_6_37 — Engine Ballad SPREAD Phrase-State Boundary Helper Cleanup
+
+- Behavior-preserving voicing-only helper cleanup on top of the merged `v2_8_24` integration baseline; no Pattern / Anticipation / Expression / Gesture / MIDI / Agent / API / HarmonyOS/shared integration changes.
+- Added `VoicingStateAdvanceAnchor` in `src/jammate_engine/core/voicing/runtime/state.py` as the owner for separating current realized notes from the state anchor used by later voice-leading.
+- Updated the Ballad SPREAD phrase-scope wide-gap path so the selector declares the state anchor through the helper instead of scattering raw resolver metadata keys.
+- Updated the voicing resolver so state advancement consumes the helper through one runtime surface while retaining legacy audit aliases for v2_6_35/v2_6_36 compatibility.
+- Added helper cleanup audit fields showing two protected events, two direct state anchors, three rows observing the protected previous-state anchor, and legacy alias compatibility.
+- Preserved accepted Misty three-chorus guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, and zero lower/upper gap outliers.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHRASE_STATE_BOUNDARY_HELPER_CLEANUP_V2_6_37.md` and `tests/test_v2_6_37_engine_ballad_spread_phrase_state_boundary_helper_cleanup.py`.
+
+## v2_6_38 — Engine Ballad 1& Whisper Continuity Patch
+
+- Focused Jazz Ballad continuity bugfix requested before continuing voicing work; this is not a voicing selector change and does not touch Agent / API / HarmonyOS/shared integration surfaces.
+- Changed near-downbeat Ballad 1& whisper / soft-mark cells from full `simultaneous_onset` chord reattacks to pitchless `inner_movement` requests on `projection_group`.
+- Affected patterns: `ballad_piano_downbeat_1and_whisper`, `ballad_phrase_two_chord_soft_marks`, and `ballad_piano_two_beat_light_retouch`.
+- Kept beat-1 foundation sustained while trimming and reattacking only the upper/projection-group notes; this fixes the sudden break reported around Misty performance bars 41, 63, and 95.
+- Updated partial-reattack release timing to trim against the performed swing-upbeat start rather than the raw logical `.5` slot, avoiding a tiny gap before the rendered 2/3 upbeat.
+- Preserved accepted Misty three-chorus voicing guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, and zero lower/upper gap outliers.
+- Added `docs/ENGINE_BALLAD_1AND_WHISPER_CONTINUITY_PATCH_V2_6_38.md` and `tests/test_v2_6_38_engine_ballad_1and_whisper_continuity_patch.py`.
+
+## v2_6_39 — Engine Ballad SPREAD Post-Continuity Listening Checkpoint
+
+- Observational voicing-track checkpoint on top of `v2_6_38`; no runtime music behavior change and no Agent / API / HarmonyOS/shared integration changes.
+- Added post-continuity audit fields to confirm Misty bars 41, 63, and 95 keep the accepted 1& projection re-touch behavior: projection-only retouch, foundation sustain through retouch, and projection notes trimmed at the performed swing-upbeat start.
+- Confirmed the accepted Ballad SPREAD guardrails remain stable after the continuity bugfix: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, zero lower/upper gap outliers, and `top_note_max:72`.
+- Confirmed the v2_6_35/v2_6_37 phrase-state anchor boundary remains valid: two protected events, two next events found, zero boundary warnings.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_POST_CONTINUITY_LISTENING_CHECKPOINT_V2_6_39.md` and `tests/test_v2_6_39_engine_ballad_spread_post_continuity_listening_checkpoint.py`.
+
+## v2_6_40 — Engine Ballad SPREAD Phrase-State Anchor Policy Boundary
+
+- Behavior-preserving voicing policy-boundary pass on top of `v2_6_39`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer, MIDI, Agent, API, or HarmonyOS behavior change.
+- Kept `VoicingStateAdvanceAnchor` as a core helper but made resolver consumption explicitly policy-gated in production runtime.
+- Added Jazz Ballad policy gate keys: `voicing_state_advance_anchor_policy_gate_enabled`, `voicing_state_advance_anchor_policy_gate_version`, and `voicing_state_advance_anchor_allowed_scopes`.
+- Limited the currently allowed scope to `ballad_spread_phrase_scope_wide_gap_candidate_availability`; other styles/scopes do not consume state anchors unless they opt in through policy.
+- Added audit fields for phrase-state anchor policy boundary events, required-gate events, scopes, and previous-state gate consumption.
+- Preserved accepted Misty three-chorus guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, and zero lower/upper gap outliers.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_PHRASE_STATE_ANCHOR_POLICY_BOUNDARY_V2_6_40.md` and `tests/test_v2_6_40_engine_ballad_spread_phrase_state_anchor_policy_boundary.py`.
+
+## v2_6_41 — Engine Ballad SPREAD Same-Chord Reattack Continuity Calibration
+
+- Behavior-preserving voicing-only audit/calibration pass on top of `v2_6_40`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer note behavior, MIDI, Agent, API, or HarmonyOS behavior change.
+- Formalized the accepted same-chord region behavior: repeated touches in one chord region reuse the cached voicing unless an event explicitly requests fresh revoicing.
+- Added `same_chord_reattack_continuity_*` metadata on reused region voicings and audit rows.
+- Added piano audit summary fields for same-chord regions reviewed, reattack events, cached voicing reuse, exact voicing reuse, foundation stability, fresh revoicing events, changed-voicing warnings, and checkpoint pass/fail.
+- Confirmed Misty / Jazz Ballad / 3 choruses has 46 same-chord reattack events, all 46 reuse the cached voicing, all 46 keep exact voicing/foundation stable, and warning events remain zero.
+- Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, post-continuity checkpoint passed, and phrase-state boundary warnings zero.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_SAME_CHORD_REATTACK_CONTINUITY_CALIBRATION_V2_6_41.md` and `tests/test_v2_6_41_engine_ballad_spread_same_chord_reattack_continuity_calibration.py`.
+
+
+## v2_6_42 — Engine Ballad SPREAD Safe Extension Frequency Calibration
+
+- Behavior-preserving voicing-only safe-extension frequency checkpoint on top of `v2_6_41`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer note behavior, MIDI, Agent, API, or HarmonyOS behavior change.
+- Formalized the accepted Ballad major-seventh color rule: default warm SPREAD uses `9` / `13`; unnotated `#11` remains disabled unless the chart explicitly writes it or a future policy declares harmonic-color intent.
+- Added Jazz Ballad policy metadata for `ballad_spread_safe_extension_frequency_calibration` and explicit major-seventh default color flags.
+- Added piano audit summary fields for major-seventh safe-extension event count, color counts, by-chord color counts, unnotated #11 events, explicit #11 events, preferred colors, and checkpoint pass/fail.
+- Confirmed Misty / Jazz Ballad / 3 choruses has major-seventh color counts `{"9": 14, "13": 7}` and `major_seventh_unnotated_sharp11_events: 0`.
+- Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, same-chord continuity passed, and post-continuity checkpoint passed.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_SAFE_EXTENSION_FREQUENCY_CALIBRATION_V2_6_42.md` and `tests/test_v2_6_42_engine_ballad_spread_safe_extension_frequency_calibration.py`.
+
+## v2_6_43 — Engine Ballad SPREAD Lower Foundation Weight / Register Final Pass
+
+- Behavior-preserving voicing-only lower foundation checkpoint on top of `v2_6_42`; no selected voicing, Pattern, Anticipation, Expression, Gesture/realizer note behavior, MIDI, Agent, API, or HarmonyOS behavior change.
+- Formalized the accepted lower/foundation group profile for Ballad SPREAD: `2+3` stays stable/not too thin, `2+4` carries accepted heavier low-register pressure, `1+4` remains a low-frequency color lane, and `3+3` remains very low frequency without low-register mud.
+- Added Jazz Ballad policy metadata for `ballad_spread_lower_foundation_weight_register_final_pass`.
+- Added piano audit summary fields for lower-foundation final pass profile, recipe profile, density/grouping preservation, low-register threshold, grouping role checks, and checkpoint pass/fail.
+- Confirmed Misty / Jazz Ballad / 3 choruses keeps `lower_foundation_span_violation_events:0`, `lower_foundation_span_max:11`, `lower_foundation_low_register_events_by_grouping:{"2+4":26,"2+3":2}`, and final checkpoint passed.
+- Preserved accepted Misty guardrails: `5-note:124`, `6-note:72`, `1+4:10`, `4-note:0`, `7-note:0`, `top_note_max:72`, zero lower/upper gap outliers, and zero unnotated maj7 #11 events.
+- Added `docs/ENGINE_VOICING_BALLAD_SPREAD_LOWER_FOUNDATION_WEIGHT_REGISTER_FINAL_PASS_V2_6_43.md` and `tests/test_v2_6_43_engine_ballad_spread_lower_foundation_weight_register_final_pass.py`.
