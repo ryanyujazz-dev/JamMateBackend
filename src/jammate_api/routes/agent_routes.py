@@ -72,6 +72,11 @@ from jammate_agent.core.contracts import (
     context_persistence_sqlite_backend_harmonyos_api_fixture_pack_contract,
     context_persistence_sqlite_backend_api_error_shape_matrix_contract,
     context_persistence_sqlite_backend_harmonyos_error_fixture_pack_contract,
+    context_persistence_sqlite_backend_handoff_completion_pack_contract,
+    context_persistence_backend_db_path_policy_and_migration_guard_contract,
+    context_persistence_backend_schema_metadata_table_preview_contract,
+    agent_usable_today_practice_guidance_mvp_contract,
+    agent_routine_completion_record_to_backend_context_write_mvp_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -151,6 +156,16 @@ from jammate_agent.core.tool_invocation import (
     build_context_persistence_sqlite_backend_api_error_shape_matrix_summary,
     build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_payload,
     build_context_persistence_sqlite_backend_harmonyos_error_fixture_pack_summary,
+    build_context_persistence_sqlite_backend_handoff_completion_pack_payload,
+    build_context_persistence_sqlite_backend_handoff_completion_pack_summary,
+    build_context_persistence_backend_db_path_policy_and_migration_guard_payload,
+    build_context_persistence_backend_db_path_policy_and_migration_guard_summary,
+    build_context_persistence_backend_schema_metadata_table_preview_payload,
+    build_context_persistence_backend_schema_metadata_table_preview_summary,
+    build_agent_usable_today_practice_guidance_mvp_payload,
+    build_agent_usable_today_practice_guidance_mvp_summary,
+    build_agent_routine_completion_record_to_backend_context_write_mvp_payload,
+    build_agent_routine_completion_record_to_backend_context_write_mvp_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -1870,6 +1885,164 @@ def execute_harmonyos_agent_action_controlled_request(request: dict) -> dict:
     }
 
 
+@router.get("/context/persistence-sqlite-backend-handoff-completion-pack/spec")
+def get_context_persistence_sqlite_backend_handoff_completion_pack_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_sqlite_backend_handoff_completion_pack_contract()}
+
+
+@router.post("/context/persistence-sqlite-backend-handoff-completion-pack/preview")
+def preview_context_persistence_sqlite_backend_handoff_completion_pack_request(request: dict) -> dict:
+    """Build the v2_9 SQLite backend persistence handoff completion pack.
+
+    This is a preview-only report. It does not execute stored sample requests,
+    open/read/write SQLite, mutate API memory, write frontend fixture files,
+    call LLM/tools/Engine, start Routine, create MIDI, or play audio.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_sqlite_backend_handoff_completion_pack_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_sqlite_backend_handoff_completion_pack",
+    )
+    summary = build_context_persistence_sqlite_backend_handoff_completion_pack_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_sqlite_backend_handoff_completion_pack_version": context_persistence_sqlite_backend_handoff_completion_pack_contract()["version"],
+        "context_persistence_sqlite_backend_handoff_completion_pack_payload": payload.to_dict(),
+        "context_persistence_sqlite_backend_handoff_completion_pack_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-backend-db-path-policy-migration-guard/spec")
+def get_context_persistence_backend_db_path_policy_and_migration_guard_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_backend_db_path_policy_and_migration_guard_contract()}
+
+
+@router.post("/context/persistence-backend-db-path-policy-migration-guard/preview")
+def preview_context_persistence_backend_db_path_policy_and_migration_guard_request(request: dict) -> dict:
+    """Preview DB path, schema, and migration guard without opening SQLite.
+
+    This route only validates proposed backend persistence configuration. It
+    never opens/reads/writes SQLite, creates tables, runs migrations, mutates
+    API memory, writes frontend fixtures or HarmonyOS local state, calls LLMs
+    or tools, starts Routine/playback, calls Engine, or creates MIDI assets.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_backend_db_path_policy_and_migration_guard_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_backend_db_path_policy_and_migration_guard",
+    )
+    summary = build_context_persistence_backend_db_path_policy_and_migration_guard_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_backend_db_path_policy_and_migration_guard_version": context_persistence_backend_db_path_policy_and_migration_guard_contract()["version"],
+        "context_persistence_backend_db_path_policy_and_migration_guard_payload": payload.to_dict(),
+        "context_persistence_backend_db_path_policy_and_migration_guard_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "migration_execution_performed": False,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/persistence-backend-schema-metadata-table-preview/spec")
+def get_context_persistence_backend_schema_metadata_table_preview_spec() -> dict:
+    return {"ok": True, "spec": context_persistence_backend_schema_metadata_table_preview_contract()}
+
+
+@router.post("/context/persistence-backend-schema-metadata-table-preview/preview")
+def preview_context_persistence_backend_schema_metadata_table_preview_request(request: dict) -> dict:
+    """Preview future schema metadata/registry tables without SQLite side effects."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_context_persistence_backend_schema_metadata_table_preview_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_context_persistence_backend_schema_metadata_table_preview",
+    )
+    summary = build_context_persistence_backend_schema_metadata_table_preview_summary(payload=payload, source="agent_api")
+    return {
+        "ok": True,
+        "context_persistence_backend_schema_metadata_table_preview_version": context_persistence_backend_schema_metadata_table_preview_contract()["version"],
+        "context_persistence_backend_schema_metadata_table_preview_payload": payload.to_dict(),
+        "context_persistence_backend_schema_metadata_table_preview_summary": summary,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "sqlite_connection_created": False,
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": 0,
+        "migration_execution_performed": False,
+        "schema_creation_performed": False,
+        "fixture_files_written": False,
+        "frontend_fixtures_directory_written": False,
+        "terminal_session_memory_loaded_by_api": False,
+        "terminal_session_memory_loaded_by_cli": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
 @router.get("/actions/practice-plan/spec")
 def get_practice_plan_action_card_e2e_spec() -> dict:
     return {"ok": True, "spec": practice_plan_action_card_e2e_contract()}
@@ -2833,3 +3006,122 @@ def submit_session_review(request: SessionReviewRequest) -> dict:
     review = SessionReview(**request.model_dump())
     recommendation = build_agent().capabilities.review_engine.recommend_next_step(review)
     return {"ok": True, "recommendation": recommendation.to_dict()}
+
+
+
+
+@router.get("/context/routine-completion-record-to-backend-context-write-mvp/spec")
+def get_agent_routine_completion_record_to_backend_context_write_mvp_spec() -> dict:
+    return {"ok": True, "spec": agent_routine_completion_record_to_backend_context_write_mvp_contract()}
+
+
+@router.post("/context/routine-completion-record-to-backend-context-write-mvp/execute")
+def execute_agent_routine_completion_record_to_backend_context_write_mvp_request(request: dict) -> dict:
+    """Persist one Routine completion record into backend Agent context.
+
+    This route is the product-facing write side of the usable Agent MVP. It may
+    write SQLite only when the client supplies clientConfirmedRecordWrite=true
+    or the underlying v2_9_0 explicit backend persistence gates. It never writes
+    HarmonyOS local state, starts Routine, calls LLM/tools/Engine, creates MIDI,
+    or plays audio.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_agent_routine_completion_record_to_backend_context_write_mvp_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_routine_completion_record_to_backend_context_write_mvp",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_routine_completion_record_to_backend_context_write_mvp_summary(payload=payload, source="agent_api")
+    return {
+        "ok": bool(summary.get("completion_record_persisted", False)),
+        "agent_routine_completion_record_to_backend_context_write_mvp_version": agent_routine_completion_record_to_backend_context_write_mvp_contract()["version"],
+        "agent_routine_completion_record_to_backend_context_write_mvp_payload": payload_dict,
+        "agent_routine_completion_record_to_backend_context_write_mvp_summary": summary,
+        "terminal_response": payload_dict.get("terminal_response"),
+        "content": (payload_dict.get("terminal_response") or {}).get("content") if isinstance(payload_dict.get("terminal_response"), dict) else None,
+        "completion_record_persisted": summary.get("completion_record_persisted", False),
+        "next_today_guidance_can_read_history": summary.get("next_today_guidance_can_read_history", False),
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": summary.get("storage_written", False),
+        "backend_database_written": summary.get("backend_database_written", False),
+        "backend_database_read": summary.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+        "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+        "sqlite_row_count_written": summary.get("sqlite_row_count_written", 0),
+        "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+        "durable_backend_write_executed": summary.get("durable_backend_write_executed", False),
+        "transaction_committed": summary.get("transaction_committed", False),
+        "idempotent_replay": summary.get("idempotent_replay", False),
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+@router.get("/context/usable-today-practice-guidance-mvp/spec")
+def get_agent_usable_today_practice_guidance_mvp_spec() -> dict:
+    return {"ok": True, "spec": agent_usable_today_practice_guidance_mvp_contract()}
+
+
+@router.post("/context/usable-today-practice-guidance-mvp/preview")
+def preview_agent_usable_today_practice_guidance_mvp_request(request: dict) -> dict:
+    """Preview the product-facing today-practice guidance MVP.
+
+    This route accepts ordinary userInput and an optional sqliteDbPath. It may
+    read an existing SQLite context backend when a safe path is supplied, but it
+    never writes storage, starts Routine, calls the engine, creates MIDI, or
+    plays audio.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_agent_usable_today_practice_guidance_mvp_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_usable_today_practice_guidance_mvp",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_usable_today_practice_guidance_mvp_summary(payload=payload, source="agent_api")
+    validation = payload_dict.get("validation") if isinstance(payload_dict.get("validation"), dict) else {}
+    return {
+        "ok": bool(validation.get("accepted", False)),
+        "agent_usable_today_practice_guidance_mvp_version": agent_usable_today_practice_guidance_mvp_contract()["version"],
+        "agent_usable_today_practice_guidance_mvp_payload": payload_dict,
+        "agent_usable_today_practice_guidance_mvp_summary": summary,
+        "terminal_response": payload_dict.get("terminal_response"),
+        "content": (payload_dict.get("terminal_response") or {}).get("content") if isinstance(payload_dict.get("terminal_response"), dict) else None,
+        "context_source": validation.get("context_source"),
+        "sqlite_readback_attempted": validation.get("sqlite_readback_attempted", False),
+        "guidance_preview_ready": validation.get("guidance_action_card_is_valid", False),
+        "routine_candidate_count": validation.get("routine_candidate_count", 0),
+        "llm_called": validation.get("llm_called", False),
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": validation.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": validation.get("sqlite_connection_created", False),
+        "sqlite_tables_created": False,
+        "sqlite_rows_written": False,
+        "sqlite_rows_read": validation.get("sqlite_rows_read", 0),
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }

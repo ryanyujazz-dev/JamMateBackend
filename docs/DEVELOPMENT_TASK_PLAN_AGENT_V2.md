@@ -1527,3 +1527,133 @@ Next recommended Agent task:
 ```text
 v2_9_9_agent_context_persistence_sqlite_backend_handoff_completion_pack
 ```
+
+## v2_9_9_agent_context_persistence_sqlite_backend_handoff_completion_pack
+
+Status: completed in Agent track.
+
+Goal: close the `v2_9_x` SQLite backend persistence implementation route with a preview-only handoff completion pack for integration / HarmonyOS / backend联调.
+
+Implemented surfaces:
+
+```text
+GET  /agent/context/persistence-sqlite-backend-handoff-completion-pack/spec
+POST /agent/context/persistence-sqlite-backend-handoff-completion-pack/preview
+CLI  /sqlite-handoff-completion-pack [json_payload]
+CLI  /context-persistence-sqlite-backend-handoff-completion-pack [json_payload]
+docs/AGENT_CONTEXT_PERSISTENCE_SQLITE_BACKEND_HANDOFF_COMPLETION_PACK_V2_9_9.md
+tests/test_v2_9_9_agent_context_persistence_sqlite_backend_handoff_completion_pack.py
+```
+
+Handoff pack content:
+
+```text
+completed_milestones
+api_route_handoff_pack
+terminal_handoff_pack
+harmonyos_handoff_pack
+error_fixture_handoff_pack
+integration_handoff_checklist
+regression_handoff
+boundary_audit
+next_phase_recommendation
+```
+
+Boundary:
+
+```text
+Preview-only handoff report.
+No packaged route execution.
+No SQLite connection/read/write/table/row creation by the pack itself.
+No API/server memory mutation.
+No TerminalChatSession memory write.
+No frontend_fixtures/harmonyos write.
+No HarmonyOS local write.
+No LLM call.
+No tool execution.
+No Routine start.
+No post-session recommendation card.
+No /accompaniment/generate.
+No Engine adapter call.
+No MIDI asset.
+No playback.
+No Engine music generation change.
+No shared documentation/version file change in Agent track.
+```
+
+Next recommended task:
+
+```text
+integration handoff or v2_10_0_agent_context_persistence_backend_db_path_policy_and_migration_guard
+```
+
+## v2_10_0_agent_context_persistence_backend_db_path_policy_and_migration_guard
+
+- Started the Agent `v2_10_x` backend persistence hardening phase after `v2_9_x` SQLite handoff.
+- Added preview-only DB path / schema version / migration guard for backend context persistence.
+- Added `GET /agent/context/persistence-backend-db-path-policy-migration-guard/spec`.
+- Added `POST /agent/context/persistence-backend-db-path-policy-migration-guard/preview`.
+- Added terminal commands `/sqlite-db-policy-guard [json_payload]` and `/context-persistence-backend-db-path-policy-migration-guard [json_payload]`.
+- Defined current schema version `agent_context_sqlite_schema_v1` and required v1 table set without opening SQLite or creating tables.
+- Blocked unsafe DB paths: missing path, parent traversal, production/staging env, prod/secret/token path terms, absolute paths outside `/tmp` and `/mnt/data`, and non-SQLite extensions.
+- Defined allowed preview migration modes: `disabled_preview`, `read_only_existing`, and `create_if_missing_dev_only`; blocked destructive/force/drop/reset/auto production migration modes.
+- Kept the surface preview-only: no SQLite connection/read/write/table creation, no migration execution, no API/server memory mutation, no TerminalChatSession memory mutation, no frontend fixture write, no LLM/tool/Engine/Routine/MIDI/playback side effects.
+- Added `docs/AGENT_CONTEXT_PERSISTENCE_BACKEND_DB_PATH_POLICY_AND_MIGRATION_GUARD_V2_10_0.md`.
+- Added `tests/test_v2_10_0_agent_context_persistence_backend_db_path_policy_and_migration_guard.py`.
+
+Recommended next Agent task:
+
+```text
+v2_10_1_agent_context_persistence_backend_schema_metadata_table_preview
+```
+
+## v2_10_1_agent_context_persistence_backend_schema_metadata_table_preview
+
+- Added preview-only schema metadata / migration registry table contract for Agent backend context persistence.
+- Added `GET /agent/context/persistence-backend-schema-metadata-table-preview/spec`.
+- Added `POST /agent/context/persistence-backend-schema-metadata-table-preview/preview`.
+- Added terminal commands `/sqlite-schema-metadata-preview [json_payload]` and `/context-persistence-backend-schema-metadata-table-preview [json_payload]`.
+- Defined `agent_context_sqlite_schema_metadata_v1` as the future metadata schema version.
+- Previewed `context_persistence_schema_metadata`, `context_persistence_migration_registry`, and `context_persistence_schema_validation_events` without creating them.
+- Composed `v2_10_0` DB path / schema / migration guard as a prerequisite.
+- Preserved Agent no-side-effect boundaries: no SQLite open/read/write/table creation, no schema creation, no migration execution, no server/terminal memory mutation, no frontend fixture write, no LLM/tool/Engine/Routine/MIDI/playback side effects.
+
+Recommended next Agent task:
+
+```text
+v2_10_2_agent_context_persistence_backend_schema_metadata_migration_dry_run_plan
+```
+
+## v2_10_2_agent_usable_today_practice_guidance_mvp
+
+- User-facing MVP milestone after the v2_9 SQLite persistence handoff and v2_10 guard previews.
+- Ordinary terminal input such as `今天该练什么？` can now auto-read SQLite context when `--context-db-path` or `JAMMATE_AGENT_CONTEXT_DB_PATH` is configured.
+- Added API preview route for the same product-facing flow: `POST /agent/context/usable-today-practice-guidance-mvp/preview`.
+- Added clear fresh-install/no-context behavior so the Agent gives an actionable message instead of leaking internal autoload/readback commands.
+- Reused the existing SQLite backend readback, persisted-context recovery, terminal-chat guidance, and action-card validation layers.
+- Maintained Agent/Engine boundary: no Engine code, no MIDI/playback generation, no Routine start, no HarmonyOS local storage write.
+
+Next recommended task:
+
+```text
+v2_10_3_agent_routine_completion_record_to_backend_context_write_mvp
+```
+
+Purpose: close the first usable context loop by saving practice-completion summaries to backend context, so future `今天该练什么？` recommendations can be driven by actual completed practice.
+
+## v2_10_3_agent_routine_completion_record_to_backend_context_write_mvp
+
+- Closed the first usable Agent context loop by adding a completed-practice write entry.
+- A client can now submit one `routineCompletionRecord` after a Routine/practice session finishes.
+- The backend persists that record as `routine_history_records` through the existing SQLite backend store.
+- Future ordinary `今天该练什么？` turns can recover this history through `v2_10_2` usable guidance.
+- The milestone is intentionally product-facing, not another preview/debug pack.
+- Boundaries remain strict: no Engine change, no MIDI/playback generation, no Routine start, no HarmonyOS local-state write, no LLM/tool execution.
+
+Next recommended task:
+
+```text
+v2_10_4_agent_routine_completion_to_today_guidance_product_smoke
+```
+
+Purpose: create a compact product smoke verification for the real user loop: plan/profile context exists -> completion record is written -> ordinary guidance reads it and adjusts the next recommendation.
