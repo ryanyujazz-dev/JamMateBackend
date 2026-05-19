@@ -51,6 +51,8 @@ from jammate_agent.core.tool_invocation import (
     CONTEXT_PERSISTENCE_BACKEND_SCHEMA_METADATA_TABLE_PREVIEW_VERSION,
     AGENT_USABLE_TODAY_PRACTICE_GUIDANCE_MVP_VERSION,
     AGENT_ROUTINE_COMPLETION_RECORD_TO_BACKEND_CONTEXT_WRITE_MVP_VERSION,
+    AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION,
+    AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
     build_routine_history_context_intake_payload,
     build_active_practice_plan_context_intake_payload,
     build_user_practice_profile_context_intake_payload,
@@ -116,6 +118,7 @@ class CapabilityManifest:
     supports_context_persistence_backend_schema_metadata_table_preview: bool = True
     supports_agent_usable_today_practice_guidance_mvp: bool = True
     supports_agent_routine_completion_record_to_backend_context_write_mvp: bool = True
+    supports_agent_routine_completion_to_today_guidance_product_smoke: bool = True
     direct_client_paths: list[str] = field(default_factory=lambda: ["/accompaniment/generate", "/agent/practice/plan", "/agent/playback/prepare"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -173,6 +176,7 @@ class CapabilityManifest:
             "supports_context_persistence_backend_schema_metadata_table_preview": self.supports_context_persistence_backend_schema_metadata_table_preview,
             "supports_agent_usable_today_practice_guidance_mvp": self.supports_agent_usable_today_practice_guidance_mvp,
             "supports_agent_routine_completion_record_to_backend_context_write_mvp": self.supports_agent_routine_completion_record_to_backend_context_write_mvp,
+            "supports_agent_routine_completion_to_today_guidance_product_smoke": self.supports_agent_routine_completion_to_today_guidance_product_smoke,
             "direct_client_paths": list(self.direct_client_paths),
         }
 
@@ -412,6 +416,8 @@ class ContextBuilder:
                 "context_persistence_backend_schema_metadata_table_preview_version": CONTEXT_PERSISTENCE_BACKEND_SCHEMA_METADATA_TABLE_PREVIEW_VERSION,
                 "agent_usable_today_practice_guidance_mvp_version": AGENT_USABLE_TODAY_PRACTICE_GUIDANCE_MVP_VERSION,
                 "agent_routine_completion_record_to_backend_context_write_mvp_version": AGENT_ROUTINE_COMPLETION_RECORD_TO_BACKEND_CONTEXT_WRITE_MVP_VERSION,
+                "agent_routine_completion_to_today_guidance_product_smoke_version": AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION,
+                "agent_harmonyos_today_guidance_api_contract_alignment_version": AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
                 "context_persistence_snapshot_context_intake_present": bool(snapshot_context_intake),
                 "routine_history_context_present": bool(routine_history_context),
                 "active_practice_plan_context_present": bool(active_practice_plan_context),

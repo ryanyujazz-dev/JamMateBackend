@@ -1,3 +1,24 @@
+
+
+## v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
+
+- Added HarmonyOS-facing API contract alignment for the usable Agent loop.
+- Added `GET /agent/harmonyos/today-guidance-api-contract-alignment/spec`.
+- Added `POST /agent/harmonyos/today-guidance-api-contract-alignment/preview`.
+- Added product wrapper route `POST /agent/harmonyos/today-practice-guidance/preview`, reusing v2_10_2 usable today-practice guidance.
+- Added product wrapper route `POST /agent/harmonyos/routine-completion-record/execute`, reusing v2_10_3 Routine completion record persistence.
+- Normalized HarmonyOS responses to `{ok, code, message, data, debug, safety}` with camelCase data/debug fields.
+- Kept internal payloads available only under optional debug payloads; product clients should read `data` and `safety`.
+- Preserved boundaries: today guidance preview is read/display-only; completion record execute may write backend SQLite only after explicit client confirmation; neither route writes HarmonyOS local state, starts Routine, calls Engine, creates MIDI, starts playback, or creates post-session recommendation cards.
+- Added terminal `/harmonyos-today-guidance-api-contract [json_payload]` for contract inspection.
+- Added `docs/AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_V2_10_5.md`.
+- Added `tests/test_v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment.py`.
+
+Recommended next Agent / integration task:
+
+```text
+integration_handoff_or_v2_10_6_agent_harmonyos_contract_smoke_docs
+```
 ## v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls
 
 - Added terminal-only persisted context memory controls for today-practice guidance testing.
@@ -748,4 +769,23 @@ Recommended next Agent task:
 
 ```text
 v2_10_4_agent_routine_completion_to_today_guidance_product_smoke
+```
+
+## v2_10_4_agent_routine_completion_to_today_guidance_product_smoke
+
+- Added the first compact product smoke for the usable Agent loop.
+- Added `GET /agent/context/routine-completion-to-today-guidance-product-smoke/spec`.
+- Added `POST /agent/context/routine-completion-to-today-guidance-product-smoke/execute`.
+- Added terminal commands `/routine-completion-to-today-guidance-smoke [json_payload]` and `/completion-guidance-smoke [json_payload]`.
+- Composed existing `v2_10_3` Routine completion write with existing `v2_10_2` ordinary today-practice guidance MVP.
+- Added optional confirmed one-call profile/plan seed for deterministic local product smoke testing.
+- Verified that a completed Routine record can be persisted and then read by the next ordinary `今天该练什么？` guidance turn.
+- Preserved strict boundaries: no HarmonyOS local write, no tool execution, no Routine start, no `/accompaniment/generate`, no Engine adapter call, no MIDI asset, no playback, and no post-session recommendation card.
+- Added `docs/AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_V2_10_4.md`.
+- Added `tests/test_v2_10_4_agent_routine_completion_to_today_guidance_product_smoke.py`.
+
+Recommended next Agent / integration task:
+
+```text
+integration handoff or v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
 ```

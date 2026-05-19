@@ -1,3 +1,24 @@
+
+
+## v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
+
+- Added HarmonyOS-facing API contract alignment for the usable Agent loop.
+- Added `GET /agent/harmonyos/today-guidance-api-contract-alignment/spec`.
+- Added `POST /agent/harmonyos/today-guidance-api-contract-alignment/preview`.
+- Added product wrapper route `POST /agent/harmonyos/today-practice-guidance/preview`, reusing v2_10_2 usable today-practice guidance.
+- Added product wrapper route `POST /agent/harmonyos/routine-completion-record/execute`, reusing v2_10_3 Routine completion record persistence.
+- Normalized HarmonyOS responses to `{ok, code, message, data, debug, safety}` with camelCase data/debug fields.
+- Kept internal payloads available only under optional debug payloads; product clients should read `data` and `safety`.
+- Preserved boundaries: today guidance preview is read/display-only; completion record execute may write backend SQLite only after explicit client confirmation; neither route writes HarmonyOS local state, starts Routine, calls Engine, creates MIDI, starts playback, or creates post-session recommendation cards.
+- Added terminal `/harmonyos-today-guidance-api-contract [json_payload]` for contract inspection.
+- Added `docs/AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_V2_10_5.md`.
+- Added `tests/test_v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment.py`.
+
+Recommended next Agent / integration task:
+
+```text
+integration_handoff_or_v2_10_6_agent_harmonyos_contract_smoke_docs
+```
 ## v2_8_18_agent_today_practice_guidance_persisted_context_terminal_memory_controls
 
 - Added terminal-only persisted context memory controls for today-practice guidance testing.
@@ -1657,3 +1678,23 @@ v2_10_4_agent_routine_completion_to_today_guidance_product_smoke
 ```
 
 Purpose: create a compact product smoke verification for the real user loop: plan/profile context exists -> completion record is written -> ordinary guidance reads it and adjusts the next recommendation.
+
+## v2_10_4_agent_routine_completion_to_today_guidance_product_smoke
+
+- Product-facing smoke milestone for the usable Agent loop.
+- The smoke composes:
+  - optional confirmed profile/plan seed,
+  - `v2_10_3` Routine completion record backend context write,
+  - `v2_10_2` ordinary `今天该练什么？` SQLite readback guidance.
+- New API route: `POST /agent/context/routine-completion-to-today-guidance-product-smoke/execute`.
+- New terminal commands: `/routine-completion-to-today-guidance-smoke` and `/completion-guidance-smoke`.
+- Acceptance requires the completion record to be persisted/idempotently replayed and the following guidance turn to use `sqlite_backend` context with a valid display-only action card.
+- No Engine or HarmonyOS fixture changes were made.
+
+Next recommended task:
+
+```text
+integration handoff or v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
+```
+
+Purpose: align the product-facing completion-write and today-guidance routes with the HarmonyOS API contract so the app can call the real loop without relying on developer smoke commands.

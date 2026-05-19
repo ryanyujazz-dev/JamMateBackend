@@ -77,6 +77,8 @@ from jammate_agent.core.contracts import (
     context_persistence_backend_schema_metadata_table_preview_contract,
     agent_usable_today_practice_guidance_mvp_contract,
     agent_routine_completion_record_to_backend_context_write_mvp_contract,
+    agent_routine_completion_to_today_guidance_product_smoke_contract,
+    agent_harmonyos_today_guidance_api_contract_alignment_contract,
     context_engineering_skeleton_contract,
     tool_execution_confirmation_contract,
     tool_executor_boundary_contract,
@@ -166,6 +168,10 @@ from jammate_agent.core.tool_invocation import (
     build_agent_usable_today_practice_guidance_mvp_summary,
     build_agent_routine_completion_record_to_backend_context_write_mvp_payload,
     build_agent_routine_completion_record_to_backend_context_write_mvp_summary,
+    build_agent_routine_completion_to_today_guidance_product_smoke_payload,
+    build_agent_routine_completion_to_today_guidance_product_smoke_summary,
+    build_agent_harmonyos_today_guidance_api_contract_alignment_payload,
+    build_agent_harmonyos_today_guidance_api_contract_alignment_summary,
     build_practice_context_assembly_policy_payload,
     build_practice_context_assembly_policy_summary,
     build_today_practice_context_e2e_payload,
@@ -3010,6 +3016,180 @@ def submit_session_review(request: SessionReviewRequest) -> dict:
 
 
 
+
+def _extract_harmonyos_action_card_payload(agent_payload: dict) -> dict:
+    if not isinstance(agent_payload, dict):
+        return {}
+    sqlite_payload = agent_payload.get("sqlite_today_guidance_payload")
+    if isinstance(sqlite_payload, dict):
+        nested = sqlite_payload.get("today_guidance_recovery_payload")
+        if isinstance(nested, dict):
+            guidance_payload = nested.get("guidance_payload")
+            if isinstance(guidance_payload, dict):
+                action_card = guidance_payload.get("action_card_payload")
+                if isinstance(action_card, dict):
+                    return action_card
+    ordinary_payload = agent_payload.get("ordinary_guidance_payload")
+    if isinstance(ordinary_payload, dict):
+        action_card = ordinary_payload.get("action_card_payload")
+        if isinstance(action_card, dict):
+            return action_card
+    return {}
+
+
+def _harmonyos_safety(*, writes_backend_sqlite: bool = False) -> dict:
+    return {
+        "displayOnly": not writes_backend_sqlite,
+        "backendSQLiteWriteMayOccur": writes_backend_sqlite,
+        "writesHarmonyOSLocalState": False,
+        "startsRoutine": False,
+        "callsAccompanimentGenerate": False,
+        "callsEngineAdapter": False,
+        "createsMidiAsset": False,
+        "startsPlayback": False,
+        "createsPostSessionRecommendationCard": False,
+        "clientDecidesPresentation": True,
+        "frontendFlowAssumption": False,
+    }
+
+
+@router.get("/harmonyos/today-guidance-api-contract-alignment/spec")
+def get_agent_harmonyos_today_guidance_api_contract_alignment_spec() -> dict:
+    return {"ok": True, "spec": agent_harmonyos_today_guidance_api_contract_alignment_contract()}
+
+
+@router.post("/harmonyos/today-guidance-api-contract-alignment/preview")
+def preview_agent_harmonyos_today_guidance_api_contract_alignment_request(request: dict) -> dict:
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_agent_harmonyos_today_guidance_api_contract_alignment_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_harmonyos_today_guidance_api_contract_alignment",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_harmonyos_today_guidance_api_contract_alignment_summary(payload=payload, source="agent_api")
+    return {
+        "ok": bool(summary.get("accepted", False)),
+        "agentHarmonyOSTodayGuidanceApiContractAlignmentVersion": agent_harmonyos_today_guidance_api_contract_alignment_contract()["version"],
+        "payload": payload_dict,
+        "summary": summary,
+        "routeCatalog": payload_dict.get("route_catalog"),
+        "requestContracts": payload_dict.get("request_contracts"),
+        "responseContracts": payload_dict.get("response_contracts"),
+        "safety": _harmonyos_safety(),
+    }
+
+
+@router.post("/harmonyos/today-practice-guidance/preview")
+def preview_harmonyos_today_practice_guidance_request(request: dict) -> dict:
+    """HarmonyOS-facing wrapper for ordinary today-practice guidance.
+
+    This route hides the internal v2_10_2 payload name and returns a stable
+    {ok, code, message, data, debug, safety} response. It may read SQLite
+    context but never writes storage, starts Routine, calls the engine, creates
+    MIDI, or starts playback.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_agent_usable_today_practice_guidance_mvp_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_harmonyos_today_practice_guidance_preview",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_usable_today_practice_guidance_mvp_summary(payload=payload, source="agent_api_harmonyos")
+    terminal_response = payload_dict.get("terminal_response") if isinstance(payload_dict.get("terminal_response"), dict) else {}
+    content = str(terminal_response.get("content") or "今天练什么暂时不可用，请检查上下文数据库或 provider 配置。")
+    guidance_ready = bool(summary.get("guidance_action_card_is_valid", False))
+    ok = bool(summary.get("accepted", False) or content)
+    code = "today_guidance_ready" if guidance_ready else "today_guidance_needs_context_or_provider"
+    action_card_payload = _extract_harmonyos_action_card_payload(payload_dict)
+    return {
+        "ok": ok,
+        "code": code,
+        "message": content,
+        "data": {
+            "content": content,
+            "guidancePreviewReady": guidance_ready,
+            "contextSource": summary.get("context_source"),
+            "actionCardPayload": action_card_payload,
+            "routineCandidateCount": int(summary.get("routine_candidate_count") or 0),
+            "requiresUserConfirmationBeforeRoutineStart": True,
+        },
+        "debug": {
+            "agentHarmonyOSTodayGuidanceApiContractAlignmentVersion": agent_harmonyos_today_guidance_api_contract_alignment_contract()["version"],
+            "underlyingVersion": summary.get("agent_usable_today_practice_guidance_mvp_version"),
+            "validationStatus": summary.get("validation_status"),
+            "sqliteReadbackAttempted": bool(summary.get("sqlite_readback_attempted", False)),
+            "backendDatabaseRead": bool(summary.get("backend_database_read", False)),
+            "sqliteConnectionCreated": bool(summary.get("sqlite_connection_created", False)),
+            "sqliteRowsRead": int(summary.get("sqlite_rows_read") or 0),
+            "llmCalled": bool(summary.get("llm_called", False)),
+            "blockedReasons": list(summary.get("blocked_reasons") or []),
+            "warnings": list(summary.get("warnings") or []),
+            "agentPayload": payload_dict if bool(arguments.get("includeDebugPayload") or arguments.get("include_debug_payload")) else None,
+        },
+        "safety": _harmonyos_safety(),
+    }
+
+
+@router.post("/harmonyos/routine-completion-record/execute")
+def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
+    """HarmonyOS-facing wrapper for completed Routine record persistence."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_agent_routine_completion_record_to_backend_context_write_mvp_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_harmonyos_routine_completion_record_execute",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_routine_completion_record_to_backend_context_write_mvp_summary(payload=payload, source="agent_api_harmonyos")
+    terminal_response = payload_dict.get("terminal_response") if isinstance(payload_dict.get("terminal_response"), dict) else {}
+    content = str(terminal_response.get("content") or "本次练习记录写入不可用。")
+    persisted = bool(summary.get("completion_record_persisted", False))
+    code = "routine_completion_record_persisted" if persisted else "routine_completion_record_blocked"
+    return {
+        "ok": persisted,
+        "code": code,
+        "message": content,
+        "data": {
+            "content": content,
+            "completionRecordPersisted": persisted,
+            "nextTodayGuidanceCanReadHistory": bool(summary.get("next_today_guidance_can_read_history", False)),
+            "idempotentReplay": bool(summary.get("idempotent_replay", False)),
+            "routineCompletionRecord": payload_dict.get("routine_completion_record"),
+        },
+        "debug": {
+            "agentHarmonyOSTodayGuidanceApiContractAlignmentVersion": agent_harmonyos_today_guidance_api_contract_alignment_contract()["version"],
+            "underlyingVersion": summary.get("agent_routine_completion_record_to_backend_context_write_mvp_version"),
+            "validationStatus": summary.get("validation_status"),
+            "backendDatabaseWritten": bool(summary.get("backend_database_written", False)),
+            "backendDatabaseRead": bool(summary.get("backend_database_read", False)),
+            "sqliteConnectionCreated": bool(summary.get("sqlite_connection_created", False)),
+            "sqliteTablesCreated": bool(summary.get("sqlite_tables_created", False)),
+            "sqliteRowsWritten": bool(summary.get("sqlite_rows_written", False)),
+            "sqliteRowCountWritten": int(summary.get("sqlite_row_count_written") or 0),
+            "sqliteRowsRead": int(summary.get("sqlite_rows_read") or 0),
+            "durableBackendWriteExecuted": bool(summary.get("durable_backend_write_executed", False)),
+            "transactionCommitted": bool(summary.get("transaction_committed", False)),
+            "blockedReasons": list(summary.get("blocked_reasons") or []),
+            "warnings": list(summary.get("warnings") or []),
+            "agentPayload": payload_dict if bool(arguments.get("includeDebugPayload") or arguments.get("include_debug_payload")) else None,
+        },
+        "safety": _harmonyos_safety(writes_backend_sqlite=True),
+    }
+
+
 @router.get("/context/routine-completion-record-to-backend-context-write-mvp/spec")
 def get_agent_routine_completion_record_to_backend_context_write_mvp_spec() -> dict:
     return {"ok": True, "spec": agent_routine_completion_record_to_backend_context_write_mvp_contract()}
@@ -3047,6 +3227,61 @@ def execute_agent_routine_completion_record_to_backend_context_write_mvp_request
         "completion_record_persisted": summary.get("completion_record_persisted", False),
         "next_today_guidance_can_read_history": summary.get("next_today_guidance_can_read_history", False),
         "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "storage_written": summary.get("storage_written", False),
+        "backend_database_written": summary.get("backend_database_written", False),
+        "backend_database_read": summary.get("backend_database_read", False),
+        "local_device_written": False,
+        "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+        "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+        "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+        "sqlite_row_count_written": summary.get("sqlite_row_count_written", 0),
+        "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+        "durable_backend_write_executed": summary.get("durable_backend_write_executed", False),
+        "transaction_committed": summary.get("transaction_committed", False),
+        "idempotent_replay": summary.get("idempotent_replay", False),
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+    }
+
+
+@router.get("/context/routine-completion-to-today-guidance-product-smoke/spec")
+def get_agent_routine_completion_to_today_guidance_product_smoke_spec() -> dict:
+    return {"ok": True, "spec": agent_routine_completion_to_today_guidance_product_smoke_contract()}
+
+
+@router.post("/context/routine-completion-to-today-guidance-product-smoke/execute")
+def execute_agent_routine_completion_to_today_guidance_product_smoke_request(request: dict) -> dict:
+    """Run product smoke: completion record write then ordinary today guidance."""
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    payload = build_agent_routine_completion_to_today_guidance_product_smoke_payload(
+        arguments,
+        trace_id=trace_id,
+        source="agent_api_routine_completion_to_today_guidance_product_smoke",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_routine_completion_to_today_guidance_product_smoke_summary(payload=payload, source="agent_api")
+    return {
+        "ok": bool(summary.get("accepted", False)),
+        "agent_routine_completion_to_today_guidance_product_smoke_version": agent_routine_completion_to_today_guidance_product_smoke_contract()["version"],
+        "agent_routine_completion_to_today_guidance_product_smoke_payload": payload_dict,
+        "agent_routine_completion_to_today_guidance_product_smoke_summary": summary,
+        "terminal_response": payload_dict.get("terminal_response"),
+        "content": (payload_dict.get("terminal_response") or {}).get("content") if isinstance(payload_dict.get("terminal_response"), dict) else None,
+        "completion_record_persisted": summary.get("completion_record_persisted", False),
+        "guidance_preview_ready": summary.get("guidance_preview_ready", False),
+        "recent_completion_history_read_by_guidance": summary.get("recent_completion_history_read_by_guidance", False),
+        "routine_candidate_count": summary.get("routine_candidate_count", 0),
+        "llm_called": summary.get("llm_called", False),
         "tool_executed": False,
         "route_called": False,
         "storage_written": summary.get("storage_written", False),

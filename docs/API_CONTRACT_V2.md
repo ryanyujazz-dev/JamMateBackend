@@ -166,6 +166,124 @@ POST /agent/session/review
 
 Returns a next-step recommendation based on submitted review data.
 
+
+
+### HarmonyOS Agent today practice guidance
+
+```text
+POST /agent/harmonyos/today-practice-guidance/preview
+```
+
+Use this when the user asks “今天该练什么？” from HarmonyOS. The route may read backend SQLite context but must not start a Routine, call `/accompaniment/generate`, call the Engine adapter, create MIDI, or start playback.
+
+Example request:
+
+```json
+{
+  "userId": "dev_user",
+  "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
+  "environment": "test",
+  "userInput": "今天该练什么？",
+  "availableMinutes": 25
+}
+```
+
+Expected response shape:
+
+```json
+{
+  "ok": true,
+  "code": "today_guidance_ready",
+  "message": "...",
+  "data": {
+    "content": "...",
+    "guidancePreviewReady": true,
+    "contextSource": "sqlite_backend",
+    "actionCardPayload": {},
+    "routineCandidateCount": 1,
+    "requiresUserConfirmationBeforeRoutineStart": true
+  },
+  "debug": {},
+  "safety": {
+    "backendSQLiteWriteMayOccur": false,
+    "writesHarmonyOSLocalState": false,
+    "startsRoutine": false,
+    "callsAccompanimentGenerate": false,
+    "callsEngineAdapter": false,
+    "createsMidiAsset": false,
+    "startsPlayback": false
+  }
+}
+```
+
+
+Runtime smoke:
+
+```bash
+cd frontend_fixtures/harmonyos/smoke
+bash curl_agent_today_guidance_runtime_smoke.sh \
+  http://127.0.0.1:8000 \
+  /tmp/jammate_agent_harmonyos_today_guidance_runtime_smoke.sqlite
+```
+
+The strict runtime smoke asserts both HarmonyOS Agent product routes and intentionally skips `/accompaniment/generate` and `/agent/playback/prepare`; it is for backend context persistence/readback validation, not playback validation.
+
+---
+
+### HarmonyOS routine completion record persistence
+
+```text
+POST /agent/harmonyos/routine-completion-record/execute
+```
+
+Use this after HarmonyOS has already finished and recorded a practice session locally. The client remains owner of timer/playback/local state; the backend stores only an Agent context record when `clientConfirmedRecordWrite=true`.
+
+Example request:
+
+```json
+{
+  "userId": "dev_user",
+  "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
+  "environment": "test",
+  "clientConfirmedRecordWrite": true,
+  "idempotencyKey": "completion:dev_user:session_001",
+  "routineCompletionRecord": {
+    "sessionId": "session_001",
+    "title": "Medium Swing guide-tone comping",
+    "style": "medium_swing",
+    "tempo": 104,
+    "actualSeconds": 900,
+    "completed": true
+  }
+}
+```
+
+Expected response shape:
+
+```json
+{
+  "ok": true,
+  "code": "routine_completion_record_persisted",
+  "message": "...",
+  "data": {
+    "completionRecordPersisted": true,
+    "nextTodayGuidanceCanReadHistory": true,
+    "idempotentReplay": false,
+    "routineCompletionRecord": {}
+  },
+  "debug": {},
+  "safety": {
+    "backendSQLiteWriteMayOccur": true,
+    "writesHarmonyOSLocalState": false,
+    "startsRoutine": false,
+    "callsAccompanimentGenerate": false,
+    "callsEngineAdapter": false,
+    "createsMidiAsset": false,
+    "startsPlayback": false
+  }
+}
+```
+
 ---
 
 ## Contract / Fixture Endpoints

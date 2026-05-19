@@ -33,3 +33,37 @@ bash curl_smoke.sh http://127.0.0.1:8000
 ## Playback rule
 
 Practice duration is owned by HarmonyOS local timer. The returned MIDI asset should be looped when `playbackInstruction.clientLoopUntilTargetDuration === true`.
+
+
+## HarmonyOS Agent today guidance integration smoke
+
+`v2_10_6` adds two product-facing Agent routes for the practice-coach loop:
+
+```text
+POST /agent/harmonyos/routine-completion-record/execute
+POST /agent/harmonyos/today-practice-guidance/preview
+```
+
+Recommended integration sequence:
+
+1. Practice ends in HarmonyOS.
+2. HarmonyOS keeps its local completion UI/timer state locally.
+3. HarmonyOS calls `routine-completion-record/execute` with `clientConfirmedRecordWrite=true` to persist a backend context record.
+4. When the user later asks “今天该练什么？”, HarmonyOS calls `today-practice-guidance/preview`.
+5. HarmonyOS displays `data.content` and routine candidates, but must still ask for user confirmation before starting any Routine/playback.
+
+The provided smoke payloads use `/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite` and may write a local SQLite file on the Python backend machine. They do not write HarmonyOS local state, start a Routine, call `/accompaniment/generate`, create MIDI, or start playback.
+
+```bash
+bash curl_smoke.sh http://127.0.0.1:8000
+```
+
+For a strict runtime smoke that only hits the two HarmonyOS Agent routes and asserts the returned JSON fields, run:
+
+```bash
+bash curl_agent_today_guidance_runtime_smoke.sh \
+  http://127.0.0.1:8000 \
+  /tmp/jammate_agent_harmonyos_today_guidance_runtime_smoke.sqlite
+```
+
+This strict script intentionally does not call `/accompaniment/generate` or any playback route. It writes only the backend SQLite context record when the fixture includes `clientConfirmedRecordWrite=true`, then verifies the next today-guidance preview reads that record back from SQLite.

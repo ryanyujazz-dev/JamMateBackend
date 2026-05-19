@@ -63,6 +63,7 @@ from jammate_agent.core.tool_invocation import (
     CONTEXT_PERSISTENCE_DEV_SQLITE_FIXTURE_WRITE_DRY_RUN_VERSION,
     CONTEXT_PERSISTENCE_DEV_FIXTURE_READBACK_REPLAY_VERSION,
     AGENT_USABLE_TODAY_PRACTICE_GUIDANCE_MVP_VERSION,
+    AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
     AGENT_CONTEXT_DB_PATH_ENV_VAR,
     ToolExecutionConfirmationEnvelope,
     ToolExecutionResult,
@@ -154,6 +155,10 @@ from jammate_agent.core.tool_invocation import (
     build_agent_usable_today_practice_guidance_mvp_summary,
     build_agent_routine_completion_record_to_backend_context_write_mvp_payload,
     build_agent_routine_completion_record_to_backend_context_write_mvp_summary,
+    build_agent_routine_completion_to_today_guidance_product_smoke_payload,
+    build_agent_routine_completion_to_today_guidance_product_smoke_summary,
+    build_agent_harmonyos_today_guidance_api_contract_alignment_payload,
+    build_agent_harmonyos_today_guidance_api_contract_alignment_summary,
     build_context_persistence_profile_plan_history_snapshot_context_intake_payload,
     build_context_persistence_profile_plan_history_snapshot_context_intake_summary,
     build_today_practice_guidance_persisted_context_recovery_e2e_payload,
@@ -200,6 +205,8 @@ from jammate_agent.core.tool_invocation import (
     context_persistence_backend_schema_metadata_table_preview_contract,
     agent_usable_today_practice_guidance_mvp_contract,
     agent_routine_completion_record_to_backend_context_write_mvp_contract,
+    agent_routine_completion_to_today_guidance_product_smoke_contract,
+    agent_harmonyos_today_guidance_api_contract_alignment_contract,
     context_persistence_profile_plan_history_snapshot_context_intake_contract,
     today_practice_guidance_persisted_context_recovery_e2e_contract,
     today_practice_guidance_persisted_context_terminal_memory_controls_contract,
@@ -570,6 +577,45 @@ class TerminalChatSession:
 
 
 
+
+    def harmonyos_today_guidance_api_contract_alignment(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Preview the HarmonyOS-facing today-guidance API contract."""
+
+        trace = self._start_trace("terminal_harmonyos_today_guidance_api_contract_alignment", "/harmonyos-today-guidance-api-contract")
+        payload = build_agent_harmonyos_today_guidance_api_contract_alignment_payload(
+            arguments or {},
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_harmonyos_today_guidance_api_contract_alignment",
+        )
+        payload_dict = payload.to_dict()
+        summary = build_agent_harmonyos_today_guidance_api_contract_alignment_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_harmonyos_today_guidance_api_contract_alignment_payload_built", payload_dict)
+        self._finish_trace(trace, "harmonyos_today_guidance_api_contract_alignment_ready", {"ok": True, "summary": summary, "storage_written": False})
+        return {
+            "ok": True,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/harmonyos-today-guidance-api-contract",
+            "agent_harmonyos_today_guidance_api_contract_alignment_version": AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
+            "payload": payload_dict,
+            "summary": summary,
+            "route_catalog": payload_dict.get("route_catalog"),
+            "request_contracts": payload_dict.get("request_contracts"),
+            "response_contracts": payload_dict.get("response_contracts"),
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "local_device_written": False,
+            "llm_called": False,
+            "tool_executed": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
     def routine_completion_record_to_backend_context_write_mvp(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         """Persist one completed Routine record into backend context."""
 
@@ -614,6 +660,78 @@ class TerminalChatSession:
             "completion_record_persisted": summary.get("completion_record_persisted", False),
             "next_today_guidance_can_read_history": summary.get("next_today_guidance_can_read_history", False),
             "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "storage_written": summary.get("storage_written", False),
+            "backend_database_written": summary.get("backend_database_written", False),
+            "backend_database_read": summary.get("backend_database_read", False),
+            "local_device_written": False,
+            "sqlite_connection_created": summary.get("sqlite_connection_created", False),
+            "sqlite_tables_created": summary.get("sqlite_tables_created", False),
+            "sqlite_rows_written": summary.get("sqlite_rows_written", False),
+            "sqlite_row_count_written": summary.get("sqlite_row_count_written", 0),
+            "sqlite_rows_read": summary.get("sqlite_rows_read", 0),
+            "durable_backend_write_executed": summary.get("durable_backend_write_executed", False),
+            "transaction_committed": summary.get("transaction_committed", False),
+            "idempotent_replay": summary.get("idempotent_replay", False),
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "trace_id": self.last_trace_id,
+            "trace_path": self.last_trace_path,
+        }
+
+    def routine_completion_to_today_guidance_product_smoke(self, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Run product smoke: completion write -> ordinary today guidance readback."""
+
+        trace = self._start_trace("terminal_routine_completion_to_today_guidance_product_smoke", "/completion-guidance-smoke")
+        args = dict(arguments or {})
+        if self.context_db_path and not any(key in args for key in ("sqliteDbPath", "sqlite_db_path", "contextDbPath", "context_db_path")):
+            args["sqliteDbPath"] = self.context_db_path
+        payload = build_agent_routine_completion_to_today_guidance_product_smoke_payload(
+            args,
+            trace_id=trace.trace_id if trace else self.last_trace_id,
+            source="terminal_routine_completion_to_today_guidance_product_smoke",
+            provider=self.provider,
+        )
+        payload_dict = payload.to_dict()
+        self._add_trace_step(trace, "terminal_routine_completion_to_today_guidance_product_smoke_payload_built", payload_dict)
+        summary = build_agent_routine_completion_to_today_guidance_product_smoke_summary(payload=payload, source="terminal_chat_cli")
+        self._add_trace_step(trace, "terminal_routine_completion_to_today_guidance_product_smoke_summary_recorded", summary)
+        terminal_response = payload_dict.get("terminal_response") if isinstance(payload_dict.get("terminal_response"), dict) else {}
+        content = str(terminal_response.get("content") or "练习完成记录到今日建议 smoke 暂时不可用。")
+        self._finish_trace(
+            trace,
+            "routine_completion_to_today_guidance_product_smoke_ready" if summary.get("accepted") else "routine_completion_to_today_guidance_product_smoke_blocked",
+            {
+                "ok": bool(summary.get("accepted")),
+                "command": "/completion-guidance-smoke",
+                "summary": summary,
+                "storage_written": summary.get("storage_written", False),
+                "backend_database_written": summary.get("backend_database_written", False),
+                "backend_database_read": summary.get("backend_database_read", False),
+                "llm_called": summary.get("llm_called", False),
+                "tool_executed": False,
+                "engine_adapter_called": False,
+                "routine_start_enabled": False,
+            },
+        )
+        return {
+            "ok": bool(summary.get("accepted", False)),
+            "content": content,
+            "terminal_chat_version": TERMINAL_CHAT_VERSION,
+            "command": "/completion-guidance-smoke",
+            "agent_routine_completion_to_today_guidance_product_smoke_version": agent_routine_completion_to_today_guidance_product_smoke_contract()["version"],
+            "agent_routine_completion_to_today_guidance_product_smoke_payload": payload_dict,
+            "agent_routine_completion_to_today_guidance_product_smoke_summary": summary,
+            "completion_record_persisted": summary.get("completion_record_persisted", False),
+            "guidance_preview_ready": summary.get("guidance_preview_ready", False),
+            "recent_completion_history_read_by_guidance": summary.get("recent_completion_history_read_by_guidance", False),
+            "routine_candidate_count": summary.get("routine_candidate_count", 0),
+            "llm_called": summary.get("llm_called", False),
             "tool_executed": False,
             "route_called": False,
             "storage_written": summary.get("storage_written", False),
@@ -4126,6 +4244,15 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
         _print_today_practice_guidance_action_card(session.today_practice_guidance_action_card(parsed.get("arguments") or {}), stdout)
         return True
 
+
+    if user_input.startswith("/harmonyos-today-guidance-api-contract"):
+        parsed = _parse_json_payload_command(user_input, "/harmonyos-today-guidance-api-contract")
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_response(session.harmonyos_today_guidance_api_contract_alignment(parsed.get("arguments") or {}), stdout)
+        return True
+
     if user_input.startswith("/routine-completion-record-write") or user_input.startswith("/routine-completion-to-backend-context"):
         command_name = "/routine-completion-record-write" if user_input.startswith("/routine-completion-record-write") else "/routine-completion-to-backend-context"
         parsed = _parse_json_payload_command(user_input, command_name)
@@ -4133,6 +4260,15 @@ def _handle_terminal_command(user_input: str, session: TerminalChatSession, stdo
             _print_command_error(parsed, stdout)
             return True
         _print_response(session.routine_completion_record_to_backend_context_write_mvp(parsed.get("arguments") or {}), stdout)
+        return True
+
+    if user_input.startswith("/routine-completion-to-today-guidance-smoke") or user_input.startswith("/completion-guidance-smoke"):
+        command_name = "/routine-completion-to-today-guidance-smoke" if user_input.startswith("/routine-completion-to-today-guidance-smoke") else "/completion-guidance-smoke"
+        parsed = _parse_json_payload_command(user_input, command_name)
+        if not parsed["ok"]:
+            _print_command_error(parsed, stdout)
+            return True
+        _print_response(session.routine_completion_to_today_guidance_product_smoke(parsed.get("arguments") or {}), stdout)
         return True
 
     if user_input.startswith("/usable-today-practice-guidance"):

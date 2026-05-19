@@ -73,6 +73,8 @@ CONTEXT_PERSISTENCE_SQLITE_BACKEND_HANDOFF_COMPLETION_PACK_VERSION = "v2_9_9"
 CONTEXT_PERSISTENCE_BACKEND_SCHEMA_METADATA_TABLE_PREVIEW_VERSION = "v2_10_1"
 AGENT_USABLE_TODAY_PRACTICE_GUIDANCE_MVP_VERSION = "v2_10_2"
 AGENT_ROUTINE_COMPLETION_RECORD_TO_BACKEND_CONTEXT_WRITE_MVP_VERSION = "v2_10_3"
+AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION = "v2_10_4"
+AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION = "v2_10_5"
 AGENT_CONTEXT_DB_PATH_ENV_VAR = "JAMMATE_AGENT_CONTEXT_DB_PATH"
 
 
@@ -21076,3 +21078,792 @@ def agent_routine_completion_record_to_backend_context_write_mvp_contract() -> d
         },
         "next_task_hint": "integration_or_v2_10_4_agent_routine_completion_to_today_guidance_product_smoke",
     }
+
+
+
+# v2_10_4 closes the first usable Agent loop as a product smoke: optional
+# existing profile/plan seed, one Routine completion write, then an ordinary
+# 今天该练什么 guidance turn that reads the real backend history. The smoke may
+# write SQLite only through explicit client confirmation gates; it never starts
+# Routine, calls the Engine, creates MIDI, plays audio, or writes HarmonyOS-local
+# state.
+
+@dataclass(frozen=True)
+class AgentRoutineCompletionToTodayGuidanceProductSmokePayload:
+    payload_contract_version: str
+    source: str
+    smoke_id: str
+    sqlite_db_path: str | None
+    user_input: str
+    initial_context_seed_payload: dict[str, Any]
+    initial_context_seed_summary: dict[str, Any]
+    completion_write_payload: dict[str, Any]
+    completion_write_summary: dict[str, Any]
+    guidance_payload: dict[str, Any]
+    guidance_summary: dict[str, Any]
+    terminal_response: dict[str, Any]
+    validation: dict[str, Any]
+    guard_summary: dict[str, Any]
+    trace_id: str | None = None
+    storage_written: bool = False
+    backend_database_written: bool = False
+    backend_database_read: bool = False
+    local_device_written: bool = False
+    sqlite_connection_created: bool = False
+    sqlite_tables_created: bool = False
+    sqlite_rows_written: bool = False
+    sqlite_row_count_written: int = 0
+    sqlite_rows_read: int = 0
+    durable_backend_write_executed: bool = False
+    transaction_committed: bool = False
+    idempotent_replay: bool = False
+    llm_called: bool = False
+    tool_executed: bool = False
+    route_called: bool = False
+    engine_adapter_called: bool = False
+    midi_asset_created: bool = False
+    playback_started: bool = False
+    accompaniment_generate_call_enabled: bool = False
+    routine_start_enabled: bool = False
+    post_session_recommendation_card_created: bool = False
+    client_decides_presentation: bool = True
+    frontend_flow_assumption: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "smoke_id": self.smoke_id,
+            "sqlite_db_path": self.sqlite_db_path,
+            "user_input": self.user_input,
+            "initial_context_seed_payload": _redact_sensitive_values(self.initial_context_seed_payload),
+            "initial_context_seed_summary": _redact_sensitive_values(self.initial_context_seed_summary),
+            "completion_write_payload": _redact_sensitive_values(self.completion_write_payload),
+            "completion_write_summary": _redact_sensitive_values(self.completion_write_summary),
+            "guidance_payload": _redact_sensitive_values(self.guidance_payload),
+            "guidance_summary": _redact_sensitive_values(self.guidance_summary),
+            "terminal_response": _redact_sensitive_values(self.terminal_response),
+            "validation": _redact_sensitive_values(self.validation),
+            "guard_summary": _redact_sensitive_values(self.guard_summary),
+            "trace_id": self.trace_id,
+            "storage_written": self.storage_written,
+            "backend_database_written": self.backend_database_written,
+            "backend_database_read": self.backend_database_read,
+            "local_device_written": self.local_device_written,
+            "sqlite_connection_created": self.sqlite_connection_created,
+            "sqlite_tables_created": self.sqlite_tables_created,
+            "sqlite_rows_written": self.sqlite_rows_written,
+            "sqlite_row_count_written": self.sqlite_row_count_written,
+            "sqlite_rows_read": self.sqlite_rows_read,
+            "durable_backend_write_executed": self.durable_backend_write_executed,
+            "transaction_committed": self.transaction_committed,
+            "idempotent_replay": self.idempotent_replay,
+            "llm_called": self.llm_called,
+            "tool_executed": self.tool_executed,
+            "route_called": self.route_called,
+            "engine_adapter_called": self.engine_adapter_called,
+            "midi_asset_created": self.midi_asset_created,
+            "playback_started": self.playback_started,
+            "accompaniment_generate_call_enabled": self.accompaniment_generate_call_enabled,
+            "routine_start_enabled": self.routine_start_enabled,
+            "post_session_recommendation_card_created": self.post_session_recommendation_card_created,
+            "client_decides_presentation": self.client_decides_presentation,
+            "frontend_flow_assumption": self.frontend_flow_assumption,
+        }
+
+
+def _maybe_build_product_smoke_initial_context_seed(
+    args: dict[str, Any],
+    *,
+    sqlite_db_path: str | None,
+    user_id: str,
+    trace_id: str | None,
+) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    """Optionally seed profile/plan so the product smoke is one-call testable."""
+
+    warnings: list[str] = []
+    profile = _first_present(args, "userPracticeProfile", "user_practice_profile", "profile")
+    plan = _first_present(args, "practicePlan", "practice_plan", "activePracticePlan", "active_practice_plan")
+    seed_requested = _coerce_bool(_first_present(args, "seedInitialContext", "seed_initial_context")) or isinstance(profile, dict) or isinstance(plan, dict)
+    seed_confirmed = _coerce_bool(_first_present(args, "clientConfirmedInitialContextSeed", "client_confirmed_initial_context_seed"))
+    if not seed_requested:
+        return {}, {"accepted": True, "seed_requested": False, "seed_executed": False, "storage_written": False, "backend_database_written": False, "sqlite_rows_written": False, "warnings": [], "blocked_reasons": []}, warnings
+    if not seed_confirmed:
+        warnings.append("initial_context_seed_skipped_without_client_confirmation")
+        return {}, {"accepted": False, "seed_requested": True, "seed_executed": False, "storage_written": False, "backend_database_written": False, "sqlite_rows_written": False, "warnings": warnings, "blocked_reasons": ["client_confirmed_initial_context_seed_required"]}, warnings
+    if not sqlite_db_path:
+        warnings.append("initial_context_seed_skipped_without_sqlite_db_path")
+        return {}, {"accepted": False, "seed_requested": True, "seed_executed": False, "storage_written": False, "backend_database_written": False, "sqlite_rows_written": False, "warnings": warnings, "blocked_reasons": ["sqlite_db_path_required"]}, warnings
+    entities: list[str] = []
+    seed_args: dict[str, Any] = {
+        "backendPersistenceEnabled": True,
+        "executeBackendPersistence": True,
+        "sqliteDbPath": sqlite_db_path,
+        "environment": str(_first_present(args, "environment", "env") or "test"),
+        "userDecision": "approved",
+        "confirmationStatus": "user_approved_future_executor_required",
+        "traceId": trace_id or str(_first_present(args, "traceId", "trace_id") or f"trace_product_smoke_seed_{uuid4().hex[:8]}"),
+        "idempotencyKey": str(_first_present(args, "initialContextIdempotencyKey", "initial_context_idempotency_key") or f"product_smoke_seed:{user_id}"),
+        "userId": user_id,
+        "candidateKind": "practice_plan_persistence_candidate",
+        "candidateId": str(_first_present(args, "initialContextCandidateId", "initial_context_candidate_id") or f"product_smoke_initial_context_{user_id}"),
+        "confirmationId": str(_first_present(args, "initialContextConfirmationId", "initial_context_confirmation_id") or f"product_smoke_initial_context_confirmation_{user_id}"),
+    }
+    if isinstance(profile, dict):
+        seed_args["userPracticeProfile"] = profile
+        entities.append("user_practice_profile")
+    if isinstance(plan, dict):
+        seed_args["practicePlan"] = plan
+        entities.append("active_practice_plan")
+    if not entities:
+        warnings.append("initial_context_seed_has_no_profile_or_plan")
+        return {}, {"accepted": False, "seed_requested": True, "seed_executed": False, "storage_written": False, "backend_database_written": False, "sqlite_rows_written": False, "warnings": warnings, "blocked_reasons": ["profile_or_plan_required_for_seed"]}, warnings
+    seed_args["entities"] = entities
+    seed_obj = build_context_persistence_sqlite_backend_store_payload(
+        seed_args,
+        trace_id=trace_id,
+        source="routine_completion_to_today_guidance_product_smoke_initial_context_seed",
+    )
+    seed_payload = seed_obj.to_dict()
+    seed_summary = build_context_persistence_sqlite_backend_store_summary(
+        payload=seed_obj,
+        source="routine_completion_to_today_guidance_product_smoke",
+    )
+    seed_summary = {
+        **seed_summary,
+        "seed_requested": True,
+        "seed_executed": bool(seed_summary.get("accepted", False)),
+        "seed_entities": list(entities),
+    }
+    return seed_payload, seed_summary, warnings + list(seed_summary.get("warnings") or [])
+
+
+def _routine_completion_to_today_guidance_terminal_response(
+    *,
+    accepted: bool,
+    completion_summary: dict[str, Any],
+    guidance_summary: dict[str, Any],
+    guidance_payload: dict[str, Any],
+    blocked_reasons: list[str],
+    warnings: list[str],
+) -> dict[str, Any]:
+    nested_terminal = guidance_payload.get("terminal_response") if isinstance(guidance_payload.get("terminal_response"), dict) else {}
+    if accepted:
+        content = str(nested_terminal.get("content") or "已记录本次练习，并已基于完成历史生成今日下一步建议。")
+    elif not completion_summary.get("completion_record_persisted"):
+        content = "本次练习完成记录还没有写入后端上下文；请检查 sqliteDbPath 与 clientConfirmedRecordWrite。"
+    else:
+        content = "本次练习已记录，但下一步练习建议暂时不可用；请检查 providerResult/provider 或上下文 readback。"
+    return {
+        "content": content,
+        "status": "routine_completion_to_today_guidance_product_smoke_ready" if accepted else "routine_completion_to_today_guidance_product_smoke_blocked",
+        "completion_record_persisted": bool(completion_summary.get("completion_record_persisted", False)),
+        "guidance_preview_ready": bool(guidance_summary.get("guidance_action_card_is_valid", False)),
+        "routine_candidate_count": int(guidance_summary.get("routine_candidate_count") or 0),
+        "requires_separate_user_confirmation_before_routine_start": True,
+        "client_decides_presentation": True,
+        "display_only_guidance": True,
+        "warnings": list(dict.fromkeys(warnings)),
+        "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
+    }
+
+
+def build_agent_routine_completion_to_today_guidance_product_smoke_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "agent_routine_completion_to_today_guidance_product_smoke",
+    provider: Any | None = None,
+) -> AgentRoutineCompletionToTodayGuidanceProductSmokePayload:
+    """Run the first usable Agent product smoke from completion write to guidance.
+
+    Chain:
+    1. Optional confirmed initial profile/plan seed for one-call testability.
+    2. v2_10_3 Routine completion record backend write.
+    3. v2_10_2 ordinary today-practice guidance MVP readback.
+    """
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    smoke_id = str(_first_present(args, "smoke_id", "smokeId") or f"routine_completion_today_guidance_smoke_{uuid4().hex[:12]}")
+    sqlite_db_path = _agent_usable_today_context_db_path(args)
+    user_input = str(_first_present(args, "userInput", "user_input", "todayGuidanceUserInput", "today_guidance_user_input") or "今天该练什么？")
+    routine_record = _first_present(args, "routineCompletionRecord", "routine_completion_record")
+    user_id = str(_first_present(args, "userId", "user_id") or (routine_record.get("userId") if isinstance(routine_record, dict) else None) or "local_user")
+
+    seed_payload, seed_summary, seed_warnings = _maybe_build_product_smoke_initial_context_seed(
+        args,
+        sqlite_db_path=sqlite_db_path,
+        user_id=user_id,
+        trace_id=trace,
+    )
+
+    completion_args = dict(args)
+    completion_args.setdefault("userId", user_id)
+    if sqlite_db_path:
+        completion_args.setdefault("sqliteDbPath", sqlite_db_path)
+    completion_obj = build_agent_routine_completion_record_to_backend_context_write_mvp_payload(
+        completion_args,
+        trace_id=trace,
+        source="routine_completion_to_today_guidance_product_smoke_completion_write",
+    )
+    completion_payload = completion_obj.to_dict()
+    completion_summary = build_agent_routine_completion_record_to_backend_context_write_mvp_summary(
+        payload=completion_obj,
+        source="routine_completion_to_today_guidance_product_smoke",
+    )
+
+    guidance_payload: dict[str, Any] = {}
+    guidance_summary: dict[str, Any] = {}
+    completion_ready = bool(completion_summary.get("completion_record_persisted", False))
+    if completion_ready:
+        guidance_args = dict(args)
+        guidance_args["userInput"] = user_input
+        if sqlite_db_path:
+            guidance_args["sqliteDbPath"] = sqlite_db_path
+        guidance_args.setdefault("environment", str(_first_present(args, "environment", "env") or "test"))
+        if provider is not None and "providerResult" not in guidance_args and "provider_result" not in guidance_args and "callProvider" not in guidance_args and "call_provider" not in guidance_args:
+            guidance_args["callProvider"] = True
+        guidance_obj = build_agent_usable_today_practice_guidance_mvp_payload(
+            guidance_args,
+            trace_id=trace,
+            source="routine_completion_to_today_guidance_product_smoke_ordinary_guidance",
+            provider=provider,
+        )
+        guidance_payload = guidance_obj.to_dict()
+        guidance_summary = build_agent_usable_today_practice_guidance_mvp_summary(
+            payload=guidance_obj,
+            source="routine_completion_to_today_guidance_product_smoke",
+        )
+
+    warnings: list[str] = []
+    blocked_reasons: list[str] = []
+    warnings.extend(seed_warnings)
+    warnings.extend(list(completion_summary.get("warnings") or []))
+    warnings.extend(list(guidance_summary.get("warnings") or []))
+    if seed_summary.get("seed_requested") and not seed_summary.get("accepted"):
+        blocked_reasons.append("initial_context_seed_not_accepted")
+    if not completion_ready:
+        blocked_reasons.append("routine_completion_record_not_persisted")
+    if completion_ready and not guidance_payload:
+        blocked_reasons.append("today_guidance_not_built")
+    guidance_ready = bool(guidance_summary.get("guidance_action_card_is_valid", False))
+    if guidance_payload and not guidance_ready:
+        blocked_reasons.append("today_guidance_action_card_not_valid")
+    if guidance_payload and guidance_summary.get("context_source") != "sqlite_backend":
+        blocked_reasons.append("today_guidance_did_not_use_sqlite_backend_context")
+    accepted = not blocked_reasons
+    sqlite_row_count_written = int(seed_summary.get("sqlite_row_count_written") or 0) + int(completion_summary.get("sqlite_row_count_written") or 0)
+    sqlite_rows_written = bool(seed_summary.get("sqlite_rows_written", False) or completion_summary.get("sqlite_rows_written", False))
+    backend_database_written = bool(seed_summary.get("backend_database_written", False) or completion_summary.get("backend_database_written", False))
+    sqlite_connection_created = bool(seed_summary.get("sqlite_connection_created", False) or completion_summary.get("sqlite_connection_created", False) or guidance_summary.get("sqlite_connection_created", False))
+    sqlite_tables_created = bool(seed_summary.get("sqlite_tables_created", False) or completion_summary.get("sqlite_tables_created", False))
+    sqlite_rows_read = int(guidance_summary.get("sqlite_rows_read") or completion_summary.get("sqlite_rows_read") or 0)
+    idempotent_replay = bool(completion_summary.get("idempotent_replay", False))
+    storage_written = bool(seed_summary.get("storage_written", False) or completion_summary.get("storage_written", False))
+    backend_database_read = bool(completion_summary.get("backend_database_read", False) or guidance_summary.get("backend_database_read", False))
+    durable_backend_write_executed = bool(seed_summary.get("durable_backend_write_executed", False) or completion_summary.get("durable_backend_write_executed", False))
+    transaction_committed = bool(seed_summary.get("transaction_committed", False) or completion_summary.get("transaction_committed", False))
+    llm_called = bool(guidance_summary.get("llm_called", False))
+    validation = {
+        "accepted": accepted,
+        "status": "routine_completion_to_today_guidance_product_smoke_ready" if accepted else "routine_completion_to_today_guidance_product_smoke_blocked",
+        "initial_context_seed_requested": bool(seed_summary.get("seed_requested", False)),
+        "initial_context_seed_accepted": bool(seed_summary.get("accepted", True)),
+        "initial_context_seed_written": bool(seed_summary.get("backend_database_written", False) or seed_summary.get("idempotent_replay", False)),
+        "completion_record_persisted": completion_ready,
+        "completion_write_validation_status": completion_summary.get("validation_status"),
+        "guidance_preview_built": bool(guidance_payload),
+        "guidance_preview_ready": guidance_ready,
+        "guidance_context_source": guidance_summary.get("context_source"),
+        "ordinary_today_guidance_used_after_completion_write": bool(guidance_payload),
+        "routine_candidate_count": int(guidance_summary.get("routine_candidate_count") or 0),
+        "recent_completion_history_read_by_guidance": bool(guidance_summary.get("context_source") == "sqlite_backend" and sqlite_rows_read >= 1),
+        "storage_written": storage_written,
+        "backend_database_written": backend_database_written,
+        "backend_database_read": backend_database_read,
+        "local_device_written": False,
+        "sqlite_connection_created": sqlite_connection_created,
+        "sqlite_tables_created": sqlite_tables_created,
+        "sqlite_rows_written": sqlite_rows_written,
+        "sqlite_row_count_written": sqlite_row_count_written,
+        "sqlite_rows_read": sqlite_rows_read,
+        "durable_backend_write_executed": durable_backend_write_executed,
+        "transaction_committed": transaction_committed,
+        "idempotent_replay": idempotent_replay,
+        "llm_called": llm_called,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": list(dict.fromkeys(warnings)),
+        "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
+    }
+    terminal_response = _routine_completion_to_today_guidance_terminal_response(
+        accepted=accepted,
+        completion_summary=completion_summary,
+        guidance_summary=guidance_summary,
+        guidance_payload=guidance_payload,
+        blocked_reasons=list(dict.fromkeys(blocked_reasons)),
+        warnings=list(dict.fromkeys(warnings)),
+    )
+    guard = {
+        "agent_routine_completion_to_today_guidance_product_smoke": True,
+        "uses_existing_v2_10_3_completion_write": True,
+        "uses_existing_v2_10_2_usable_today_guidance": True,
+        "initial_context_seed_is_optional_and_confirmed": True,
+        "completion_write_requires_client_confirmation": True,
+        "guidance_is_ordinary_user_entry": True,
+        "guidance_is_display_only": True,
+        "payload_may_write_backend_sqlite_after_explicit_confirmation": backend_database_written,
+        "payload_writes_harmonyos_local_state": False,
+        "payload_executes_tool": False,
+        "payload_starts_routine": False,
+        "payload_calls_accompaniment_generate": False,
+        "payload_calls_engine_adapter": False,
+        "payload_creates_midi_asset": False,
+        "payload_starts_playback": False,
+        "payload_creates_post_session_recommendation_card": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    return AgentRoutineCompletionToTodayGuidanceProductSmokePayload(
+        payload_contract_version=AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION,
+        source=source,
+        smoke_id=smoke_id,
+        sqlite_db_path=sqlite_db_path,
+        user_input=user_input,
+        initial_context_seed_payload=seed_payload,
+        initial_context_seed_summary=seed_summary,
+        completion_write_payload=completion_payload,
+        completion_write_summary=completion_summary,
+        guidance_payload=guidance_payload,
+        guidance_summary=guidance_summary,
+        terminal_response=terminal_response,
+        validation=validation,
+        guard_summary=guard,
+        trace_id=trace,
+        storage_written=storage_written,
+        backend_database_written=backend_database_written,
+        backend_database_read=backend_database_read,
+        sqlite_connection_created=sqlite_connection_created,
+        sqlite_tables_created=sqlite_tables_created,
+        sqlite_rows_written=sqlite_rows_written,
+        sqlite_row_count_written=sqlite_row_count_written,
+        sqlite_rows_read=sqlite_rows_read,
+        durable_backend_write_executed=durable_backend_write_executed,
+        transaction_committed=transaction_committed,
+        idempotent_replay=idempotent_replay,
+        llm_called=llm_called,
+        engine_adapter_called=False,
+        midi_asset_created=False,
+        playback_started=False,
+        accompaniment_generate_call_enabled=False,
+        routine_start_enabled=False,
+        post_session_recommendation_card_created=False,
+    )
+
+
+def build_agent_routine_completion_to_today_guidance_product_smoke_summary(
+    *,
+    payload: AgentRoutineCompletionToTodayGuidanceProductSmokePayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else build_agent_routine_completion_to_today_guidance_product_smoke_payload({}, source=source).to_dict()
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    completion_summary = data.get("completion_write_summary") if isinstance(data.get("completion_write_summary"), dict) else {}
+    guidance_summary = data.get("guidance_summary") if isinstance(data.get("guidance_summary"), dict) else {}
+    seed_summary = data.get("initial_context_seed_summary") if isinstance(data.get("initial_context_seed_summary"), dict) else {}
+    return {
+        "agent_routine_completion_to_today_guidance_product_smoke_version": AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION,
+        "source": source,
+        "validation_status": validation.get("status"),
+        "accepted": bool(validation.get("accepted", False)),
+        "smoke_id": data.get("smoke_id"),
+        "sqlite_db_path": data.get("sqlite_db_path"),
+        "initial_context_seed_requested": bool(validation.get("initial_context_seed_requested", False)),
+        "initial_context_seed_written": bool(validation.get("initial_context_seed_written", False)),
+        "completion_record_persisted": bool(validation.get("completion_record_persisted", False)),
+        "completion_write_validation_status": validation.get("completion_write_validation_status"),
+        "guidance_preview_built": bool(validation.get("guidance_preview_built", False)),
+        "guidance_preview_ready": bool(validation.get("guidance_preview_ready", False)),
+        "guidance_context_source": validation.get("guidance_context_source"),
+        "recent_completion_history_read_by_guidance": bool(validation.get("recent_completion_history_read_by_guidance", False)),
+        "routine_candidate_count": int(validation.get("routine_candidate_count") or 0),
+        "routine_title": completion_summary.get("routine_title"),
+        "guidance_validation_status": guidance_summary.get("validation_status"),
+        "seed_validation_status": seed_summary.get("validation_status") or seed_summary.get("status"),
+        "storage_written": bool(validation.get("storage_written", False)),
+        "backend_database_written": bool(validation.get("backend_database_written", False)),
+        "backend_database_read": bool(validation.get("backend_database_read", False)),
+        "local_device_written": False,
+        "sqlite_connection_created": bool(validation.get("sqlite_connection_created", False)),
+        "sqlite_tables_created": bool(validation.get("sqlite_tables_created", False)),
+        "sqlite_rows_written": bool(validation.get("sqlite_rows_written", False)),
+        "sqlite_row_count_written": int(validation.get("sqlite_row_count_written") or 0),
+        "sqlite_rows_read": int(validation.get("sqlite_rows_read") or 0),
+        "durable_backend_write_executed": bool(validation.get("durable_backend_write_executed", False)),
+        "transaction_committed": bool(validation.get("transaction_committed", False)),
+        "idempotent_replay": bool(validation.get("idempotent_replay", False)),
+        "llm_called": bool(validation.get("llm_called", False)),
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "accompaniment_generate_call_enabled": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def agent_routine_completion_to_today_guidance_product_smoke_contract() -> dict[str, Any]:
+    return {
+        "version": AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION,
+        "agent_routine_completion_to_today_guidance_product_smoke_version": AGENT_ROUTINE_COMPLETION_TO_TODAY_GUIDANCE_PRODUCT_SMOKE_VERSION,
+        "spec_route": "GET /agent/context/routine-completion-to-today-guidance-product-smoke/spec",
+        "execute_route": "POST /agent/context/routine-completion-to-today-guidance-product-smoke/execute",
+        "terminal_command": "/routine-completion-to-today-guidance-smoke",
+        "short_terminal_command": "/completion-guidance-smoke",
+        "surface": "Usable Agent product smoke: routine completion write -> ordinary today guidance",
+        "mode": "confirmed_completion_record_write_then_ordinary_sqlite_readback_today_guidance",
+        "execution_status": {
+            "product_smoke_implemented": True,
+            "can_optionally_seed_profile_plan_context": True,
+            "completion_record_write_enabled_after_explicit_client_confirmation": True,
+            "ordinary_today_guidance_readback_enabled": True,
+            "guidance_display_only": True,
+            "local_device_write_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "minimum_request": {
+            "sqliteDbPath": "relative or /tmp or /mnt/data SQLite path",
+            "environment": "test",
+            "clientConfirmedRecordWrite": True,
+            "routineCompletionRecord": {"sessionId": "...", "title": "...", "actualSeconds": 900, "completed": True},
+            "userInput": "今天该练什么？",
+            "providerResult": "fixture provider result for deterministic smoke, or callProvider=true with configured provider",
+        },
+        "optional_one_call_seed": {
+            "seedInitialContext": True,
+            "clientConfirmedInitialContextSeed": True,
+            "userPracticeProfile": "optional profile object",
+            "practicePlan": "optional active plan object",
+        },
+        "guards": {
+            "sqlite_write_requires_explicit_client_confirmation": True,
+            "completion_history_is_written_to_backend_context": True,
+            "guidance_is_display_only": True,
+            "payload_writes_harmonyos_local_state": False,
+            "payload_executes_tool": False,
+            "payload_starts_routine": False,
+            "payload_calls_accompaniment_generate": False,
+            "payload_calls_engine_adapter": False,
+            "payload_creates_midi_asset": False,
+            "payload_starts_playback": False,
+            "payload_creates_post_session_recommendation_card": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        },
+        "uses_contracts": {
+            "routine_completion_record_write_mvp": AGENT_ROUTINE_COMPLETION_RECORD_TO_BACKEND_CONTEXT_WRITE_MVP_VERSION,
+            "usable_today_practice_guidance_mvp": AGENT_USABLE_TODAY_PRACTICE_GUIDANCE_MVP_VERSION,
+            "sqlite_backend_store": CONTEXT_PERSISTENCE_SQLITE_BACKEND_STORE_VERSION,
+        },
+        "next_task_hint": "integration_handoff_or_v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment",
+    }
+
+@dataclass(frozen=True)
+class AgentHarmonyOSTodayGuidanceAPIContractAlignmentPayload:
+    """v2_10_5 HarmonyOS-facing API contract alignment.
+
+    This contract narrows the product-facing Agent surface to two stable
+    HarmonyOS routes: one for completed Routine records and one for ordinary
+    today-practice guidance. It does not execute either route; the executable
+    wrappers live in the API router and reuse the v2_10_2/v2_10_3 builders.
+    """
+
+    payload_contract_version: str
+    source: str
+    alignment_id: str
+    route_catalog: dict[str, Any]
+    request_contracts: dict[str, Any]
+    response_contracts: dict[str, Any]
+    frontend_state_ownership: dict[str, Any]
+    safety_contract: dict[str, Any]
+    migration_notes: dict[str, Any]
+    validation: dict[str, Any]
+    trace_id: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "payload_contract_version": self.payload_contract_version,
+            "source": self.source,
+            "alignment_id": self.alignment_id,
+            "route_catalog": _redact_sensitive_values(self.route_catalog),
+            "request_contracts": _redact_sensitive_values(self.request_contracts),
+            "response_contracts": _redact_sensitive_values(self.response_contracts),
+            "frontend_state_ownership": _redact_sensitive_values(self.frontend_state_ownership),
+            "safety_contract": _redact_sensitive_values(self.safety_contract),
+            "migration_notes": _redact_sensitive_values(self.migration_notes),
+            "validation": _redact_sensitive_values(self.validation),
+            "trace_id": self.trace_id,
+            "storage_written": False,
+            "backend_database_written": False,
+            "backend_database_read": False,
+            "local_device_written": False,
+            "sqlite_connection_created": False,
+            "sqlite_tables_created": False,
+            "sqlite_rows_written": False,
+            "sqlite_rows_read": 0,
+            "llm_called": False,
+            "tool_executed": False,
+            "route_called": False,
+            "engine_adapter_called": False,
+            "midi_asset_created": False,
+            "playback_started": False,
+            "accompaniment_generate_call_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_created": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        }
+
+
+def build_agent_harmonyos_today_guidance_api_contract_alignment_payload(
+    arguments: dict[str, Any] | None = None,
+    *,
+    trace_id: str | None = None,
+    source: str = "agent_harmonyos_today_guidance_api_contract_alignment",
+) -> AgentHarmonyOSTodayGuidanceAPIContractAlignmentPayload:
+    """Build the HarmonyOS API alignment packet for today's usable Agent loop."""
+
+    args = dict(arguments or {})
+    trace = trace_id or args.get("trace_id") or args.get("traceId")
+    alignment_id = str(_first_present(args, "alignment_id", "alignmentId") or f"harmonyos_today_guidance_api_alignment_{uuid4().hex[:12]}")
+    route_catalog = {
+        "spec": "GET /agent/harmonyos/today-guidance-api-contract-alignment/spec",
+        "contract_preview": "POST /agent/harmonyos/today-guidance-api-contract-alignment/preview",
+        "today_guidance_preview": "POST /agent/harmonyos/today-practice-guidance/preview",
+        "routine_completion_record_execute": "POST /agent/harmonyos/routine-completion-record/execute",
+        "legacy_underlying_today_guidance_preview": "POST /agent/context/usable-today-practice-guidance-mvp/preview",
+        "legacy_underlying_completion_write_execute": "POST /agent/context/routine-completion-record-to-backend-context-write-mvp/execute",
+    }
+    request_contracts = {
+        "today_guidance_preview": {
+            "required": ["userInput"],
+            "recommended": ["userId", "sqliteDbPath", "environment", "availableMinutes"],
+            "optional": ["providerResult", "callProvider", "traceId"],
+            "camel_case_preferred": True,
+            "minimal_example": {
+                "userId": "dev_user",
+                "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
+                "environment": "test",
+                "userInput": "今天该练什么？",
+                "availableMinutes": 25,
+            },
+        },
+        "routine_completion_record_execute": {
+            "required": ["sqliteDbPath", "clientConfirmedRecordWrite", "routineCompletionRecord"],
+            "recommended": ["userId", "environment", "idempotencyKey"],
+            "optional": ["traceId", "userPracticeProfile", "practicePlan"],
+            "camel_case_preferred": True,
+            "minimal_example": {
+                "userId": "dev_user",
+                "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
+                "environment": "test",
+                "clientConfirmedRecordWrite": True,
+                "idempotencyKey": "completion:dev_user:session_001",
+                "routineCompletionRecord": {
+                    "sessionId": "session_001",
+                    "title": "Medium Swing guide-tone comping",
+                    "actualSeconds": 900,
+                    "completed": True,
+                },
+            },
+        },
+    }
+    response_contracts = {
+        "shared_top_level": ["ok", "code", "message", "data", "debug", "safety"],
+        "today_guidance_preview_data": [
+            "content",
+            "guidancePreviewReady",
+            "contextSource",
+            "actionCardPayload",
+            "routineCandidateCount",
+            "requiresUserConfirmationBeforeRoutineStart",
+        ],
+        "routine_completion_record_data": [
+            "completionRecordPersisted",
+            "nextTodayGuidanceCanReadHistory",
+            "idempotentReplay",
+            "routineCompletionRecord",
+        ],
+        "stable_error_codes": [
+            "today_guidance_ready",
+            "today_guidance_needs_context_or_provider",
+            "routine_completion_record_persisted",
+            "routine_completion_record_blocked",
+        ],
+    }
+    frontend_state_ownership = {
+        "harmonyos_local_routine_timer": "client_owned",
+        "harmonyos_local_playback_state": "client_owned",
+        "midi_asset_cache": "client_owned_or_engine_route_owned_not_agent_owned",
+        "agent_context_database": "backend_owned_when_sqliteDbPath_and_explicit_write_gate_are_provided",
+        "practice_guidance_display": "client_decides_presentation",
+    }
+    safety_contract = {
+        "today_guidance_preview_writes_storage": False,
+        "routine_completion_record_execute_may_write_backend_sqlite": True,
+        "routine_completion_record_write_requires_clientConfirmedRecordWrite": True,
+        "writes_harmonyos_local_state": False,
+        "starts_routine": False,
+        "calls_accompaniment_generate": False,
+        "calls_engine_adapter": False,
+        "creates_midi_asset": False,
+        "starts_playback": False,
+        "creates_post_session_recommendation_card": False,
+        "client_decides_presentation": True,
+        "frontend_flow_assumption": False,
+    }
+    migration_notes = {
+        "preferred_frontend_routes": [route_catalog["routine_completion_record_execute"], route_catalog["today_guidance_preview"]],
+        "do_not_use_for_product_ui": [route_catalog["legacy_underlying_today_guidance_preview"], route_catalog["legacy_underlying_completion_write_execute"]],
+        "reason": "HarmonyOS wrappers normalize response shape and hide internal v2_10_2/v2_10_3 payload names behind data/debug/safety.",
+    }
+    validation = {
+        "accepted": True,
+        "status": "harmonyos_today_guidance_api_contract_alignment_ready",
+        "product_facing_wrapper_routes_defined": True,
+        "uses_existing_v2_10_2_today_guidance": True,
+        "uses_existing_v2_10_3_completion_record_write": True,
+        "preview_only_contract_packet": True,
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": [],
+        "blocked_reasons": [],
+    }
+    return AgentHarmonyOSTodayGuidanceAPIContractAlignmentPayload(
+        payload_contract_version=AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
+        source=source,
+        alignment_id=alignment_id,
+        route_catalog=route_catalog,
+        request_contracts=request_contracts,
+        response_contracts=response_contracts,
+        frontend_state_ownership=frontend_state_ownership,
+        safety_contract=safety_contract,
+        migration_notes=migration_notes,
+        validation=validation,
+        trace_id=trace,
+    )
+
+
+def build_agent_harmonyos_today_guidance_api_contract_alignment_summary(
+    *,
+    payload: AgentHarmonyOSTodayGuidanceAPIContractAlignmentPayload | None = None,
+    source: str = "terminal_chat_cli",
+) -> dict[str, Any]:
+    data = payload.to_dict() if payload else build_agent_harmonyos_today_guidance_api_contract_alignment_payload({}, source=source).to_dict()
+    validation = data.get("validation") if isinstance(data.get("validation"), dict) else {}
+    route_catalog = data.get("route_catalog") if isinstance(data.get("route_catalog"), dict) else {}
+    return {
+        "agent_harmonyos_today_guidance_api_contract_alignment_version": AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
+        "source": source,
+        "validation_status": validation.get("status"),
+        "accepted": bool(validation.get("accepted", False)),
+        "product_facing_wrapper_routes_defined": bool(validation.get("product_facing_wrapper_routes_defined", False)),
+        "today_guidance_preview_route": route_catalog.get("today_guidance_preview"),
+        "routine_completion_record_execute_route": route_catalog.get("routine_completion_record_execute"),
+        "storage_written": False,
+        "backend_database_written": False,
+        "backend_database_read": False,
+        "local_device_written": False,
+        "llm_called": False,
+        "tool_executed": False,
+        "route_called": False,
+        "engine_adapter_called": False,
+        "midi_asset_created": False,
+        "playback_started": False,
+        "routine_start_enabled": False,
+        "post_session_recommendation_card_created": False,
+        "warnings": list(validation.get("warnings") or []),
+        "blocked_reasons": list(validation.get("blocked_reasons") or []),
+    }
+
+
+def agent_harmonyos_today_guidance_api_contract_alignment_contract() -> dict[str, Any]:
+    return {
+        "version": AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
+        "agent_harmonyos_today_guidance_api_contract_alignment_version": AGENT_HARMONYOS_TODAY_GUIDANCE_API_CONTRACT_ALIGNMENT_VERSION,
+        "spec_route": "GET /agent/harmonyos/today-guidance-api-contract-alignment/spec",
+        "preview_route": "POST /agent/harmonyos/today-guidance-api-contract-alignment/preview",
+        "today_guidance_preview_route": "POST /agent/harmonyos/today-practice-guidance/preview",
+        "routine_completion_record_execute_route": "POST /agent/harmonyos/routine-completion-record/execute",
+        "terminal_command": "/harmonyos-today-guidance-api-contract",
+        "surface": "HarmonyOS-facing usable Agent API contract alignment",
+        "mode": "stable_frontend_wrapper_routes_over_existing_v2_10_2_v2_10_3_builders",
+        "execution_status": {
+            "contract_alignment_ready": True,
+            "today_guidance_wrapper_ready": True,
+            "routine_completion_record_wrapper_ready": True,
+            "today_guidance_display_only": True,
+            "completion_record_write_requires_client_confirmation": True,
+            "local_device_write_enabled": False,
+            "tool_execution_enabled": False,
+            "routine_start_enabled": False,
+            "post_session_recommendation_card_enabled": False,
+            "playback_execution_enabled": False,
+            "accompaniment_generate_call_enabled": False,
+            "engine_adapter_dispatch_enabled": False,
+            "midi_asset_creation_enabled": False,
+        },
+        "canonical_response_shape": {
+            "top_level": ["ok", "code", "message", "data", "debug", "safety"],
+            "camel_case_for_harmonyos": True,
+            "internal_payloads_kept_under_debug_only": True,
+        },
+        "uses_contracts": {
+            "usable_today_practice_guidance_mvp": AGENT_USABLE_TODAY_PRACTICE_GUIDANCE_MVP_VERSION,
+            "routine_completion_record_write_mvp": AGENT_ROUTINE_COMPLETION_RECORD_TO_BACKEND_CONTEXT_WRITE_MVP_VERSION,
+        },
+        "guards": {
+            "today_guidance_route_writes_storage": False,
+            "completion_route_may_write_backend_sqlite_after_confirmation": True,
+            "writes_harmonyos_local_state": False,
+            "starts_routine": False,
+            "calls_accompaniment_generate": False,
+            "calls_engine_adapter": False,
+            "creates_midi_asset": False,
+            "starts_playback": False,
+            "creates_post_session_recommendation_card": False,
+            "client_decides_presentation": True,
+            "frontend_flow_assumption": False,
+        },
+        "next_task_hint": "integration_handoff_or_v2_10_6_agent_harmonyos_contract_smoke_docs",
+    }
+
