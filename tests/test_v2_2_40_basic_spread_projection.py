@@ -29,7 +29,7 @@ def _read(rel: str) -> str:
 def test_v2_2_40_version_is_current() -> None:
     assert ENGINE_VERSION_TAG == "v2_3_9"
     assert _read("VERSION").strip() == "v2_3_9"
-    assert SPREAD_RECIPE_CONTRACT_VERSION == "v2_2_40"
+    assert SPREAD_RECIPE_CONTRACT_VERSION == "v2_6_10"
     assert BASIC_SPREAD_PROJECTION_VERSION == "v2_2_40"
     # Preserve sub-contract provenance instead of pretending they were rebuilt.
     assert LOWER_GROUP_INVENTORY_VERSION == "v2_2_38"
@@ -38,19 +38,19 @@ def test_v2_2_40_version_is_current() -> None:
 
 def test_basic_projection_projects_all_contracts_without_runtime_enablement() -> None:
     results = project_basic_spread_candidates("Cmaj7")
-    assert len(results) == 7
+    assert len(results) == 5
     assert all(isinstance(result, SpreadProjectionResult) for result in results)
     assert all(result.legal_candidate_count > 0 for result in results)
     assert all(result.runtime_enabled is False for result in results)
 
     debug = basic_spread_projection_debug("Cmaj7")
-    assert debug["contract_version"] == "v2_2_40"
+    assert debug["contract_version"] == "v2_6_10"
     assert debug["basic_spread_projection_version"] == "v2_2_40"
     assert debug["runtime_enabled"] is False
     assert debug["notes_only"] is True
     assert debug["no_expression_or_pedal"] is True
     assert debug["final_placed_closed_open_result_reuse_allowed"] is False
-    assert len(debug["results"]) == 7
+    assert len(debug["results"]) == 5
 
 
 def test_spread_1plus4_uses_lower_root_and_upper_drop_resource_without_reusing_final_open_result() -> None:

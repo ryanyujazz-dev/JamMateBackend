@@ -1,0 +1,44 @@
+{
+  "version": "v2_6_27_engine_ballad_spread_listening_calibration_pass",
+  "demo": "Misty / Jazz Ballad / 3 choruses",
+  "ok": true,
+  "midi_path": "/mnt/data/v2_6_27_misty_jazz_ballad_spread_listening_calibration_demo.mid",
+  "performance_choruses": 3,
+  "performance_bars": 96,
+  "piano_audit_events": 196,
+  "density": {
+    "5": 115,
+    "6": 81
+  },
+  "grouping": {
+    "2+3": 115,
+    "2+4": 76,
+    "3+3": 5
+  },
+  "recipe_id": {
+    "spread_2plus3_contract": 115,
+    "spread_2plus4_contract": 76,
+    "spread_3plus3_contract": 5
+  },
+  "five_note_events": 115,
+  "six_note_events": 81,
+  "five_to_six_ratio": 0.5867,
+  "four_note_events": 0,
+  "seven_note_events": 0,
+  "one_plus_four_events": 0,
+  "sharp11_events": 0,
+  "maj7_events": 60,
+  "maj7_sharp11_events": 0,
+  "top_note_max": 77,
+  "top_note_ge_76_events": 2,
+  "low_note_min": 41,
+  "low_note_le_40_events": 0,
+  "guardrails": {
+    "zero_default_4note_spread": true,
+    "zero_default_1plus4_runtime": true,
+    "five_to_six_near_6_to_4": true,
+    "maj7_sharp11_default_absent": true,
+    "top_register_within_policy": true,
+    "low_register_within_policy": true
+  }
+}

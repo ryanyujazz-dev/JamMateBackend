@@ -1,0 +1,391 @@
+{
+  "choruses": 3,
+  "demo_midi": "demos/v2_6_30_misty_jazz_ballad_1plus4_lower_foundation_calibration_demo.mid",
+  "seed": 26912,
+  "source_leadsheet": "examples/leadsheets/misty.json",
+  "style": "jazz_ballad",
+  "summary": {
+    "articulations": {
+      "sustain": 196
+    },
+    "avg_chart_color_fidelity_score": 0.0,
+    "avg_closed_3note_source_collapse_distance": 0.0,
+    "avg_closed_3note_source_collapse_total_motion": 0.0,
+    "avg_closed_4note_source_collapse_distance": 0.0,
+    "avg_closed_4note_source_collapse_total_motion": 0.0,
+    "avg_duration_beats": 1.854,
+    "avg_four_note_source_balance_score": 0.0,
+    "avg_open_drop2_parent_closed_span": 0.0,
+    "avg_open_drop2_span": 0.0,
+    "avg_open_named_projection_parent_closed_span": 0.0,
+    "avg_open_named_projection_span": 0.0,
+    "avg_realized_notes_per_event": 5.337,
+    "avg_velocity": 46.735,
+    "closed_3note_minimum_motion_events": 0,
+    "closed_4note_minimum_motion_events": 0,
+    "closed_minimum_motion_events": 0,
+    "content_families": {
+      "rooted_color": 38,
+      "seventh_chord_basic": 44,
+      "shell_plus_5": 66,
+      "shell_plus_color": 48
+    },
+    "contract_version": "v2_2_38",
+    "densities": {
+      "5": 120,
+      "6": 76
+    },
+    "disposition_projection_families": {
+      "unknown": 196
+    },
+    "disposition_projection_methods": {
+      "unknown": 196
+    },
+    "dispositions": {
+      "spread": 196
+    },
+    "drop_projection_audit_version": "v2_6_29",
+    "drop_projection_methods_by_scope": {
+      "spread_upper_group": {
+        "drop2": 10,
+        "drop3": 72
+      }
+    },
+    "drop_projection_methods_total": {
+      "drop2": 10,
+      "drop3": 72
+    },
+    "events": 196,
+    "expression_audit": {
+      "anticipation_avg_release_beats": 0.08,
+      "anticipation_duration_micro_tuned_count": 4,
+      "anticipation_pedal_modes": {
+        "light": 22
+      },
+      "anticipation_pedal_release_micro_tuned_count": 22,
+      "anticipation_tie_event_count": 22,
+      "articulations": {
+        "sustain": 196
+      },
+      "avg_duration_beats": 1.854,
+      "avg_release_beats": 0.106,
+      "avg_velocity": 46.735,
+      "contract_version": "v2_0_45",
+      "cross_next_event_count": 49,
+      "cross_region_count": 0,
+      "events": 196,
+      "flag_counts": {
+        "ballad_soft_sustain_too_short": 5,
+        "crosses_next_same_track_event": 49
+      },
+      "missing_expression_count": 0,
+      "pedal_modes": {
+        "light": 68,
+        "sustain": 128
+      },
+      "profiles": {
+        "soft_answer": 6,
+        "soft_retouch": 37,
+        "soft_sustain": 150,
+        "soft_whisper": 3
+      },
+      "short_event_count": 0,
+      "short_overlap_count": 0,
+      "style_id": "jazz_ballad",
+      "sustain_chop_risk_count": 0,
+      "sustain_event_count": 196,
+      "touches": {
+        "light": 46,
+        "warm": 150
+      },
+      "track_filter": "piano",
+      "warning_count": 54
+    },
+    "expression_flags": {
+      "ballad_soft_sustain_too_short": 5,
+      "crosses_next_same_track_event": 49
+    },
+    "expression_profiles": {
+      "soft_answer": 6,
+      "soft_retouch": 37,
+      "soft_sustain": 150,
+      "soft_whisper": 3
+    },
+    "failed_register_guard_count": 0,
+    "four_note_source_balance_gate_modes": {},
+    "four_note_source_balance_keys": {},
+    "functional_groupings": {
+      "1+4": 10,
+      "2+3": 110,
+      "2+4": 72,
+      "3+3": 4
+    },
+    "gestures": {
+      "inner_movement": 5,
+      "simultaneous_onset": 191
+    },
+    "legacy_projection_callback_used_count": 0,
+    "legacy_projection_cleanup_required_count": 0,
+    "low_note_min": 41,
+    "lower_foundation_audit_version": "v2_6_30",
+    "lower_foundation_low_register_events": 28,
+    "lower_foundation_low_register_events_by_density": {
+      "5": 2,
+      "6": 26
+    },
+    "lower_foundation_low_register_events_by_grouping": {
+      "2+3": 2,
+      "2+4": 26
+    },
+    "lower_foundation_note_average": 49.93,
+    "lower_foundation_note_max": 58,
+    "lower_foundation_note_min": 41,
+    "lower_foundation_notes_by_density": {
+      "5": {
+        "average": 51.804,
+        "count": 230,
+        "max": 58,
+        "min": 41
+      },
+      "6": {
+        "average": 47.167,
+        "count": 156,
+        "max": 58,
+        "min": 41
+      }
+    },
+    "lower_foundation_notes_by_grouping": {
+      "1+4": {
+        "average": 48.4,
+        "count": 10,
+        "max": 49,
+        "min": 48
+      },
+      "2+3": {
+        "average": 51.959,
+        "count": 220,
+        "max": 58,
+        "min": 41
+      },
+      "2+4": {
+        "average": 46.736,
+        "count": 144,
+        "max": 55,
+        "min": 41
+      },
+      "3+3": {
+        "average": 52.333,
+        "count": 12,
+        "max": 58,
+        "min": 48
+      }
+    },
+    "lower_foundation_recipe_counts": {
+      "lower_1note_root": 10,
+      "lower_2note_root_3": 109,
+      "lower_2note_root_7": 73,
+      "lower_3note_root_3_7": 4
+    },
+    "lower_foundation_span_average": 6.138,
+    "lower_foundation_span_max": 11,
+    "lower_foundation_span_violation_events": 0,
+    "lower_foundation_spans_by_density": {
+      "5": {
+        "average": 5.775,
+        "count": 120,
+        "max": 11,
+        "min": 0
+      },
+      "6": {
+        "average": 6.711,
+        "count": 76,
+        "max": 11,
+        "min": 3
+      }
+    },
+    "lower_foundation_spans_by_grouping": {
+      "1+4": {
+        "average": 0,
+        "count": 10,
+        "max": 0,
+        "min": 0
+      },
+      "2+3": {
+        "average": 6.3,
+        "count": 110,
+        "max": 11,
+        "min": 4
+      },
+      "2+4": {
+        "average": 6.528,
+        "count": 72,
+        "max": 11,
+        "min": 3
+      },
+      "3+3": {
+        "average": 10,
+        "count": 4,
+        "max": 10,
+        "min": 10
+      }
+    },
+    "max_closed_3note_source_collapse_distance": 0.0,
+    "max_closed_3note_source_collapse_total_motion": 0.0,
+    "max_closed_4note_source_collapse_distance": 0.0,
+    "max_closed_4note_source_collapse_total_motion": 0.0,
+    "max_closed_voicing_span": null,
+    "max_open_drop2_parent_closed_span": null,
+    "max_open_drop2_span": null,
+    "max_open_named_projection_parent_closed_span": null,
+    "max_open_named_projection_span": null,
+    "migrated_projection_paths": {},
+    "min_closed_voicing_lowest_note": 41,
+    "min_open_drop2_lowest_note": null,
+    "min_open_named_projection_lowest_note": null,
+    "missing_note_events": 0,
+    "note_events_by_track": {
+      "bass": 150,
+      "piano": 1046
+    },
+    "open_drop2_events": 0,
+    "open_named_projection_events": 0,
+    "open_named_projection_methods": {},
+    "region_voicing_reuse_count": 46,
+    "register_guard_reasons": {},
+    "root_included_events": 196,
+    "root_support": {
+      "rootless_allowed": 196
+    },
+    "rootless_events": 0,
+    "spread_upper_drop_projection_events": 82,
+    "spread_upper_drop_projection_events_by_density": {
+      "5": 10,
+      "6": 72
+    },
+    "spread_upper_drop_projection_methods": {
+      "drop2": 10,
+      "drop3": 72
+    },
+    "spread_upper_drop_projection_methods_by_density": {
+      "5": {
+        "drop3": 10
+      },
+      "6": {
+        "drop2": 10,
+        "drop3": 62
+      }
+    },
+    "spread_upper_drop_projection_methods_by_grouping": {
+      "1+4": {
+        "drop3": 10
+      },
+      "2+4": {
+        "drop2": 10,
+        "drop3": 62
+      }
+    },
+    "spread_upper_drop_projection_methods_by_recipe": {
+      "spread_1plus4_contract": {
+        "drop3": 10
+      },
+      "spread_2plus4_contract": {
+        "drop2": 10,
+        "drop3": 62
+      }
+    },
+    "spread_upper_projection_methods": {
+      "closed_upper_stack": 114,
+      "drop2": 10,
+      "drop3": 72
+    },
+    "style": "jazz_ballad",
+    "three_note_degree_orders": {},
+    "three_note_source_role_orders": {},
+    "three_note_source_types": {},
+    "timing_policy": {
+      "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
+      "feel": "swing",
+      "half_beat_grid": 0.5,
+      "humanization": {
+        "affect_tracks": [],
+        "enabled": false,
+        "humanize_literal": false,
+        "max_offset_beats": 0.0,
+        "profile_name": "jazz_ballad_swing8_disabled_default",
+        "seed": 0,
+        "velocity_jitter": 0
+      },
+      "metadata": {
+        "stage": "v2_5_9_ballad_default_swing8_timing",
+        "style": "jazz_ballad"
+      },
+      "swing_ratio": 0.6666666666666666,
+      "version": "v2_0_43"
+    },
+    "title": "Misty",
+    "top_note_ge_75_events": 0,
+    "top_note_max": 72,
+    "top_patterns": [
+      [
+        "ballad_piano_two_beat_soft_anchor",
+        75
+      ],
+      [
+        "ballad_phrase_two_chord_soft_marks",
+        44
+      ],
+      [
+        "ballad_piano_soft_downbeat_sustain",
+        29
+      ],
+      [
+        "ballad_piano_two_beat_light_retouch",
+        22
+      ],
+      [
+        "ballad_phrase_breath_answer_inner_motion",
+        10
+      ],
+      [
+        "ballad_piano_downbeat_midbar_retouch",
+        8
+      ],
+      [
+        "ballad_piano_downbeat_1and_whisper",
+        6
+      ],
+      [
+        "ballad_piano_downbeat_3and_answer",
+        2
+      ]
+    ],
+    "triad_4note_degree_orders": {},
+    "triad_4note_source_role_orders": {},
+    "triad_4note_source_types": {},
+    "voicing_texture_contrast_roles": {
+      "unknown": 196
+    },
+    "voicing_texture_method_percentages_by_contrast_role": {
+      "unknown": {
+        "unknown": 1.0
+      }
+    },
+    "voicing_texture_methods_by_contrast_role": {
+      "unknown": {
+        "unknown": 196
+      }
+    },
+    "voicing_texture_methods_by_scope": {
+      "unknown": {
+        "unknown": 196
+      }
+    },
+    "voicing_texture_open_method_weight_plans_by_contrast_role": {},
+    "voicing_texture_scope_counts": {
+      "unknown": 196
+    }
+  },
+  "tempo": 72,
+  "version": "v2_6_30_engine_ballad_spread_1plus4_lower_foundation_calibration",
+  "warnings": []
+}

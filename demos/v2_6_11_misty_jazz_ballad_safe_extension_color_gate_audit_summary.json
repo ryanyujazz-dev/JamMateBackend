@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "midi_path": "/mnt/data/work_v2_6_11/JamMatePyEngineV2_v2_6_10_engine_voicing_spread_density_system_reset/demos/v2_6_11_misty_jazz_ballad_safe_extension_color_gate_demo.mid",
+  "md5": "3d1b780d1c3867acd258e4003a7723cc",
+  "written_bars": 32,
+  "performance_choruses": 3,
+  "performance_bars": 96,
+  "regions": 150,
+  "pattern_events": 362,
+  "note_events": 1161,
+  "note_events_by_track": {
+    "piano": 1011,
+    "bass": 150
+  },
+  "piano_audit_events": 201,
+  "density": {
+    "5": 194,
+    "6": 6,
+    "7": 1
+  },
+  "grouping": {
+    "2+3": 194,
+    "3+3": 4,
+    "3+4": 1,
+    "2+4": 2
+  },
+  "content_family": {
+    "shell_plus_color": 115,
+    "shell_plus_5": 83,
+    "rootless_A": 1,
+    "rooted_color": 1,
+    "seventh_chord_basic": 1
+  },
+  "sharp11_events": 0,
+  "maj7_events": 64,
+  "maj7_sharp11_events": 0,
+  "degree_counts": {
+    "R": 203,
+    "3": 224,
+    "7": 85,
+    "13": 56,
+    "b7": 206,
+    "b3": 93,
+    "9": 46,
+    "5": 85,
+    "11": 15
+  }
+}

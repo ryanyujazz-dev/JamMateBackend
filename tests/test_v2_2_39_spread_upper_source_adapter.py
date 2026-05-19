@@ -31,7 +31,6 @@ def test_v2_2_40_version_is_current() -> None:
 def test_upper_source_refs_are_contract_derived_and_not_final_results() -> None:
     refs = {ref.ref_id: ref for ref in spread_upper_source_refs()}
     assert set(refs) == {
-        "upper_2note_existing_guide_shell_source_ref",
         "upper_3note_existing_content_source_ref",
         "upper_4note_drop2_drop3_derived_source_ref",
     }
@@ -93,14 +92,14 @@ def test_upper_4note_adapter_respects_chord_symbol_only_color_gate() -> None:
 
 def test_upper_source_adapter_debug_and_docs_are_synced() -> None:
     debug = spread_upper_source_adapter_debug("Dm7")
-    assert debug["contract_version"] == "v2_2_40"
+    assert debug["contract_version"] == "v2_6_10"
     assert debug["upper_source_adapter_version"] == "v2_2_39"
     assert debug["runtime_enabled"] is False
     assert debug["notes_only"] is True
     assert debug["no_expression_or_pedal"] is True
     assert debug["source_oriented_not_placed"] is True
     assert debug["final_placed_result_reuse_allowed"] is False
-    assert len(debug["results"]) == 3
+    assert len(debug["results"]) == 2
 
     docs = "\n".join(
         _read(rel)
