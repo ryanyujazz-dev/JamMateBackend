@@ -681,5 +681,18 @@
       "midi_generation": false,
       "playback_start": false
     }
+  },
+  "v2_10_8_harmonyos_black_box_contract_fit": {
+    "report_aligned_product_payloads": true,
+    "frontend_does_not_send_db_path": true,
+    "frontend_does_not_send_internal_write_gate": true,
+    "backend_owned_db_path_env": "JAMMATE_AGENT_CONTEXT_DB_PATH",
+    "backend_owned_default_db_path": "/tmp/jammate_agent_harmonyos_context.sqlite3",
+    "product_completion_fixture": "smoke_agent_harmonyos_routine_completion_record_execute_product.json",
+    "product_today_guidance_fixture": "smoke_agent_harmonyos_today_practice_guidance_preview_product.json",
+    "endpoints": [
+      "/agent/harmonyos/routine-completion-record/execute",
+      "/agent/harmonyos/today-practice-guidance/preview"
+    ]
   }
 }

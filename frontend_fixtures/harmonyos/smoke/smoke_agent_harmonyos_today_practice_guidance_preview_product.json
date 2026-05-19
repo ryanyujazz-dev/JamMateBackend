@@ -1,0 +1,12 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "agent-session-1779200000000",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "今天该练什么？",
+  "providerResult": {
+    "ok": true,
+    "provider_name": "fixture",
+    "model": "fixture-model",
+    "content": "{\"summary\": \"根据刚完成的练习记录，今天建议继续 Blue Bossa comping practice。\", \"routine_candidates\": [{\"candidateId\": \"routine_frontend_contract_001\", \"routineName\": \"Blue Bossa comping practice\", \"durationMinutes\": 15, \"practiceGoal\": \"承接最近完成记录\"}], \"user_confirmation_required\": true}"
+  }
+}
