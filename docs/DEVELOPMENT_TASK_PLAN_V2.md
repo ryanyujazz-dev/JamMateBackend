@@ -24,6 +24,16 @@ Agent: v2_9_x_agent_persistence_implementation planning only after explicit appr
 Integration: verify/refresh shared HarmonyOS fixtures and API docs when either track changes public contracts
 ```
 
+
+## v2_10_7 Integration HarmonyOS Agent Today Guidance Runtime Smoke
+
+Integration scope:
+
+- Added `frontend_fixtures/harmonyos/smoke/curl_agent_today_guidance_runtime_smoke.sh` for real FastAPI runtime validation of the two HarmonyOS Agent product routes.
+- Updated HarmonyOS smoke README and smoke pack metadata with the strict runtime sequence.
+- The strict smoke validates backend SQLite context write/readback without calling Engine generation or playback routes.
+- Next recommended integration task: run the same strict smoke from a real HarmonyOS device against the Mac LAN IP and then wire the two calls into the app-side routine-end / today-guidance screens.
+
 ---
 
 

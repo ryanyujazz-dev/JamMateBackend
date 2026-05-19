@@ -1,4 +1,4 @@
-// JamMate Agent API Types v2_8_24
+// JamMate Agent API Types v2_10_6 integration handoff
 // Copy target: entry/src/main/ets/features/jammateAgent/model/AgentTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 
@@ -54,6 +54,86 @@ export interface AgentContextRuntimePreviewRequest {
   instrument?: string
   localUnsyncedSummary?: Record<string, unknown>
 }
+
+
+export interface HarmonyOSRoutineCompletionRecord {
+  sessionId: string
+  title?: string | null
+  style?: JamMateStyle | string | null
+  tempo?: number | null
+  actualSeconds?: number | null
+  completed?: boolean
+  completedAtUtc?: string | null
+  practiceGoal?: string | null
+  notes?: string | null
+  metadata?: Record<string, unknown>
+}
+
+export interface HarmonyOSRoutineCompletionRecordExecuteRequest {
+  userId?: string | null
+  sqliteDbPath?: string | null
+  environment?: 'test' | 'dev' | 'local' | string
+  clientConfirmedRecordWrite: boolean
+  idempotencyKey?: string | null
+  routineCompletionRecord: HarmonyOSRoutineCompletionRecord
+}
+
+export interface HarmonyOSProviderFixtureResult {
+  ok: boolean
+  providerName?: string | null
+  model?: string | null
+  content?: string | null
+}
+
+export interface HarmonyOSTodayPracticeGuidancePreviewRequest {
+  userId?: string | null
+  sqliteDbPath?: string | null
+  environment?: 'test' | 'dev' | 'local' | string
+  userInput: string
+  availableMinutes?: number | null
+  clientContext?: ClientContext
+  providerResult?: HarmonyOSProviderFixtureResult | Record<string, unknown>
+}
+
+export interface HarmonyOSAgentSafety {
+  backendSQLiteWriteMayOccur: boolean
+  writesHarmonyOSLocalState: boolean
+  startsRoutine: boolean
+  callsEngineAdapter: boolean
+  createsMidiAsset: boolean
+  startsPlayback: boolean
+  [key: string]: unknown
+}
+
+export interface HarmonyOSRoutineCompletionRecordData {
+  completionRecordPersisted: boolean
+  nextTodayGuidanceCanReadHistory: boolean
+  idempotentReplay?: boolean
+  routineCompletionRecord?: Record<string, unknown>
+  [key: string]: unknown
+}
+
+export interface HarmonyOSTodayPracticeGuidanceData {
+  content?: string | null
+  guidancePreviewReady: boolean
+  contextSource: 'sqlite_backend' | 'terminal_memory' | 'none' | string
+  actionCardPayload?: Record<string, unknown> | null
+  routineCandidateCount: number
+  requiresUserConfirmationBeforeRoutineStart: boolean
+  [key: string]: unknown
+}
+
+export interface HarmonyOSAgentEnvelope<TData extends Record<string, unknown> = Record<string, unknown>> {
+  ok: boolean
+  code: string
+  message: string
+  data: TData
+  debug: Record<string, unknown>
+  safety: HarmonyOSAgentSafety
+}
+
+export type HarmonyOSRoutineCompletionRecordExecuteResponse = HarmonyOSAgentEnvelope<HarmonyOSRoutineCompletionRecordData>
+export type HarmonyOSTodayPracticeGuidancePreviewResponse = HarmonyOSAgentEnvelope<HarmonyOSTodayPracticeGuidanceData>
 
 export interface ContextPacket {
   contextRuntimeVersion: string
@@ -272,3 +352,92 @@ export interface AgentContractFilesResponse {
   clientDomainCase: 'camelCase'
   files: AgentContractFile[]
 }
+
+
+export type AgentHarmonyOSTodayGuidanceCode =
+  | 'today_guidance_ready'
+  | 'today_guidance_needs_context_or_provider'
+  | string
+
+export type AgentHarmonyOSRoutineCompletionCode =
+  | 'routine_completion_record_persisted'
+  | 'routine_completion_record_blocked'
+  | string
+
+export interface AgentHarmonyOSRoutineCompletionRecord {
+  sessionId: string
+  title: string
+  style?: JamMateStyle | string | null
+  tempo?: number | null
+  actualSeconds: number
+  completed: boolean
+  completedAtUtc?: string | null
+  notes?: string | null
+  source?: 'harmonyos_client' | 'terminal' | string
+}
+
+export interface AgentHarmonyOSTodayPracticeGuidanceRequest {
+  userId?: string | null
+  sqliteDbPath?: string | null
+  environment?: 'test' | 'local_dev' | string
+  userInput: string
+  availableMinutes?: number | null
+  providerResult?: Record<string, unknown> | null
+  callProvider?: boolean
+  traceId?: string | null
+  includeDebugPayload?: boolean
+}
+
+export interface AgentHarmonyOSRoutineCompletionRecordRequest {
+  userId?: string | null
+  sqliteDbPath: string
+  environment?: 'test' | 'local_dev' | string
+  clientConfirmedRecordWrite: boolean
+  idempotencyKey?: string | null
+  routineCompletionRecord: AgentHarmonyOSRoutineCompletionRecord
+  userPracticeProfile?: Record<string, unknown> | null
+  practicePlan?: Record<string, unknown> | null
+  traceId?: string | null
+  includeDebugPayload?: boolean
+}
+
+export interface AgentHarmonyOSEnvelope<DataT = Record<string, unknown>, CodeT = string> {
+  ok: boolean
+  code: CodeT
+  message: string
+  data: DataT
+  debug: Record<string, unknown>
+  safety: {
+    displayOnly?: boolean
+    backendSQLiteWriteMayOccur: boolean
+    writesHarmonyOSLocalState: false
+    startsRoutine: false
+    callsAccompanimentGenerate: false
+    callsEngineAdapter: false
+    createsMidiAsset: false
+    startsPlayback: false
+    createsPostSessionRecommendationCard: false
+    clientDecidesPresentation: true
+    frontendFlowAssumption: false
+  }
+}
+
+export interface AgentHarmonyOSTodayPracticeGuidanceData {
+  content: string
+  guidancePreviewReady: boolean
+  contextSource: 'sqlite_backend' | 'terminal_memory' | 'provider_result_only' | 'none' | string
+  actionCardPayload: Record<string, unknown>
+  routineCandidateCount: number
+  requiresUserConfirmationBeforeRoutineStart: boolean
+}
+
+export interface AgentHarmonyOSRoutineCompletionRecordData {
+  content: string
+  completionRecordPersisted: boolean
+  nextTodayGuidanceCanReadHistory: boolean
+  idempotentReplay: boolean
+  routineCompletionRecord: AgentHarmonyOSRoutineCompletionRecord | Record<string, unknown>
+}
+
+export type AgentHarmonyOSTodayPracticeGuidanceResponse = AgentHarmonyOSEnvelope<AgentHarmonyOSTodayPracticeGuidanceData, AgentHarmonyOSTodayGuidanceCode>
+export type AgentHarmonyOSRoutineCompletionRecordResponse = AgentHarmonyOSEnvelope<AgentHarmonyOSRoutineCompletionRecordData, AgentHarmonyOSRoutineCompletionCode>
