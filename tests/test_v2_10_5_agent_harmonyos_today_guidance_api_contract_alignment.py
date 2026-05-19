@@ -166,7 +166,7 @@ def test_harmonyos_today_guidance_wrapper_no_context_returns_actionable_state() 
     assert response["ok"] is True
     assert response["code"] == "today_guidance_needs_context_or_provider"
     assert response["data"]["guidancePreviewReady"] is False
-    assert response["data"]["contextSource"] == "none"
+    assert response["data"]["contextSource"] in {"none", "plain_fallback_after_sqlite_miss"}
     assert response["debug"]["backendDatabaseRead"] is False
     assert response["safety"]["backendSQLiteWriteMayOccur"] is False
     assert "练习上下文" in response["message"]

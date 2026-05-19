@@ -176,15 +176,16 @@ POST /agent/harmonyos/today-practice-guidance/preview
 
 Use this when the user asks “今天该练什么？” from HarmonyOS. The route may read backend SQLite context but must not start a Routine, call `/accompaniment/generate`, call the Engine adapter, create MIDI, or start playback.
 
-Example request:
+HarmonyOS product clients should treat the backend as a black-box HTTP API. Do **not** send internal `sqliteDbPath`, migration, or persistence gate fields from product UI; the backend owns the context DB path through `JAMMATE_AGENT_CONTEXT_DB_PATH` or its local-dev default.
+
+Example request matching the current HarmonyOS frontend report:
 
 ```json
 {
-  "userId": "dev_user",
-  "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
-  "environment": "test",
-  "userInput": "今天该练什么？",
-  "availableMinutes": 25
+  "userId": "local-dev-user",
+  "sessionId": "agent-session-1779200000000",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "今天该练什么？"
 }
 ```
 
@@ -236,24 +237,31 @@ The strict runtime smoke asserts both HarmonyOS Agent product routes and intenti
 POST /agent/harmonyos/routine-completion-record/execute
 ```
 
-Use this after HarmonyOS has already finished and recorded a practice session locally. The client remains owner of timer/playback/local state; the backend stores only an Agent context record when `clientConfirmedRecordWrite=true`.
+Use this after HarmonyOS has already finished and recorded a practice session locally. The client remains owner of timer/playback/local state; the backend stores only an Agent context record. Product clients do **not** send `sqliteDbPath` or `clientConfirmedRecordWrite`; the route itself is the explicit completed-record submission and the backend injects its internal persistence confirmation.
 
-Example request:
+Example request matching the current HarmonyOS frontend report:
 
 ```json
 {
-  "userId": "dev_user",
-  "sqliteDbPath": "/tmp/jammate_agent_context.sqlite",
-  "environment": "test",
-  "clientConfirmedRecordWrite": true,
-  "idempotencyKey": "completion:dev_user:session_001",
+  "userId": "local-dev-user",
+  "sessionId": "practice-session-1779200000000",
+  "deviceId": "harmonyos-device-local",
   "routineCompletionRecord": {
-    "sessionId": "session_001",
-    "title": "Medium Swing guide-tone comping",
-    "style": "medium_swing",
-    "tempo": 104,
-    "actualSeconds": 900,
-    "completed": true
+    "routineId": "routine-xxx",
+    "routineTitle": "今日基础练习",
+    "completedAt": "2026-05-20T20:30:00-07:00",
+    "durationSeconds": 1800,
+    "status": "completed",
+    "items": [
+      {
+        "itemId": "item-1",
+        "title": "Blue Bossa comping practice",
+        "type": "tune_practice",
+        "durationSeconds": 900,
+        "status": "completed"
+      }
+    ],
+    "notes": "optional user note"
   }
 }
 ```

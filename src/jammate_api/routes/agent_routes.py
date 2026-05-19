@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from fastapi import APIRouter
 
 from jammate_agent.adapters.jammate_engine_accompaniment_adapter import JamMateEngineAccompanimentAdapter
@@ -3037,6 +3038,68 @@ def _extract_harmonyos_action_card_payload(agent_payload: dict) -> dict:
     return {}
 
 
+
+
+_HARMONYOS_AGENT_CONTEXT_DB_PATH_ENV_VAR = "JAMMATE_AGENT_CONTEXT_DB_PATH"
+_HARMONYOS_AGENT_DEFAULT_CONTEXT_DB_PATH = "/tmp/jammate_agent_harmonyos_context.sqlite3"
+
+
+def _harmonyos_first_present(source: dict, *keys: str):
+    for key in keys:
+        if key in source and source[key] is not None:
+            return source[key]
+    return None
+
+
+def _harmonyos_backend_context_db_path(arguments: dict) -> str:
+    candidate = _harmonyos_first_present(
+        arguments,
+        "sqliteDbPath",
+        "sqlite_db_path",
+        "dbPath",
+        "db_path",
+        "contextDbPath",
+        "agentContextDbPath",
+    )
+    if candidate is None:
+        candidate = os.environ.get(_HARMONYOS_AGENT_CONTEXT_DB_PATH_ENV_VAR)
+    text = str(candidate or "").strip()
+    return text or _HARMONYOS_AGENT_DEFAULT_CONTEXT_DB_PATH
+
+
+def _harmonyos_product_arguments(arguments: dict, *, route_kind: str) -> dict:
+    """Normalize HarmonyOS black-box product payloads before internal builders.
+
+    The real HarmonyOS client treats the Agent as a black-box HTTP API and does
+    not send internal sqliteDbPath or persistence gate fields. Those are backend
+    concerns: the backend uses JAMMATE_AGENT_CONTEXT_DB_PATH when configured, or
+    a safe local-dev default path for Mac/device smoke.
+    """
+
+    normalized = dict(arguments or {})
+    normalized.setdefault("environment", "local_dev")
+    normalized.setdefault("sqliteDbPath", _harmonyos_backend_context_db_path(normalized))
+
+    if route_kind == "today_guidance":
+        if _harmonyos_first_present(normalized, "userInput", "user_input", "text") is None:
+            user_message = _harmonyos_first_present(normalized, "userMessage", "user_message", "message")
+            if user_message is not None:
+                normalized["userInput"] = user_message
+            else:
+                normalized["userInput"] = "今天该练什么？"
+    elif route_kind == "routine_completion":
+        # The product route itself is the user's/client's explicit submission of
+        # a finished practice record. Do not require HarmonyOS to know internal
+        # write-gate fields; inject them only when the client did not specify a
+        # contrary value for debugging.
+        normalized.setdefault("clientConfirmedRecordWrite", True)
+        normalized.setdefault("backendPersistenceEnabled", True)
+        normalized.setdefault("executeBackendPersistence", True)
+        normalized.setdefault("userDecision", "approved")
+        normalized.setdefault("confirmationStatus", "user_approved_future_executor_required")
+
+    return normalized
+
 def _harmonyos_safety(*, writes_backend_sqlite: bool = False) -> dict:
     return {
         "displayOnly": not writes_backend_sqlite,
@@ -3097,8 +3160,9 @@ def preview_harmonyos_today_practice_guidance_request(request: dict) -> dict:
     if not isinstance(arguments, dict):
         arguments = {}
     trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
     payload = build_agent_usable_today_practice_guidance_mvp_payload(
-        arguments,
+        product_arguments,
         trace_id=trace_id,
         source="agent_api_harmonyos_today_practice_guidance_preview",
     )
@@ -3133,7 +3197,7 @@ def preview_harmonyos_today_practice_guidance_request(request: dict) -> dict:
             "llmCalled": bool(summary.get("llm_called", False)),
             "blockedReasons": list(summary.get("blocked_reasons") or []),
             "warnings": list(summary.get("warnings") or []),
-            "agentPayload": payload_dict if bool(arguments.get("includeDebugPayload") or arguments.get("include_debug_payload")) else None,
+            "agentPayload": payload_dict if bool(product_arguments.get("includeDebugPayload") or product_arguments.get("include_debug_payload")) else None,
         },
         "safety": _harmonyos_safety(),
     }
@@ -3147,8 +3211,9 @@ def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
     if not isinstance(arguments, dict):
         arguments = {}
     trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="routine_completion")
     payload = build_agent_routine_completion_record_to_backend_context_write_mvp_payload(
-        arguments,
+        product_arguments,
         trace_id=trace_id,
         source="agent_api_harmonyos_routine_completion_record_execute",
     )
@@ -3184,7 +3249,7 @@ def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
             "transactionCommitted": bool(summary.get("transaction_committed", False)),
             "blockedReasons": list(summary.get("blocked_reasons") or []),
             "warnings": list(summary.get("warnings") or []),
-            "agentPayload": payload_dict if bool(arguments.get("includeDebugPayload") or arguments.get("include_debug_payload")) else None,
+            "agentPayload": payload_dict if bool(product_arguments.get("includeDebugPayload") or product_arguments.get("include_debug_payload")) else None,
         },
         "safety": _harmonyos_safety(writes_backend_sqlite=True),
     }

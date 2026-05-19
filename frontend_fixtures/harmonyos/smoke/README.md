@@ -67,3 +67,21 @@ bash curl_agent_today_guidance_runtime_smoke.sh \
 ```
 
 This strict script intentionally does not call `/accompaniment/generate` or any playback route. It writes only the backend SQLite context record when the fixture includes `clientConfirmedRecordWrite=true`, then verifies the next today-guidance preview reads that record back from SQLite.
+
+## v2_10_8 product payload alignment
+
+The actual HarmonyOS frontend treats the Agent backend as a black-box HTTP API.
+Product UI requests should omit backend internals:
+
+- no `dbPath` / `sqliteDbPath`
+- no `clientConfirmedRecordWrite`
+- no migration or storage gate fields
+
+Use these copyable product fixtures for frontend contract checks:
+
+```text
+smoke_agent_harmonyos_routine_completion_record_execute_product.json
+smoke_agent_harmonyos_today_practice_guidance_preview_product.json
+```
+
+The backend resolves the context database path from `JAMMATE_AGENT_CONTEXT_DB_PATH`, or falls back to `/tmp/jammate_agent_harmonyos_context.sqlite3` in local development.

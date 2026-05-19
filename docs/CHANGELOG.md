@@ -1,5 +1,12 @@
 # JamMatePyEngineV2 Changelog
 
+## v2_10_8 — HarmonyOS Agent Black-Box Contract Fit
+
+- Aligned the backend HarmonyOS Agent product wrappers with the actual frontend contract report: HarmonyOS sends only user/session/device fields plus `routineCompletionRecord` or `userMessage`.
+- Product wrappers now inject backend-owned SQLite context path and internal write confirmation when the frontend omits `dbPath` / `clientConfirmedRecordWrite`.
+- Preserved safety boundaries: no HarmonyOS local-state write, no Routine start, no Engine adapter call, no MIDI creation, no playback.
+
+
 ## v2_10_8 — Integration Agent / Engine Merge
 
 - Merged Engine Track through `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff`.
