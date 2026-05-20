@@ -815,3 +815,42 @@ Recommended next task: `v2_6_66_engine_medium_swing_no_4and_delayed_tail_idiom_r
 - Added `tests/test_v2_6_66_engine_medium_swing_no_4and_delayed_tail_idiom_reinforcement.py`, `examples/scripts/generate_medium_swing_piano_no_4and_delayed_tail_audit.py`, and `docs/ENGINE_MEDIUM_SWING_NO_4AND_DELAYED_TAIL_IDIOM_REINFORCEMENT_V2_6_66.md`.
 
 Recommended next task: `v2_6_67_engine_medium_swing_active_fill_busy_multi_region_history_scorer`.
+
+## v2_6_67 — Engine Medium Swing Active/Fill/Busy Multi-Region History Scorer
+
+- Upgraded the existing Medium Swing piano comping history scorer in place with six-region active/fill/busy/push/tail-push memory.
+- Preserved the v2_6_59 compatibility metadata while adding `medium_swing_active_fill_busy_history_policy_version = v2_6_67`.
+- Added stable-reset and no-4& delayed-tail recovery bonuses after recent active/push material.
+- Kept the scorer as a ChordRegion-first candidate weight rewriter; no parallel selector, bar-first phrase template, voicing decision, or final expression value was introduced.
+- Added `tests/test_v2_6_67_engine_medium_swing_active_fill_busy_multi_region_history_scorer.py`, `examples/scripts/generate_medium_swing_piano_active_fill_busy_history_audit.py`, and `docs/ENGINE_MEDIUM_SWING_ACTIVE_FILL_BUSY_MULTI_REGION_HISTORY_SCORER_V2_6_67.md`.
+
+Recommended next task: `v2_6_68_engine_medium_swing_expression_policy_v1_numeric_calibration`.
+## v2_6_68 — Engine Medium Swing ExpressionPolicy V1 Numeric Calibration
+
+- Calibrated Medium Swing piano comping ExpressionProfile defaults from the V1 soft_hold/light_stab/accent_stab/backbeat_hold/final_hold numeric ranges recorded in the v2_6_64 idiom audit.
+- Kept this change in `styles/medium_swing/expression_policy.py`; no pattern candidate, voicing policy, MIDI writer, Agent, API, or HarmonyOS behavior was moved or rewritten.
+- Added `medium_swing_expression_policy_v1_numeric_calibration_version = v2_6_68` metadata to the style expression policy and calibrated piano comping profiles.
+- Preserved v2_6_63 `hold_until_next_touch` semantics and the v2_6_66 ChordRegion boundary guard; hold profiles use V1-informed fallback/default values but still release at the current region end when the next touch is in a later region.
+- Added `tests/test_v2_6_68_engine_medium_swing_expression_policy_v1_numeric_calibration.py`, `examples/scripts/generate_medium_swing_expression_policy_v1_numeric_calibration_audit.py`, and `docs/ENGINE_MEDIUM_SWING_EXPRESSION_POLICY_V1_NUMERIC_CALIBRATION_V2_6_68.md`.
+
+Recommended next task: `v2_6_69_engine_medium_swing_piano_standard_tune_listening_checkpoint`.
+
+
+## v2_6_69 — Engine Medium Swing Piano Standard-Tune Listening Checkpoint
+
+- Added a behavior-preserving Medium Swing piano standard-tune listening checkpoint after v2_6_67 active/fill/busy history scoring and v2_6_68 ExpressionPolicy calibration.
+- Added `piano_standard_tune_listening_checkpoint_version = v2_6_69` arrangement metadata to make the checkpoint visible without changing pattern selection, voicing, expression realization, MIDI writing, Agent, API, or HarmonyOS behavior.
+- Generated All The Things You Are and Autumn Leaves three-chorus Medium Swing demos with a consolidated audit covering pattern/expression/voicing separation, ChordRegion-first routing, history metadata coverage, hold boundary guard continuity, and open-drop register/voice-leading health.
+- Added `tests/test_v2_6_69_engine_medium_swing_piano_standard_tune_listening_checkpoint.py` and `examples/scripts/generate_medium_swing_piano_standard_tune_listening_checkpoint.py`.
+
+Recommended next task: `v2_6_70_engine_medium_swing_ending_specific_region_context_candidate_subset_policy`.
+
+## v2_6_70 — Engine Medium Swing Ending-Specific Region Context Candidate Subset Policy
+
+- Added a Medium Swing piano ending-specific preferred subset policy in the existing `StyleProfile.plan_region()` candidate weighting path.
+- Final-bar ChordRegions now prefer stable region-start settling and modest tail/backbeat support while strongly downweighting active/offbeat-without-anchor and native 4& tail-push candidates.
+- The policy only reweights the existing ChordRegion-length candidate pool; it does not add a parallel ending selector, new rhythm vocabulary, voicing selection, final expression values, MIDI writer behavior, Agent, API, or HarmonyOS changes.
+- Added runtime audit metadata including `ending_specific_subset_policy_version`, `ending_specific_subset_status`, `ending_specific_subset_multiplier`, and `ending_specific_subset_reasons`.
+- Added `tests/test_v2_6_70_engine_medium_swing_ending_specific_region_context_candidate_subset_policy.py` and `examples/scripts/generate_medium_swing_ending_specific_subset_audit.py`.
+
+Recommended next task: `v2_6_71_engine_medium_swing_optional_fill_variation_vocabulary_activation`.

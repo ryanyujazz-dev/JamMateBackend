@@ -87,9 +87,11 @@ def choose_weighted_candidate(candidates: Sequence[PatternCandidate], rng: rando
 
 
 PIANO_COMPING_HISTORY_CONTINUITY_SCORER_VERSION = "v2_6_59"
+PIANO_COMPING_ACTIVE_FILL_BUSY_MULTI_REGION_HISTORY_SCORER_VERSION = "v2_6_67"
 PIANO_COMPING_HARMONIC_FUNCTION_POLICY_VERSION = "v2_6_60"
 PIANO_COMPING_PROGRESSION_SPECIFIC_SUBSET_POLICY_VERSION = "v2_6_65"
 PIANO_COMPING_NO_4AND_DELAYED_TAIL_POLICY_VERSION = "v2_6_66"
+PIANO_COMPING_ENDING_SPECIFIC_SUBSET_POLICY_VERSION = "v2_6_70"
 PIANO_COMPING_REGION_FIRST_COVERAGE_GUARD_VERSION = "v2_6_62"
 
 
@@ -454,6 +456,145 @@ def _apply_piano_comping_progression_specific_subset_policy(
 
 
 
+def _ending_subset_candidate_profile(candidate: PatternCandidate) -> dict[str, Any]:
+    metadata = dict(candidate.metadata)
+    calibration_class = str(metadata.get("weight_calibration_class") or "stable")
+    rhythm_family = str(metadata.get("rhythm_family") or candidate.category or "unknown")
+    rhythmic_cell = str(metadata.get("rhythmic_cell") or "")
+    phrase_role = str(metadata.get("phrase_role") or "")
+    tail_push_risk = str(metadata.get("tail_push_risk") or "none")
+    event_roles = _candidate_event_roles(candidate)
+    has_start = _candidate_has_region_start(candidate)
+    has_tail_support = any(role in {"tail_support", "backbeat_support", "delayed_support", "support"} for role in event_roles) or any(
+        token in rhythm_family or token in rhythmic_cell for token in ("tail", "backbeat", "delayed")
+    )
+    is_push = tail_push_risk == "high" or calibration_class == "tail_push" or "push" in rhythm_family or "4and" in rhythmic_cell
+    is_active = calibration_class == "active" or str(metadata.get("density") or "") == "active" or "active" in phrase_role
+    is_offbeat_without_start = (calibration_class == "offbeat" or "offbeat" in rhythm_family or "answer" in rhythm_family) and not has_start
+    is_final_role = "final" in phrase_role or "final" in rhythm_family or "final" in rhythmic_cell
+    is_settle_anchor = has_start and calibration_class == "stable"
+    return {
+        "has_start": bool(has_start),
+        "has_tail_support": bool(has_tail_support),
+        "is_push": bool(is_push),
+        "is_active": bool(is_active),
+        "is_offbeat_without_start": bool(is_offbeat_without_start),
+        "is_final_role": bool(is_final_role),
+        "is_settle_anchor": bool(is_settle_anchor),
+        "calibration_class": calibration_class,
+        "rhythm_family": rhythm_family,
+        "rhythmic_cell": rhythmic_cell,
+        "phrase_role": phrase_role,
+    }
+
+
+def _apply_piano_comping_ending_specific_subset_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    region: HarmonicRegion,
+    context: dict[str, Any],
+) -> tuple[PatternCandidate, ...]:
+    """Reweight ending-region candidates inside the existing region pool.
+
+    v2_6_70 handles final-bar Medium Swing piano comping as a ChordRegion-first
+    preferred-subset policy.  It does not add an ending selector, does not add
+    rhythm vocabulary, and does not choose voicings or final expression values.
+    Ending regions prefer clear region-start settling support, allow modest
+    tail/backbeat support, and strongly control active/4& push material.
+    """
+
+    if len(candidates) <= 1:
+        return tuple(candidates)
+    motion = _motion_from_region_context(region, context)
+    label = _piano_harmonic_context_label(region, motion)
+    subset_key = "ending_specific_region" if label == "ending" else "non_ending_context"
+    if label != "ending":
+        return tuple(
+            replace(
+                candidate,
+                metadata={
+                    **dict(candidate.metadata),
+                    "ending_specific_subset_policy_version": PIANO_COMPING_ENDING_SPECIFIC_SUBSET_POLICY_VERSION,
+                    "ending_specific_subset_policy_applied": False,
+                    "ending_specific_context_label": label,
+                    "ending_specific_subset_key": subset_key,
+                    "ending_specific_subset_status": "non_ending_context_passthrough",
+                    "ending_specific_subset_contract": "Ending-specific subset policy only reweights ChordRegion candidates when the current region is the final bar of a chorus; non-ending regions keep the existing pool unchanged.",
+                },
+            )
+            for candidate in candidates
+        )
+
+    adjusted: list[PatternCandidate] = []
+    preferred_count = 0
+    profiles = [(candidate, _ending_subset_candidate_profile(candidate)) for candidate in candidates]
+    for _, profile in profiles:
+        if profile["is_final_role"] or profile["is_settle_anchor"] or (profile["has_tail_support"] and not profile["is_push"]):
+            preferred_count += 1
+
+    for candidate, profile in profiles:
+        multiplier = 1.0
+        reasons: list[str] = []
+        status = "ending_neutral_candidate"
+        if profile["is_final_role"]:
+            multiplier *= 1.55
+            status = "ending_final_role_preferred"
+            reasons.append("ending_final_role_preferred")
+        if profile["is_settle_anchor"]:
+            multiplier *= 1.36
+            status = "ending_settle_anchor_preferred"
+            reasons.append("ending_stable_region_start_settle")
+        if profile["has_tail_support"] and not profile["is_push"]:
+            multiplier *= 1.12
+            if status == "ending_neutral_candidate":
+                status = "ending_tail_support_allowed"
+            reasons.append("ending_tail_or_backbeat_support_allowed")
+        if profile["is_active"]:
+            multiplier *= 0.42
+            status = "ending_active_downweighted"
+            reasons.append("ending_active_control")
+        if profile["is_offbeat_without_start"]:
+            multiplier *= 0.48
+            if status == "ending_neutral_candidate":
+                status = "ending_offbeat_without_anchor_downweighted"
+            reasons.append("ending_offbeat_without_region_start_control")
+        if profile["is_push"]:
+            multiplier *= 0.16
+            status = "ending_tail_push_near_block"
+            reasons.append("ending_4and_tail_push_near_block")
+        if not reasons:
+            multiplier *= 0.72
+            status = "ending_generic_fallback_downweighted"
+            reasons.append("ending_generic_nonpreferred_downweight")
+
+        metadata = dict(candidate.metadata)
+        metadata.update(
+            {
+                "ending_specific_subset_policy_version": PIANO_COMPING_ENDING_SPECIFIC_SUBSET_POLICY_VERSION,
+                "ending_specific_subset_policy_applied": True,
+                "ending_specific_context_label": label,
+                "ending_specific_subset_key": subset_key,
+                "ending_specific_subset_status": status,
+                "ending_specific_subset_multiplier": round(multiplier, 4),
+                "ending_specific_subset_reasons": tuple(reasons),
+                "ending_specific_preferred_candidate_count": preferred_count,
+                "ending_specific_total_candidate_count": len(profiles),
+                "ending_specific_has_region_start": bool(profile["has_start"]),
+                "ending_specific_has_tail_support": bool(profile["has_tail_support"]),
+                "ending_specific_is_push": bool(profile["is_push"]),
+                "ending_specific_is_active": bool(profile["is_active"]),
+                "ending_specific_previous_to_current_type": motion.previous_to_current_type,
+                "ending_specific_current_to_next_type": motion.current_to_next_type,
+                "ending_specific_window_type": motion.window_type,
+                "ending_specific_tags": tuple(motion.tags),
+                "ending_specific_subset_contract": "Ending regions are reweighted inside the existing ChordRegion-length candidate pool toward stable region-start settling and away from active/4& push; no parallel ending selector, no new vocabulary, no voicing, and no final expression values are introduced.",
+            }
+        )
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * multiplier), metadata=metadata))
+    return tuple(adjusted)
+
+
+
 def _candidate_is_no_4and_delayed_tail(candidate: PatternCandidate) -> bool:
     metadata = dict(candidate.metadata)
     tail_push_risk = str(metadata.get("tail_push_risk") or "none")
@@ -634,35 +775,113 @@ def _history_recent_entries(history: dict, source_key: str) -> list[dict[str, An
     if not isinstance(recent, list):
         return []
     normalized: list[dict[str, Any]] = []
-    for item in recent[-4:]:
+    # v2_6_67 upgrades the old four-entry guard into a multi-region memory
+    # window.  Six regions is enough to catch short active/fill/busy clusters
+    # without turning the scorer into a phrase-level selector.
+    for item in recent[-6:]:
         if isinstance(item, dict):
             normalized.append(dict(item))
     return normalized
 
 
-def _candidate_continuity_metadata(candidate: PatternCandidate) -> dict[str, str]:
+def _candidate_continuity_metadata(candidate: PatternCandidate) -> dict[str, Any]:
     metadata = dict(candidate.metadata)
     calibration_class = str(metadata.get("weight_calibration_class") or "stable")
     rhythm_family = str(metadata.get("rhythm_family") or candidate.category or "unknown")
+    rhythmic_cell = str(metadata.get("rhythmic_cell") or "")
+    pattern_function = str(metadata.get("pattern_function") or "")
+    phrase_role = str(metadata.get("phrase_role") or "")
+    region_family = str(metadata.get("region_length_family") or "")
     tail_push_risk = str(metadata.get("tail_push_risk") or "none")
     density = str(metadata.get("density") or "medium")
-    if tail_push_risk == "high" or calibration_class == "tail_push" or "push" in rhythm_family:
+    event_roles = _candidate_event_roles(candidate)
+    event_count = len(candidate.events)
+    text_blob = " ".join(
+        str(item).lower()
+        for item in (
+            candidate.name,
+            candidate.category,
+            calibration_class,
+            rhythm_family,
+            rhythmic_cell,
+            pattern_function,
+            phrase_role,
+            density,
+            " ".join(event_roles),
+        )
+    )
+    is_tail_push = (
+        tail_push_risk == "high"
+        or calibration_class == "tail_push"
+        or "tail_push" in text_blob
+        or "4and" in rhythmic_cell.lower()
+    )
+    is_push = is_tail_push or "push" in text_blob
+    is_busy = (
+        calibration_class == "busy"
+        or density == "busy"
+        or "busy" in text_blob
+        or event_count >= 4
+    )
+    is_fill = (
+        "fill" in text_blob
+        or "transition" in text_blob
+        or phrase_role in {"phrase_fill", "section_fill", "turnaround_fill", "ending_fill"}
+    )
+    is_active = calibration_class == "active" or density == "active" or "active" in phrase_role or is_busy
+    is_offbeat = calibration_class == "offbeat" or "offbeat" in rhythm_family or "answer" in rhythm_family
+    is_no_4and_delayed_tail = bool(metadata.get("no_4and_delayed_tail_idiom", False))
+
+    if is_tail_push:
         continuity_class = "tail_push"
-    elif calibration_class == "active" or density == "active":
+    elif is_busy:
+        continuity_class = "busy"
+    elif is_fill:
+        continuity_class = "fill"
+    elif is_active:
         continuity_class = "active"
-    elif calibration_class == "offbeat" or "offbeat" in rhythm_family or "answer" in rhythm_family:
+    elif is_offbeat:
         continuity_class = "offbeat"
     else:
         continuity_class = "stable"
+
     return {
         "name": candidate.name,
         "category": candidate.category,
         "rhythm_family": rhythm_family,
+        "rhythmic_cell": rhythmic_cell,
+        "pattern_function": pattern_function,
+        "phrase_role": phrase_role,
         "weight_calibration_class": calibration_class,
         "continuity_class": continuity_class,
+        "activity_class": continuity_class,
         "tail_push_risk": tail_push_risk,
         "density": density,
+        "region_length_family": region_family,
+        "event_count": event_count,
+        "has_region_start": _candidate_has_region_start(candidate),
+        "is_active": bool(is_active or continuity_class == "active"),
+        "is_fill": bool(is_fill or continuity_class == "fill"),
+        "is_busy": bool(is_busy or continuity_class == "busy"),
+        "is_push": bool(is_push),
+        "is_tail_push": bool(is_tail_push),
+        "is_offbeat": bool(is_offbeat),
+        "is_no_4and_delayed_tail": bool(is_no_4and_delayed_tail),
     }
+
+
+def _recent_flag_count(recent: Sequence[dict[str, Any]], key: str) -> int:
+    return sum(1 for item in recent if bool(item.get(key)))
+
+
+def _is_fill_context(label: str) -> bool:
+    return label in {"section_end", "ending", "turnaround_like", "dominant_resolution"}
+
+
+def _is_busy_context(label: str, context: dict[str, Any] | None) -> bool:
+    energy = str((context or {}).get("energy") or (context or {}).get("comping_energy") or "").lower()
+    density = str((context or {}).get("piano_density") or "").lower()
+    return label in {"section_end", "ending", "turnaround_like"} or energy in {"high", "active", "busy"} or density in {"high", "busy"}
 
 
 def _apply_piano_comping_history_continuity_scorer(
@@ -670,12 +889,15 @@ def _apply_piano_comping_history_continuity_scorer(
     *,
     history: dict,
     source_key: str,
+    region: HarmonicRegion | None = None,
+    context: dict[str, Any] | None = None,
 ) -> tuple[PatternCandidate, ...]:
-    """Apply a lightweight Medium Swing comping history scorer.
+    """Apply Medium Swing piano comping history scoring in-place.
 
-    This is not a parallel pattern selector. It reuses the already routed
-    ChordRegion-length candidate pool and only adjusts candidate weights before
-    normal weighted sampling. Pattern files remain style-owned and pitchless.
+    v2_6_67 keeps the existing ChordRegion-length candidate pool and extends
+    the old v2_6_59 continuity scorer with multi-region active/fill/busy/push
+    memory.  It is still a weight rewriter before normal sampling, not a
+    parallel pattern selector or a bar-first phrase engine.
     """
 
     if len(candidates) <= 1:
@@ -683,13 +905,21 @@ def _apply_piano_comping_history_continuity_scorer(
     recent = _history_recent_entries(history, source_key)
     previous = recent[-1] if recent else {}
     recent_classes = [str(item.get("continuity_class") or "") for item in recent]
-    recent_tail_push_count = sum(1 for value in recent_classes if value == "tail_push")
-    recent_active_count = sum(1 for value in recent_classes if value == "active")
-    recent_offbeat_count = sum(1 for value in recent_classes if value == "offbeat")
+    recent_tail_push_count = _recent_flag_count(recent, "is_tail_push") or sum(1 for value in recent_classes if value == "tail_push")
+    recent_push_count = _recent_flag_count(recent, "is_push") or recent_tail_push_count
+    recent_active_count = _recent_flag_count(recent, "is_active") or sum(1 for value in recent_classes if value == "active")
+    recent_fill_count = _recent_flag_count(recent, "is_fill") or sum(1 for value in recent_classes if value == "fill")
+    recent_busy_count = _recent_flag_count(recent, "is_busy") or sum(1 for value in recent_classes if value == "busy")
+    recent_offbeat_count = _recent_flag_count(recent, "is_offbeat") or sum(1 for value in recent_classes if value == "offbeat")
+    motion = _motion_from_region_context(region, context or {}) if region is not None else None
+    label = _piano_harmonic_context_label(region, motion) if region is not None and motion is not None else "unknown"
+    fill_context = _is_fill_context(label)
+    busy_context = _is_busy_context(label, context)
+
     adjusted: list[PatternCandidate] = []
     for candidate in candidates:
         info = _candidate_continuity_metadata(candidate)
-        continuity_class = info["continuity_class"]
+        continuity_class = str(info["continuity_class"])
         multiplier = 1.0
         reasons: list[str] = []
         if previous.get("name") == candidate.name:
@@ -708,29 +938,100 @@ def _apply_piano_comping_history_continuity_scorer(
         if recent_offbeat_count >= 2 and continuity_class == "offbeat":
             multiplier *= 0.35
             reasons.append("recent_offbeat_cluster_penalty")
+
+        if bool(info.get("is_active")) and previous.get("is_active"):
+            multiplier *= 0.55
+            reasons.append("active_after_active_medium_penalty")
         if recent_active_count >= 1 and continuity_class == "active":
             multiplier *= 0.18
             reasons.append("recent_active_penalty")
-        if recent_tail_push_count >= 1 and continuity_class == "tail_push":
+        if recent_active_count >= 2 and bool(info.get("is_active")):
+            multiplier *= 0.45
+            reasons.append("recent_active_multi_region_penalty")
+
+        if bool(info.get("is_fill")):
+            if previous.get("is_fill"):
+                multiplier *= 0.38
+                reasons.append("fill_after_fill_strong_penalty")
+            if recent_fill_count >= 1:
+                multiplier *= 0.62
+                reasons.append("recent_fill_multi_region_penalty")
+            if not fill_context:
+                multiplier *= 0.58
+                reasons.append("fill_outside_phrase_section_turnaround_context_downweight")
+
+        if bool(info.get("is_busy")):
+            if previous.get("is_busy"):
+                multiplier *= 0.02
+                reasons.append("busy_after_busy_near_block")
+            if recent_busy_count >= 1:
+                multiplier *= 0.06
+                reasons.append("recent_busy_near_block")
+            if previous.get("is_active") or previous.get("is_fill"):
+                multiplier *= 0.25
+                reasons.append("busy_after_active_or_fill_strong_penalty")
+            if not busy_context:
+                multiplier *= 0.05
+                reasons.append("busy_outside_explicit_high_energy_or_phrase_end_near_block")
+
+        if bool(info.get("is_push")) and previous.get("is_push"):
+            multiplier *= 0.22
+            reasons.append("push_after_push_strong_penalty")
+        if recent_push_count >= 1 and bool(info.get("is_push")):
+            multiplier *= 0.35
+            reasons.append("recent_push_multi_region_penalty")
+        if recent_tail_push_count >= 1 and bool(info.get("is_tail_push")):
             multiplier *= 0.05
             reasons.append("recent_tail_push_penalty")
+
         if previous.get("continuity_class") in {"active", "tail_push"} and continuity_class == "stable":
             multiplier *= 1.18
             reasons.append("stable_reset_after_active_bonus")
+        if previous.get("continuity_class") == "fill" and continuity_class == "stable":
+            multiplier *= 1.25
+            reasons.append("stable_reset_after_fill_bonus")
+        if previous.get("continuity_class") == "busy" and continuity_class == "stable":
+            multiplier *= 1.35
+            reasons.append("stable_reset_after_busy_bonus")
         if previous.get("continuity_class") == "offbeat" and continuity_class == "stable":
             multiplier *= 1.08
             reasons.append("stable_reset_after_offbeat_bonus")
+        if previous.get("is_active") and continuity_class == "stable" and info.get("has_region_start") and info.get("region_length_family") in {"one_beat_region", "two_beat_region"}:
+            multiplier *= 1.12
+            reasons.append("anchor_led_short_region_after_active_bonus")
+        if recent_push_count >= 1 and bool(info.get("is_no_4and_delayed_tail")):
+            multiplier *= 1.15
+            reasons.append("no_4and_delayed_tail_after_recent_push_bonus")
+
         metadata = {
             **dict(candidate.metadata),
             "history_continuity_scorer_version": PIANO_COMPING_HISTORY_CONTINUITY_SCORER_VERSION,
+            "medium_swing_active_fill_busy_history_policy_version": PIANO_COMPING_ACTIVE_FILL_BUSY_MULTI_REGION_HISTORY_SCORER_VERSION,
+            "active_fill_busy_multi_region_history_policy_version": PIANO_COMPING_ACTIVE_FILL_BUSY_MULTI_REGION_HISTORY_SCORER_VERSION,
             "history_continuity_scorer_applied": True,
             "history_continuity_multiplier": round(multiplier, 4),
             "history_continuity_reasons": tuple(reasons),
             "history_continuity_class": continuity_class,
+            "history_activity_class": info.get("activity_class"),
             "history_continuity_previous_class": previous.get("continuity_class"),
             "history_continuity_previous_candidate": previous.get("name"),
             "history_continuity_recent_window_size": len(recent),
-            "history_continuity_contract": "Existing region-length candidate pool is reweighted by recent piano comping history; no parallel pattern path is introduced.",
+            "history_recent_active_count": recent_active_count,
+            "history_recent_fill_count": recent_fill_count,
+            "history_recent_busy_count": recent_busy_count,
+            "history_recent_push_count": recent_push_count,
+            "history_recent_tail_push_count": recent_tail_push_count,
+            "history_recent_offbeat_count": recent_offbeat_count,
+            "history_candidate_is_active": bool(info.get("is_active")),
+            "history_candidate_is_fill": bool(info.get("is_fill")),
+            "history_candidate_is_busy": bool(info.get("is_busy")),
+            "history_candidate_is_push": bool(info.get("is_push")),
+            "history_candidate_is_tail_push": bool(info.get("is_tail_push")),
+            "history_candidate_is_no_4and_delayed_tail": bool(info.get("is_no_4and_delayed_tail")),
+            "history_context_label": label,
+            "history_fill_context": fill_context,
+            "history_busy_context": busy_context,
+            "history_continuity_contract": "Existing region-length candidate pool is reweighted by recent piano comping history; v2_6_67 adds multi-region active/fill/busy/push memory without creating a parallel selector or bar-first phrase route.",
         }
         adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * multiplier), metadata=metadata))
     return tuple(adjusted)
@@ -740,11 +1041,17 @@ def _record_piano_comping_history(history: dict, source_key: str, candidate: Pat
     info = _candidate_continuity_metadata(candidate)
     recent = _history_recent_entries(history, source_key)
     recent.append(info)
-    history[f"{source_key}:recent_comping"] = recent[-4:]
+    history[f"{source_key}:recent_comping"] = recent[-6:]
     history[f"{source_key}:rhythm_family"] = info["rhythm_family"]
     history[f"{source_key}:weight_calibration_class"] = info["weight_calibration_class"]
     history[f"{source_key}:continuity_class"] = info["continuity_class"]
+    history[f"{source_key}:activity_class"] = info["activity_class"]
     history[f"{source_key}:tail_push_risk"] = info["tail_push_risk"]
+    history[f"{source_key}:recent_active_count"] = _recent_flag_count(recent, "is_active")
+    history[f"{source_key}:recent_fill_count"] = _recent_flag_count(recent, "is_fill")
+    history[f"{source_key}:recent_busy_count"] = _recent_flag_count(recent, "is_busy")
+    history[f"{source_key}:recent_push_count"] = _recent_flag_count(recent, "is_push")
+    history[f"{source_key}:recent_tail_push_count"] = _recent_flag_count(recent, "is_tail_push")
 
 
 @dataclass(frozen=True)
@@ -818,6 +1125,7 @@ class StyleProfile:
         piano_harmonic_function_policy = bool(self.arrangement_policy.get("piano_comping_harmonic_function_policy", False))
         piano_progression_subset_policy = bool(self.arrangement_policy.get("piano_comping_progression_specific_subset_policy", False))
         piano_no_4and_delayed_tail_policy = bool(self.arrangement_policy.get("piano_comping_no_4and_delayed_tail_idiom_policy", False))
+        piano_ending_subset_policy = bool(self.arrangement_policy.get("piano_comping_ending_specific_subset_policy", False))
         piano_region_first_coverage_guard = bool(self.arrangement_policy.get("piano_region_first_coverage_guard", False))
 
         plans: list[PatternPlan] = []
@@ -847,12 +1155,14 @@ class StyleProfile:
                         choice_pool = filtered
             if piano_progression_subset_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_progression_specific_subset_policy(choice_pool, region=region, context=region_context)
+            if piano_ending_subset_policy and is_piano_comping_source and len(choice_pool) > 1:
+                choice_pool = _apply_piano_comping_ending_specific_subset_policy(choice_pool, region=region, context=region_context)
             if piano_no_4and_delayed_tail_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_no_4and_delayed_tail_policy(choice_pool)
             if piano_harmonic_function_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_harmonic_function_policy(choice_pool, region=region, context=region_context)
             if piano_history_scorer and is_piano_comping_source and len(choice_pool) > 1:
-                choice_pool = _apply_piano_comping_history_continuity_scorer(choice_pool, history=history, source_key=source_key)
+                choice_pool = _apply_piano_comping_history_continuity_scorer(choice_pool, history=history, source_key=source_key, region=region, context=region_context)
             candidate = choose_weighted_candidate(choice_pool, rng)
             history[source_key] = candidate.name
             history[f"{source_key}:category"] = candidate.category
@@ -862,7 +1172,7 @@ class StyleProfile:
                     _record_piano_comping_history(history, source_key, candidate)
             selected.append(candidate.name)
             plan = candidate.instantiate(region)
-            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
+            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
                 plan = replace(
                     plan,
                     events=[

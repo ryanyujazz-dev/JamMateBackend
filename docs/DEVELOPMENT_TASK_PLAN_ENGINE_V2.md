@@ -1630,3 +1630,61 @@ voice_leading_warning_events: 0
 ```
 
 Next recommended task: `v2_6_65_engine_medium_swing_progression_specific_candidate_subset_policy`.
+
+## v2_6_69 — Engine Medium Swing Piano Standard-Tune Listening Checkpoint
+
+Status: completed.
+
+Scope: behavior-preserving checkpoint only. It confirms the v2_6_67 multi-region history scorer and v2_6_68 ExpressionPolicy calibration remain healthy on three-chorus Medium Swing standard-tune demos. It does not change runtime selection logic, voicing, expression realization, MIDI writing, Agent/API/HarmonyOS, or add new vocabulary.
+
+Current standard-tune checkpoints:
+
+```text
+All The Things You Are and Autumn Leaves:
+- 3-chorus Medium Swing MIDI demos generated
+- v2_6_67 history metadata covers selected piano events
+- v2_6_68 calibrated expression metadata covers piano expression events
+- hold_until_next_touch ChordRegion boundary guard remains active
+- no pattern-level final velocity/duration/pedal values
+- no pattern-level voicing output
+- no bar-first/two_chord_bar route
+- no busy/tail-push consecutive repetition
+- open-drop top register and voice-leading warnings remain calm
+```
+
+Next recommended task: `v2_6_70_engine_medium_swing_ending_specific_region_context_candidate_subset_policy`.
+
+## v2_6_70 — Engine Medium Swing Ending-Specific Region Context Candidate Subset Policy
+
+Status: completed.
+
+Scope: Medium Swing piano pattern-selection weighting only. This step handles final-bar ChordRegions as an ending-specific preferred subset inside the existing region-length candidate pool. It does not add a new ending selector, does not add vocabulary, does not touch voicing, does not write expression numbers into patterns, and does not touch Agent/API/HarmonyOS.
+
+Current behavior:
+
+```text
+ending region:
+  stable region-start settle candidates -> preferred
+  tail/backbeat support without 4& push -> allowed / lightly preferred
+  offbeat-only without region start     -> downweighted
+  active material                       -> downweighted
+  native 4& tail-push                   -> near-blocked but not deleted
+
+non-ending region:
+  candidates are stamped for audit and left unchanged
+```
+
+Checkpoint expectations:
+
+```text
+v2_6_70 metadata reaches piano runtime events
+ending-selected push count remains controlled
+v2_6_67 history metadata still covers piano events
+v2_6_68 calibrated expression still covers piano expression events
+hold_until_next_touch remains clamped to current ChordRegion
+no pattern-level velocity/duration/pedal values
+no pattern-level voicing output
+no bar-first two_chord_bar route
+```
+
+Next recommended task: `v2_6_71_engine_medium_swing_optional_fill_variation_vocabulary_activation`.
