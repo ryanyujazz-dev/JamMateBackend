@@ -61,7 +61,7 @@ def _raw_event(event_id: str, *, role: str, method: str) -> dict:
                     "primary_family": "open",
                     "allowed_families": ["open"],
                     "contrast_role": role,
-                    "open_method_weights": {"generic_open": 0.28, "drop2": 0.36, "drop3": 0.26, "drop2_and_4": 0.10},
+                    "open_method_weights": {"generic_open": 0.0, "drop2": 0.52, "drop3": 0.38, "drop2_and_4": 0.10},
                 },
             },
         },
@@ -84,7 +84,7 @@ def _audit_script_module():
 
 
 def test_v2_2_38_version_is_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_3_9"
+    assert ENGINE_VERSION_TAG == "v2_10_8"
 
 
 def test_piano_audit_reports_texture_methods_by_contrast_role() -> None:
@@ -112,7 +112,7 @@ def test_piano_audit_reports_texture_methods_by_contrast_role() -> None:
     }
     assert summary["voicing_texture_methods_by_contrast_role"]["bridge_open_contrast"] == {"drop3": 1}
     assert summary["voicing_texture_method_percentages_by_contrast_role"]["baseline_open_swing"] == {"drop2": 0.5, "generic_open": 0.5}
-    assert summary["voicing_texture_open_method_weight_plans_by_contrast_role"]["baseline_open_swing"]["drop2"] == 0.36
+    assert summary["voicing_texture_open_method_weight_plans_by_contrast_role"]["baseline_open_swing"]["drop2"] == 0.52
 
 
 def test_medium_swing_texture_method_audit_acceptance_checks_balance_direction() -> None:

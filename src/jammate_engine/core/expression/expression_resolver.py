@@ -10,6 +10,7 @@ from .policy import ExpressionPolicyBundle
 EXPRESSION_REGION_DURATION_CLAMP_VERSION = "v2_2_51"
 EXPRESSION_ANTICIPATION_TIE_DURATION_VERSION = "v2_3_9"
 EXPRESSION_NEXT_EVENT_CLAMP_VERSION = "v2_3_9"
+EXPRESSION_NEXT_TOUCH_HOLD_VERSION = "v2_6_66"
 EXPRESSION_ANTICIPATION_PEDAL_RELEASE_VERSION = "v2_3_9"
 
 
@@ -42,6 +43,7 @@ class ExpressionResolver:
                 next_same_track_start=next_same_track_starts.get(event.event_id),
                 policy_metadata=policy.metadata,
                 profile_name=profile.name,
+                profile_metadata=profile.metadata,
             )
             pedal, release_beats, pedal_release_metadata = self._resolve_pedal_release(
                 event,
@@ -71,6 +73,7 @@ class ExpressionResolver:
         next_same_track_start: float | None = None,
         policy_metadata: Mapping | None = None,
         profile_name: str | None = None,
+        profile_metadata: Mapping | None = None,
     ) -> tuple[float, dict]:
         anticipation = dict((event.metadata or {}).get("anticipation") or {})
         if anticipation.get("kind") == "next_beat1_to_previous_tail" and bool(anticipation.get("tie_from_previous", False)):
@@ -81,9 +84,102 @@ class ExpressionResolver:
                 policy_metadata=policy_metadata,
                 profile_name=profile_name,
             )
+            if _uses_next_touch_hold(event, profile_metadata):
+                hold_duration, hold_metadata = self._duration_hold_until_next_touch(
+                    event,
+                    max(float(duration), float(requested_duration)),
+                    next_same_track_start=next_same_track_start,
+                    profile_metadata=profile_metadata,
+                )
+                duration = max(float(duration), float(hold_duration))
+                metadata = {**metadata, **hold_metadata, "duration_clamped_beats": duration}
         else:
-            duration, metadata = self._duration_clamped_to_region(event, requested_duration)
+            if _uses_next_touch_hold(event, profile_metadata):
+                duration, metadata = self._duration_hold_until_next_touch(
+                    event,
+                    requested_duration,
+                    next_same_track_start=next_same_track_start,
+                    profile_metadata=profile_metadata,
+                )
+            else:
+                duration, metadata = self._duration_clamped_to_region(event, requested_duration)
         return self._duration_clamped_to_next_same_track_event(event, duration, metadata, next_same_track_start=next_same_track_start)
+
+
+    def _duration_hold_until_next_touch(
+        self,
+        event: PatternEvent,
+        requested_duration: float,
+        *,
+        next_same_track_start: float | None,
+        profile_metadata: Mapping | None = None,
+    ) -> tuple[float, dict]:
+        """Resolve hold semantics as sustain-until-next-touch, not fixed length.
+
+        Patterns still only provide semantic hints.  v2_6_63 lets expression
+        profiles declare that a hold-style hint should last to the next active
+        event on the same track, but never beyond the current ChordRegion.  If
+        the next same-track touch belongs to a later region, the current chord
+        releases at the current region end; if there is no next touch, the hold
+        also falls back to the remaining ChordRegion duration when available,
+        otherwise to the profile's requested duration.
+        """
+
+        requested = max(0.05, float(requested_duration))
+        semantic_hint = str((event.metadata or {}).get("semantic_expression_hint") or "")
+        duration_semantics = str((profile_metadata or {}).get("duration_semantics") or "")
+        base_metadata = {
+            "duration_next_touch_hold_version": EXPRESSION_NEXT_TOUCH_HOLD_VERSION,
+            "duration_next_touch_hold_applied": True,
+            "duration_next_touch_hold_semantic_hint": semantic_hint,
+            "duration_next_touch_hold_profile_semantics": duration_semantics,
+            "duration_requested_beats": requested,
+        }
+
+        region_duration = event.metadata.get("region_duration_beats")
+        region_remaining: float | None = None
+        if region_duration is not None:
+            local_beat = float(event.local_beat or 0.0)
+            region_remaining = max(0.0, float(region_duration) - local_beat)
+
+        if next_same_track_start is not None:
+            gap = max(0.0, float(next_same_track_start) - float(event.onset_beat))
+            if gap > 0.0:
+                if region_remaining is not None and gap > region_remaining + 1e-9:
+                    clamped = max(0.05, region_remaining if region_remaining > 0.0 else requested)
+                    return clamped, {
+                        **base_metadata,
+                        "duration_next_touch_hold_reason": "next_same_track_touch_beyond_region_clamped_to_region_end",
+                        "duration_next_touch_hold_boundary_guard_version": EXPRESSION_NEXT_TOUCH_HOLD_VERSION,
+                        "duration_next_touch_hold_target_start_beat": round(float(next_same_track_start), 6),
+                        "duration_next_touch_hold_gap_beats": round(gap, 6),
+                        "duration_region_remaining_beats": round(region_remaining, 6),
+                        "duration_clamped_beats": clamped,
+                    }
+                return max(0.05, gap), {
+                    **base_metadata,
+                    "duration_next_touch_hold_reason": "held_until_next_same_track_touch_within_region",
+                    "duration_next_touch_hold_boundary_guard_version": EXPRESSION_NEXT_TOUCH_HOLD_VERSION,
+                    "duration_next_touch_hold_target_start_beat": round(float(next_same_track_start), 6),
+                    "duration_next_touch_hold_gap_beats": round(gap, 6),
+                    "duration_region_remaining_beats": None if region_remaining is None else round(region_remaining, 6),
+                    "duration_clamped_beats": max(0.05, gap),
+                }
+
+        if region_remaining is not None:
+            return max(0.05, region_remaining if region_remaining > 0.0 else requested), {
+                **base_metadata,
+                "duration_next_touch_hold_reason": "no_next_same_track_touch_held_to_region_end",
+                "duration_next_touch_hold_boundary_guard_version": EXPRESSION_NEXT_TOUCH_HOLD_VERSION,
+                "duration_region_remaining_beats": round(region_remaining, 6),
+                "duration_clamped_beats": max(0.05, region_remaining if region_remaining > 0.0 else requested),
+            }
+
+        return requested, {
+            **base_metadata,
+            "duration_next_touch_hold_reason": "no_next_same_track_touch_or_region_metadata_fallback_to_profile",
+            "duration_clamped_beats": requested,
+        }
 
     def _duration_clamped_to_next_same_track_event(
         self,
@@ -357,6 +453,14 @@ class ExpressionResolver:
             return style_policy
         return ExpressionPolicyBundle.from_legacy_dict(style_policy)
 
+
+
+def _uses_next_touch_hold(event: PatternEvent, profile_metadata: Mapping | None = None) -> bool:
+    semantics = str((profile_metadata or {}).get("duration_semantics") or "").strip().lower()
+    if semantics == "hold_until_next_touch":
+        return True
+    semantic_hint = str((event.metadata or {}).get("semantic_expression_hint") or "").strip().lower()
+    return semantic_hint in {"soft_hold", "accent_hold", "backbeat_hold", "final_hold", "anticipated_hold"}
 
 
 def _performed_onset_for_duration(event: PatternEvent, timing_policy: Mapping | None = None) -> float:

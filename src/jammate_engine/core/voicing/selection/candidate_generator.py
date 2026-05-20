@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Iterable
+from typing import Any, Iterable
 
 from jammate_engine.core.harmony.chord_parser import ParsedChord, parse_chord
 
@@ -50,9 +50,571 @@ def generate_candidates(symbol: str, policy: VoicingPolicy) -> list[VoicingCandi
 
     candidates = _generate_candidates_without_runtime_rescue(symbol, policy)
     candidates = _maybe_use_grouped_spread_runtime_candidates(symbol, policy, candidates)
-    if not _method_lock_rescue_runtime_enabled(policy.metadata):
+    if _method_lock_rescue_runtime_enabled(policy.metadata):
+        candidates = _execute_method_lock_rescue_if_needed(symbol, policy, candidates)
+    candidates = _apply_medium_swing_four_note_rotation_alignment(candidates, policy)
+    return _apply_medium_swing_deliberate_revoice_micro_motion_policy(candidates, policy)
+
+
+
+def _apply_medium_swing_deliberate_revoice_micro_motion_policy(
+    candidates: list[VoicingCandidate],
+    policy: VoicingPolicy,
+) -> list[VoicingCandidate]:
+    """Constrain explicit same-region fresh revoicings to small local motion.
+
+    v2_6_55 is deliberately narrow.  It does not create revoice gestures and it
+    does not change default same-chord reuse.  It only filters the candidate pool
+    when the realizer has already seen an explicit fresh-revoicing intent and
+    supplied the cached region voicing as the previous-note anchor.
+    """
+
+    if not candidates:
         return candidates
-    return _execute_method_lock_rescue_if_needed(symbol, policy, candidates)
+    metadata = dict(policy.metadata or {})
+    if not _deliberate_revoice_micro_motion_policy_requested(metadata):
+        return candidates
+
+    previous_notes = _coerce_int_sequence(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_previous_notes"))
+    if not previous_notes:
+        return [
+            _annotate_deliberate_revoice_micro_motion_candidate(
+                candidate,
+                metadata,
+                applied=False,
+                reason="previous_notes_unavailable",
+                matched=False,
+                original_count=len(candidates),
+                kept_count=len(candidates),
+            )
+            for candidate in candidates
+        ]
+
+    matching = [candidate for candidate in candidates if _candidate_matches_deliberate_revoice_micro_motion(candidate, metadata, previous_notes)]
+    if not matching:
+        return [
+            _annotate_deliberate_revoice_micro_motion_candidate(
+                candidate,
+                metadata,
+                applied=False,
+                reason="no_safe_micro_motion_candidate_available",
+                matched=False,
+                original_count=len(candidates),
+                kept_count=len(candidates),
+            )
+            for candidate in candidates
+        ]
+
+    return [
+        _annotate_deliberate_revoice_micro_motion_candidate(
+            candidate,
+            metadata,
+            applied=True,
+            reason="filtered_to_safe_micro_motion_candidate",
+            matched=True,
+            original_count=len(candidates),
+            kept_count=len(matching),
+        )
+        for candidate in matching
+    ]
+
+
+def _deliberate_revoice_micro_motion_policy_requested(metadata: dict | None) -> bool:
+    metadata = dict(metadata or {})
+    return (
+        _coerce_bool(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_runtime_enabled"), default=False)
+        and _coerce_bool(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_requested"), default=False)
+    )
+
+
+def _candidate_matches_deliberate_revoice_micro_motion(
+    candidate: VoicingCandidate,
+    metadata: dict,
+    previous_notes: list[int],
+) -> bool:
+    previous_density = metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_previous_density")
+    if previous_density is not None and int(candidate.density or 0) != _coerce_int(previous_density, default=int(candidate.density or 0)):
+        return False
+    previous_method = str(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_previous_projection_method") or "")
+    if previous_method and str(dict(candidate.metadata or {}).get("disposition_projection_method") or "") != previous_method:
+        return False
+    stats = _deliberate_revoice_micro_motion_stats(previous_notes, candidate.notes)
+    if not stats:
+        return False
+    require_foundation = _coerce_bool(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_require_foundation_stable"), default=True)
+    max_low = _coerce_int(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_max_low_motion"), default=0)
+    max_top = _coerce_int(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_max_top_motion"), default=2)
+    max_avg = _coerce_float(metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_max_avg_motion"), default=2.5)
+    if require_foundation and not bool(stats.get("foundation_stable")):
+        return False
+    return (
+        int(stats["low_motion_abs"]) <= max_low
+        and int(stats["top_motion_abs"]) <= max_top
+        and float(stats["avg_motion_abs"]) <= max_avg
+    )
+
+
+def _deliberate_revoice_micro_motion_stats(previous_notes: Iterable[int], current_notes: Iterable[int]) -> dict[str, Any]:
+    previous = sorted(_coerce_int_sequence(previous_notes))
+    current = sorted(_coerce_int_sequence(current_notes))
+    if not previous or not current:
+        return {}
+    pair_count = min(len(previous), len(current))
+    paired_motion = [abs(int(current[index]) - int(previous[index])) for index in range(pair_count)]
+    return {
+        "low_motion_abs": abs(int(current[0]) - int(previous[0])),
+        "top_motion_abs": abs(int(current[-1]) - int(previous[-1])),
+        "avg_motion_abs": sum(paired_motion) / float(pair_count),
+        "foundation_stable": int(current[0]) == int(previous[0]),
+    }
+
+
+def _annotate_deliberate_revoice_micro_motion_candidate(
+    candidate: VoicingCandidate,
+    policy_metadata: dict,
+    *,
+    applied: bool,
+    reason: str,
+    matched: bool,
+    original_count: int,
+    kept_count: int,
+) -> VoicingCandidate:
+    stats = _deliberate_revoice_micro_motion_stats(
+        _coerce_int_sequence(policy_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_previous_notes")),
+        candidate.notes,
+    )
+    metadata = {
+        **dict(candidate.metadata or {}),
+        **_medium_swing_deliberate_revoice_micro_motion_policy_metadata(policy_metadata),
+        "medium_swing_deliberate_revoice_micro_motion_policy_filter_applied": bool(applied),
+        "medium_swing_deliberate_revoice_micro_motion_policy_filter_reason": reason,
+        "medium_swing_deliberate_revoice_micro_motion_policy_candidate_matches": bool(matched),
+        "medium_swing_deliberate_revoice_micro_motion_policy_original_candidate_count": int(original_count),
+        "medium_swing_deliberate_revoice_micro_motion_policy_kept_candidate_count": int(kept_count),
+        "medium_swing_deliberate_revoice_micro_motion_policy_selected_notes": list(candidate.notes),
+    }
+    if stats:
+        metadata.update(
+            {
+                "medium_swing_deliberate_revoice_micro_motion_policy_low_motion_abs": stats.get("low_motion_abs"),
+                "medium_swing_deliberate_revoice_micro_motion_policy_top_motion_abs": stats.get("top_motion_abs"),
+                "medium_swing_deliberate_revoice_micro_motion_policy_avg_motion_abs": stats.get("avg_motion_abs"),
+                "medium_swing_deliberate_revoice_micro_motion_policy_foundation_stable": bool(stats.get("foundation_stable")),
+            }
+        )
+    return replace(candidate, metadata=metadata)
+
+
+def _medium_swing_deliberate_revoice_micro_motion_policy_metadata(policy_metadata: dict) -> dict:
+    keys = (
+        "medium_swing_deliberate_revoice_micro_motion_policy_version",
+        "medium_swing_deliberate_revoice_micro_motion_policy_runtime_enabled",
+        "medium_swing_deliberate_revoice_micro_motion_policy_requested",
+        "medium_swing_deliberate_revoice_micro_motion_policy_motion_policy",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_notes",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_event_id",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_chord_symbol",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_density",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_content_family",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_projection_family",
+        "medium_swing_deliberate_revoice_micro_motion_policy_previous_projection_method",
+        "medium_swing_deliberate_revoice_micro_motion_policy_require_foundation_stable",
+        "medium_swing_deliberate_revoice_micro_motion_policy_max_low_motion",
+        "medium_swing_deliberate_revoice_micro_motion_policy_max_top_motion",
+        "medium_swing_deliberate_revoice_micro_motion_policy_max_avg_motion",
+        "medium_swing_deliberate_revoice_micro_motion_policy_scope",
+    )
+    return {key: policy_metadata.get(key) for key in keys if key in policy_metadata}
+
+
+def _coerce_int(value: object, *, default: int) -> int:
+    try:
+        if value is None:
+            return int(default)
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def _coerce_float(value: object, *, default: float) -> float:
+    try:
+        if value is None:
+            return float(default)
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def _apply_medium_swing_four_note_rotation_alignment(
+    candidates: list[VoicingCandidate],
+    policy: VoicingPolicy,
+) -> list[VoicingCandidate]:
+    """Filter to the desired generic 4-note follow rotation when safely available.
+
+    v2_6_51 generalizes the v2_6_50 rootless-only A/B follow hook.  It consumes
+    policy metadata produced by the realizer's local method-lock scope and can
+    align conservative rooted 4-note rotations, rooted-color 4-note rotations,
+    and rootless A/B rotations under the same contract.  If no matching current
+    candidate exists, the full pool is preserved and annotated for audit.
+    """
+
+    if not candidates:
+        return candidates
+    metadata = dict(policy.metadata or {})
+    if not _four_note_rotation_alignment_policy_applied(metadata):
+        return candidates
+
+    target = _four_note_rotation_alignment_target_from_metadata(metadata)
+    if not target.get("desired_ab_side"):
+        return [
+            _annotate_four_note_rotation_alignment_candidate(
+                candidate,
+                metadata,
+                applied=False,
+                reason="missing_desired_four_note_rotation_side",
+                matched=False,
+                original_count=len(candidates),
+                kept_count=len(candidates),
+            )
+            for candidate in candidates
+        ]
+
+    matching = [candidate for candidate in candidates if _candidate_matches_four_note_rotation_alignment(candidate, target)]
+    if not matching:
+        return [
+            _annotate_four_note_rotation_alignment_candidate(
+                candidate,
+                metadata,
+                applied=False,
+                reason="no_matching_four_note_rotation_candidate_available",
+                matched=False,
+                original_count=len(candidates),
+                kept_count=len(candidates),
+            )
+            for candidate in candidates
+        ]
+
+    smoothness_guard = _four_note_rotation_alignment_smoothness_guard(matching, target)
+    if not smoothness_guard.get("passed"):
+        return [
+            _annotate_four_note_rotation_alignment_candidate(
+                candidate,
+                metadata,
+                applied=False,
+                reason="matching_four_note_rotation_candidates_fail_smoothness_guard",
+                matched=False,
+                original_count=len(candidates),
+                kept_count=len(candidates),
+                smoothness_guard=smoothness_guard,
+            )
+            for candidate in candidates
+        ]
+
+    return [
+        _annotate_four_note_rotation_alignment_candidate(
+            candidate,
+            metadata,
+            applied=True,
+            reason="filtered_to_matching_four_note_rotation",
+            matched=True,
+            original_count=len(candidates),
+            kept_count=len(matching),
+            smoothness_guard=smoothness_guard,
+        )
+        for candidate in matching
+    ]
+
+
+def _four_note_rotation_alignment_target_from_metadata(metadata: dict) -> dict[str, object]:
+    """Normalize v2_6_51 generic fields plus v2_6_50 rootless aliases."""
+
+    desired_ab_side = str(
+        metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_side")
+        or metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_orientation")
+        or ""
+    )
+    desired_family = str(metadata.get("medium_swing_four_note_rotation_alignment_desired_family") or "")
+    desired_content_type = str(
+        metadata.get("medium_swing_four_note_rotation_alignment_desired_content_type")
+        or metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_content_type")
+        or ""
+    )
+    desired_source_family = str(metadata.get("medium_swing_four_note_rotation_alignment_desired_source_family") or "")
+    desired_pair_index = metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_pair_index")
+    desired_inversion = metadata.get("medium_swing_four_note_rotation_alignment_desired_inversion_index")
+    if desired_inversion is None:
+        desired_inversion = metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_inversion_index")
+    return {
+        "desired_ab_side": desired_ab_side,
+        "desired_family": desired_family,
+        "desired_content_type": desired_content_type,
+        "desired_source_family": desired_source_family,
+        "desired_pair_index": desired_pair_index,
+        "desired_inversion": desired_inversion,
+        "previous_notes": tuple(_coerce_int_sequence(metadata.get("medium_swing_four_note_rotation_alignment_previous_notes"))),
+    }
+
+
+def _candidate_matches_four_note_rotation_alignment(candidate: VoicingCandidate, target: dict[str, object]) -> bool:
+    metadata = dict(candidate.metadata or {})
+    if not _coerce_bool(metadata.get("four_note_rotation_ab_eligible"), default=False):
+        return False
+    if str(metadata.get("four_note_rotation_ab_side") or "") != str(target.get("desired_ab_side") or ""):
+        return False
+    desired_family = str(target.get("desired_family") or "")
+    if desired_family and str(metadata.get("four_note_rotation_family") or "") != desired_family:
+        return False
+    desired_content_type = str(target.get("desired_content_type") or "")
+    if desired_content_type and str(metadata.get("four_note_rotation_content_type") or "") != desired_content_type:
+        return False
+    desired_source_family = str(target.get("desired_source_family") or "")
+    if desired_source_family and str(metadata.get("four_note_rotation_source_family") or "") != desired_source_family:
+        return False
+    desired_pair_index = target.get("desired_pair_index")
+    if desired_pair_index is not None and str(metadata.get("four_note_rotation_ab_pair_index")) != str(desired_pair_index):
+        return False
+    desired_inversion = target.get("desired_inversion")
+    if desired_inversion is not None and str(metadata.get("four_note_rotation_inversion_index")) != str(desired_inversion):
+        return False
+    return True
+
+
+def _four_note_rotation_alignment_smoothness_guard(
+    matching_candidates: list[VoicingCandidate],
+    target: dict[str, object],
+) -> dict[str, Any]:
+    """Return whether generic 4-note hard filtering is musically safe.
+
+    Rootless A/B was already treated as a vocabulary-level orientation contract in
+    v2_6_50.  For rooted/basic 4-note rotations, v2_6_51 must not force 1357→5713
+    when every matching candidate would create a large register jump.  The guard
+    therefore only blocks hard filtering when previous realized notes are available
+    and all matching candidates exceed conservative OPEN/DROP motion thresholds.
+    """
+
+    previous_notes = _coerce_int_sequence(target.get("previous_notes"))
+    if not previous_notes:
+        return {"passed": True, "reason": "previous_notes_unavailable"}
+
+    best: dict[str, Any] | None = None
+    for candidate in matching_candidates:
+        stats = _four_note_rotation_motion_stats(previous_notes, candidate.notes)
+        if not stats:
+            continue
+        if best is None or float(stats["avg_motion_abs"]) < float(best["avg_motion_abs"]):
+            best = stats
+        if (
+            int(stats["top_motion_abs"]) <= 7
+            and int(stats["low_motion_abs"]) <= 8
+            and float(stats["avg_motion_abs"]) <= 6.0
+        ):
+            return {
+                "passed": True,
+                "reason": "matching_candidate_within_motion_guard",
+                **stats,
+            }
+
+    if best is None:
+        return {"passed": True, "reason": "candidate_notes_unavailable"}
+    return {
+        "passed": False,
+        "reason": "all_matching_candidates_exceed_motion_guard",
+        **best,
+    }
+
+
+def _four_note_rotation_motion_stats(previous_notes: Iterable[int], current_notes: Iterable[int]) -> dict[str, Any]:
+    previous = sorted(_coerce_int_sequence(previous_notes))
+    current = sorted(_coerce_int_sequence(current_notes))
+    if not previous or not current:
+        return {}
+    pair_count = min(len(previous), len(current))
+    paired_motion = [abs(int(current[index]) - int(previous[index])) for index in range(pair_count)]
+    return {
+        "low_motion_abs": abs(int(current[0]) - int(previous[0])),
+        "top_motion_abs": abs(int(current[-1]) - int(previous[-1])),
+        "avg_motion_abs": sum(paired_motion) / float(pair_count),
+    }
+
+
+def _four_note_rotation_alignment_smoothness_guard_metadata(smoothness_guard: dict[str, Any] | None) -> dict[str, Any]:
+    if not smoothness_guard:
+        return {}
+    metadata: dict[str, Any] = {
+        "medium_swing_four_note_rotation_alignment_smoothness_guard_passed": bool(smoothness_guard.get("passed")),
+        "medium_swing_four_note_rotation_alignment_smoothness_guard_reason": smoothness_guard.get("reason"),
+    }
+    for key in ("low_motion_abs", "top_motion_abs", "avg_motion_abs"):
+        if key in smoothness_guard:
+            metadata[f"medium_swing_four_note_rotation_alignment_smoothness_guard_{key}"] = smoothness_guard.get(key)
+    return metadata
+
+
+def _coerce_int_sequence(value: object) -> list[int]:
+    if value is None:
+        return []
+    if isinstance(value, (str, bytes)):
+        return []
+    try:
+        return [int(item) for item in value]  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return []
+
+
+def _annotate_four_note_rotation_alignment_candidate(
+    candidate: VoicingCandidate,
+    policy_metadata: dict,
+    *,
+    applied: bool,
+    reason: str,
+    matched: bool,
+    original_count: int,
+    kept_count: int,
+    smoothness_guard: dict[str, Any] | None = None,
+) -> VoicingCandidate:
+    candidate_metadata = dict(candidate.metadata or {})
+    metadata = {
+        **candidate_metadata,
+        **_medium_swing_four_note_rotation_alignment_policy_metadata(policy_metadata),
+        "medium_swing_four_note_rotation_alignment_filter_applied": bool(applied),
+        "medium_swing_four_note_rotation_alignment_filter_reason": reason,
+        "medium_swing_four_note_rotation_alignment_candidate_matches": bool(matched),
+        "medium_swing_four_note_rotation_alignment_original_candidate_count": int(original_count),
+        "medium_swing_four_note_rotation_alignment_kept_candidate_count": int(kept_count),
+        **_four_note_rotation_alignment_smoothness_guard_metadata(smoothness_guard),
+        "medium_swing_four_note_rotation_alignment_selected_family": candidate_metadata.get("four_note_rotation_family"),
+        "medium_swing_four_note_rotation_alignment_selected_ab_side": candidate_metadata.get("four_note_rotation_ab_side"),
+        "medium_swing_four_note_rotation_alignment_selected_content_type": candidate_metadata.get("four_note_rotation_content_type"),
+        "medium_swing_four_note_rotation_alignment_selected_source_family": candidate_metadata.get("four_note_rotation_source_family"),
+        "medium_swing_four_note_rotation_alignment_selected_ab_pair_index": candidate_metadata.get("four_note_rotation_ab_pair_index"),
+        "medium_swing_four_note_rotation_alignment_selected_inversion_index": candidate_metadata.get("four_note_rotation_inversion_index"),
+        # v2_6_50 compatibility aliases.  These stay meaningful for rootless A/B
+        # but are now populated from the generic selected fields only when the
+        # selected candidate actually belongs to the rootless_ab family.
+        **_rootless_ab_alignment_alias_candidate_metadata(candidate_metadata, policy_metadata, applied, reason, matched, original_count, kept_count),
+    }
+    return replace(candidate, metadata=metadata)
+
+
+def _rootless_ab_alignment_alias_candidate_metadata(
+    candidate_metadata: dict,
+    policy_metadata: dict,
+    applied: bool,
+    reason: str,
+    matched: bool,
+    original_count: int,
+    kept_count: int,
+) -> dict:
+    if "medium_swing_rootless_ab_orientation_alignment_runtime_enabled" not in policy_metadata:
+        return {}
+    alias_reason = reason.replace("four_note_rotation", "rootless_ab_orientation")
+    selected_is_rootless = candidate_metadata.get("four_note_rotation_family") == "rootless_ab"
+    return {
+        **_medium_swing_rootless_ab_orientation_alignment_policy_metadata(policy_metadata),
+        "medium_swing_rootless_ab_orientation_alignment_filter_applied": bool(applied and selected_is_rootless),
+        "medium_swing_rootless_ab_orientation_alignment_filter_reason": alias_reason,
+        "medium_swing_rootless_ab_orientation_alignment_candidate_matches": bool(matched and selected_is_rootless),
+        "medium_swing_rootless_ab_orientation_alignment_original_candidate_count": int(original_count),
+        "medium_swing_rootless_ab_orientation_alignment_kept_candidate_count": int(kept_count),
+        "medium_swing_rootless_ab_orientation_alignment_selected_orientation": candidate_metadata.get("rootless_ab_orientation_family"),
+        "medium_swing_rootless_ab_orientation_alignment_selected_content_type": candidate_metadata.get("rootless_ab_content_type"),
+        "medium_swing_rootless_ab_orientation_alignment_selected_inversion_index": candidate_metadata.get("rootless_ab_inversion_index"),
+    }
+
+
+def _medium_swing_four_note_rotation_alignment_policy_metadata(policy_metadata: dict) -> dict:
+    keys = (
+        "medium_swing_four_note_rotation_alignment_version",
+        "medium_swing_four_note_rotation_alignment_runtime_enabled",
+        "medium_swing_four_note_rotation_alignment_policy_applied",
+        "medium_swing_four_note_rotation_alignment_reason",
+        "medium_swing_four_note_rotation_alignment_pair_type",
+        "medium_swing_four_note_rotation_alignment_previous_region_id",
+        "medium_swing_four_note_rotation_alignment_current_region_id",
+        "medium_swing_four_note_rotation_alignment_previous_family",
+        "medium_swing_four_note_rotation_alignment_desired_family",
+        "medium_swing_four_note_rotation_alignment_previous_ab_side",
+        "medium_swing_four_note_rotation_alignment_desired_ab_side",
+        "medium_swing_four_note_rotation_alignment_previous_content_type",
+        "medium_swing_four_note_rotation_alignment_desired_content_type",
+        "medium_swing_four_note_rotation_alignment_previous_source_family",
+        "medium_swing_four_note_rotation_alignment_desired_source_family",
+        "medium_swing_four_note_rotation_alignment_previous_ab_pair_index",
+        "medium_swing_four_note_rotation_alignment_desired_ab_pair_index",
+        "medium_swing_four_note_rotation_alignment_previous_inversion_index",
+        "medium_swing_four_note_rotation_alignment_desired_inversion_index",
+        "medium_swing_four_note_rotation_alignment_previous_notes",
+        "medium_swing_four_note_rotation_alignment_runtime_filtering_enabled",
+        "medium_swing_four_note_rotation_alignment_mode",
+        "medium_swing_four_note_rotation_alignment_scope",
+    )
+    return {key: policy_metadata.get(key) for key in keys if key in policy_metadata}
+
+
+def _medium_swing_rootless_ab_orientation_alignment_policy_metadata(policy_metadata: dict) -> dict:
+    keys = (
+        "medium_swing_rootless_ab_orientation_alignment_version",
+        "medium_swing_rootless_ab_orientation_alignment_runtime_enabled",
+        "medium_swing_rootless_ab_orientation_alignment_policy_applied",
+        "medium_swing_rootless_ab_orientation_alignment_reason",
+        "medium_swing_rootless_ab_orientation_alignment_pair_type",
+        "medium_swing_rootless_ab_orientation_alignment_previous_region_id",
+        "medium_swing_rootless_ab_orientation_alignment_current_region_id",
+        "medium_swing_rootless_ab_orientation_alignment_previous_orientation",
+        "medium_swing_rootless_ab_orientation_alignment_desired_orientation",
+        "medium_swing_rootless_ab_orientation_alignment_previous_content_type",
+        "medium_swing_rootless_ab_orientation_alignment_desired_content_type",
+        "medium_swing_rootless_ab_orientation_alignment_previous_inversion_index",
+        "medium_swing_rootless_ab_orientation_alignment_desired_inversion_index",
+        "medium_swing_rootless_ab_orientation_alignment_runtime_filtering_enabled",
+        "medium_swing_rootless_ab_orientation_alignment_mode",
+        "medium_swing_rootless_ab_orientation_alignment_scope",
+    )
+    return {key: policy_metadata.get(key) for key in keys if key in policy_metadata}
+
+
+def _four_note_rotation_alignment_policy_applied(metadata: dict | None) -> bool:
+    metadata = dict(metadata or {})
+    generic_enabled = _coerce_bool(metadata.get("medium_swing_four_note_rotation_alignment_runtime_enabled"), default=False) and _coerce_bool(
+        metadata.get("medium_swing_four_note_rotation_alignment_policy_applied"),
+        default=False,
+    ) and _coerce_bool(metadata.get("medium_swing_four_note_rotation_alignment_runtime_filtering_enabled"), default=False)
+    legacy_enabled = _rootless_ab_alignment_policy_applied(metadata)
+    return bool(generic_enabled or legacy_enabled)
+
+
+def _rootless_ab_alignment_policy_applied(metadata: dict | None) -> bool:
+    metadata = dict(metadata or {})
+    return _coerce_bool(metadata.get("medium_swing_rootless_ab_orientation_alignment_runtime_enabled"), default=False) and _coerce_bool(
+        metadata.get("medium_swing_rootless_ab_orientation_alignment_policy_applied"),
+        default=False,
+    ) and _coerce_bool(metadata.get("medium_swing_rootless_ab_orientation_alignment_runtime_filtering_enabled"), default=False)
+
+
+# Backward-compatible public-ish helper names retained for older focused tests.
+def _apply_medium_swing_rootless_ab_orientation_alignment(
+    candidates: list[VoicingCandidate],
+    policy: VoicingPolicy,
+) -> list[VoicingCandidate]:
+    return _apply_medium_swing_four_note_rotation_alignment(candidates, policy)
+
+
+def _candidate_matches_rootless_ab_alignment(
+    candidate: VoicingCandidate,
+    *,
+    desired_orientation: str,
+    desired_content_type: str,
+    desired_inversion,
+) -> bool:
+    return _candidate_matches_four_note_rotation_alignment(
+        candidate,
+        {
+            "desired_family": "rootless_ab",
+            "desired_ab_side": desired_orientation,
+            "desired_content_type": desired_content_type,
+            "desired_inversion": desired_inversion,
+        },
+    )
 
 
 def _maybe_use_grouped_spread_runtime_candidates(
@@ -358,6 +920,16 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                                 "voicing_method_lock_runtime_action": method_lock_runtime_debug["planned_action"],
                                 "voicing_method_lock_runtime_scoring_enabled": method_lock_runtime_debug["scoring_enabled"],
                                 "voicing_method_lock_runtime_filtering_enabled": method_lock_runtime_debug["filtering_enabled"],
+                                "medium_swing_phrase_scope_method_lock_policy_version": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_version"),
+                                "medium_swing_phrase_scope_method_lock_policy_runtime_enabled": bool(policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_runtime_enabled", False)),
+                                "medium_swing_phrase_scope_method_lock_policy_applied": bool(policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_applied", False)),
+                                "medium_swing_phrase_scope_method_lock_policy_reason": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_reason"),
+                                "medium_swing_phrase_scope_method_lock_policy_pair_type": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_pair_type"),
+                                "medium_swing_phrase_scope_method_lock_policy_previous_region_id": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_region_id"),
+                                "medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol"),
+                                "medium_swing_phrase_scope_method_lock_policy_previous_method": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_method"),
+                                "medium_swing_phrase_scope_method_lock_policy_current_region_id": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_current_region_id"),
+                                **_medium_swing_rootless_ab_orientation_alignment_policy_metadata(policy_metadata),
                                 "disposition_method_weight_plan": disposition_method_weight_debug,
                                 "disposition_method_weight": disposition_method_weight_value,
                                 "disposition_method_weight_scoring_enabled": disposition_method_weight_debug["enabled_for_scoring"],
@@ -433,6 +1005,16 @@ def _generate_candidates_without_runtime_rescue(symbol: str, policy: VoicingPoli
                     "voicing_method_lock_rescue_reason": method_lock_rescue_debug["reason"],
                     "voicing_method_lock_rescue_break_reason": method_lock_rescue_debug["break_reason"],
                     "voicing_method_lock_filtered_candidate_count": method_lock_filtered_candidate_count,
+                    "medium_swing_phrase_scope_method_lock_policy_version": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_version"),
+                    "medium_swing_phrase_scope_method_lock_policy_runtime_enabled": bool(policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_runtime_enabled", False)),
+                    "medium_swing_phrase_scope_method_lock_policy_applied": bool(policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_applied", False)),
+                    "medium_swing_phrase_scope_method_lock_policy_reason": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_reason"),
+                    "medium_swing_phrase_scope_method_lock_policy_pair_type": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_pair_type"),
+                    "medium_swing_phrase_scope_method_lock_policy_previous_region_id": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_region_id"),
+                    "medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol"),
+                    "medium_swing_phrase_scope_method_lock_policy_previous_method": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_method"),
+                    "medium_swing_phrase_scope_method_lock_policy_current_region_id": policy_metadata.get("medium_swing_phrase_scope_method_lock_policy_current_region_id"),
+                    **_medium_swing_rootless_ab_orientation_alignment_policy_metadata(policy_metadata),
                     "disposition_method_weight_plan": disposition_method_weight_debug,
                     "disposition_method_weight_scoring_enabled": disposition_method_weight_debug["enabled_for_scoring"],
                     "voicing_texture_state": texture_state_debug,

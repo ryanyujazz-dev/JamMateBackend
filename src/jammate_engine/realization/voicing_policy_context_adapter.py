@@ -598,14 +598,14 @@ def _texture_method_weight_shaping_metadata(
             "generic_open": 0.0,
             "drop2": 0.35,
             "drop3": 0.53,
-            "drop2_and_4": 0.12,
+            "drop2_and_4": 0.10,
         }
     elif role == "final_chorus_open_lift":
         open_weights = {
             "generic_open": 0.0,
             "drop2": 0.43,
             "drop3": 0.48,
-            "drop2_and_4": 0.09,
+            "drop2_and_4": 0.08,
         }
     else:
         open_weights = dict(shaped_weights.get("open") or {})

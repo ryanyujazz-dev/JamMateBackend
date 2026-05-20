@@ -1,0 +1,355 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_68 — Medium Swing ExpressionPolicy V1 Numeric Calibration",
+  "scope": "v2_6_68 calibrates Medium Swing piano comping ExpressionProfile defaults against V1 soft_hold/light_stab/accent_stab/backbeat_hold/final_hold numeric ranges. It changes expression policy only; pattern candidates remain semantic-only and ChordRegion-first.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_68",
+    "arrangement_policy_enabled": true,
+    "arrangement_policy_version": "v2_6_68",
+    "arrangement_policy_contract": "Medium Swing piano expression calibrates style-owned ExpressionProfile defaults from V1 soft_hold/light_stab/accent_stab/backbeat_hold/final_hold numeric ranges; pattern files remain semantic-only and never write velocity/duration/pedal.",
+    "expression_policy_enabled": true,
+    "expression_policy_version": "v2_6_68",
+    "ticks_per_beat": 120,
+    "profile_rows": [
+      {
+        "profile_name": "comp_medium",
+        "semantic_hint": "soft_hold",
+        "velocity": 54,
+        "velocity_range": [
+          48,
+          59
+        ],
+        "velocity_in_v1_range": true,
+        "duration_beats": 0.95,
+        "duration_range": [
+          0.7,
+          1.166667
+        ],
+        "duration_in_v1_range": true,
+        "release_beats": 0.045,
+        "pedal": "none",
+        "articulation": "sustain",
+        "touch": "clear",
+        "duration_semantics": "hold_until_next_touch",
+        "calibration_version": "v2_6_68"
+      },
+      {
+        "profile_name": "comp_short",
+        "semantic_hint": "light_stab",
+        "velocity": 56,
+        "velocity_range": [
+          48,
+          65
+        ],
+        "velocity_in_v1_range": true,
+        "duration_beats": 0.62,
+        "duration_range": [
+          0.516667,
+          0.733333
+        ],
+        "duration_in_v1_range": true,
+        "release_beats": 0.025,
+        "pedal": "none",
+        "articulation": "short",
+        "touch": "clear",
+        "duration_semantics": null,
+        "calibration_version": "v2_6_68"
+      },
+      {
+        "profile_name": "comp_accent",
+        "semantic_hint": "accent_stab",
+        "velocity": 66,
+        "velocity_range": [
+          60,
+          70
+        ],
+        "velocity_in_v1_range": true,
+        "duration_beats": 0.54,
+        "duration_range": [
+          0.483333,
+          0.6
+        ],
+        "duration_in_v1_range": true,
+        "release_beats": 0.025,
+        "pedal": "none",
+        "articulation": "accent",
+        "touch": "accented",
+        "duration_semantics": null,
+        "calibration_version": "v2_6_68"
+      },
+      {
+        "profile_name": "comp_backbeat_hold",
+        "semantic_hint": "backbeat_hold",
+        "velocity": 58,
+        "velocity_range": [
+          51,
+          64
+        ],
+        "velocity_in_v1_range": true,
+        "duration_beats": 0.78,
+        "duration_range": [
+          0.633333,
+          0.9
+        ],
+        "duration_in_v1_range": true,
+        "release_beats": 0.03,
+        "pedal": "none",
+        "articulation": "sustain",
+        "touch": "clear",
+        "duration_semantics": "hold_until_next_touch",
+        "calibration_version": "v2_6_68"
+      },
+      {
+        "profile_name": "comp_accent_hold",
+        "semantic_hint": "accent_hold_from_accent_stab_plus_hold_semantics",
+        "velocity": 64,
+        "velocity_range": [
+          60,
+          70
+        ],
+        "velocity_in_v1_range": true,
+        "duration_beats": 0.78,
+        "duration_range": [
+          0.633333,
+          0.9
+        ],
+        "duration_in_v1_range": true,
+        "release_beats": 0.03,
+        "pedal": "none",
+        "articulation": "accent",
+        "touch": "accented",
+        "duration_semantics": "hold_until_next_touch",
+        "calibration_version": "v2_6_68"
+      },
+      {
+        "profile_name": "comp_final_hold",
+        "semantic_hint": "final_hold",
+        "velocity": 45,
+        "velocity_range": [
+          44,
+          45
+        ],
+        "velocity_in_v1_range": true,
+        "duration_beats": 1.92,
+        "duration_range": [
+          1.833333,
+          2.0
+        ],
+        "duration_in_v1_range": true,
+        "release_beats": 0.055,
+        "pedal": "none",
+        "articulation": "sustain",
+        "touch": "warm",
+        "duration_semantics": "hold_until_next_touch",
+        "calibration_version": "v2_6_68"
+      }
+    ],
+    "profiles_outside_v1_reference_ranges": [],
+    "pattern_candidate_count": 39,
+    "pattern_forbidden_expression_candidates": [],
+    "bar_first_two_chord_bar_candidates": []
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_68_all_the_things_you_are_medium_swing_expression_policy_v1_numeric_calibration_demo.mid",
+      "piano_expression_events": 200,
+      "calibrated_expression_events": 200,
+      "profile_counts": {
+        "comp_accent_hold": 18,
+        "comp_short": 52,
+        "comp_backbeat_hold": 55,
+        "comp_medium": 75
+      },
+      "profile_velocity_ranges_realized": {
+        "comp_accent_hold": [
+          64,
+          64
+        ],
+        "comp_short": [
+          56,
+          56
+        ],
+        "comp_backbeat_hold": [
+          58,
+          58
+        ],
+        "comp_medium": [
+          54,
+          54
+        ]
+      },
+      "profile_duration_ranges_realized": {
+        "comp_accent_hold": [
+          1.053333,
+          1.666667
+        ],
+        "comp_short": [
+          0.333333,
+          0.62
+        ],
+        "comp_backbeat_hold": [
+          1.0,
+          2.0
+        ],
+        "comp_medium": [
+          1.0,
+          4.0
+        ]
+      },
+      "duration_hold_boundary_guard_events": 148,
+      "duration_hold_boundary_clamped_events": 21,
+      "final_hold_events": 0,
+      "pattern_forbidden_expression_key_events": 0,
+      "bar_first_two_chord_bar_events": 0,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_68_autumn_leaves_medium_swing_expression_policy_v1_numeric_calibration_demo.mid",
+      "piano_expression_events": 230,
+      "calibrated_expression_events": 230,
+      "profile_counts": {
+        "comp_medium": 114,
+        "comp_short": 69,
+        "comp_backbeat_hold": 38,
+        "comp_accent_hold": 9
+      },
+      "profile_velocity_ranges_realized": {
+        "comp_medium": [
+          54,
+          54
+        ],
+        "comp_short": [
+          56,
+          56
+        ],
+        "comp_backbeat_hold": [
+          58,
+          58
+        ],
+        "comp_accent_hold": [
+          64,
+          64
+        ]
+      },
+      "profile_duration_ranges_realized": {
+        "comp_medium": [
+          0.666667,
+          4.0
+        ],
+        "comp_short": [
+          0.333333,
+          0.62
+        ],
+        "comp_backbeat_hold": [
+          1.0,
+          2.0
+        ],
+        "comp_accent_hold": [
+          1.666667,
+          1.666667
+        ]
+      },
+      "duration_hold_boundary_guard_events": 161,
+      "duration_hold_boundary_clamped_events": 29,
+      "final_hold_events": 0,
+      "pattern_forbidden_expression_key_events": 0,
+      "bar_first_two_chord_bar_events": 0,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "static: arrangement declares v2_6_68 expression calibration",
+        "passed": true
+      },
+      {
+        "name": "static: expression policy declares v2_6_68 calibration",
+        "passed": true
+      },
+      {
+        "name": "static: all calibrated profiles inside V1 reference ranges",
+        "passed": true
+      },
+      {
+        "name": "static: no pattern candidate writes final expression values",
+        "passed": true
+      },
+      {
+        "name": "static: no bar-first/two-chord-bar markers remain",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: calibrated expression metadata present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: hold boundary guard still active",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: calibrated expression metadata present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: hold boundary guard still active",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  },
+  "recommended_next_tasks": [
+    "v2_6_69_engine_medium_swing_piano_standard_tune_listening_checkpoint",
+    "v2_6_70_engine_medium_swing_ending_specific_region_context_candidate_subset_policy"
+  ]
+}

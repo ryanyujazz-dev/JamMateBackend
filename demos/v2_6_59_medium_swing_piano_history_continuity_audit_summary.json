@@ -1,0 +1,591 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_59 — Medium Swing Piano Comping History Continuity Scorer",
+  "scope": "Audit the v2_6_59 Medium Swing piano comping history scorer. The scorer reweights the existing ChordRegion-length candidate pool only; it does not introduce a parallel selector, new pattern source, voicing rule, expression parameter, or gesture.",
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_59_all_the_things_you_are_medium_swing_piano_history_continuity_demo.mid",
+      "piano_events": 208,
+      "piano_regions": 120,
+      "pattern_counts": {
+        "medium_swing_piano_backbeat_2_4": 11,
+        "medium_swing_piano_anchor_1": 18,
+        "medium_swing_piano_anchor_1_3": 18,
+        "medium_swing_piano_two_beat_region_start_anchor": 10,
+        "medium_swing_piano_two_beat_region_local2_only": 5,
+        "medium_swing_piano_reverse_charleston_1and_3": 3,
+        "medium_swing_piano_charleston_1_2and": 13,
+        "medium_swing_piano_1_3and_answer": 11,
+        "medium_swing_piano_two_beat_region_start_local2": 6,
+        "medium_swing_piano_1_2and_4": 4,
+        "medium_swing_piano_2_3and_answer": 3,
+        "medium_swing_piano_1_4_tail": 4,
+        "medium_swing_piano_2and_4_answer": 8,
+        "medium_swing_piano_light_2and_only": 2,
+        "medium_swing_piano_two_beat_region_start_local2and": 3,
+        "medium_swing_piano_anchor_3": 1
+      },
+      "continuity_class_counts": {
+        "stable": 86,
+        "offbeat": 30,
+        "active": 4
+      },
+      "region_length_counts": {
+        "four_beat_region": 96,
+        "two_beat_region": 24
+      },
+      "metadata": {
+        "history_version_counts": {
+          "v2_6_59": 208
+        },
+        "history_applied_events": 208,
+        "penalized_events": 19,
+        "bonus_events": 50,
+        "reason_counts": {
+          "stable_family_repeat_soft_penalty": 13,
+          "stable_reset_after_offbeat_bonus": 46,
+          "recent_offbeat_cluster_penalty": 6,
+          "stable_reset_after_active_bonus": 4
+        }
+      },
+      "continuity": {
+        "region_transition_count": 119,
+        "exact_repeat_count": 0,
+        "same_family_repeat_count": 9,
+        "consecutive_offbeat_count": 0,
+        "consecutive_active_count": 0,
+        "consecutive_tail_push_count": 0,
+        "flagged_pairs_preview": [
+          {
+            "previous_region_id": "c0_b0_ch0",
+            "region_id": "c0_b1_ch0",
+            "previous_pattern": "medium_swing_piano_backbeat_2_4",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b1_ch0",
+            "region_id": "c0_b2_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1",
+            "pattern": "medium_swing_piano_anchor_1_3",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": true,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b2_ch0",
+            "region_id": "c0_b3_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1_3",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": true,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b3_ch0",
+            "region_id": "c0_b4_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1",
+            "pattern": "medium_swing_piano_backbeat_2_4",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b4_ch0",
+            "region_id": "c0_b5_ch0",
+            "previous_pattern": "medium_swing_piano_backbeat_2_4",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b5_ch0",
+            "region_id": "c0_b5_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b7_ch0",
+            "region_id": "c0_b8_ch0",
+            "previous_pattern": "medium_swing_piano_charleston_1_2and",
+            "pattern": "medium_swing_piano_anchor_1_3",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b8_ch0",
+            "region_id": "c0_b9_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1_3",
+            "pattern": "medium_swing_piano_charleston_1_2and",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b13_ch0",
+            "region_id": "c0_b13_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b18_ch0",
+            "region_id": "c0_b19_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1_3",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": true,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b21_ch0",
+            "region_id": "c0_b22_ch0",
+            "previous_pattern": "medium_swing_piano_backbeat_2_4",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b22_ch0",
+            "region_id": "c0_b23_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1",
+            "pattern": "medium_swing_piano_backbeat_2_4",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b23_ch0",
+            "region_id": "c0_b24_ch0",
+            "previous_pattern": "medium_swing_piano_backbeat_2_4",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b26_ch0",
+            "region_id": "c0_b27_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1",
+            "pattern": "medium_swing_piano_1_4_tail",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b29_ch0",
+            "region_id": "c0_b29_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b29_ch1",
+            "region_id": "c0_b30_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b30_ch0",
+            "region_id": "c0_b31_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1",
+            "pattern": "medium_swing_piano_anchor_1_3",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": true,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b33_ch0",
+            "region_id": "c0_b34_ch0",
+            "previous_pattern": "medium_swing_piano_backbeat_2_4",
+            "pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b35_ch0",
+            "region_id": "c1_b0_ch0",
+            "previous_pattern": "medium_swing_piano_backbeat_2_4",
+            "pattern": "medium_swing_piano_anchor_1",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c1_b0_ch0",
+            "region_id": "c1_b1_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1",
+            "pattern": "medium_swing_piano_charleston_1_2and",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          }
+        ],
+        "checkpoint_passed": true
+      },
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_59_autumn_leaves_medium_swing_piano_history_continuity_demo.mid",
+      "piano_events": 222,
+      "piano_regions": 162,
+      "pattern_counts": {
+        "medium_swing_piano_two_beat_region_start_anchor": 55,
+        "medium_swing_piano_two_beat_region_local2_only": 34,
+        "medium_swing_piano_two_beat_region_start_local2": 24,
+        "medium_swing_piano_2_3and_answer": 1,
+        "medium_swing_piano_two_beat_region_start_local2and": 17,
+        "medium_swing_piano_1_4_tail": 1,
+        "medium_swing_piano_anchor_1_3": 4,
+        "medium_swing_piano_anchor_3": 1,
+        "medium_swing_piano_light_2and_only": 3,
+        "medium_swing_piano_anchor_1": 7,
+        "medium_swing_piano_1_3and_answer": 2,
+        "medium_swing_piano_charleston_1_2and": 7,
+        "medium_swing_piano_two_beat_region_local1and_only": 2,
+        "medium_swing_piano_2and_4_answer": 2,
+        "medium_swing_piano_reverse_charleston_1and_3": 2
+      },
+      "continuity_class_counts": {
+        "stable": 133,
+        "offbeat": 29
+      },
+      "region_length_counts": {
+        "two_beat_region": 132,
+        "four_beat_region": 30
+      },
+      "metadata": {
+        "history_version_counts": {
+          "v2_6_59": 222
+        },
+        "history_applied_events": 222,
+        "penalized_events": 5,
+        "bonus_events": 30,
+        "reason_counts": {
+          "stable_reset_after_offbeat_bonus": 30,
+          "consecutive_offbeat_penalty": 3,
+          "recent_offbeat_cluster_penalty": 4
+        }
+      },
+      "continuity": {
+        "region_transition_count": 161,
+        "exact_repeat_count": 0,
+        "same_family_repeat_count": 0,
+        "consecutive_offbeat_count": 2,
+        "consecutive_active_count": 0,
+        "consecutive_tail_push_count": 0,
+        "flagged_pairs_preview": [
+          {
+            "previous_region_id": "c0_b0_ch0",
+            "region_id": "c0_b0_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b0_ch1",
+            "region_id": "c0_b1_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b1_ch0",
+            "region_id": "c0_b1_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b1_ch1",
+            "region_id": "c0_b2_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b2_ch0",
+            "region_id": "c0_b2_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b5_ch0",
+            "region_id": "c0_b5_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b6_ch1",
+            "region_id": "c0_b7_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_1_4_tail",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b7_ch0",
+            "region_id": "c0_b8_ch0",
+            "previous_pattern": "medium_swing_piano_1_4_tail",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b8_ch0",
+            "region_id": "c0_b8_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b8_ch1",
+            "region_id": "c0_b9_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b9_ch0",
+            "region_id": "c0_b9_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b9_ch1",
+            "region_id": "c0_b10_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b10_ch0",
+            "region_id": "c0_b10_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b10_ch1",
+            "region_id": "c0_b11_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "pattern": "medium_swing_piano_anchor_1_3",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b11_ch0",
+            "region_id": "c0_b12_ch0",
+            "previous_pattern": "medium_swing_piano_anchor_1_3",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b12_ch0",
+            "region_id": "c0_b12_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b12_ch1",
+            "region_id": "c0_b13_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b13_ch0",
+            "region_id": "c0_b13_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_anchor",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b13_ch1",
+            "region_id": "c0_b14_ch0",
+            "previous_pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          },
+          {
+            "previous_region_id": "c0_b14_ch0",
+            "region_id": "c0_b14_ch1",
+            "previous_pattern": "medium_swing_piano_two_beat_region_start_local2",
+            "pattern": "medium_swing_piano_two_beat_region_local2_only",
+            "previous_class": "stable",
+            "class": "stable",
+            "same_family": false,
+            "exact_repeat": false
+          }
+        ],
+        "checkpoint_passed": true
+      },
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: history metadata applied",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no exact consecutive pattern repeat",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no consecutive active",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no consecutive tail-push",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: history metadata applied",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no exact consecutive pattern repeat",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no consecutive active",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no consecutive tail-push",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  }
+}

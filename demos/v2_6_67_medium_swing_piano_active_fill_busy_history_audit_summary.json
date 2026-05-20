@@ -1,0 +1,210 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_67 — Medium Swing Active/Fill/Busy Multi-Region History Scorer",
+  "scope": "v2_6_67 upgrades the existing Medium Swing piano history scorer in-place with multi-region active/fill/busy/push/tail-push memory. It remains ChordRegion-first and does not write voicing, final expression values, MIDI pitch, duration, velocity, or pedal into the pattern layer.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_67",
+    "pattern_library_version": "v2_6_56",
+    "candidate_lookup_policy_version": "v2_6_57",
+    "weight_calibration_policy_version": "v2_6_58",
+    "history_continuity_scorer_version": "v2_6_59",
+    "active_fill_busy_history_enabled": true,
+    "active_fill_busy_history_version": "v2_6_67",
+    "active_fill_busy_history_contract": "v2_6_67 extends the existing history scorer in-place with multi-region active/fill/busy/push/tail-push memory, stable reset bonuses, and no-4& delayed-tail recovery after recent push; it remains ChordRegion-first and does not restore bar-first phrase templates.",
+    "candidate_count_total": 39,
+    "candidate_count_active": 37,
+    "active_by_region_length_family": {
+      "one_beat_region": 2,
+      "two_beat_region": 6,
+      "three_beat_region": 1,
+      "four_beat_region": 28
+    },
+    "active_by_weight_calibration_class": {
+      "stable": 19,
+      "offbeat": 12,
+      "active": 2,
+      "tail_push": 4
+    },
+    "active_by_rhythm_family": {
+      "one_beat_anchor": 1,
+      "one_beat_offbeat": 1,
+      "short_region_anchor": 1,
+      "short_region_answer": 2,
+      "short_region_delayed": 1,
+      "short_region_stable": 1,
+      "short_region_offbeat": 1,
+      "future_meter_anchor": 1,
+      "stable": 6,
+      "charleston": 2,
+      "stable_answer": 2,
+      "backbeat": 2,
+      "offbeat_conversation": 4,
+      "stable_tail": 2,
+      "charleston_tail": 2,
+      "offbeat_tail": 2,
+      "delayed_answer": 2,
+      "tail_push": 4
+    },
+    "forbidden_pattern_expression_key_candidates": [],
+    "bar_first_two_chord_bar_candidates": []
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_67_all_the_things_you_are_medium_swing_active_fill_busy_history_demo.mid",
+      "piano_events": 210,
+      "history_policy_events": 210,
+      "history_class_counts": {
+        "stable": 149,
+        "offbeat": 46,
+        "active": 15
+      },
+      "history_reason_counts": {
+        "stable_reset_after_offbeat_bonus": 36,
+        "no_4and_delayed_tail_after_recent_push_bonus": 14,
+        "recent_offbeat_cluster_penalty": 6,
+        "stable_reset_after_active_bonus": 6,
+        "stable_family_repeat_soft_penalty": 6
+      },
+      "active_events": 15,
+      "fill_like_events": 0,
+      "busy_events": 0,
+      "push_events": 5,
+      "tail_push_events": 0,
+      "history_penalty_events": 12,
+      "history_bonus_events": 56,
+      "stable_reset_after_active_count": 6,
+      "stable_reset_after_fill_count": 0,
+      "stable_reset_after_busy_count": 0,
+      "no_4and_after_push_bonus_count": 14,
+      "active_after_active_penalty_count": 0,
+      "busy_near_block_count": 0,
+      "tail_push_cluster_penalty_count": 0,
+      "pattern_forbidden_expression_key_events": 0,
+      "bar_first_two_chord_bar_events": 0,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_67_autumn_leaves_medium_swing_active_fill_busy_history_demo.mid",
+      "piano_events": 229,
+      "history_policy_events": 229,
+      "history_class_counts": {
+        "stable": 178,
+        "offbeat": 51
+      },
+      "history_reason_counts": {
+        "recent_push_multi_region_penalty": 11,
+        "stable_reset_after_offbeat_bonus": 31,
+        "no_4and_delayed_tail_after_recent_push_bonus": 19,
+        "recent_offbeat_cluster_penalty": 6
+      },
+      "active_events": 0,
+      "fill_like_events": 0,
+      "busy_events": 0,
+      "push_events": 23,
+      "tail_push_events": 0,
+      "history_penalty_events": 17,
+      "history_bonus_events": 37,
+      "stable_reset_after_active_count": 0,
+      "stable_reset_after_fill_count": 0,
+      "stable_reset_after_busy_count": 0,
+      "no_4and_after_push_bonus_count": 19,
+      "active_after_active_penalty_count": 0,
+      "busy_near_block_count": 0,
+      "tail_push_cluster_penalty_count": 0,
+      "pattern_forbidden_expression_key_events": 0,
+      "bar_first_two_chord_bar_events": 0,
+      "top_note_max": 73,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "static: active/fill/busy history policy enabled",
+        "passed": true
+      },
+      {
+        "name": "static: active/fill/busy history policy version",
+        "passed": true
+      },
+      {
+        "name": "static: no pattern candidate writes final expression values",
+        "passed": true
+      },
+      {
+        "name": "static: no bar-first/two-chord-bar markers remain",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: v2_6_67 metadata present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: history penalties present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: v2_6_67 metadata present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: history penalties present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  },
+  "recommended_next_tasks": [
+    "v2_6_68_engine_medium_swing_expression_policy_v1_numeric_calibration",
+    "v2_6_69_engine_medium_swing_piano_standard_tune_listening_checkpoint"
+  ]
+}

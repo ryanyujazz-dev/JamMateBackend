@@ -23,6 +23,17 @@ PIANO_SAME_CHORD_REATTACK_CONTINUITY_VERSION = "v2_6_41"
 PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION = "v2_6_42"
 PIANO_LOWER_FOUNDATION_FINAL_PASS_VERSION = "v2_6_43"
 PIANO_BALLAD_SPREAD_VOICING_PHASE_SUMMARY_VERSION = "v2_6_44"
+PIANO_MEDIUM_SWING_OPEN_DROP_METHOD_LOCK_CALIBRATION_VERSION = "v2_6_45"
+PIANO_MEDIUM_SWING_OPEN_DROP_VOICE_LEADING_CONTINUITY_VERSION = "v2_6_46"
+PIANO_MEDIUM_SWING_OPEN_DROP_SECTION_BOUNDARY_REVIEW_VERSION = "v2_6_47"
+PIANO_MEDIUM_SWING_PHRASE_SCOPE_METHOD_CONTINUITY_VERSION = "v2_6_48"
+PIANO_MEDIUM_SWING_PHRASE_SCOPE_METHOD_LOCK_POLICY_VERSION = "v2_6_49"
+PIANO_MEDIUM_SWING_ROOTLESS_AB_ORIENTATION_ALIGNMENT_VERSION = "v2_6_50"
+PIANO_MEDIUM_SWING_FOUR_NOTE_ROTATION_ALIGNMENT_VERSION = "v2_6_51"
+PIANO_MEDIUM_SWING_SAME_CHORD_REATTACK_COMPING_REUSE_VERSION = "v2_6_52"
+PIANO_MEDIUM_SWING_OPEN_DROP_SAFE_EXTENSION_TOP_REGISTER_CHECKPOINT_VERSION = "v2_6_53"
+PIANO_MEDIUM_SWING_DELIBERATE_REVOICE_GESTURE_BOUNDARY_VERSION = "v2_6_54"
+PIANO_MEDIUM_SWING_DELIBERATE_REVOICE_MICRO_MOTION_POLICY_VERSION = "v2_6_55"
 
 
 @dataclass(frozen=True)
@@ -60,6 +71,14 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         debug.get("timing_policy") or {},
     )
     same_chord_reattack_continuity = _annotate_same_chord_reattack_continuity(rows)
+    medium_swing_deliberate_revoice_gesture_boundary = _annotate_medium_swing_deliberate_revoice_gesture_boundary(rows)
+    medium_swing_deliberate_revoice_micro_motion_policy = _annotate_medium_swing_deliberate_revoice_micro_motion_policy(rows)
+    medium_swing_open_drop_voice_leading = _annotate_medium_swing_open_drop_voice_leading_continuity(rows)
+    medium_swing_open_drop_section_boundary_review = _annotate_medium_swing_open_drop_section_boundary_review(rows)
+    medium_swing_phrase_scope_method_continuity = _annotate_medium_swing_phrase_scope_method_continuity(rows)
+    medium_swing_phrase_scope_method_lock_policy = _annotate_medium_swing_phrase_scope_method_lock_policy(rows)
+    medium_swing_four_note_rotation_alignment = _annotate_medium_swing_four_note_rotation_alignment(rows)
+    medium_swing_rootless_ab_orientation_alignment = _annotate_medium_swing_rootless_ab_orientation_alignment(rows)
     warnings: list[str] = []
 
     style_counter: Counter[str] = Counter()
@@ -437,6 +456,33 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         for reason in row["register_guard_reasons"]:
             register_reason_counter.update([reason])
 
+    medium_swing_total_methods = sum(projection_method_counter.values()) or 0
+    medium_swing_drop2_and_4_ratio = (
+        float(projection_method_counter.get("drop2_and_4", 0)) / float(medium_swing_total_methods)
+        if medium_swing_total_methods
+        else 0.0
+    )
+    texture_method_percentages_by_contrast = _counter_percentages_by_key(texture_methods_by_contrast)
+    baseline_open_percentages = dict(texture_method_percentages_by_contrast.get("baseline_open_swing") or {})
+    bridge_open_percentages = dict(texture_method_percentages_by_contrast.get("bridge_open_contrast") or {})
+    final_chorus_open_percentages = dict(texture_method_percentages_by_contrast.get("final_chorus_open_lift") or {})
+    medium_swing_drop_calibration_active = dict(style_counter).get("medium_swing", 0) > 0
+    medium_swing_drop_calibration_checkpoint_passed = bool(
+        medium_swing_drop_calibration_active
+        and medium_swing_total_methods >= 100
+        and dict(projection_family_counter) == {"open": medium_swing_total_methods}
+        and len([method for method, count in projection_method_counter.items() if count > 0]) >= 3
+        and all(
+            texture_contrast_counter.get(role, 0) > 0
+            for role in ("baseline_open_swing", "bridge_open_contrast", "final_chorus_open_lift")
+        )
+        and medium_swing_drop2_and_4_ratio <= 0.20
+        and float(bridge_open_percentages.get("drop3", 0.0) or 0.0) > float(baseline_open_percentages.get("drop3", 0.0) or 0.0)
+        and float(final_chorus_open_percentages.get("drop3", 0.0) or 0.0) > float(baseline_open_percentages.get("drop3", 0.0) or 0.0)
+        and failed_register_guard_count == 0
+        and suppressed_or_missing_note_count == 0
+    )
+
     summary = {
         "contract_version": PIANO_MUSICAL_AUDIT_CONTRACT_VERSION,
         "title": debug.get("title"),
@@ -569,6 +615,68 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
         "same_chord_reattack_changed_voicing_warning_events": int(same_chord_reattack_continuity.get("changed_voicing_warning_events", 0)),
         "same_chord_reattack_continuity_warning_events": int(same_chord_reattack_continuity.get("warning_events", 0)),
         "same_chord_reattack_continuity_checkpoint_passed": bool(same_chord_reattack_continuity.get("checkpoint_passed", False)),
+        "medium_swing_same_chord_reattack_comping_reuse_version": PIANO_MEDIUM_SWING_SAME_CHORD_REATTACK_COMPING_REUSE_VERSION,
+        "medium_swing_same_chord_reattack_comping_reuse_contract": "audit_alias_for_same_chord_region_cached_voicing_reuse_in_medium_swing_open_drop_comping",
+        "medium_swing_same_chord_reattack_comping_reuse_events": int(same_chord_reattack_continuity.get("reattack_events", 0)),
+        "medium_swing_same_chord_reattack_comping_reuse_region_voicing_reused_events": int(same_chord_reattack_continuity.get("region_voicing_reused_events", 0)),
+        "medium_swing_same_chord_reattack_comping_reuse_exact_voicing_reuse_events": int(same_chord_reattack_continuity.get("exact_voicing_reuse_events", 0)),
+        "medium_swing_same_chord_reattack_comping_reuse_foundation_stable_events": int(same_chord_reattack_continuity.get("foundation_stable_events", 0)),
+        "medium_swing_same_chord_reattack_comping_reuse_fresh_revoicing_events": int(same_chord_reattack_continuity.get("fresh_revoicing_events", 0)),
+        "medium_swing_same_chord_reattack_comping_reuse_warning_events": int(same_chord_reattack_continuity.get("warning_events", 0)),
+        "medium_swing_same_chord_reattack_comping_reuse_checkpoint_passed": bool(same_chord_reattack_continuity.get("checkpoint_passed", False)),
+        "medium_swing_deliberate_revoice_gesture_boundary_version": PIANO_MEDIUM_SWING_DELIBERATE_REVOICE_GESTURE_BOUNDARY_VERSION,
+        "medium_swing_deliberate_revoice_gesture_boundary_contract": "same-chord fresh voicing is allowed only through explicit pitchless gesture/event intent; default comping reattack still reuses cached region voicing",
+        "medium_swing_deliberate_revoice_gesture_boundary_default_reuse_events": int(medium_swing_deliberate_revoice_gesture_boundary.get("default_reuse_events", 0)),
+        "medium_swing_deliberate_revoice_gesture_boundary_explicit_revoice_events": int(medium_swing_deliberate_revoice_gesture_boundary.get("explicit_revoice_events", 0)),
+        "medium_swing_deliberate_revoice_gesture_boundary_implicit_revoice_events": int(medium_swing_deliberate_revoice_gesture_boundary.get("implicit_revoice_events", 0)),
+        "medium_swing_deliberate_revoice_gesture_boundary_warning_events": int(medium_swing_deliberate_revoice_gesture_boundary.get("warning_events", 0)),
+        "medium_swing_deliberate_revoice_gesture_boundary_escape_hatches": dict(medium_swing_deliberate_revoice_gesture_boundary.get("escape_hatches", {})),
+        "medium_swing_deliberate_revoice_gesture_boundary_reasons": dict(medium_swing_deliberate_revoice_gesture_boundary.get("reasons", {})),
+        "medium_swing_deliberate_revoice_gesture_boundary_checkpoint_passed": bool(medium_swing_deliberate_revoice_gesture_boundary.get("checkpoint_passed", False)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_version": PIANO_MEDIUM_SWING_DELIBERATE_REVOICE_MICRO_MOTION_POLICY_VERSION,
+        "medium_swing_deliberate_revoice_micro_motion_policy_contract": "explicit same-chord fresh revoice gestures may constrain candidate selection to low-motion voicing changes; default comping still reuses cached region voicing",
+        "medium_swing_deliberate_revoice_micro_motion_policy_runtime_enabled_events": int(medium_swing_deliberate_revoice_micro_motion_policy.get("runtime_enabled_events", 0)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_explicit_revoice_events": int(medium_swing_deliberate_revoice_micro_motion_policy.get("explicit_revoice_events", 0)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_filter_applied_events": int(medium_swing_deliberate_revoice_micro_motion_policy.get("filter_applied_events", 0)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_candidate_match_events": int(medium_swing_deliberate_revoice_micro_motion_policy.get("candidate_match_events", 0)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_fallback_events": int(medium_swing_deliberate_revoice_micro_motion_policy.get("fallback_events", 0)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_warning_events": int(medium_swing_deliberate_revoice_micro_motion_policy.get("warning_events", 0)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_filter_reasons": dict(medium_swing_deliberate_revoice_micro_motion_policy.get("filter_reasons", {})),
+        "medium_swing_deliberate_revoice_micro_motion_policy_motion_maxima": dict(medium_swing_deliberate_revoice_micro_motion_policy.get("motion_maxima", {})),
+        "medium_swing_deliberate_revoice_micro_motion_policy_checkpoint_passed": bool(medium_swing_deliberate_revoice_micro_motion_policy.get("checkpoint_passed", False)),
+        "medium_swing_open_drop_safe_extension_top_register_checkpoint_version": PIANO_MEDIUM_SWING_OPEN_DROP_SAFE_EXTENSION_TOP_REGISTER_CHECKPOINT_VERSION,
+        "medium_swing_open_drop_safe_extension_top_register_behavior_preserving": True,
+        "medium_swing_open_drop_safe_extension_top_register_scope": "medium_swing_open_drop_actual_runtime_audit",
+        "medium_swing_open_drop_top_note_max": max(all_midi_notes) if all_midi_notes else None,
+        "medium_swing_open_drop_top_note_max_allowed": 72,
+        "medium_swing_open_drop_low_note_min": min(all_midi_notes) if all_midi_notes else None,
+        "medium_swing_open_drop_top_note_ge_75_events": top_note_ge_75_events,
+        "medium_swing_open_drop_register_guard_failed_events": failed_register_guard_count,
+        "medium_swing_open_drop_missing_note_events": suppressed_or_missing_note_count,
+        "medium_swing_open_drop_voice_leading_warning_events": int(medium_swing_open_drop_voice_leading.get("warning_events", 0)),
+        "medium_swing_open_drop_major_seventh_events": major_seventh_events,
+        "medium_swing_open_drop_major_seventh_color_events": major_seventh_color_events,
+        "medium_swing_open_drop_major_seventh_warm_color_events": major_seventh_safe_color_events,
+        "medium_swing_open_drop_major_seventh_degree_counts": dict(major_seventh_colors),
+        "medium_swing_open_drop_major_seventh_degree_counts_by_chord": {key: dict(counter) for key, counter in major_seventh_colors_by_chord.items()},
+        "medium_swing_open_drop_major_seventh_non_safe_color_events_by_chord": dict(major_seventh_non_safe_color_events_by_chord),
+        "medium_swing_open_drop_major_seventh_unnotated_sharp11_events": major_seventh_unnotated_sharp11_events,
+        "medium_swing_open_drop_major_seventh_explicit_sharp11_events": major_seventh_explicit_sharp11_events,
+        "medium_swing_open_drop_safe_extension_top_register_checkpoint_passed": bool(
+            dict(style_counter).get("medium_swing", 0) > 0
+            and medium_swing_total_methods >= 100
+            and dict(projection_family_counter) == {"open": medium_swing_total_methods}
+            and all_midi_notes
+            and max(all_midi_notes) <= 72
+            and top_note_ge_75_events == 0
+            and major_seventh_unnotated_sharp11_events == 0
+            and set(major_seventh_colors).issubset({"9", "13"})
+            and failed_register_guard_count == 0
+            and suppressed_or_missing_note_count == 0
+            and int(medium_swing_open_drop_voice_leading.get("warning_events", 0)) == 0
+            and bool(medium_swing_four_note_rotation_alignment.get("checkpoint_passed", False))
+            and bool(same_chord_reattack_continuity.get("checkpoint_passed", False))
+        ),
         "ballad_spread_safe_extension_frequency_calibration_version": PIANO_SAFE_EXTENSION_FREQUENCY_CALIBRATION_VERSION,
         "major_seventh_safe_extension_events": major_seventh_events,
         "major_seventh_safe_extension_color_events": major_seventh_color_events,
@@ -682,13 +790,126 @@ def build_piano_musical_audit(debug: Mapping[str, Any]) -> PianoMusicalAudit:
             "upper_structure_policy_gated_runtime_expansion",
             "minor_dominant_altered_light_gate_plan",
         ],
+        "medium_swing_open_drop_method_lock_calibration_version": PIANO_MEDIUM_SWING_OPEN_DROP_METHOD_LOCK_CALIBRATION_VERSION,
+        "medium_swing_open_drop_method_lock_calibration_active": medium_swing_drop_calibration_active,
+        "medium_swing_open_drop_method_lock_calibration_behavior": "OPEN family only; generic_open fallback-only; drop2 primary baseline; drop3 contrast/lift; drop2_and_4 controlled low color",
+        "medium_swing_open_drop_method_lock_calibration_total_open_events": medium_swing_total_methods,
+        "medium_swing_open_drop_method_lock_calibration_method_counts": dict(projection_method_counter),
+        "medium_swing_open_drop_method_lock_calibration_drop2_and_4_ratio": round(medium_swing_drop2_and_4_ratio, 4),
+        "medium_swing_open_drop_method_lock_calibration_drop2_and_4_controlled": medium_swing_drop2_and_4_ratio <= 0.20 if medium_swing_drop_calibration_active else None,
+        "medium_swing_open_drop_method_lock_calibration_bridge_drop3_lift": bool(
+            float(bridge_open_percentages.get("drop3", 0.0) or 0.0) > float(baseline_open_percentages.get("drop3", 0.0) or 0.0)
+        ) if medium_swing_drop_calibration_active else None,
+        "medium_swing_open_drop_method_lock_calibration_final_drop3_lift": bool(
+            float(final_chorus_open_percentages.get("drop3", 0.0) or 0.0) > float(baseline_open_percentages.get("drop3", 0.0) or 0.0)
+        ) if medium_swing_drop_calibration_active else None,
+        "medium_swing_open_drop_method_lock_calibration_open_family_only": (dict(projection_family_counter) == {"open": medium_swing_total_methods}) if medium_swing_drop_calibration_active else None,
+        "medium_swing_open_drop_method_lock_calibration_roles_present": {
+            role: int(texture_contrast_counter.get(role, 0))
+            for role in ("baseline_open_swing", "bridge_open_contrast", "final_chorus_open_lift")
+        } if medium_swing_drop_calibration_active else {},
+        "medium_swing_open_drop_method_lock_calibration_checkpoint_passed": medium_swing_drop_calibration_checkpoint_passed,
+        "medium_swing_open_drop_voice_leading_continuity_version": PIANO_MEDIUM_SWING_OPEN_DROP_VOICE_LEADING_CONTINUITY_VERSION,
+        "medium_swing_open_drop_voice_leading_continuity_behavior_preserving": True,
+        "medium_swing_open_drop_voice_leading_continuity_transition_events": int(medium_swing_open_drop_voice_leading.get("transition_events", 0)),
+        "medium_swing_open_drop_voice_leading_continuity_method_switch_events": int(medium_swing_open_drop_voice_leading.get("method_switch_events", 0)),
+        "medium_swing_open_drop_voice_leading_continuity_section_boundary_events": int(medium_swing_open_drop_voice_leading.get("section_boundary_events", 0)),
+        "medium_swing_open_drop_voice_leading_continuity_warning_events": int(medium_swing_open_drop_voice_leading.get("warning_events", 0)),
+        "medium_swing_open_drop_voice_leading_continuity_method_switch_warning_events": int(medium_swing_open_drop_voice_leading.get("method_switch_warning_events", 0)),
+        "medium_swing_open_drop_voice_leading_continuity_section_boundary_warning_events": int(medium_swing_open_drop_voice_leading.get("section_boundary_warning_events", 0)),
+        "medium_swing_open_drop_voice_leading_continuity_top_motion_max_abs": medium_swing_open_drop_voice_leading.get("top_motion_max_abs"),
+        "medium_swing_open_drop_voice_leading_continuity_low_motion_max_abs": medium_swing_open_drop_voice_leading.get("low_motion_max_abs"),
+        "medium_swing_open_drop_voice_leading_continuity_avg_motion_max": medium_swing_open_drop_voice_leading.get("avg_motion_max"),
+        "medium_swing_open_drop_voice_leading_continuity_avg_motion_average": medium_swing_open_drop_voice_leading.get("avg_motion_average"),
+        "medium_swing_open_drop_voice_leading_continuity_span_jump_max_abs": medium_swing_open_drop_voice_leading.get("span_jump_max_abs"),
+        "medium_swing_open_drop_voice_leading_continuity_method_switches": dict(medium_swing_open_drop_voice_leading.get("method_switches", {})),
+        "medium_swing_open_drop_voice_leading_continuity_transition_examples": list(medium_swing_open_drop_voice_leading.get("transition_examples", [])),
+        "medium_swing_open_drop_voice_leading_continuity_checkpoint_passed": bool(medium_swing_open_drop_voice_leading.get("checkpoint_passed", False)),
+        "medium_swing_open_drop_section_boundary_review_version": PIANO_MEDIUM_SWING_OPEN_DROP_SECTION_BOUNDARY_REVIEW_VERSION,
+        "medium_swing_open_drop_section_boundary_review_behavior_preserving": True,
+        "medium_swing_open_drop_section_boundary_review_events": int(medium_swing_open_drop_section_boundary_review.get("boundary_events", 0)),
+        "medium_swing_open_drop_section_boundary_review_method_switch_events": int(medium_swing_open_drop_section_boundary_review.get("method_switch_events", 0)),
+        "medium_swing_open_drop_section_boundary_review_drop2_and_4_entry_events": int(medium_swing_open_drop_section_boundary_review.get("drop2_and_4_entry_events", 0)),
+        "medium_swing_open_drop_section_boundary_review_warning_events": int(medium_swing_open_drop_section_boundary_review.get("warning_events", 0)),
+        "medium_swing_open_drop_section_boundary_review_primary_entry_alignment_events": int(medium_swing_open_drop_section_boundary_review.get("primary_entry_alignment_events", 0)),
+        "medium_swing_open_drop_section_boundary_review_entry_methods_by_role": {key: dict(value) for key, value in medium_swing_open_drop_section_boundary_review.get("entry_methods_by_role", {}).items()},
+        "medium_swing_open_drop_section_boundary_review_role_pairs": dict(medium_swing_open_drop_section_boundary_review.get("role_pairs", {})),
+        "medium_swing_open_drop_section_boundary_review_method_pairs": dict(medium_swing_open_drop_section_boundary_review.get("method_pairs", {})),
+        "medium_swing_open_drop_section_boundary_review_avg_motion_max": medium_swing_open_drop_section_boundary_review.get("avg_motion_max"),
+        "medium_swing_open_drop_section_boundary_review_top_motion_max_abs": medium_swing_open_drop_section_boundary_review.get("top_motion_max_abs"),
+        "medium_swing_open_drop_section_boundary_review_low_motion_max_abs": medium_swing_open_drop_section_boundary_review.get("low_motion_max_abs"),
+        "medium_swing_open_drop_section_boundary_review_examples": list(medium_swing_open_drop_section_boundary_review.get("boundary_examples", [])),
+        "medium_swing_open_drop_section_boundary_review_checkpoint_passed": bool(medium_swing_open_drop_section_boundary_review.get("checkpoint_passed", False)),
+        "medium_swing_phrase_scope_method_continuity_version": PIANO_MEDIUM_SWING_PHRASE_SCOPE_METHOD_CONTINUITY_VERSION,
+        "medium_swing_phrase_scope_method_continuity_behavior_preserving": True,
+        "medium_swing_phrase_scope_method_continuity_scope_definition": "section-local four-region windows derived from actual OPEN DROP-family chord-region events",
+        "medium_swing_phrase_scope_events": int(medium_swing_phrase_scope_method_continuity.get("phrase_scope_events", 0)),
+        "medium_swing_phrase_scope_count": int(medium_swing_phrase_scope_method_continuity.get("phrase_count", 0)),
+        "medium_swing_phrase_scope_method_switch_events": int(medium_swing_phrase_scope_method_continuity.get("method_switch_events", 0)),
+        "medium_swing_phrase_scope_method_switch_ratio": medium_swing_phrase_scope_method_continuity.get("method_switch_ratio"),
+        "medium_swing_phrase_scope_drop2_and_4_run_events": int(medium_swing_phrase_scope_method_continuity.get("drop2_and_4_run_events", 0)),
+        "medium_swing_phrase_scope_drop2_and_4_run_max": int(medium_swing_phrase_scope_method_continuity.get("drop2_and_4_run_max", 0)),
+        "medium_swing_phrase_scope_drop2_and_4_phrase_count": int(medium_swing_phrase_scope_method_continuity.get("drop2_and_4_phrase_count", 0)),
+        "medium_swing_phrase_scope_ii_v_events": int(medium_swing_phrase_scope_method_continuity.get("ii_v_events", 0)),
+        "medium_swing_phrase_scope_v_i_events": int(medium_swing_phrase_scope_method_continuity.get("v_i_events", 0)),
+        "medium_swing_phrase_scope_ii_v_i_events": int(medium_swing_phrase_scope_method_continuity.get("ii_v_i_events", 0)),
+        "medium_swing_phrase_scope_ii_v_i_method_consistent_events": int(medium_swing_phrase_scope_method_continuity.get("ii_v_i_method_consistent_events", 0)),
+        "medium_swing_phrase_scope_ii_v_i_method_switch_events": int(medium_swing_phrase_scope_method_continuity.get("ii_v_i_method_switch_events", 0)),
+        "medium_swing_phrase_scope_progression_method_consistent_events": int(medium_swing_phrase_scope_method_continuity.get("progression_method_consistent_events", 0)),
+        "medium_swing_phrase_scope_progression_method_switch_events": int(medium_swing_phrase_scope_method_continuity.get("progression_method_switch_events", 0)),
+        "medium_swing_phrase_scope_high_motion_switch_events": int(medium_swing_phrase_scope_method_continuity.get("high_motion_switch_events", 0)),
+        "medium_swing_phrase_scope_warning_events": int(medium_swing_phrase_scope_method_continuity.get("warning_events", 0)),
+        "medium_swing_phrase_scope_method_switches": dict(medium_swing_phrase_scope_method_continuity.get("method_switches", {})),
+        "medium_swing_phrase_scope_phrase_method_profiles": dict(medium_swing_phrase_scope_method_continuity.get("phrase_method_profiles", {})),
+        "medium_swing_phrase_scope_progression_method_pairs": dict(medium_swing_phrase_scope_method_continuity.get("progression_method_pairs", {})),
+        "medium_swing_phrase_scope_examples": list(medium_swing_phrase_scope_method_continuity.get("phrase_examples", [])),
+        "medium_swing_phrase_scope_checkpoint_passed": bool(medium_swing_phrase_scope_method_continuity.get("checkpoint_passed", False)),
+        "medium_swing_phrase_scope_method_lock_policy_version": PIANO_MEDIUM_SWING_PHRASE_SCOPE_METHOD_LOCK_POLICY_VERSION,
+        "medium_swing_phrase_scope_method_lock_policy_runtime_enabled_events": int(medium_swing_phrase_scope_method_lock_policy.get("runtime_enabled_events", 0)),
+        "medium_swing_phrase_scope_method_lock_policy_applied_events": int(medium_swing_phrase_scope_method_lock_policy.get("applied_events", 0)),
+        "medium_swing_phrase_scope_method_lock_policy_candidate_match_events": int(medium_swing_phrase_scope_method_lock_policy.get("candidate_match_events", 0)),
+        "medium_swing_phrase_scope_method_lock_policy_candidate_mismatch_events": int(medium_swing_phrase_scope_method_lock_policy.get("candidate_mismatch_events", 0)),
+        "medium_swing_phrase_scope_method_lock_policy_runtime_filtering_events": int(medium_swing_phrase_scope_method_lock_policy.get("runtime_filtering_events", 0)),
+        "medium_swing_phrase_scope_method_lock_policy_pair_types": dict(medium_swing_phrase_scope_method_lock_policy.get("pair_types", {})),
+        "medium_swing_phrase_scope_method_lock_policy_locked_methods": dict(medium_swing_phrase_scope_method_lock_policy.get("locked_methods", {})),
+        "medium_swing_phrase_scope_method_lock_policy_skip_reasons": dict(medium_swing_phrase_scope_method_lock_policy.get("skip_reasons", {})),
+        "medium_swing_phrase_scope_method_lock_policy_examples": list(medium_swing_phrase_scope_method_lock_policy.get("examples", [])),
+        "medium_swing_phrase_scope_method_lock_policy_checkpoint_passed": bool(medium_swing_phrase_scope_method_lock_policy.get("checkpoint_passed", False)),
+        "medium_swing_four_note_rotation_alignment_version": PIANO_MEDIUM_SWING_FOUR_NOTE_ROTATION_ALIGNMENT_VERSION,
+        "medium_swing_four_note_rotation_alignment_runtime_enabled_events": int(medium_swing_four_note_rotation_alignment.get("runtime_enabled_events", 0)),
+        "medium_swing_four_note_rotation_alignment_policy_applied_events": int(medium_swing_four_note_rotation_alignment.get("policy_applied_events", 0)),
+        "medium_swing_four_note_rotation_alignment_filter_applied_events": int(medium_swing_four_note_rotation_alignment.get("filter_applied_events", 0)),
+        "medium_swing_four_note_rotation_alignment_candidate_match_events": int(medium_swing_four_note_rotation_alignment.get("candidate_match_events", 0)),
+        "medium_swing_four_note_rotation_alignment_candidate_mismatch_events": int(medium_swing_four_note_rotation_alignment.get("candidate_mismatch_events", 0)),
+        "medium_swing_four_note_rotation_alignment_pair_types": dict(medium_swing_four_note_rotation_alignment.get("pair_types", {})),
+        "medium_swing_four_note_rotation_alignment_desired_families": dict(medium_swing_four_note_rotation_alignment.get("desired_families", {})),
+        "medium_swing_four_note_rotation_alignment_selected_families": dict(medium_swing_four_note_rotation_alignment.get("selected_families", {})),
+        "medium_swing_four_note_rotation_alignment_desired_sides": dict(medium_swing_four_note_rotation_alignment.get("desired_sides", {})),
+        "medium_swing_four_note_rotation_alignment_selected_sides": dict(medium_swing_four_note_rotation_alignment.get("selected_sides", {})),
+        "medium_swing_four_note_rotation_alignment_skip_reasons": dict(medium_swing_four_note_rotation_alignment.get("skip_reasons", {})),
+        "medium_swing_four_note_rotation_alignment_filter_reasons": dict(medium_swing_four_note_rotation_alignment.get("filter_reasons", {})),
+        "medium_swing_four_note_rotation_alignment_examples": list(medium_swing_four_note_rotation_alignment.get("examples", [])),
+        "medium_swing_four_note_rotation_alignment_checkpoint_passed": bool(medium_swing_four_note_rotation_alignment.get("checkpoint_passed", False)),
+        "medium_swing_rootless_ab_orientation_alignment_version": PIANO_MEDIUM_SWING_ROOTLESS_AB_ORIENTATION_ALIGNMENT_VERSION,
+        "medium_swing_rootless_ab_orientation_alignment_runtime_enabled_events": int(medium_swing_rootless_ab_orientation_alignment.get("runtime_enabled_events", 0)),
+        "medium_swing_rootless_ab_orientation_alignment_policy_applied_events": int(medium_swing_rootless_ab_orientation_alignment.get("policy_applied_events", 0)),
+        "medium_swing_rootless_ab_orientation_alignment_filter_applied_events": int(medium_swing_rootless_ab_orientation_alignment.get("filter_applied_events", 0)),
+        "medium_swing_rootless_ab_orientation_alignment_candidate_match_events": int(medium_swing_rootless_ab_orientation_alignment.get("candidate_match_events", 0)),
+        "medium_swing_rootless_ab_orientation_alignment_candidate_mismatch_events": int(medium_swing_rootless_ab_orientation_alignment.get("candidate_mismatch_events", 0)),
+        "medium_swing_rootless_ab_orientation_alignment_pair_types": dict(medium_swing_rootless_ab_orientation_alignment.get("pair_types", {})),
+        "medium_swing_rootless_ab_orientation_alignment_desired_orientations": dict(medium_swing_rootless_ab_orientation_alignment.get("desired_orientations", {})),
+        "medium_swing_rootless_ab_orientation_alignment_selected_orientations": dict(medium_swing_rootless_ab_orientation_alignment.get("selected_orientations", {})),
+        "medium_swing_rootless_ab_orientation_alignment_skip_reasons": dict(medium_swing_rootless_ab_orientation_alignment.get("skip_reasons", {})),
+        "medium_swing_rootless_ab_orientation_alignment_filter_reasons": dict(medium_swing_rootless_ab_orientation_alignment.get("filter_reasons", {})),
+        "medium_swing_rootless_ab_orientation_alignment_examples": list(medium_swing_rootless_ab_orientation_alignment.get("examples", [])),
+        "medium_swing_rootless_ab_orientation_alignment_checkpoint_passed": bool(medium_swing_rootless_ab_orientation_alignment.get("checkpoint_passed", False)),
         "low_note_min": min(all_midi_notes) if all_midi_notes else None,
         "top_note_max": max(all_midi_notes) if all_midi_notes else None,
         "top_note_ge_75_events": top_note_ge_75_events,
         "voicing_texture_scope_counts": dict(texture_scope_counter),
         "voicing_texture_contrast_roles": dict(texture_contrast_counter),
         "voicing_texture_methods_by_contrast_role": {key: dict(counter) for key, counter in texture_methods_by_contrast.items()},
-        "voicing_texture_method_percentages_by_contrast_role": _counter_percentages_by_key(texture_methods_by_contrast),
+        "voicing_texture_method_percentages_by_contrast_role": texture_method_percentages_by_contrast,
         "voicing_texture_methods_by_scope": {key: dict(counter) for key, counter in texture_methods_by_scope.items()},
         "voicing_texture_open_method_weight_plans_by_contrast_role": texture_weight_plan_by_contrast,
         "migrated_projection_paths": dict(migrated_projection_path_counter),
@@ -804,6 +1025,15 @@ def format_piano_musical_audit_report(debug: Mapping[str, Any], *, max_events: i
     lines.append(f"- Texture methods by contrast role: `{summary.get('voicing_texture_methods_by_contrast_role')}`")
     lines.append(f"- Texture method percentages by contrast role: `{summary.get('voicing_texture_method_percentages_by_contrast_role')}`")
     lines.append(f"- Texture open method weight plans by contrast role: `{summary.get('voicing_texture_open_method_weight_plans_by_contrast_role')}`")
+    lines.append(f"- Medium Swing open/drop voice-leading checkpoint: `{summary.get('medium_swing_open_drop_voice_leading_continuity_checkpoint_passed')}`")
+    lines.append(f"- Medium Swing open/drop transitions / warnings: `{summary.get('medium_swing_open_drop_voice_leading_continuity_transition_events')}` / `{summary.get('medium_swing_open_drop_voice_leading_continuity_warning_events')}`")
+    lines.append(f"- Medium Swing open/drop method-switch / section-boundary warnings: `{summary.get('medium_swing_open_drop_voice_leading_continuity_method_switch_warning_events')}` / `{summary.get('medium_swing_open_drop_voice_leading_continuity_section_boundary_warning_events')}`")
+    lines.append(f"- Medium Swing section-boundary review events / warnings: `{summary.get('medium_swing_open_drop_section_boundary_review_events')}` / `{summary.get('medium_swing_open_drop_section_boundary_review_warning_events')}`")
+    lines.append(f"- Medium Swing phrase-scope method continuity checkpoint: `{summary.get('medium_swing_phrase_scope_checkpoint_passed')}`")
+    lines.append(f"- Medium Swing phrase-scope events / switches / warnings: `{summary.get('medium_swing_phrase_scope_events')}` / `{summary.get('medium_swing_phrase_scope_method_switch_events')}` / `{summary.get('medium_swing_phrase_scope_warning_events')}`")
+    lines.append(f"- Medium Swing phrase-scope DROP2&4 run events / max: `{summary.get('medium_swing_phrase_scope_drop2_and_4_run_events')}` / `{summary.get('medium_swing_phrase_scope_drop2_and_4_run_max')}`")
+    lines.append(f"- Medium Swing phrase-scope ii-V-I consistent / switch events: `{summary.get('medium_swing_phrase_scope_ii_v_i_method_consistent_events')}` / `{summary.get('medium_swing_phrase_scope_ii_v_i_method_switch_events')}`")
+    lines.append(f"- Medium Swing open/drop top / low / avg-motion max: `{summary.get('medium_swing_open_drop_voice_leading_continuity_top_motion_max_abs')}` / `{summary.get('medium_swing_open_drop_voice_leading_continuity_low_motion_max_abs')}` / `{summary.get('medium_swing_open_drop_voice_leading_continuity_avg_motion_max')}`")
     lines.append(f"- Migrated projection paths: `{summary.get('migrated_projection_paths')}`")
     lines.append(f"- Legacy projection callback used / cleanup required: `{summary.get('legacy_projection_callback_used_count')}` / `{summary.get('legacy_projection_cleanup_required_count')}`")
     lines.append(f"- OPEN named projection methods: `{summary.get('open_named_projection_methods')}`")
@@ -1223,6 +1453,820 @@ def _safe_float(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
 
+
+def _annotate_medium_swing_deliberate_revoice_gesture_boundary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit v2_6_54 deliberate same-chord revoicing boundary.
+
+    Default Medium Swing comping should still reuse cached voicings.  Fresh
+    same-region voicings are acceptable only when the realizer attached the
+    explicit gesture/event-intent boundary metadata.
+    """
+
+    default_reuse_events = 0
+    explicit_revoice_events = 0
+    implicit_revoice_events = 0
+    warning_events = 0
+    escape_hatches: Counter[str] = Counter()
+    reasons: Counter[str] = Counter()
+    by_region: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for row in rows:
+        key = (str(row.get("region_id") or ""), str(row.get("chord_symbol") or ""), "piano")
+        anchor = by_region.get(key)
+        if anchor is None:
+            by_region[key] = row
+            continue
+        if row.get("region_voicing_reused"):
+            default_reuse_events += 1
+            continue
+        if row.get("medium_swing_deliberate_revoice_gesture_boundary_applied"):
+            explicit_revoice_events += 1
+            escape_hatch = str(row.get("medium_swing_deliberate_revoice_gesture_boundary_escape_hatch") or "unknown")
+            reason = str(row.get("medium_swing_deliberate_revoice_gesture_boundary_reason") or "unknown")
+            escape_hatches.update([escape_hatch])
+            reasons.update([reason])
+            by_region[key] = row
+            continue
+        implicit_revoice_events += 1
+        warning_events += 1
+        row.update(
+            {
+                "medium_swing_deliberate_revoice_gesture_boundary_warning": True,
+                "medium_swing_deliberate_revoice_gesture_boundary_warning_reason": "same_region_voicing_changed_without_explicit_revoice_intent",
+            }
+        )
+        by_region[key] = row
+    return {
+        "default_reuse_events": default_reuse_events,
+        "explicit_revoice_events": explicit_revoice_events,
+        "implicit_revoice_events": implicit_revoice_events,
+        "warning_events": warning_events,
+        "escape_hatches": dict(escape_hatches),
+        "reasons": dict(reasons),
+        "checkpoint_passed": warning_events == 0,
+    }
+
+
+
+def _annotate_medium_swing_deliberate_revoice_micro_motion_policy(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit v2_6_55 explicit same-chord micro-motion revoice policy.
+
+    The default standard-tune demos should have zero explicit revoice events.
+    Targeted probes can still verify that when the boundary is explicitly
+    triggered, the selected fresh voicing stays close to the cached region
+    voicing or falls back with an auditable reason.
+    """
+
+    runtime_rows = [row for row in rows if row.get("medium_swing_deliberate_revoice_micro_motion_policy_runtime_enabled")]
+    explicit_rows = [row for row in rows if row.get("medium_swing_deliberate_revoice_gesture_boundary_applied")]
+    filter_rows = [row for row in runtime_rows if row.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_applied")]
+    match_rows = [row for row in runtime_rows if row.get("medium_swing_deliberate_revoice_micro_motion_policy_candidate_matches")]
+    fallback_rows = [
+        row
+        for row in runtime_rows
+        if not row.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_applied")
+        and str(row.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_reason") or "")
+        in {"no_safe_micro_motion_candidate_available", "previous_notes_unavailable"}
+    ]
+    filter_reasons: Counter[str] = Counter(
+        str(row.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_reason") or "unknown")
+        for row in runtime_rows
+    )
+    low_values = [_float_value(row.get("medium_swing_deliberate_revoice_micro_motion_policy_low_motion_abs")) for row in runtime_rows]
+    top_values = [_float_value(row.get("medium_swing_deliberate_revoice_micro_motion_policy_top_motion_abs")) for row in runtime_rows]
+    avg_values = [_float_value(row.get("medium_swing_deliberate_revoice_micro_motion_policy_avg_motion_abs")) for row in runtime_rows]
+    low_values = [value for value in low_values if value is not None]
+    top_values = [value for value in top_values if value is not None]
+    avg_values = [value for value in avg_values if value is not None]
+    warning_rows = [
+        row
+        for row in runtime_rows
+        if row.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_applied")
+        and (
+            not row.get("medium_swing_deliberate_revoice_micro_motion_policy_foundation_stable")
+            or _float_value(row.get("medium_swing_deliberate_revoice_micro_motion_policy_top_motion_abs"), default=999.0) > 2.0
+            or _float_value(row.get("medium_swing_deliberate_revoice_micro_motion_policy_avg_motion_abs"), default=999.0) > 2.5
+        )
+    ]
+    return {
+        "runtime_enabled_events": len(runtime_rows),
+        "explicit_revoice_events": len(explicit_rows),
+        "filter_applied_events": len(filter_rows),
+        "candidate_match_events": len(match_rows),
+        "fallback_events": len(fallback_rows),
+        "warning_events": len(warning_rows),
+        "filter_reasons": dict(filter_reasons),
+        "motion_maxima": {
+            "low_motion_abs_max": max(low_values) if low_values else 0,
+            "top_motion_abs_max": max(top_values) if top_values else 0,
+            "avg_motion_abs_max": max(avg_values) if avg_values else 0,
+        },
+        "checkpoint_passed": len(warning_rows) == 0,
+    }
+
+
+def _annotate_medium_swing_open_drop_voice_leading_continuity(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit Medium Swing OPEN drop-family continuity across chord-region boundaries.
+
+    This is observational only.  It does not re-score candidates, change method
+    weights, or alter selected notes.  Same-region reattacks are intentionally
+    excluded because they are covered by the cached-region reattack audit.
+    """
+
+    methods = {"drop2", "drop3", "drop2_and_4"}
+    transitions: list[dict[str, Any]] = []
+    method_switch_counter: Counter[str] = Counter()
+    previous: dict[str, Any] | None = None
+    for row in rows:
+        if row.get("disposition_projection_family") != "open":
+            continue
+        method = str(row.get("disposition_projection_method") or "")
+        if method not in methods:
+            continue
+        notes = sorted(int(note) for note in row.get("midi_notes") or [])
+        if not notes:
+            continue
+        current = dict(row)
+        current["_sorted_notes"] = notes
+        if previous and previous.get("region_id") != current.get("region_id"):
+            previous_notes = list(previous.get("_sorted_notes") or [])
+            size = min(len(previous_notes), len(notes))
+            motions = [notes[index] - previous_notes[index] for index in range(size)]
+            avg_motion = (sum(abs(value) for value in motions) / size) if size else 0.0
+            top_motion = (notes[-1] - previous_notes[-1]) if previous_notes else 0
+            low_motion = (notes[0] - previous_notes[0]) if previous_notes else 0
+            previous_span = (previous_notes[-1] - previous_notes[0]) if len(previous_notes) >= 2 else 0
+            current_span = (notes[-1] - notes[0]) if len(notes) >= 2 else 0
+            span_jump = current_span - previous_span
+            previous_method = str(previous.get("disposition_projection_method") or "unknown")
+            switch_key = f"{previous_method}->{method}"
+            if previous_method != method:
+                method_switch_counter.update([switch_key])
+            section_boundary = str(previous.get("voicing_texture_scope_id") or "") != str(current.get("voicing_texture_scope_id") or "")
+            warning = avg_motion > 6.0 or abs(top_motion) > 7 or abs(low_motion) > 8 or abs(span_jump) > 8
+            transitions.append(
+                {
+                    "previous_event_id": previous.get("event_id"),
+                    "event_id": current.get("event_id"),
+                    "previous_region_id": previous.get("region_id"),
+                    "region_id": current.get("region_id"),
+                    "previous_chord_symbol": previous.get("chord_symbol"),
+                    "chord_symbol": current.get("chord_symbol"),
+                    "previous_method": previous_method,
+                    "method": method,
+                    "method_switch": previous_method != method,
+                    "method_switch_key": switch_key,
+                    "section_boundary": section_boundary,
+                    "previous_notes": previous_notes,
+                    "notes": notes,
+                    "avg_motion": round(avg_motion, 3),
+                    "top_motion": int(top_motion),
+                    "low_motion": int(low_motion),
+                    "span_jump": int(span_jump),
+                    "warning": bool(warning),
+                }
+            )
+        previous = current
+
+    avg_motions = [float(item["avg_motion"]) for item in transitions]
+    top_motions = [abs(int(item["top_motion"])) for item in transitions]
+    low_motions = [abs(int(item["low_motion"])) for item in transitions]
+    span_jumps = [abs(int(item["span_jump"])) for item in transitions]
+    warnings = [item for item in transitions if item["warning"]]
+    method_switch_warnings = [item for item in warnings if item["method_switch"]]
+    section_boundary_warnings = [item for item in warnings if item["section_boundary"]]
+    method_switch_events = [item for item in transitions if item["method_switch"]]
+    section_boundary_events = [item for item in transitions if item["section_boundary"]]
+    return {
+        "transition_events": len(transitions),
+        "method_switch_events": len(method_switch_events),
+        "section_boundary_events": len(section_boundary_events),
+        "warning_events": len(warnings),
+        "method_switch_warning_events": len(method_switch_warnings),
+        "section_boundary_warning_events": len(section_boundary_warnings),
+        "top_motion_max_abs": max(top_motions) if top_motions else None,
+        "low_motion_max_abs": max(low_motions) if low_motions else None,
+        "avg_motion_max": round(max(avg_motions), 3) if avg_motions else None,
+        "avg_motion_average": round(mean(avg_motions), 3) if avg_motions else 0.0,
+        "span_jump_max_abs": max(span_jumps) if span_jumps else None,
+        "method_switches": dict(method_switch_counter),
+        "transition_examples": [
+            {
+                "previous_chord_symbol": item["previous_chord_symbol"],
+                "chord_symbol": item["chord_symbol"],
+                "previous_method": item["previous_method"],
+                "method": item["method"],
+                "avg_motion": item["avg_motion"],
+                "top_motion": item["top_motion"],
+                "low_motion": item["low_motion"],
+                "span_jump": item["span_jump"],
+                "warning": item["warning"],
+            }
+            for item in transitions[:8]
+        ],
+        "checkpoint_passed": bool(
+            len(transitions) >= 50
+            and len(warnings) == 0
+            and (max(top_motions) if top_motions else 0) <= 7
+            and (max(low_motions) if low_motions else 0) <= 8
+            and (max(avg_motions) if avg_motions else 0.0) <= 6.0
+            and (max(span_jumps) if span_jumps else 0) <= 8
+        ),
+    }
+
+
+def _annotate_medium_swing_open_drop_section_boundary_review(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Review Medium Swing section-boundary OPEN method readability.
+
+    This is a v2_6_47 observational checkpoint layered on top of the v2_6_46
+    voice-leading continuity audit.  It does not change weights or notes.  It
+    focuses on whether section boundaries enter with readable OPEN methods:
+    DROP2/DROP3 are acceptable body/lift methods, while DROP2&4 should remain
+    away from the boundary entry and stay a low-frequency color inside phrases.
+    """
+
+    methods = {"drop2", "drop3", "drop2_and_4"}
+    primary_by_role = {
+        "baseline_open_swing": "drop2",
+        "bridge_open_contrast": "drop3",
+        "final_chorus_open_lift": "drop3",
+    }
+    acceptable_by_role = {
+        "baseline_open_swing": {"drop2", "drop3"},
+        "bridge_open_contrast": {"drop2", "drop3"},
+        "final_chorus_open_lift": {"drop2", "drop3"},
+    }
+    boundaries: list[dict[str, Any]] = []
+    entry_methods_by_role: dict[str, Counter[str]] = {}
+    role_pairs: Counter[str] = Counter()
+    method_pairs: Counter[str] = Counter()
+    previous: dict[str, Any] | None = None
+    for row in rows:
+        if row.get("disposition_projection_family") != "open":
+            continue
+        method = str(row.get("disposition_projection_method") or "")
+        if method not in methods:
+            continue
+        notes = sorted(int(note) for note in row.get("midi_notes") or [])
+        if not notes:
+            continue
+        current = dict(row)
+        current["_sorted_notes"] = notes
+        if previous and previous.get("region_id") != current.get("region_id"):
+            previous_scope = str(previous.get("voicing_texture_scope_id") or "")
+            current_scope = str(current.get("voicing_texture_scope_id") or "")
+            if previous_scope != current_scope:
+                previous_notes = list(previous.get("_sorted_notes") or [])
+                size = min(len(previous_notes), len(notes))
+                motions = [notes[index] - previous_notes[index] for index in range(size)]
+                avg_motion = (sum(abs(value) for value in motions) / size) if size else 0.0
+                top_motion = (notes[-1] - previous_notes[-1]) if previous_notes else 0
+                low_motion = (notes[0] - previous_notes[0]) if previous_notes else 0
+                previous_method = str(previous.get("disposition_projection_method") or "unknown")
+                previous_role = str(previous.get("voicing_texture_contrast_role") or "unknown")
+                current_role = str(current.get("voicing_texture_contrast_role") or "unknown")
+                role_pair = f"{previous_role}->{current_role}"
+                method_pair = f"{previous_method}->{method}"
+                role_pairs.update([role_pair])
+                method_pairs.update([method_pair])
+                entry_methods_by_role.setdefault(current_role, Counter()).update([method])
+                acceptable_methods = acceptable_by_role.get(current_role, {"drop2", "drop3"})
+                method_readable = method in acceptable_methods
+                primary_aligned = primary_by_role.get(current_role) == method
+                warning = (
+                    not method_readable
+                    or method == "drop2_and_4"
+                    or avg_motion > 6.0
+                    or abs(top_motion) > 7
+                    or abs(low_motion) > 8
+                )
+                boundaries.append(
+                    {
+                        "previous_event_id": previous.get("event_id"),
+                        "event_id": current.get("event_id"),
+                        "previous_region_id": previous.get("region_id"),
+                        "region_id": current.get("region_id"),
+                        "previous_chord_symbol": previous.get("chord_symbol"),
+                        "chord_symbol": current.get("chord_symbol"),
+                        "previous_scope": previous_scope,
+                        "scope": current_scope,
+                        "previous_role": previous_role,
+                        "role": current_role,
+                        "role_pair": role_pair,
+                        "previous_method": previous_method,
+                        "method": method,
+                        "method_pair": method_pair,
+                        "method_switch": previous_method != method,
+                        "primary_entry_alignment": bool(primary_aligned),
+                        "method_readable": bool(method_readable),
+                        "avg_motion": round(avg_motion, 3),
+                        "top_motion": int(top_motion),
+                        "low_motion": int(low_motion),
+                        "warning": bool(warning),
+                    }
+                )
+        previous = current
+
+    warnings = [item for item in boundaries if item["warning"]]
+    method_switch_events = [item for item in boundaries if item["method_switch"]]
+    drop2_and_4_entry_events = [item for item in boundaries if item["method"] == "drop2_and_4"]
+    primary_entry_alignment_events = [item for item in boundaries if item["primary_entry_alignment"]]
+    avg_motions = [float(item["avg_motion"]) for item in boundaries]
+    top_motions = [abs(int(item["top_motion"])) for item in boundaries]
+    low_motions = [abs(int(item["low_motion"])) for item in boundaries]
+    return {
+        "boundary_events": len(boundaries),
+        "method_switch_events": len(method_switch_events),
+        "drop2_and_4_entry_events": len(drop2_and_4_entry_events),
+        "warning_events": len(warnings),
+        "primary_entry_alignment_events": len(primary_entry_alignment_events),
+        "entry_methods_by_role": entry_methods_by_role,
+        "role_pairs": dict(role_pairs),
+        "method_pairs": dict(method_pairs),
+        "avg_motion_max": round(max(avg_motions), 3) if avg_motions else None,
+        "top_motion_max_abs": max(top_motions) if top_motions else None,
+        "low_motion_max_abs": max(low_motions) if low_motions else None,
+        "boundary_examples": [
+            {
+                "previous_chord_symbol": item["previous_chord_symbol"],
+                "chord_symbol": item["chord_symbol"],
+                "previous_role": item["previous_role"],
+                "role": item["role"],
+                "previous_method": item["previous_method"],
+                "method": item["method"],
+                "avg_motion": item["avg_motion"],
+                "top_motion": item["top_motion"],
+                "low_motion": item["low_motion"],
+                "warning": item["warning"],
+            }
+            for item in boundaries[:12]
+        ],
+        "checkpoint_passed": bool(
+            len(boundaries) >= 6
+            and len(warnings) == 0
+            and len(drop2_and_4_entry_events) == 0
+            and (max(top_motions) if top_motions else 0) <= 7
+            and (max(low_motions) if low_motions else 0) <= 8
+            and (max(avg_motions) if avg_motions else 0.0) <= 6.0
+        ),
+    }
+
+
+def _annotate_medium_swing_phrase_scope_method_continuity(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit Medium Swing section-internal phrase-scope OPEN method continuity.
+
+    v2_6_48 is deliberately observational: it derives lightweight four-region
+    phrase windows from the already-realized OPEN DROP-family piano trace.  The
+    audit checks whether method switches remain smooth inside a phrase, whether
+    DROP2&4 stays an isolated color instead of becoming the phrase body, and how
+    local fourth-motion progressions such as ii-V / V-I / ii-V-I behave.  It does
+    not re-plan texture scopes, selector weights, pattern events, or notes.
+    """
+
+    methods = {"drop2", "drop3", "drop2_and_4"}
+    phrase_size_regions = 4
+    region_rows: list[dict[str, Any]] = []
+    region_count_by_scope: Counter[str] = Counter()
+    previous_region_id: str | None = None
+
+    for row in rows:
+        if row.get("disposition_projection_family") != "open":
+            continue
+        method = str(row.get("disposition_projection_method") or "")
+        if method not in methods:
+            continue
+        notes = sorted(int(note) for note in row.get("midi_notes") or [])
+        if not notes:
+            continue
+        region_id = str(row.get("region_id") or "")
+        if region_id and region_id == previous_region_id:
+            continue
+        scope = str(row.get("voicing_texture_scope_id") or "section:unknown")
+        phrase_index = region_count_by_scope[scope] // phrase_size_regions
+        region_count_by_scope.update([scope])
+        current = dict(row)
+        current["_sorted_notes"] = notes
+        current["_phrase_scope_id"] = f"{scope}|phrase:{phrase_index}"
+        current["_phrase_index"] = phrase_index
+        current["_root_pc"] = _chord_root_pc(str(row.get("chord_symbol") or ""))
+        current["_quality_kind"] = _chord_quality_kind(str(row.get("chord_symbol") or ""))
+        region_rows.append(current)
+        previous_region_id = region_id
+
+    phrase_method_sequences: dict[str, list[str]] = {}
+    for row in region_rows:
+        phrase_method_sequences.setdefault(str(row.get("_phrase_scope_id")), []).append(str(row.get("disposition_projection_method") or "unknown"))
+
+    phrase_method_profiles = {
+        phrase_id: dict(Counter(methods_in_phrase))
+        for phrase_id, methods_in_phrase in phrase_method_sequences.items()
+    }
+
+    transitions: list[dict[str, Any]] = []
+    method_switch_counter: Counter[str] = Counter()
+    for previous, current in zip(region_rows, region_rows[1:]):
+        if previous.get("region_id") == current.get("region_id"):
+            continue
+        if previous.get("voicing_texture_scope_id") != current.get("voicing_texture_scope_id"):
+            continue
+        if previous.get("_phrase_scope_id") != current.get("_phrase_scope_id"):
+            continue
+        transition = _medium_swing_method_transition(previous, current)
+        if transition["method_switch"]:
+            method_switch_counter.update([str(transition["method_switch_key"])])
+        transitions.append(transition)
+
+    progression_pairs: list[dict[str, Any]] = []
+    progression_method_pairs: Counter[str] = Counter()
+    ii_v_events = 0
+    v_i_events = 0
+    progression_method_consistent_events = 0
+    progression_method_switch_events = 0
+    for previous, current in zip(region_rows, region_rows[1:]):
+        if previous.get("voicing_texture_scope_id") != current.get("voicing_texture_scope_id"):
+            continue
+        pair_type = _fourth_motion_progression_pair_type(previous, current)
+        if not pair_type:
+            continue
+        previous_method = str(previous.get("disposition_projection_method") or "unknown")
+        method = str(current.get("disposition_projection_method") or "unknown")
+        method_pair = f"{previous_method}->{method}"
+        progression_method_pairs.update([f"{pair_type}:{method_pair}"])
+        consistent = previous_method == method
+        ii_v_events += int(pair_type == "ii_v")
+        v_i_events += int(pair_type == "v_i")
+        progression_method_consistent_events += int(consistent)
+        progression_method_switch_events += int(not consistent)
+        progression_pairs.append(
+            {
+                "pair_type": pair_type,
+                "previous_chord_symbol": previous.get("chord_symbol"),
+                "chord_symbol": current.get("chord_symbol"),
+                "previous_method": previous_method,
+                "method": method,
+                "method_consistent": bool(consistent),
+            }
+        )
+
+    ii_v_i_events = 0
+    ii_v_i_method_consistent_events = 0
+    ii_v_i_method_switch_events = 0
+    for first, second, third in zip(region_rows, region_rows[1:], region_rows[2:]):
+        if first.get("voicing_texture_scope_id") != second.get("voicing_texture_scope_id") or second.get("voicing_texture_scope_id") != third.get("voicing_texture_scope_id"):
+            continue
+        if _fourth_motion_progression_pair_type(first, second) != "ii_v":
+            continue
+        if _fourth_motion_progression_pair_type(second, third) != "v_i":
+            continue
+        ii_v_i_events += 1
+        methods_in_progression = {
+            str(first.get("disposition_projection_method") or "unknown"),
+            str(second.get("disposition_projection_method") or "unknown"),
+            str(third.get("disposition_projection_method") or "unknown"),
+        }
+        if len(methods_in_progression) == 1:
+            ii_v_i_method_consistent_events += 1
+        else:
+            ii_v_i_method_switch_events += 1
+
+    drop2_and_4_run_events = 0
+    drop2_and_4_run_max = 0
+    drop2_and_4_phrase_count = 0
+    for methods_in_phrase in phrase_method_sequences.values():
+        run = 0
+        phrase_has_drop2_and_4 = False
+        for method in methods_in_phrase:
+            if method == "drop2_and_4":
+                run += 1
+                phrase_has_drop2_and_4 = True
+                drop2_and_4_run_events += 1
+                drop2_and_4_run_max = max(drop2_and_4_run_max, run)
+            else:
+                run = 0
+        drop2_and_4_phrase_count += int(phrase_has_drop2_and_4)
+
+    warnings = [item for item in transitions if item["warning"]]
+    method_switch_events = [item for item in transitions if item["method_switch"]]
+    high_motion_switch_events = [item for item in method_switch_events if item["high_motion_switch"]]
+    method_switch_ratio = round(len(method_switch_events) / len(transitions), 4) if transitions else 0.0
+    warning_events = len(warnings)
+    if drop2_and_4_run_max > 2:
+        warning_events += 1
+    avg_motions = [float(item["avg_motion"]) for item in transitions]
+
+    return {
+        "phrase_scope_events": len(transitions),
+        "phrase_count": len(phrase_method_sequences),
+        "method_switch_events": len(method_switch_events),
+        "method_switch_ratio": method_switch_ratio,
+        "drop2_and_4_run_events": drop2_and_4_run_events,
+        "drop2_and_4_run_max": drop2_and_4_run_max,
+        "drop2_and_4_phrase_count": drop2_and_4_phrase_count,
+        "ii_v_events": ii_v_events,
+        "v_i_events": v_i_events,
+        "ii_v_i_events": ii_v_i_events,
+        "ii_v_i_method_consistent_events": ii_v_i_method_consistent_events,
+        "ii_v_i_method_switch_events": ii_v_i_method_switch_events,
+        "progression_method_consistent_events": progression_method_consistent_events,
+        "progression_method_switch_events": progression_method_switch_events,
+        "high_motion_switch_events": len(high_motion_switch_events),
+        "warning_events": warning_events,
+        "method_switches": dict(method_switch_counter),
+        "phrase_method_profiles": phrase_method_profiles,
+        "progression_method_pairs": dict(progression_method_pairs),
+        "phrase_examples": [
+            {
+                "previous_chord_symbol": item["previous_chord_symbol"],
+                "chord_symbol": item["chord_symbol"],
+                "phrase_scope_id": item["phrase_scope_id"],
+                "previous_method": item["previous_method"],
+                "method": item["method"],
+                "avg_motion": item["avg_motion"],
+                "top_motion": item["top_motion"],
+                "low_motion": item["low_motion"],
+                "method_switch": item["method_switch"],
+                "warning": item["warning"],
+            }
+            for item in transitions[:12]
+        ],
+        "checkpoint_passed": bool(
+            len(transitions) >= 20
+            and len(high_motion_switch_events) == 0
+            and drop2_and_4_run_max <= 2
+            and method_switch_ratio <= 0.70
+            and (max(avg_motions) if avg_motions else 0.0) <= 6.0
+        ),
+    }
+
+
+def _annotate_medium_swing_phrase_scope_method_lock_policy(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit v2_6_49 runtime method-lock application for Medium Swing.
+
+    This audit only reads realized voicing metadata. It confirms that the new
+    orchestration-layer policy is actually applying strict method-lock filtering
+    on local functional progression follow regions and that all selected
+    candidates match their lock.
+    """
+
+    runtime_enabled_rows = [row for row in rows if row.get("medium_swing_phrase_scope_method_lock_policy_runtime_enabled")]
+    applied_rows = [row for row in runtime_enabled_rows if row.get("medium_swing_phrase_scope_method_lock_policy_applied")]
+    candidate_match_rows = [row for row in applied_rows if row.get("voicing_method_lock_candidate_matches")]
+    candidate_mismatch_rows = [row for row in applied_rows if not row.get("voicing_method_lock_candidate_matches")]
+    filtering_rows = [row for row in applied_rows if row.get("voicing_method_lock_runtime_filtering_enabled")]
+
+    pair_types: Counter[str] = Counter(str(row.get("medium_swing_phrase_scope_method_lock_policy_pair_type") or "unknown") for row in applied_rows)
+    locked_methods: Counter[str] = Counter(str(row.get("medium_swing_phrase_scope_method_lock_policy_previous_method") or "unknown") for row in applied_rows)
+    skip_reasons: Counter[str] = Counter(
+        str(row.get("medium_swing_phrase_scope_method_lock_policy_reason") or "unknown")
+        for row in runtime_enabled_rows
+        if not row.get("medium_swing_phrase_scope_method_lock_policy_applied")
+    )
+    examples = [
+        {
+            "event_id": row.get("event_id"),
+            "region_id": row.get("region_id"),
+            "previous_region_id": row.get("medium_swing_phrase_scope_method_lock_policy_previous_region_id"),
+            "previous_chord_symbol": row.get("medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol"),
+            "chord_symbol": row.get("chord_symbol"),
+            "pair_type": row.get("medium_swing_phrase_scope_method_lock_policy_pair_type"),
+            "locked_method": row.get("medium_swing_phrase_scope_method_lock_policy_previous_method"),
+            "selected_method": row.get("disposition_projection_method"),
+            "candidate_matches_lock": bool(row.get("voicing_method_lock_candidate_matches")),
+            "runtime_filtering_enabled": bool(row.get("voicing_method_lock_runtime_filtering_enabled")),
+        }
+        for row in applied_rows[:12]
+    ]
+    return {
+        "runtime_enabled_events": len(runtime_enabled_rows),
+        "applied_events": len(applied_rows),
+        "candidate_match_events": len(candidate_match_rows),
+        "candidate_mismatch_events": len(candidate_mismatch_rows),
+        "runtime_filtering_events": len(filtering_rows),
+        "pair_types": dict(pair_types),
+        "locked_methods": dict(locked_methods),
+        "skip_reasons": dict(skip_reasons),
+        "examples": examples,
+        "checkpoint_passed": bool(applied_rows and len(candidate_mismatch_rows) == 0 and len(filtering_rows) == len(applied_rows)),
+    }
+
+
+def _annotate_medium_swing_four_note_rotation_alignment(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit v2_6_51 generic 4-note rotation alignment in method-locked pairs."""
+
+    runtime_enabled_rows = [row for row in rows if row.get("medium_swing_four_note_rotation_alignment_runtime_enabled")]
+    policy_rows = [row for row in runtime_enabled_rows if row.get("medium_swing_four_note_rotation_alignment_policy_applied")]
+    filter_rows = [row for row in policy_rows if row.get("medium_swing_four_note_rotation_alignment_filter_applied")]
+    candidate_match_rows = [row for row in policy_rows if row.get("medium_swing_four_note_rotation_alignment_candidate_matches")]
+    candidate_mismatch_rows = [row for row in policy_rows if not row.get("medium_swing_four_note_rotation_alignment_candidate_matches")]
+    pair_types: Counter[str] = Counter(str(row.get("medium_swing_four_note_rotation_alignment_pair_type") or "unknown") for row in policy_rows)
+    desired_families: Counter[str] = Counter(str(row.get("medium_swing_four_note_rotation_alignment_desired_family") or "unknown") for row in policy_rows)
+    selected_families: Counter[str] = Counter(str(row.get("medium_swing_four_note_rotation_alignment_selected_family") or "unknown") for row in policy_rows)
+    desired_sides: Counter[str] = Counter(str(row.get("medium_swing_four_note_rotation_alignment_desired_ab_side") or "unknown") for row in policy_rows)
+    selected_sides: Counter[str] = Counter(str(row.get("medium_swing_four_note_rotation_alignment_selected_ab_side") or "unknown") for row in policy_rows)
+    skip_reasons: Counter[str] = Counter(
+        str(row.get("medium_swing_four_note_rotation_alignment_reason") or "unknown")
+        for row in runtime_enabled_rows
+        if not row.get("medium_swing_four_note_rotation_alignment_policy_applied")
+    )
+    filter_reasons: Counter[str] = Counter(str(row.get("medium_swing_four_note_rotation_alignment_filter_reason") or "unknown") for row in policy_rows)
+    examples = [
+        {
+            "event_id": row.get("event_id"),
+            "region_id": row.get("region_id"),
+            "previous_region_id": row.get("medium_swing_four_note_rotation_alignment_previous_region_id"),
+            "chord_symbol": row.get("chord_symbol"),
+            "pair_type": row.get("medium_swing_four_note_rotation_alignment_pair_type"),
+            "previous_family": row.get("medium_swing_four_note_rotation_alignment_previous_family"),
+            "desired_family": row.get("medium_swing_four_note_rotation_alignment_desired_family"),
+            "selected_family": row.get("medium_swing_four_note_rotation_alignment_selected_family"),
+            "previous_ab_side": row.get("medium_swing_four_note_rotation_alignment_previous_ab_side"),
+            "desired_ab_side": row.get("medium_swing_four_note_rotation_alignment_desired_ab_side"),
+            "selected_ab_side": row.get("medium_swing_four_note_rotation_alignment_selected_ab_side"),
+            "desired_content_type": row.get("medium_swing_four_note_rotation_alignment_desired_content_type"),
+            "selected_content_type": row.get("medium_swing_four_note_rotation_alignment_selected_content_type"),
+            "desired_inversion_index": row.get("medium_swing_four_note_rotation_alignment_desired_inversion_index"),
+            "selected_inversion_index": row.get("medium_swing_four_note_rotation_alignment_selected_inversion_index"),
+            "candidate_matches_alignment": bool(row.get("medium_swing_four_note_rotation_alignment_candidate_matches")),
+            "filter_applied": bool(row.get("medium_swing_four_note_rotation_alignment_filter_applied")),
+            "filter_reason": row.get("medium_swing_four_note_rotation_alignment_filter_reason"),
+        }
+        for row in policy_rows[:12]
+    ]
+    allowed_fallback_reasons = {
+        "no_matching_four_note_rotation_candidate_available",
+        "matching_four_note_rotation_candidates_fail_smoothness_guard",
+    }
+    allowed_fallback_rows = [
+        row
+        for row in candidate_mismatch_rows
+        if str(row.get("medium_swing_four_note_rotation_alignment_filter_reason") or "") in allowed_fallback_reasons
+    ]
+    disallowed_mismatch_rows = [row for row in candidate_mismatch_rows if row not in allowed_fallback_rows]
+    checkpoint_passed = bool(
+        not policy_rows
+        or (
+            len(disallowed_mismatch_rows) == 0
+            and len(filter_rows) + len(allowed_fallback_rows) == len(policy_rows)
+        )
+    )
+    return {
+        "runtime_enabled_events": len(runtime_enabled_rows),
+        "policy_applied_events": len(policy_rows),
+        "filter_applied_events": len(filter_rows),
+        "candidate_match_events": len(candidate_match_rows),
+        "candidate_mismatch_events": len(candidate_mismatch_rows),
+        "allowed_fallback_events": len(allowed_fallback_rows),
+        "disallowed_mismatch_events": len(disallowed_mismatch_rows),
+        "pair_types": dict(pair_types),
+        "desired_families": dict(desired_families),
+        "selected_families": dict(selected_families),
+        "desired_sides": dict(desired_sides),
+        "selected_sides": dict(selected_sides),
+        "skip_reasons": dict(skip_reasons),
+        "filter_reasons": dict(filter_reasons),
+        "examples": examples,
+        "checkpoint_passed": checkpoint_passed,
+    }
+
+
+def _annotate_medium_swing_rootless_ab_orientation_alignment(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Audit v2_6_50 rootless A/B orientation alignment in method-locked pairs."""
+
+    runtime_enabled_rows = [row for row in rows if row.get("medium_swing_rootless_ab_orientation_alignment_runtime_enabled")]
+    policy_rows = [row for row in runtime_enabled_rows if row.get("medium_swing_rootless_ab_orientation_alignment_policy_applied")]
+    filter_rows = [row for row in policy_rows if row.get("medium_swing_rootless_ab_orientation_alignment_filter_applied")]
+    candidate_match_rows = [row for row in policy_rows if row.get("medium_swing_rootless_ab_orientation_alignment_candidate_matches")]
+    candidate_mismatch_rows = [row for row in policy_rows if not row.get("medium_swing_rootless_ab_orientation_alignment_candidate_matches")]
+    pair_types: Counter[str] = Counter(str(row.get("medium_swing_rootless_ab_orientation_alignment_pair_type") or "unknown") for row in policy_rows)
+    desired_orientations: Counter[str] = Counter(str(row.get("medium_swing_rootless_ab_orientation_alignment_desired_orientation") or "unknown") for row in policy_rows)
+    selected_orientations: Counter[str] = Counter(str(row.get("medium_swing_rootless_ab_orientation_alignment_selected_orientation") or "unknown") for row in policy_rows)
+    skip_reasons: Counter[str] = Counter(
+        str(row.get("medium_swing_rootless_ab_orientation_alignment_reason") or "unknown")
+        for row in runtime_enabled_rows
+        if not row.get("medium_swing_rootless_ab_orientation_alignment_policy_applied")
+    )
+    filter_reasons: Counter[str] = Counter(str(row.get("medium_swing_rootless_ab_orientation_alignment_filter_reason") or "unknown") for row in policy_rows)
+    examples = [
+        {
+            "event_id": row.get("event_id"),
+            "region_id": row.get("region_id"),
+            "previous_region_id": row.get("medium_swing_rootless_ab_orientation_alignment_previous_region_id"),
+            "chord_symbol": row.get("chord_symbol"),
+            "pair_type": row.get("medium_swing_rootless_ab_orientation_alignment_pair_type"),
+            "previous_orientation": row.get("medium_swing_rootless_ab_orientation_alignment_previous_orientation"),
+            "desired_orientation": row.get("medium_swing_rootless_ab_orientation_alignment_desired_orientation"),
+            "selected_orientation": row.get("medium_swing_rootless_ab_orientation_alignment_selected_orientation"),
+            "desired_content_type": row.get("medium_swing_rootless_ab_orientation_alignment_desired_content_type"),
+            "selected_content_type": row.get("medium_swing_rootless_ab_orientation_alignment_selected_content_type"),
+            "desired_inversion_index": row.get("medium_swing_rootless_ab_orientation_alignment_desired_inversion_index"),
+            "selected_inversion_index": row.get("medium_swing_rootless_ab_orientation_alignment_selected_inversion_index"),
+            "candidate_matches_alignment": bool(row.get("medium_swing_rootless_ab_orientation_alignment_candidate_matches")),
+            "filter_applied": bool(row.get("medium_swing_rootless_ab_orientation_alignment_filter_applied")),
+            "filter_reason": row.get("medium_swing_rootless_ab_orientation_alignment_filter_reason"),
+        }
+        for row in policy_rows[:12]
+    ]
+    checkpoint_passed = bool(not policy_rows or (len(candidate_mismatch_rows) == 0 and len(filter_rows) == len(policy_rows)))
+    return {
+        "runtime_enabled_events": len(runtime_enabled_rows),
+        "policy_applied_events": len(policy_rows),
+        "filter_applied_events": len(filter_rows),
+        "candidate_match_events": len(candidate_match_rows),
+        "candidate_mismatch_events": len(candidate_mismatch_rows),
+        "pair_types": dict(pair_types),
+        "desired_orientations": dict(desired_orientations),
+        "selected_orientations": dict(selected_orientations),
+        "skip_reasons": dict(skip_reasons),
+        "filter_reasons": dict(filter_reasons),
+        "examples": examples,
+        "checkpoint_passed": checkpoint_passed,
+    }
+
+
+
+def _medium_swing_method_transition(previous: Mapping[str, Any], current: Mapping[str, Any]) -> dict[str, Any]:
+    previous_notes = list(previous.get("_sorted_notes") or [])
+    notes = list(current.get("_sorted_notes") or [])
+    size = min(len(previous_notes), len(notes))
+    motions = [notes[index] - previous_notes[index] for index in range(size)]
+    avg_motion = (sum(abs(value) for value in motions) / size) if size else 0.0
+    top_motion = (notes[-1] - previous_notes[-1]) if previous_notes and notes else 0
+    low_motion = (notes[0] - previous_notes[0]) if previous_notes and notes else 0
+    previous_span = (previous_notes[-1] - previous_notes[0]) if len(previous_notes) >= 2 else 0
+    current_span = (notes[-1] - notes[0]) if len(notes) >= 2 else 0
+    span_jump = current_span - previous_span
+    previous_method = str(previous.get("disposition_projection_method") or "unknown")
+    method = str(current.get("disposition_projection_method") or "unknown")
+    method_switch = previous_method != method
+    high_motion_switch = method_switch and (avg_motion > 6.0 or abs(top_motion) > 7 or abs(low_motion) > 8 or abs(span_jump) > 8)
+    warning = avg_motion > 6.0 or abs(top_motion) > 7 or abs(low_motion) > 8 or abs(span_jump) > 8
+    return {
+        "previous_event_id": previous.get("event_id"),
+        "event_id": current.get("event_id"),
+        "previous_region_id": previous.get("region_id"),
+        "region_id": current.get("region_id"),
+        "previous_chord_symbol": previous.get("chord_symbol"),
+        "chord_symbol": current.get("chord_symbol"),
+        "phrase_scope_id": current.get("_phrase_scope_id"),
+        "previous_method": previous_method,
+        "method": method,
+        "method_switch": bool(method_switch),
+        "method_switch_key": f"{previous_method}->{method}",
+        "avg_motion": round(avg_motion, 3),
+        "top_motion": int(top_motion),
+        "low_motion": int(low_motion),
+        "span_jump": int(span_jump),
+        "high_motion_switch": bool(high_motion_switch),
+        "warning": bool(warning),
+    }
+
+
+def _chord_root_pc(chord_symbol: str) -> int | None:
+    if not chord_symbol:
+        return None
+    letters = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
+    letter = chord_symbol[0].upper()
+    if letter not in letters:
+        return None
+    pc = letters[letter]
+    index = 1
+    while index < len(chord_symbol) and chord_symbol[index] in ("#", "b"):
+        pc += 1 if chord_symbol[index] == "#" else -1
+        index += 1
+    return pc % 12
+
+
+def _chord_quality_kind(chord_symbol: str) -> str:
+    symbol = chord_symbol.strip()
+    quality = symbol[1:]
+    if quality.startswith(("#", "b")):
+        quality = quality[1:]
+    lower = quality.lower()
+    if "maj" in lower or "Δ" in quality:
+        return "major_tonic"
+    if lower.startswith(("m", "-")) or "ø" in quality or "min" in lower:
+        return "minor_predominant"
+    if "dim" in lower or "o" in lower:
+        return "minor_predominant"
+    if "7" in lower or "9" in lower or "13" in lower or "alt" in lower:
+        return "dominant"
+    return "major_tonic"
+
+
+def _fourth_motion_progression_pair_type(previous: Mapping[str, Any], current: Mapping[str, Any]) -> str | None:
+    previous_root = previous.get("_root_pc")
+    current_root = current.get("_root_pc")
+    if previous_root is None or current_root is None:
+        return None
+    if (int(current_root) - int(previous_root)) % 12 != 5:
+        return None
+    previous_quality = str(previous.get("_quality_kind") or "")
+    current_quality = str(current.get("_quality_kind") or "")
+    if previous_quality == "minor_predominant" and current_quality == "dominant":
+        return "ii_v"
+    if previous_quality == "dominant" and current_quality == "major_tonic":
+        return "v_i"
+    return None
+
 def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, Any], expression_audit_row: Mapping[str, Any] | None = None) -> dict[str, Any]:
     event = dict(raw.get("pattern_event") or {})
     expression = dict(raw.get("expression") or {})
@@ -1291,6 +2335,22 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "same_chord_reattack_continuity_metadata_version": voicing_metadata.get("same_chord_reattack_continuity_version"),
         "same_chord_reattack_continuity_region_cache_reuse": bool(voicing_metadata.get("same_chord_reattack_continuity_region_cache_reuse", False)),
         "same_chord_reattack_continuity_contract": voicing_metadata.get("same_chord_reattack_continuity_contract"),
+        "same_chord_reattack_explicit_fresh_revoicing": bool(voicing_metadata.get("same_chord_reattack_explicit_fresh_revoicing", False)),
+        "medium_swing_deliberate_revoice_gesture_boundary_applied": bool(voicing_metadata.get("medium_swing_deliberate_revoice_gesture_boundary_applied", False)),
+        "medium_swing_deliberate_revoice_gesture_boundary_reason": voicing_metadata.get("medium_swing_deliberate_revoice_gesture_boundary_reason"),
+        "medium_swing_deliberate_revoice_gesture_boundary_escape_hatch": voicing_metadata.get("medium_swing_deliberate_revoice_gesture_boundary_escape_hatch"),
+        "medium_swing_deliberate_revoice_gesture_boundary_source": voicing_metadata.get("medium_swing_deliberate_revoice_gesture_boundary_source"),
+        "medium_swing_deliberate_revoice_gesture_boundary_changed_notes": bool(voicing_metadata.get("medium_swing_deliberate_revoice_gesture_boundary_changed_notes", False)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_version": voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_version"),
+        "medium_swing_deliberate_revoice_micro_motion_policy_runtime_enabled": bool(voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_runtime_enabled", False)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_requested": bool(voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_requested", False)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_filter_applied": bool(voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_applied", False)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_filter_reason": voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_filter_reason"),
+        "medium_swing_deliberate_revoice_micro_motion_policy_candidate_matches": bool(voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_candidate_matches", False)),
+        "medium_swing_deliberate_revoice_micro_motion_policy_low_motion_abs": voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_low_motion_abs"),
+        "medium_swing_deliberate_revoice_micro_motion_policy_top_motion_abs": voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_top_motion_abs"),
+        "medium_swing_deliberate_revoice_micro_motion_policy_avg_motion_abs": voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_avg_motion_abs"),
+        "medium_swing_deliberate_revoice_micro_motion_policy_foundation_stable": bool(voicing_metadata.get("medium_swing_deliberate_revoice_micro_motion_policy_foundation_stable", False)),
         "voicing_texture_scope_id": _texture_scope_id_from_metadata(voicing_metadata),
         "voicing_texture_contrast_role": _texture_contrast_role_from_metadata(voicing_metadata),
         "voicing_texture_open_method_weights": _texture_open_method_weights_from_metadata(voicing_metadata),
@@ -1298,6 +2358,64 @@ def _event_row(index: int, raw: Mapping[str, Any], timing_policy: Mapping[str, A
         "voicing_texture_state_allowed_families": list((dict(voicing_metadata.get("voicing_texture_state") or {}).get("allowed_families") or [])),
         "disposition_projection_family": voicing_metadata.get("disposition_projection_family"),
         "disposition_projection_method": voicing_metadata.get("disposition_projection_method"),
+        "medium_swing_phrase_scope_method_lock_policy_runtime_enabled": bool(voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_runtime_enabled", False)),
+        "medium_swing_phrase_scope_method_lock_policy_applied": bool(voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_applied", False)),
+        "medium_swing_phrase_scope_method_lock_policy_reason": voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_reason"),
+        "medium_swing_phrase_scope_method_lock_policy_pair_type": voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_pair_type"),
+        "medium_swing_phrase_scope_method_lock_policy_previous_region_id": voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_region_id"),
+        "medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol": voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol"),
+        "medium_swing_phrase_scope_method_lock_policy_previous_method": voicing_metadata.get("medium_swing_phrase_scope_method_lock_policy_previous_method"),
+        "voicing_method_lock_scope_runtime_wiring_enabled": bool(voicing_metadata.get("voicing_method_lock_scope_runtime_wiring_enabled", False)),
+        "voicing_method_lock_candidate_matches": bool(voicing_metadata.get("voicing_method_lock_candidate_matches", False)),
+        "voicing_method_lock_runtime_action": voicing_metadata.get("voicing_method_lock_runtime_action"),
+        "voicing_method_lock_runtime_filtering_enabled": bool(voicing_metadata.get("voicing_method_lock_runtime_filtering_enabled", False)),
+        "medium_swing_four_note_rotation_alignment_runtime_enabled": bool(voicing_metadata.get("medium_swing_four_note_rotation_alignment_runtime_enabled", False)),
+        "medium_swing_four_note_rotation_alignment_policy_applied": bool(voicing_metadata.get("medium_swing_four_note_rotation_alignment_policy_applied", False)),
+        "medium_swing_four_note_rotation_alignment_reason": voicing_metadata.get("medium_swing_four_note_rotation_alignment_reason"),
+        "medium_swing_four_note_rotation_alignment_pair_type": voicing_metadata.get("medium_swing_four_note_rotation_alignment_pair_type"),
+        "medium_swing_four_note_rotation_alignment_previous_region_id": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_region_id"),
+        "medium_swing_four_note_rotation_alignment_previous_family": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_family"),
+        "medium_swing_four_note_rotation_alignment_desired_family": voicing_metadata.get("medium_swing_four_note_rotation_alignment_desired_family"),
+        "medium_swing_four_note_rotation_alignment_previous_ab_side": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_ab_side"),
+        "medium_swing_four_note_rotation_alignment_desired_ab_side": voicing_metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_side"),
+        "medium_swing_four_note_rotation_alignment_previous_content_type": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_content_type"),
+        "medium_swing_four_note_rotation_alignment_desired_content_type": voicing_metadata.get("medium_swing_four_note_rotation_alignment_desired_content_type"),
+        "medium_swing_four_note_rotation_alignment_previous_source_family": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_source_family"),
+        "medium_swing_four_note_rotation_alignment_desired_source_family": voicing_metadata.get("medium_swing_four_note_rotation_alignment_desired_source_family"),
+        "medium_swing_four_note_rotation_alignment_previous_ab_pair_index": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_ab_pair_index"),
+        "medium_swing_four_note_rotation_alignment_desired_ab_pair_index": voicing_metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_pair_index"),
+        "medium_swing_four_note_rotation_alignment_previous_inversion_index": voicing_metadata.get("medium_swing_four_note_rotation_alignment_previous_inversion_index"),
+        "medium_swing_four_note_rotation_alignment_desired_inversion_index": voicing_metadata.get("medium_swing_four_note_rotation_alignment_desired_inversion_index"),
+        "medium_swing_four_note_rotation_alignment_filter_applied": bool(voicing_metadata.get("medium_swing_four_note_rotation_alignment_filter_applied", False)),
+        "medium_swing_four_note_rotation_alignment_filter_reason": voicing_metadata.get("medium_swing_four_note_rotation_alignment_filter_reason"),
+        "medium_swing_four_note_rotation_alignment_candidate_matches": bool(voicing_metadata.get("medium_swing_four_note_rotation_alignment_candidate_matches", False)),
+        "medium_swing_four_note_rotation_alignment_selected_family": voicing_metadata.get("medium_swing_four_note_rotation_alignment_selected_family"),
+        "medium_swing_four_note_rotation_alignment_selected_ab_side": voicing_metadata.get("medium_swing_four_note_rotation_alignment_selected_ab_side"),
+        "medium_swing_four_note_rotation_alignment_selected_content_type": voicing_metadata.get("medium_swing_four_note_rotation_alignment_selected_content_type"),
+        "medium_swing_four_note_rotation_alignment_selected_source_family": voicing_metadata.get("medium_swing_four_note_rotation_alignment_selected_source_family"),
+        "medium_swing_four_note_rotation_alignment_selected_ab_pair_index": voicing_metadata.get("medium_swing_four_note_rotation_alignment_selected_ab_pair_index"),
+        "medium_swing_four_note_rotation_alignment_selected_inversion_index": voicing_metadata.get("medium_swing_four_note_rotation_alignment_selected_inversion_index"),
+        "medium_swing_four_note_rotation_alignment_original_candidate_count": voicing_metadata.get("medium_swing_four_note_rotation_alignment_original_candidate_count"),
+        "medium_swing_four_note_rotation_alignment_kept_candidate_count": voicing_metadata.get("medium_swing_four_note_rotation_alignment_kept_candidate_count"),
+        "medium_swing_rootless_ab_orientation_alignment_runtime_enabled": bool(voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_runtime_enabled", False)),
+        "medium_swing_rootless_ab_orientation_alignment_policy_applied": bool(voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_policy_applied", False)),
+        "medium_swing_rootless_ab_orientation_alignment_reason": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_reason"),
+        "medium_swing_rootless_ab_orientation_alignment_pair_type": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_pair_type"),
+        "medium_swing_rootless_ab_orientation_alignment_previous_region_id": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_previous_region_id"),
+        "medium_swing_rootless_ab_orientation_alignment_previous_orientation": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_previous_orientation"),
+        "medium_swing_rootless_ab_orientation_alignment_desired_orientation": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_orientation"),
+        "medium_swing_rootless_ab_orientation_alignment_previous_content_type": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_previous_content_type"),
+        "medium_swing_rootless_ab_orientation_alignment_desired_content_type": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_content_type"),
+        "medium_swing_rootless_ab_orientation_alignment_previous_inversion_index": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_previous_inversion_index"),
+        "medium_swing_rootless_ab_orientation_alignment_desired_inversion_index": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_inversion_index"),
+        "medium_swing_rootless_ab_orientation_alignment_filter_applied": bool(voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_filter_applied", False)),
+        "medium_swing_rootless_ab_orientation_alignment_filter_reason": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_filter_reason"),
+        "medium_swing_rootless_ab_orientation_alignment_candidate_matches": bool(voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_candidate_matches", False)),
+        "medium_swing_rootless_ab_orientation_alignment_selected_orientation": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_selected_orientation"),
+        "medium_swing_rootless_ab_orientation_alignment_selected_content_type": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_selected_content_type"),
+        "medium_swing_rootless_ab_orientation_alignment_selected_inversion_index": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_selected_inversion_index"),
+        "medium_swing_rootless_ab_orientation_alignment_original_candidate_count": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_original_candidate_count"),
+        "medium_swing_rootless_ab_orientation_alignment_kept_candidate_count": voicing_metadata.get("medium_swing_rootless_ab_orientation_alignment_kept_candidate_count"),
         "main_drop_projection_method": _drop_projection_method_from_metadata(voicing_metadata),
         "spread_upper_projection_method": voicing_metadata.get("upper_projection_method"),
         "spread_upper_drop_projection_method": _drop_projection_method_from_metadata(upper_projection_metadata) or _drop_projection_method_name(voicing_metadata.get("upper_projection_method")),
@@ -1555,6 +2673,15 @@ def _numeric_stats_by_key(values_by_key: Mapping[str, list[int]]) -> dict[str, d
         }
     return out
 
+
+
+def _float_value(value: Any, *, default: float | None = None) -> float | None:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
 def _texture_scope_id_from_metadata(voicing_metadata: Mapping[str, Any]) -> str | None:
     state = dict(voicing_metadata.get("voicing_texture_state") or {})

@@ -70,8 +70,10 @@ def score_candidate(candidate: VoicingCandidate, policy: VoicingPolicy, state: V
     density_score = -abs(len(notes) - policy.preferred_density) * 0.08
     rootless_ab_inversion_prior_score = _score_rootless_ab_inversion_prior(candidate, policy)
     basic_4note_rotation_prior_score = _score_basic_4note_rotation_prior(candidate, policy)
+    generic_four_note_rotation_alignment_score = _score_generic_four_note_rotation_alignment(candidate, state)
     orientation_score = (
         _score_rootless_ab_content_type_continuity(candidate, state)
+        + generic_four_note_rotation_alignment_score
         + rootless_ab_inversion_prior_score
         + basic_4note_rotation_prior_score
     )
@@ -160,6 +162,13 @@ def score_candidate(candidate: VoicingCandidate, policy: VoicingPolicy, state: V
             "basic_4note_rotation_weight": candidate.metadata.get("basic_4note_rotation_weight"),
             "basic_4note_preferred_source_rotation": candidate.metadata.get("basic_4note_preferred_source_rotation"),
             "basic_4note_rotation_prior_score": round(basic_4note_rotation_prior_score, 4),
+            "four_note_rotation_family": candidate.metadata.get("four_note_rotation_family"),
+            "four_note_rotation_content_type": candidate.metadata.get("four_note_rotation_content_type"),
+            "four_note_rotation_source_family": candidate.metadata.get("four_note_rotation_source_family"),
+            "four_note_rotation_ab_side": candidate.metadata.get("four_note_rotation_ab_side"),
+            "four_note_rotation_ab_pair_index": candidate.metadata.get("four_note_rotation_ab_pair_index"),
+            "four_note_rotation_inversion_index": candidate.metadata.get("four_note_rotation_inversion_index"),
+            "four_note_rotation_alignment_score": round(generic_four_note_rotation_alignment_score, 4),
         },
     )
 
@@ -503,6 +512,60 @@ def _score_basic_4note_rotation_prior(candidate: VoicingCandidate, policy: Voici
     temperature = max(float(policy.selector_temperature or 0.0), 0.20)
     return temperature * math.log(weight_value)
 
+
+
+def _score_generic_four_note_rotation_alignment(candidate: VoicingCandidate, state: VoicingState) -> float:
+    """Prefer generic 4-note AB/BAB source-rotation movement in cycle motion.
+
+    This is the soft-selector counterpart of the v2_6_51 method-scope filter.
+    It generalizes the older rootless-only idea to conservative rooted 1357 and
+    rooted-color 4-note source rotations.  Rootless A/B keeps its legacy soft
+    scorer too for compatibility, so this helper stays intentionally modest.
+    """
+
+    if not _is_cycle_of_fourths_motion(state.previous_chord_symbol, candidate.metadata.get("symbol")):
+        return 0.0
+    if not candidate.metadata.get("four_note_rotation_ab_eligible"):
+        return 0.0
+    previous_family = state.metadata.get("four_note_rotation_family")
+    current_family = candidate.metadata.get("four_note_rotation_family")
+    if not previous_family or not current_family:
+        return 0.0
+
+    score = 0.0
+    score += 0.52 if previous_family == current_family else -0.82
+
+    previous_content = state.metadata.get("four_note_rotation_content_type")
+    current_content = candidate.metadata.get("four_note_rotation_content_type")
+    if previous_content and current_content:
+        score += 0.40 if previous_content == current_content else -0.55
+
+    previous_source_family = state.metadata.get("four_note_rotation_source_family")
+    current_source_family = candidate.metadata.get("four_note_rotation_source_family")
+    if previous_source_family and current_source_family:
+        score += 0.22 if previous_source_family == current_source_family else -0.34
+
+    previous_side = state.metadata.get("four_note_rotation_ab_side")
+    current_side = candidate.metadata.get("four_note_rotation_ab_side")
+    if previous_side and current_side:
+        score += 0.44 if previous_side != current_side else -0.34
+
+    previous_pair = state.metadata.get("four_note_rotation_ab_pair_index")
+    current_pair = candidate.metadata.get("four_note_rotation_ab_pair_index")
+    if previous_pair is not None and current_pair is not None:
+        score += 0.28 if int(previous_pair) == int(current_pair) else -0.18
+
+    previous_inversion = state.metadata.get("four_note_rotation_inversion_index")
+    current_inversion = candidate.metadata.get("four_note_rotation_inversion_index")
+    if previous_inversion is not None and current_inversion is not None:
+        try:
+            desired = (int(previous_inversion) + 2) % 4
+            if current_family == "rootless_ab":
+                desired = int(previous_inversion)
+            score += 0.34 if int(current_inversion) == desired else -0.22
+        except (TypeError, ValueError):
+            pass
+    return score
 
 def _score_rootless_ab_content_type_continuity(candidate: VoicingCandidate, state: VoicingState) -> float:
     """Prefer AB/BAB rootless A/B movement in cycle-of-fourths motion.

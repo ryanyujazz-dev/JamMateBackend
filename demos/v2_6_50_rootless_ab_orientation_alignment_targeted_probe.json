@@ -1,0 +1,20 @@
+{
+  "symbol": "G13",
+  "desired_orientation": "B",
+  "desired_content_type": "with_13",
+  "desired_inversion_index": 0,
+  "original_candidate_count": 44,
+  "kept_candidate_count": 3,
+  "kept_orientations": [
+    "B"
+  ],
+  "kept_content_types": [
+    "with_13"
+  ],
+  "kept_inversion_indices": [
+    0
+  ],
+  "filter_applied": true,
+  "candidate_matches": true,
+  "checkpoint_passed": true
+}

@@ -8,7 +8,7 @@ from jammate_engine.core.voicing.policy import VoicingPolicy
 
 
 def test_v2_2_38_version_is_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_3_9"
+    assert ENGINE_VERSION_TAG == "v2_10_8"
 
 
 def test_medium_swing_generic_open_has_zero_weight_but_remains_generated_for_fallback_coverage() -> None:

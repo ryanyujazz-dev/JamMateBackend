@@ -111,3 +111,9 @@ Two-beat Jazz Ballad piano soft-mark candidates use `beat 1 + beat 1&` (`0.0, 0.
 ## v2_5_10 Integration Note
 
 Style baselines remain engine-owned. Agent workflow additions must not change style pattern, gesture, expression, voicing, bass, or percussion behavior.
+
+## v2_6_58 Medium Swing piano region-length weight calibration
+
+Medium Swing piano comping remains ChordRegion-first and region-local. The style-owned pattern library uses `PATTERN_LIBRARY_VERSION=v2_6_56`, `CANDIDATE_LOOKUP_POLICY_VERSION=v2_6_57`, and `WEIGHT_CALIBRATION_POLICY_VERSION=v2_6_58`. The calibration keeps stable cells primary, offbeat conversation secondary, active cells controlled, and native 4& / tail-push cells rare. It must stay inside the existing Medium Swing comping pattern source; do not add a parallel bar-first or two-chord-bar selector.
+
+Calibrated candidate-weight intent: 4-beat region roughly stable 65-78%, offbeat 18-30%, active 2-8%, tail-push <=1%; 2-beat and 1-beat regions remain anchor-led and conservative. Pattern events remain pitchless and only carry semantic expression hints, not final duration/velocity/pedal values.

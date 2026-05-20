@@ -1,0 +1,536 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_47 — Medium Swing OPEN Drop-Family Section Boundary Method-Lock Review",
+  "scope": "Audit actual Medium Swing OPEN drop-family method selections with special focus on section-boundary method-lock readability; verify boundary entry methods avoid DROP2&4, remain smooth, and keep DROP2/DROP3 roles readable without changing runtime weights.",
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_10_8_all_the_things_you_are_medium_swing_demo.mid",
+      "audit_path": "demos/v2_10_8_all_the_things_you_are_medium_swing_texture_piano_audit.md",
+      "events": 174,
+      "methods": {
+        "drop2": 104,
+        "drop3": 69,
+        "drop2_and_4": 1
+      },
+      "families": {
+        "open": 174
+      },
+      "contrast_roles": {
+        "baseline_open_swing": 92,
+        "bridge_open_contrast": 36,
+        "final_chorus_open_lift": 46
+      },
+      "methods_by_contrast_role": {
+        "baseline_open_swing": {
+          "drop2": 75,
+          "drop3": 17
+        },
+        "bridge_open_contrast": {
+          "drop3": 25,
+          "drop2": 11
+        },
+        "final_chorus_open_lift": {
+          "drop3": 27,
+          "drop2": 18,
+          "drop2_and_4": 1
+        }
+      },
+      "method_percentages_by_contrast_role": {
+        "baseline_open_swing": {
+          "drop2": 0.8152,
+          "drop3": 0.1848
+        },
+        "bridge_open_contrast": {
+          "drop3": 0.6944,
+          "drop2": 0.3056
+        },
+        "final_chorus_open_lift": {
+          "drop3": 0.587,
+          "drop2": 0.3913,
+          "drop2_and_4": 0.0217
+        }
+      },
+      "open_method_weight_plans_by_contrast_role": {
+        "baseline_open_swing": {
+          "generic_open": 0.0,
+          "drop2": 0.52,
+          "drop3": 0.38,
+          "drop2_and_4": 0.1
+        },
+        "bridge_open_contrast": {
+          "generic_open": 0.0,
+          "drop2": 0.35,
+          "drop3": 0.53,
+          "drop2_and_4": 0.1
+        },
+        "final_chorus_open_lift": {
+          "generic_open": 0.0,
+          "drop2": 0.43,
+          "drop3": 0.48,
+          "drop2_and_4": 0.08
+        }
+      },
+      "failed_register_guard_count": 0,
+      "missing_note_events": 0,
+      "voice_leading_transition_events": 119,
+      "voice_leading_method_switch_events": 51,
+      "voice_leading_section_boundary_events": 11,
+      "voice_leading_warning_events": 0,
+      "voice_leading_method_switch_warning_events": 0,
+      "voice_leading_section_boundary_warning_events": 0,
+      "voice_leading_top_motion_max_abs": 5,
+      "voice_leading_low_motion_max_abs": 7,
+      "voice_leading_avg_motion_max": 5.25,
+      "voice_leading_avg_motion_average": 1.807,
+      "voice_leading_span_jump_max_abs": 5,
+      "voice_leading_checkpoint_passed": true,
+      "section_boundary_review_events": 11,
+      "section_boundary_review_method_switch_events": 8,
+      "section_boundary_review_drop2_and_4_entry_events": 0,
+      "section_boundary_review_warning_events": 0,
+      "section_boundary_review_primary_entry_alignment_events": 9,
+      "section_boundary_review_entry_methods_by_role": {
+        "baseline_open_swing": {
+          "drop2": 4,
+          "drop3": 1
+        },
+        "bridge_open_contrast": {
+          "drop3": 3
+        },
+        "final_chorus_open_lift": {
+          "drop3": 2,
+          "drop2": 1
+        }
+      },
+      "section_boundary_review_role_pairs": {
+        "baseline_open_swing->baseline_open_swing": 3,
+        "baseline_open_swing->bridge_open_contrast": 2,
+        "bridge_open_contrast->baseline_open_swing": 2,
+        "baseline_open_swing->final_chorus_open_lift": 1,
+        "final_chorus_open_lift->final_chorus_open_lift": 1,
+        "final_chorus_open_lift->bridge_open_contrast": 1,
+        "bridge_open_contrast->final_chorus_open_lift": 1
+      },
+      "section_boundary_review_method_pairs": {
+        "drop2->drop2": 2,
+        "drop2->drop3": 5,
+        "drop3->drop2": 3,
+        "drop3->drop3": 1
+      },
+      "section_boundary_review_avg_motion_max": 4.5,
+      "section_boundary_review_top_motion_max_abs": 5,
+      "section_boundary_review_low_motion_max_abs": 4,
+      "section_boundary_review_checkpoint_passed": true
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_10_8_autumn_leaves_medium_swing_demo.mid",
+      "audit_path": "demos/v2_10_8_autumn_leaves_medium_swing_texture_piano_audit.md",
+      "events": 223,
+      "methods": {
+        "drop2": 87,
+        "drop3": 103,
+        "drop2_and_4": 33
+      },
+      "families": {
+        "open": 223
+      },
+      "contrast_roles": {
+        "baseline_open_swing": 116,
+        "bridge_open_contrast": 50,
+        "final_chorus_open_lift": 57
+      },
+      "methods_by_contrast_role": {
+        "baseline_open_swing": {
+          "drop2": 66,
+          "drop3": 34,
+          "drop2_and_4": 16
+        },
+        "bridge_open_contrast": {
+          "drop3": 42,
+          "drop2_and_4": 6,
+          "drop2": 2
+        },
+        "final_chorus_open_lift": {
+          "drop3": 27,
+          "drop2_and_4": 11,
+          "drop2": 19
+        }
+      },
+      "method_percentages_by_contrast_role": {
+        "baseline_open_swing": {
+          "drop2": 0.569,
+          "drop3": 0.2931,
+          "drop2_and_4": 0.1379
+        },
+        "bridge_open_contrast": {
+          "drop3": 0.84,
+          "drop2_and_4": 0.12,
+          "drop2": 0.04
+        },
+        "final_chorus_open_lift": {
+          "drop3": 0.4737,
+          "drop2_and_4": 0.193,
+          "drop2": 0.3333
+        }
+      },
+      "open_method_weight_plans_by_contrast_role": {
+        "baseline_open_swing": {
+          "generic_open": 0.0,
+          "drop2": 0.52,
+          "drop3": 0.38,
+          "drop2_and_4": 0.1
+        },
+        "bridge_open_contrast": {
+          "generic_open": 0.0,
+          "drop2": 0.35,
+          "drop3": 0.53,
+          "drop2_and_4": 0.1
+        },
+        "final_chorus_open_lift": {
+          "generic_open": 0.0,
+          "drop2": 0.43,
+          "drop3": 0.48,
+          "drop2_and_4": 0.08
+        }
+      },
+      "failed_register_guard_count": 0,
+      "missing_note_events": 0,
+      "voice_leading_transition_events": 161,
+      "voice_leading_method_switch_events": 68,
+      "voice_leading_section_boundary_events": 11,
+      "voice_leading_warning_events": 0,
+      "voice_leading_method_switch_warning_events": 0,
+      "voice_leading_section_boundary_warning_events": 0,
+      "voice_leading_top_motion_max_abs": 5,
+      "voice_leading_low_motion_max_abs": 7,
+      "voice_leading_avg_motion_max": 5.25,
+      "voice_leading_avg_motion_average": 1.582,
+      "voice_leading_span_jump_max_abs": 5,
+      "voice_leading_checkpoint_passed": true,
+      "section_boundary_review_events": 11,
+      "section_boundary_review_method_switch_events": 8,
+      "section_boundary_review_drop2_and_4_entry_events": 0,
+      "section_boundary_review_warning_events": 0,
+      "section_boundary_review_primary_entry_alignment_events": 7,
+      "section_boundary_review_entry_methods_by_role": {
+        "baseline_open_swing": {
+          "drop2": 3,
+          "drop3": 2
+        },
+        "bridge_open_contrast": {
+          "drop3": 1,
+          "drop2": 2
+        },
+        "final_chorus_open_lift": {
+          "drop3": 3
+        }
+      },
+      "section_boundary_review_role_pairs": {
+        "baseline_open_swing->baseline_open_swing": 3,
+        "baseline_open_swing->bridge_open_contrast": 2,
+        "bridge_open_contrast->baseline_open_swing": 2,
+        "baseline_open_swing->final_chorus_open_lift": 1,
+        "final_chorus_open_lift->final_chorus_open_lift": 1,
+        "final_chorus_open_lift->bridge_open_contrast": 1,
+        "bridge_open_contrast->final_chorus_open_lift": 1
+      },
+      "section_boundary_review_method_pairs": {
+        "drop3->drop2": 5,
+        "drop2_and_4->drop3": 2,
+        "drop3->drop3": 3,
+        "drop2->drop3": 1
+      },
+      "section_boundary_review_avg_motion_max": 5.25,
+      "section_boundary_review_top_motion_max_abs": 2,
+      "section_boundary_review_low_motion_max_abs": 5,
+      "section_boundary_review_checkpoint_passed": true
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "check_count": 28,
+    "failed_checks": [],
+    "checks": [
+      {
+        "name": "all_the_things_you_are: generated",
+        "passed": true,
+        "details": {
+          "ok": true
+        }
+      },
+      {
+        "name": "all_the_things_you_are: enough three-chorus piano events",
+        "passed": true,
+        "details": {
+          "events": 174
+        }
+      },
+      {
+        "name": "all_the_things_you_are: open family only",
+        "passed": true,
+        "details": {
+          "families": {
+            "open": 174
+          }
+        }
+      },
+      {
+        "name": "all_the_things_you_are: all texture contrast roles present",
+        "passed": true,
+        "details": {
+          "roles": {
+            "baseline_open_swing": 92,
+            "bridge_open_contrast": 36,
+            "final_chorus_open_lift": 46
+          }
+        }
+      },
+      {
+        "name": "all_the_things_you_are: multiple open methods realized",
+        "passed": true,
+        "details": {
+          "methods": {
+            "drop2": 104,
+            "drop3": 69,
+            "drop2_and_4": 1
+          }
+        }
+      },
+      {
+        "name": "all_the_things_you_are: bridge increases drop3 share over baseline",
+        "passed": true,
+        "details": {
+          "baseline_drop3": 0.1848,
+          "bridge_drop3": 0.6944
+        }
+      },
+      {
+        "name": "all_the_things_you_are: final chorus increases drop3 share over baseline after generic-open removal",
+        "passed": true,
+        "details": {
+          "baseline_drop3": 0.1848,
+          "final_drop3": 0.587
+        }
+      },
+      {
+        "name": "all_the_things_you_are: drop2_and_4 remains controlled",
+        "passed": true,
+        "details": {
+          "methods": {
+            "drop2": 104,
+            "drop3": 69,
+            "drop2_and_4": 1
+          },
+          "drop2_and_4_total_ratio": 0.005747126436781609
+        }
+      },
+      {
+        "name": "all_the_things_you_are: no failed register guards",
+        "passed": true,
+        "details": {
+          "failed": 0
+        }
+      },
+      {
+        "name": "all_the_things_you_are: no missing piano note events",
+        "passed": true,
+        "details": {
+          "missing": 0
+        }
+      },
+      {
+        "name": "all_the_things_you_are: open/drop cross-region voice-leading checkpoint passes",
+        "passed": true,
+        "details": {
+          "transitions": 119,
+          "warnings": 0,
+          "top_motion_max_abs": 5,
+          "avg_motion_max": 5.25,
+          "legacy_output_without_v2_6_46_fields": false
+        }
+      },
+      {
+        "name": "all_the_things_you_are: method switches remain smooth",
+        "passed": true,
+        "details": {
+          "method_switch_events": 51,
+          "method_switch_warnings": 0
+        }
+      },
+      {
+        "name": "all_the_things_you_are: section boundaries remain smooth",
+        "passed": true,
+        "details": {
+          "section_boundary_events": 11,
+          "section_boundary_warnings": 0
+        }
+      },
+      {
+        "name": "all_the_things_you_are: section-boundary method-lock readability passes",
+        "passed": true,
+        "details": {
+          "boundary_events": 11,
+          "warnings": 0,
+          "drop2_and_4_entry_events": 0,
+          "entry_methods_by_role": {
+            "baseline_open_swing": {
+              "drop2": 4,
+              "drop3": 1
+            },
+            "bridge_open_contrast": {
+              "drop3": 3
+            },
+            "final_chorus_open_lift": {
+              "drop3": 2,
+              "drop2": 1
+            }
+          },
+          "legacy_output_without_v2_6_47_fields": false
+        }
+      },
+      {
+        "name": "autumn_leaves: generated",
+        "passed": true,
+        "details": {
+          "ok": true
+        }
+      },
+      {
+        "name": "autumn_leaves: enough three-chorus piano events",
+        "passed": true,
+        "details": {
+          "events": 223
+        }
+      },
+      {
+        "name": "autumn_leaves: open family only",
+        "passed": true,
+        "details": {
+          "families": {
+            "open": 223
+          }
+        }
+      },
+      {
+        "name": "autumn_leaves: all texture contrast roles present",
+        "passed": true,
+        "details": {
+          "roles": {
+            "baseline_open_swing": 116,
+            "bridge_open_contrast": 50,
+            "final_chorus_open_lift": 57
+          }
+        }
+      },
+      {
+        "name": "autumn_leaves: multiple open methods realized",
+        "passed": true,
+        "details": {
+          "methods": {
+            "drop2": 87,
+            "drop3": 103,
+            "drop2_and_4": 33
+          }
+        }
+      },
+      {
+        "name": "autumn_leaves: bridge increases drop3 share over baseline",
+        "passed": true,
+        "details": {
+          "baseline_drop3": 0.2931,
+          "bridge_drop3": 0.84
+        }
+      },
+      {
+        "name": "autumn_leaves: final chorus increases drop3 share over baseline after generic-open removal",
+        "passed": true,
+        "details": {
+          "baseline_drop3": 0.2931,
+          "final_drop3": 0.4737
+        }
+      },
+      {
+        "name": "autumn_leaves: drop2_and_4 remains controlled",
+        "passed": true,
+        "details": {
+          "methods": {
+            "drop2": 87,
+            "drop3": 103,
+            "drop2_and_4": 33
+          },
+          "drop2_and_4_total_ratio": 0.14798206278026907
+        }
+      },
+      {
+        "name": "autumn_leaves: no failed register guards",
+        "passed": true,
+        "details": {
+          "failed": 0
+        }
+      },
+      {
+        "name": "autumn_leaves: no missing piano note events",
+        "passed": true,
+        "details": {
+          "missing": 0
+        }
+      },
+      {
+        "name": "autumn_leaves: open/drop cross-region voice-leading checkpoint passes",
+        "passed": true,
+        "details": {
+          "transitions": 161,
+          "warnings": 0,
+          "top_motion_max_abs": 5,
+          "avg_motion_max": 5.25,
+          "legacy_output_without_v2_6_46_fields": false
+        }
+      },
+      {
+        "name": "autumn_leaves: method switches remain smooth",
+        "passed": true,
+        "details": {
+          "method_switch_events": 68,
+          "method_switch_warnings": 0
+        }
+      },
+      {
+        "name": "autumn_leaves: section boundaries remain smooth",
+        "passed": true,
+        "details": {
+          "section_boundary_events": 11,
+          "section_boundary_warnings": 0
+        }
+      },
+      {
+        "name": "autumn_leaves: section-boundary method-lock readability passes",
+        "passed": true,
+        "details": {
+          "boundary_events": 11,
+          "warnings": 0,
+          "drop2_and_4_entry_events": 0,
+          "entry_methods_by_role": {
+            "baseline_open_swing": {
+              "drop2": 3,
+              "drop3": 2
+            },
+            "bridge_open_contrast": {
+              "drop3": 1,
+              "drop2": 2
+            },
+            "final_chorus_open_lift": {
+              "drop3": 3
+            }
+          },
+          "legacy_output_without_v2_6_47_fields": false
+        }
+      }
+    ]
+  }
+}
