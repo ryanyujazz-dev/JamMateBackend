@@ -1,0 +1,95 @@
+{
+  "version": "v2_10_24",
+  "name": "practice_coach_plan_revision_e2e_sequence",
+  "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+  "description": "Product-shaped one-session Practice Coach plan revision sequence. This fixture intentionally omits dbPath/sqliteDbPath/providerResult/llmActionDecisionResult/internal write gates.",
+  "baseRequest": {
+    "userId": "local-dev-user",
+    "sessionId": "practice-coach-plan-revision-e2e-local",
+    "deviceId": "harmonyos-device-local",
+    "clientLocalDate": "2026-05-20",
+    "clientTimezone": "Asia/Shanghai",
+    "locale": "zh-CN"
+  },
+  "steps": [
+    {
+      "step": 1,
+      "name": "ask_today_practice",
+      "userMessage": "今天该练什么？",
+      "expect": {
+        "responseType": "ask_clarifying_question",
+        "routineStartEnabled": false
+      }
+    },
+    {
+      "step": 2,
+      "name": "create_initial_bossa_plan",
+      "userMessage": "中级，今天可以练30分钟，目标是提升伴奏稳定性，喜欢 bossa 和 swing。",
+      "expect": {
+        "responseType": "practice_plan_proposal",
+        "planProposalReady": true,
+        "totalDurationMinutes": 30,
+        "practiceFocus": "bossa",
+        "awaitingConfirmation": true
+      }
+    },
+    {
+      "step": 3,
+      "name": "revise_duration_to_20",
+      "userMessage": "我想调整为20分钟",
+      "expect": {
+        "responseType": "practice_plan_revision",
+        "planProposalReady": true,
+        "totalDurationMinutes": 20,
+        "revisionReason": "adjust_duration",
+        "awaitingConfirmation": true
+      }
+    },
+    {
+      "step": 4,
+      "name": "revise_focus_to_fundamentals_metronome",
+      "userMessage": "我想多安排基本功和节拍器稳定性练习",
+      "expect": {
+        "responseType": "practice_plan_revision",
+        "planProposalReady": true,
+        "totalDurationMinutes": 20,
+        "practiceFocus": "fundamentals",
+        "revisionReason": "adjust_focus",
+        "awaitingConfirmation": true
+      }
+    },
+    {
+      "step": 5,
+      "name": "revise_focus_to_tune_practice",
+      "userMessage": "我想换成曲目练习",
+      "expect": {
+        "responseType": "practice_plan_revision",
+        "planProposalReady": true,
+        "totalDurationMinutes": 20,
+        "practiceFocus": "tune_practice",
+        "revisionReason": "change_tune",
+        "awaitingConfirmation": true
+      }
+    },
+    {
+      "step": 6,
+      "name": "confirm_revised_plan_to_routine_card",
+      "userMessage": "确认这个安排",
+      "expect": {
+        "responseType": "routine_card_ready",
+        "routineCardReady": true,
+        "totalDurationMinutes": 20,
+        "practiceFocus": "tune_practice",
+        "backendStartsRoutine": false,
+        "requiresUserTapToStart": true
+      }
+    }
+  ],
+  "safetyExpectations": {
+    "startsRoutine": false,
+    "callsEngineAdapter": false,
+    "createsMidiAsset": false,
+    "startsPlayback": false,
+    "writesHarmonyOSLocalState": false
+  }
+}

@@ -1,6 +1,10 @@
-Current package version: `v2_10_22`.
+Current package version: `v2_10_25`.
 
-`v2_10_22` fixes the Practice Coach SQLite path guard for macOS local pytest tempdirs under `/private/var/folders/...` by allowing the resolved `tempfile.gettempdir()` root while keeping unsafe-path rejection. No Engine generation logic changed.
+`v2_10_25` adds a HarmonyOS Practice Coach device feedback trace pack. Unified Practice Coach responses now include `data.deviceFeedbackTracePack` / `debug.deviceFeedbackTracePack`, a compact object the frontend can copy into issue reports to show request summary, responseType, LLM/fallback decision trace, session state digests, SQLite IO, artifact summary, and safety flags. This is Agent/Integration-only; no Engine generation logic changed.
+
+Current package version: `v2_10_24`.
+
+`v2_10_24` adds a HarmonyOS/front-end-facing Practice Coach plan revision E2E smoke pack. It validates the real user loop in one session: ask for today practice, generate a draft plan, revise duration/focus/tune intent, and confirm into a Routine card. This is Agent/Integration-only; no Engine generation logic changed.
 
 Current package version: `v2_10_21`.
 

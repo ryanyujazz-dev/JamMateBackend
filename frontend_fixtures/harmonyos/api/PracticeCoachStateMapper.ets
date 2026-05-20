@@ -1,4 +1,4 @@
-// JamMate Practice Coach State Mapper v2_10_19
+// JamMate Practice Coach State Mapper v2_10_25
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/model/PracticeCoachStateMapper.ets
 // This mapper is frontend-only guidance. It renders backend action intent; it must not infer hidden backend decisions.
 
@@ -37,6 +37,7 @@ export interface PracticeCoachUiState {
   canShowRoutineCard: boolean
   canStartRoutine: boolean
   safeToAutostartRoutine: false
+  deviceFeedbackTracePack?: Record<string, unknown> | null
   raw?: PracticeCoachMessageExecuteResponse | null
 }
 
@@ -122,6 +123,7 @@ function buildState(
     canShowRoutineCard,
     canStartRoutine: canShowRoutineCard && routineCardPayload.startEnabled === true && routineCardPayload.requiresUserTapToStart === true,
     safeToAutostartRoutine: false,
+    deviceFeedbackTracePack: (data.deviceFeedbackTracePack as Record<string, unknown> | undefined) || (response.debug?.deviceFeedbackTracePack as Record<string, unknown> | undefined) || null,
     raw: response,
   }
 }

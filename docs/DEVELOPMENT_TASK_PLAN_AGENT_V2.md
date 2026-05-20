@@ -1,3 +1,26 @@
+## v2_10_25 — Practice Coach device feedback trace pack
+
+- Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.
+- The pack summarizes request, responseType, decision source/fallback, schema repair, state digests, plan/card artifacts, SQLite IO, and safety flags.
+- Added HarmonyOS smoke fixture and curl script for verifying the trace pack.
+- Updated frontend type fixtures with `PracticeCoachDeviceFeedbackTracePack`.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
+
+## v2_10_24 — Practice Coach plan revision E2E smoke
+
+- Validate the full one-session plan adjustment flow for HarmonyOS frontend integration.
+- Keep `existing_draft_plan_waiting_for_confirmation` as a fallback only; clear revision requests must continue returning `practice_plan_revision`.
+- Provide a curl smoke and product-shaped sequence fixture so frontend can retest without inventing workaround sessions or client-side plan rewriting.
+
+Recommended next task:
+
+```text
+v2_10_25_agent_practice_coach_device_feedback_trace_pack
+```
+
+Purpose: collect real device/provider feedback fields into a compact debug trace once frontend reruns the revision E2E smoke.
+
 ## v2_10_22_agent_practice_coach_sqlite_path_guard_macos_tempdir_hotfix
 
 Goal: hotfix the Practice Coach Session state-store path guard so macOS local pytest temp dirs under `/private/var/folders/...` are accepted when they are under `Path(tempfile.gettempdir()).resolve(strict=False)`.
@@ -1865,3 +1888,8 @@ Next recommended Agent task:
 ```text
 v2_10_12_agent_practice_coach_conversation_state_store
 ```
+
+
+## v2_10_23 — Practice Coach plan revision intent routing hotfix
+
+修复待确认草案状态下调整请求被 `existing_draft_plan_waiting_for_confirmation` 拦截的问题。明确调整进入 `practice_plan_revision`，确认进入 `routine_card_ready`，兜底提示仅用于非确认/非调整文本。
