@@ -1,3 +1,165 @@
+## v2_6_51 Medium Swing Generic 4-Note Rotation Alignment
+
+Medium Swing now treats AB/ABA as a generic four-note rotation alignment concept rather than a rootless-only concept.
+
+Generic 4-note families that can participate:
+
+```text
+basic_4note        # e.g. 1357 / 3571 / 5713 / 7135
+rooted_color_4note # e.g. 1379 family rotations
+rootless_ab        # e.g. A/B rootless 3579 / 7935-style families
+```
+
+For rooted/basic four-note sources, the follow inversion target is:
+
+```text
+desired_next_inversion = (previous_inversion + 2) % 4
+
+1357 -> 5713
+3571 -> 7135
+5713 -> 1357
+7135 -> 3571
+```
+
+For rootless A/B sources, the follow target remains:
+
+```text
+A inversion n -> B inversion n
+B inversion n -> A inversion n
+```
+
+The runtime scope is still the v2_6_49 local functional pair scope:
+
+```text
+same texture scope + ii–V / minor ii–V / V–I / dominant-to-tonic follow region
+```
+
+The policy is conservative:
+
+```text
+strict when a matching and voice-leading-safe candidate is available;
+otherwise preserve the full candidate pool and record a fallback reason.
+```
+
+This prevents generic rooted/basic ABA from becoming a rigid hard filter that creates large register jumps. `rootless_ab_*` remains as a compatibility/content-family alias, but the main mechanism is now `four_note_rotation_*`.
+
+## v2_6_50 Medium Swing OPEN Drop-Family Rootless A/B Orientation Alignment
+
+Medium Swing now carries a conservative rootless A/B orientation-alignment request on the same local functional-pair scope as the v2_6_49 DROP method lock.
+
+Accepted behavior:
+
+```text
+If a local ii-V / V-I / ii-V-I seed selected rootless A, the follow region may request rootless B.
+If a local ii-V / V-I / ii-V-I seed selected rootless B, the follow region may request rootless A.
+The request preserves rootless_ab_content_type and rootless_ab_inversion_index.
+The candidate pool is filtered only when matching candidates exist.
+The policy does not force rootless A/B when the seed is not rootless A/B.
+```
+
+Reference three-chorus demos currently pass without forcing rootless A/B:
+
+```text
+All The Things You Are: runtime_enabled=88, applied=0, skip=previous_seed_not_rootless_ab=88, checkpoint=true
+Autumn Leaves: runtime_enabled=100, applied=0, skip=previous_seed_not_rootless_ab=100, checkpoint=true
+```
+
+Do not use this policy to globally increase rootless frequency. If rootless A/B should become audible in plain Medium Swing demos, make a separate color/rootless gate decision through harmonic expansion, explicit chord-symbol colors, or LLM harmonic-color intent.
+
+## v2_6_49 Medium Swing OPEN Drop-Family Phrase-Scope Method Lock Policy
+
+Medium Swing now applies a conservative runtime method-lock policy for local ii-V / V-I / ii-V-I OPEN drop-family motion.
+
+Accepted behavior:
+
+```text
+DROP2 / DROP3 may propagate from seed region to follow region inside local functional progressions.
+DROP2&4 remains phrase-internal color and must not propagate as phrase body.
+generic_open remains fallback-only.
+section/texture-scope boundaries break the local lock.
+locked follow candidates must match the selected method lock.
+```
+
+Reference three-chorus demos currently pass:
+
+```text
+All The Things You Are: applied=88, mismatches=0, phrase_switch_ratio=0.1429, drop2&4_run_max=1
+Autumn Leaves: applied=100, mismatches=0, phrase_switch_ratio=0.2308, drop2&4_run_max=2
+```
+
+Do not solve future Medium Swing local progression method issues through broad global OPEN weights. First inspect v2_6_49 method-lock audit fields, then decide whether the issue belongs to AB orientation alignment, section/texture-scope boundaries, register rescue, or source inventory.
+
+## v2_6_47 Medium Swing OPEN Drop-Family Section Boundary Method-Lock Review
+
+Medium Swing section-boundary method-lock readability is now a formal audit checkpoint.
+
+Accepted boundary-entry behavior:
+
+```text
+DROP2 / DROP3 carry section-boundary entries.
+DROP2&4 must not enter section boundaries; it remains phrase-internal low-frequency color.
+generic_open remains fallback-only.
+```
+
+Reference three-chorus demos currently pass:
+
+```text
+All The Things You Are: boundaries=11, method_switches=8, drop2&4_entries=0, warnings=0
+Autumn Leaves: boundaries=11, method_switches=8, drop2&4_entries=0, warnings=0
+```
+
+Do not fix future boundary readability issues by broad global weight changes. First inspect the section-boundary audit fields and decide whether the issue belongs to phrase-scope method continuity, section-entry policy, register rescue, or source inventory.
+
+## v2_6_46 Medium Swing OPEN Drop-Family Voice-Leading Continuity Audit
+
+Medium Swing OPEN drop-family continuity is now a formal audit checkpoint, not a scorer patch. The audit checks cross-region OPEN transitions and excludes same-region cached reattacks.
+
+Accepted guardrails:
+
+```text
+top_motion_max_abs <= 7
+low_motion_max_abs <= 8
+avg_motion_max <= 6.0
+span_jump_max_abs <= 8
+warning_events == 0
+method_switch_warning_events == 0
+section_boundary_warning_events == 0
+```
+
+Reference three-chorus demos currently pass:
+
+```text
+All The Things You Are: transitions=119, method_switches=51, warnings=0
+Autumn Leaves: transitions=161, method_switches=68, warnings=0
+```
+
+Do not solve future Medium Swing voicing concerns by silently re-enabling broad `generic_open` or switching to another family. First locate the issue via this continuity audit, then decide whether it belongs to phrase-scope method lock, section boundary shaping, register rescue, or source inventory.
+
+## v2_6_45 Medium Swing OPEN Drop-Family Method Lock Calibration
+
+Medium Swing keeps a single OPEN-family runtime language. Named drop-family methods are the ordinary texture; `generic_open` remains available only as explicit rescue/fallback material.
+
+Accepted OPEN-method profile:
+
+```text
+baseline: generic_open=0.00, drop2=0.52, drop3=0.38, drop2_and_4=0.10
+bridge:   generic_open=0.00, drop2=0.35, drop3=0.53, drop2_and_4=0.10
+final:    generic_open=0.00, drop2=0.43, drop3=0.48, drop2_and_4=0.08
+```
+
+Reference acceptance for standard-tune Medium Swing three-chorus demos:
+
+```text
+OPEN family only
+bridge DROP3 ratio > baseline DROP3 ratio
+final chorus DROP3 ratio > baseline DROP3 ratio
+drop2_and_4 total ratio <= 0.20
+failed register guards = 0
+missing piano note events = 0
+```
+
+Do not solve future Medium Swing voicing issues by re-enabling broad `generic_open` or switching families. Next issues should be audited through method-lock / voice-leading continuity first.
+
 ## v2_6_44 Ballad SPREAD Voicing Phase Handoff
 
 The current Jazz Ballad SPREAD reference is frozen as an accepted baseline rather than an area for continued micro-patching.
@@ -1015,3 +1177,163 @@ disabled without explicit policy gate
 ```
 
 This prevents the realized-notes/state-anchor separation from silently becoming a global voicing behavior. Future styles may opt in only with a clear policy gate, audit fields, and regression tests.
+
+## Medium Swing OPEN / DROP Phrase-Scope Method Continuity Rule — v2_6_48
+
+Medium Swing piano voicing currently uses OPEN family as the normal texture family. Within OPEN, the practical runtime methods are:
+
+```text
+DROP2       baseline body
+DROP3       bridge / final-lift contrast body
+DROP2&4     low-frequency phrase-internal color
+generic_open fallback/rescue only
+```
+
+v2_6_48 adds an audit-only phrase-scope rule:
+
+```text
+phrase scope = section-local 4 chord-region windows derived from realized OPEN DROP-family events
+```
+
+The audit must check:
+
+```text
+1. phrase-internal method switch ratio
+2. whether DROP2&4 appears as isolated color or a long run
+3. whether ii–V / V–I / ii–V–I progressions keep method consistency
+4. whether method switches cause high voice-leading motion
+```
+
+Current accepted checkpoint:
+
+```text
+method_switch_ratio <= 0.70
+drop2_and_4_run_max <= 2
+high_motion_switch_events = 0
+avg_motion_max <= 6.0
+```
+
+This is not a Pattern, Expression, Anticipation, or MIDI rule. It belongs to voicing audit / future voicing policy only.
+
+Future policy work should avoid global weight churn and instead target local progression alignment when needed:
+
+```text
+v2_6_49_engine_medium_swing_open_drop_phrase_scope_method_lock_policy
+```
+
+## Medium Swing Same-Chord Reattack / Comping Reuse — v2_6_52
+
+Medium Swing OPEN / DROP comping uses the existing region voicing cache as the same-chord repeated-hit boundary.
+
+Runtime rule:
+
+```text
+same chord region + same track + no explicit fresh-revoicing flag
+→ reuse cached region voicing exactly
+```
+
+Explicit fresh-revoicing escape hatches:
+
+```text
+force_fresh_voicing
+revoice_within_region
+```
+
+This rule prevents accidental selector churn inside one chord region. It is not a Pattern, Anticipation, Expression, or MIDI rule. Future deliberate same-chord movement should be represented as an explicit gesture/fresh-revoicing policy and remain auditable.
+
+## Engine Voicing Rule — Medium Swing same-chord deliberate revoice boundary v2_6_54
+
+Default Medium Swing comping reattacks inside the same chord region reuse the cached voicing exactly. Fresh same-region voicing is allowed only when a pitchless event or gesture explicitly sets `force_fresh_voicing` or `revoice_within_region`. This boundary keeps Pattern, Anticipation, Expression, MIDI, Agent, API, and HarmonyOS independent from voicing selection while still allowing future explicit inner-motion/top-voice-answer gestures to request a new voicing intentionally.
+
+## Engine Voicing Rule — Medium Swing deliberate revoice micro-motion policy v2_6_55
+
+Default same-chord comping still reuses the cached region voicing exactly. The micro-motion policy only applies after an explicit pitchless event/gesture intent such as `force_fresh_voicing` or `revoice_within_region`.
+
+Allowed same-region revoice motion policies:
+
+```text
+micro_motion
+inner_motion
+top_voice_answer
+```
+
+Default safe-motion guard:
+
+```text
+foundation stable: required
+max_low_motion:    0 semitones
+max_top_motion:    2 semitones
+max_avg_motion:    2.5 semitones
+```
+
+If no safe micro-motion candidate exists, the engine preserves the full candidate pool and records a fallback reason. This rule does not decide when to create a revoice gesture; it only guards the voicing candidate pool after a gesture explicitly asks for one. Pattern, Anticipation, Expression, MIDI, Agent, API, and HarmonyOS remain outside this rule.
+
+## v2_6_58 Medium Swing piano region-length weight calibration
+
+Medium Swing piano comping remains ChordRegion-first and region-local. The style-owned pattern library uses `PATTERN_LIBRARY_VERSION=v2_6_56`, `CANDIDATE_LOOKUP_POLICY_VERSION=v2_6_57`, and `WEIGHT_CALIBRATION_POLICY_VERSION=v2_6_58`. The calibration keeps stable cells primary, offbeat conversation secondary, active cells controlled, and native 4& / tail-push cells rare. It must stay inside the existing Medium Swing comping pattern source; do not add a parallel bar-first or two-chord-bar selector.
+
+Calibrated candidate-weight intent: 4-beat region roughly stable 65-78%, offbeat 18-30%, active 2-8%, tail-push <=1%; 2-beat and 1-beat regions remain anchor-led and conservative. Pattern events remain pitchless and only carry semantic expression hints, not final duration/velocity/pedal values.
+
+## v2_6_59 Medium Swing Piano Comping History Continuity Scorer
+
+Medium Swing piano comping now applies a small history-continuity scorer after ChordRegion-length candidate lookup and weight calibration. The scorer does not add patterns and does not replace the existing style-owned pattern source.
+
+Current rule:
+
+```text
+existing region-length candidate pool
+→ repeat/category guard
+→ history scorer weight multipliers
+→ weighted sampling
+```
+
+History penalties:
+
+- exact repeat
+- non-stable rhythm-family repeat
+- consecutive offbeat
+- recent offbeat cluster
+- recent active
+- recent tail-push
+
+History bonuses:
+
+- stable reset after active/tail-push
+- stable reset after offbeat
+
+Boundary: the scorer only affects rhythm-cell selection. It does not choose voicing, AB/rotation, expression realization, anticipation, MIDI timing, or gesture content.
+
+## v2_6_60 Medium Swing Harmonic-Function-Aware Piano Comping Policy
+
+Medium Swing piano comping now applies a conservative harmonic-function reweighting stage on the existing ChordRegion-length candidate pool. It is not a new selector and does not introduce bar-first or two-chord-bar logic.
+
+Current rule:
+
+```text
+existing region-length candidate pool
+→ repeat/category guard
+→ harmonic-function multiplier
+→ history scorer multiplier
+→ weighted sampling
+```
+
+Harmonic labels are derived from the shared harmony classifier and ChordRegion flags:
+
+- `predominant_to_dominant`
+- `dominant_resolution`
+- `tonic_resolution`
+- `section_start`
+- `section_end`
+- `ending`
+- `tonic_prolongation`
+- `turnaround_like`
+- `generic`
+
+Policy intent:
+
+- section starts / tonic resolutions / endings prefer stable region-start support;
+- dominant resolutions can slightly prefer answer/tail cells but still control native tail-push;
+- predominant-to-dominant regions keep stable support primary with only light answer bonuses;
+- short 1-beat / 2-beat regions remain anchor-led with an offbeat boost ceiling.
+
+Boundary: this policy only affects piano rhythm-cell weights. It does not choose voicing, AB/rotation, expression realization, anticipation, MIDI timing, or gesture content.

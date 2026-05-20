@@ -1,0 +1,64 @@
+{
+  "userId": "harmonyos_smoke_user_001",
+  "sqliteDbPath": "/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite",
+  "environment": "test",
+  "clientConfirmedRecordWrite": true,
+  "idempotencyKey": "harmonyos-smoke:routine-completion:session-001",
+  "routineCompletionRecord": {
+    "sessionId": "harmonyos_smoke_session_001",
+    "title": "Medium Swing guide-tone comping",
+    "style": "medium_swing",
+    "tempo": 104,
+    "actualSeconds": 720,
+    "completed": true,
+    "completedAtUtc": "2026-05-19T15:00:00Z",
+    "notes": "完成 guide-tone comping block，下一次可承接 bossa comping。",
+    "source": "harmonyos_client"
+  },
+  "userPracticeProfile": {
+    "userId": "harmonyos_smoke_user_001",
+    "currentGoal": "提升 jazz comping 稳定性",
+    "preferredStyles": [
+      "medium_swing",
+      "bossa_nova"
+    ],
+    "focusAreas": [
+      "ii-V-I",
+      "comping",
+      "time feel"
+    ],
+    "comfortableTempoRanges": {
+      "medium_swing": [
+        92,
+        124
+      ],
+      "bossa_nova": [
+        100,
+        142
+      ]
+    }
+  },
+  "practicePlan": {
+    "planId": "harmonyos_smoke_plan_001",
+    "title": "HarmonyOS Smoke Comping Plan",
+    "status": "active",
+    "planBlocks": [
+      {
+        "blockId": "block_swing_guidetone",
+        "title": "Medium Swing guide-tone comping",
+        "style": "medium_swing",
+        "tempo": 104,
+        "durationMinutes": 12,
+        "goal": "稳定 ii-V-I guide-tone voice leading"
+      },
+      {
+        "blockId": "block_bossa_comping",
+        "title": "Blue Bossa comping review",
+        "style": "bossa_nova",
+        "tempo": 118,
+        "durationMinutes": 10,
+        "goal": "保持 bossa batida 稳定"
+      }
+    ]
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_62 — Medium Swing CoverageGuard Region-First Cleanup",
+  "scope": "Audit that Medium Swing CoverageGuard is ChordRegion-first and backup-only after the region-length piano comping work. The guard should stamp coverage metadata on already selected region-local piano events, insert no fallback anchors in normal standard-tune generation, and leave top-register / voice-leading checkpoints calm.",
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_62_all_the_things_you_are_medium_swing_region_first_coverage_guard_demo.mid",
+      "expected_region_count": 120,
+      "covered_region_count": 120,
+      "uncovered_region_count": 0,
+      "short_uncovered_region_count": 0,
+      "uncovered_regions_preview": [],
+      "short_uncovered_regions_preview": [],
+      "piano_events": 207,
+      "max_piano_events_per_region": 3,
+      "coverage_inserted_events": 0,
+      "coverage_inserted_preview": [],
+      "coverage_missing_version_events": 0,
+      "coverage_missing_version_preview": [],
+      "metadata": {
+        "coverage_version_counts": {
+          "v2_6_62": 207
+        },
+        "coverage_checked_events": 207,
+        "coverage_backup_only_events": 207,
+        "coverage_region_first_scope_events": 207,
+        "coverage_region_local_time_events": 207
+      },
+      "region_length_counts": {
+        "four_beat_region": 173,
+        "two_beat_region": 34
+      },
+      "coverage_outcome_counts": {
+        "covered_by_selected_region_length_pattern": 207
+      },
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_62_autumn_leaves_medium_swing_region_first_coverage_guard_demo.mid",
+      "expected_region_count": 162,
+      "covered_region_count": 162,
+      "uncovered_region_count": 0,
+      "short_uncovered_region_count": 0,
+      "uncovered_regions_preview": [],
+      "short_uncovered_regions_preview": [],
+      "piano_events": 223,
+      "max_piano_events_per_region": 2,
+      "coverage_inserted_events": 0,
+      "coverage_inserted_preview": [],
+      "coverage_missing_version_events": 0,
+      "coverage_missing_version_preview": [],
+      "metadata": {
+        "coverage_version_counts": {
+          "v2_6_62": 223
+        },
+        "coverage_checked_events": 223,
+        "coverage_backup_only_events": 223,
+        "coverage_region_first_scope_events": 223,
+        "coverage_region_local_time_events": 223
+      },
+      "region_length_counts": {
+        "two_beat_region": 173,
+        "four_beat_region": 50
+      },
+      "coverage_outcome_counts": {
+        "covered_by_selected_region_length_pattern": 223
+      },
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: all ChordRegions have piano harmonic presence",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no short ChordRegion uncovered",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: all piano events carry v2_6_62 coverage metadata",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: normal generation does not need fallback insertion",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: guard remains backup-only",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: all ChordRegions have piano harmonic presence",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no short ChordRegion uncovered",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: all piano events carry v2_6_62 coverage metadata",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: normal generation does not need fallback insertion",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: guard remains backup-only",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  }
+}

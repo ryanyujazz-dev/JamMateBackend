@@ -3,7 +3,7 @@ from __future__ import annotations
 from jammate_engine.api.version import ENGINE_VERSION_TAG
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
 from jammate_engine.core.voicing import derive_voicing_texture_state
-from jammate_engine.realization.harmonic_realizer import _policy_with_event_texture_scope
+from jammate_engine.realization.voicing_policy_context_adapter import _policy_with_event_texture_scope
 from jammate_engine.styles.medium_swing.voicing_policy import get_voicing_policy
 
 
@@ -29,7 +29,7 @@ def _event(section_id: str, *, role: str = "normal", phrase: str | None = None, 
 
 
 def test_v2_2_38_version_is_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_3_9"
+    assert ENGINE_VERSION_TAG == "v2_10_8"
 
 
 def test_bridge_open_method_retune_prefers_drop3_without_family_switch() -> None:
@@ -44,7 +44,7 @@ def test_bridge_open_method_retune_prefers_drop3_without_family_switch() -> None
         "generic_open": 0.0,
         "drop2": 0.35,
         "drop3": 0.53,
-        "drop2_and_4": 0.12,
+        "drop2_and_4": 0.10,
     }
     assert state.open_method_weights["drop3"] > state.open_method_weights["drop2"]
 
@@ -64,7 +64,7 @@ def test_final_chorus_open_lift_retune_raises_drop3_and_keeps_drop24_controlled(
         "generic_open": 0.0,
         "drop2": 0.43,
         "drop3": 0.48,
-        "drop2_and_4": 0.09,
+        "drop2_and_4": 0.08,
     }
     assert final_state.open_method_weights["drop3"] > mid_state.open_method_weights["drop3"]
     assert final_state.open_method_weights["drop2_and_4"] < mid_state.open_method_weights["drop2_and_4"]

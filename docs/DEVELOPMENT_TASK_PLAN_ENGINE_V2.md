@@ -1,3 +1,157 @@
+## v2_6_51 Completed — Engine Medium Swing Generic 4-Note Rotation Alignment Policy
+
+Completed a voicing-only correction pass on the merged `v2_10_8` baseline plus `v2_6_50` orientation checkpoint.
+
+Scope: Engine voicing only. No Agent/API/HarmonyOS/Pattern/Anticipation/Expression/MIDI-writer changes.
+
+What changed:
+
+- generalized the v2_6_50 rootless-only orientation alignment into `medium_swing_four_note_rotation_alignment_*`;
+- mapped `basic_4note`, `rooted_color_4note`, and `rootless_ab` into one generic four-note rotation alignment contract;
+- preserved legacy `rootless_ab_*` fields as compatibility aliases rather than deleting the content family;
+- made basic/rooted 4-note follow logic use the expected `(previous_inversion + 2) % 4` motion, e.g. `1357 -> 5713`, `3571 -> 7135`, `5713 -> 1357`, `7135 -> 3571`;
+- kept rootless A/B follow logic as `A <-> B` while preserving content type and rootless inversion index;
+- added a smoothness guard so generic rooted/basic 4-note hard filtering only applies when a matching candidate is also voice-leading safe;
+- exposed generic four-note rotation alignment audit fields in piano audit summaries and the Medium Swing audit script;
+- added `tests/test_v2_6_51_engine_generic_4note_rotation_alignment_policy.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- v2_6_44 through v2_6_51 focused regression: 29 passed
+- integration today-guidance runtime smoke: 3 passed
+- Medium Swing two-standard demo/audit generation: passed
+
+Listening/audit checkpoint:
+
+- All The Things You Are / Medium Swing / 3 choruses: voice-leading, section-boundary, phrase-scope method lock, and generic four-note rotation checkpoints passed.
+- Autumn Leaves / Medium Swing / 3 choruses: voice-leading, section-boundary, phrase-scope method lock, and generic four-note rotation checkpoints passed.
+
+Next recommended voicing-only task: `v2_6_52_engine_medium_swing_open_drop_same_chord_reattack_and_comping_reuse`.
+
+## v2_6_50 Completed — Engine Medium Swing OPEN Drop-Family ii–V–I Orientation / Method Alignment
+
+Completed a voicing-only Medium Swing continuity pass on the merged `v2_10_8` baseline plus `v2_6_49` phrase-scope method-lock policy.
+
+Implemented:
+
+- added conservative rootless A/B orientation-alignment metadata for local ii-V / V-I / ii-V-I follow regions;
+- reused the existing `method_lock_seed_then_follow` runtime path instead of adding a new planner;
+- requested A/B flip while preserving `rootless_ab_content_type` and `rootless_ab_inversion_index`;
+- filtered candidate pools only when matching rootless A/B candidates are available;
+- kept full candidate pools and audit reasons when no matching rootless candidates exist;
+- explicitly avoided forcing rootless A/B when the previous seed is not rootless;
+- exposed v2_6_50 orientation-alignment audit fields in piano audit summaries and the Medium Swing audit script;
+- added `docs/ENGINE_VOICING_MEDIUM_SWING_OPEN_DROP_II_V_I_ORIENTATION_METHOD_ALIGNMENT_V2_6_50.md`;
+- added `tests/test_v2_6_50_engine_medium_swing_open_drop_ii_v_i_orientation_method_alignment.py`;
+- preserved Pattern, Anticipation, Expression, Gesture, MIDI, Agent, API, HarmonyOS fixtures, and shared integration files.
+
+Reference three-chorus audit:
+
+```text
+All The Things You Are: method_lock_applied=88, method_lock_mismatches=0, phrase_switch_ratio=0.1429, rootless_ab_runtime_enabled=88, rootless_ab_applied=0, skip=previous_seed_not_rootless_ab=88
+Autumn Leaves: method_lock_applied=100, method_lock_mismatches=0, phrase_switch_ratio=0.2308, rootless_ab_runtime_enabled=100, rootless_ab_applied=0, skip=previous_seed_not_rootless_ab=100
+```
+
+Reading note: the standard demos do not currently activate rootless A/B filtering because their selected Medium Swing seed voicings are not rootless A/B under the current default chord-symbol-only behavior. A targeted rootless candidate probe confirms the filter is active when matching candidates exist (`G13`, desired `B/with_13/index0`, 44 candidates -> 3 matching candidates).
+
+Next recommended voicing-only task: `v2_6_51_engine_medium_swing_open_drop_same_chord_reattack_and_comping_reuse`.
+
+## v2_6_49 Completed — Engine Medium Swing OPEN Drop-Family Phrase-Scope Method Lock Policy
+
+Completed a voicing-only Medium Swing runtime policy pass on the merged `v2_10_8` baseline plus `v2_6_48` phrase-scope continuity audit.
+
+Implemented:
+
+- added conservative local ii-V / V-I / ii-V-I method-lock propagation for Medium Swing OPEN drop-family voicings;
+- reused core `FunctionalMotion` labels and existing method-lock seed/follow runtime filtering rather than adding a new progression planner;
+- propagated only `drop2` / `drop3` as phrase-body methods;
+- kept `drop2_and_4` as recorded low-frequency phrase-internal color that is not propagated;
+- exposed v2_6_49 runtime lock audit fields in piano audit summaries and the Medium Swing audit script;
+- added `docs/ENGINE_VOICING_MEDIUM_SWING_OPEN_DROP_PHRASE_SCOPE_METHOD_LOCK_POLICY_V2_6_49.md`;
+- added `tests/test_v2_6_49_engine_medium_swing_open_drop_phrase_scope_method_lock_policy.py`;
+- preserved Pattern, Anticipation, Expression, Gesture, MIDI, Agent, API, HarmonyOS fixtures, and shared integration files.
+
+Reference three-chorus audit:
+
+```text
+All The Things You Are: applied=88, matches=88, mismatches=0, filtering=88, phrase_switch_ratio=0.1429, drop2&4_run_max=1
+Autumn Leaves: applied=100, matches=100, mismatches=0, filtering=100, phrase_switch_ratio=0.2308, drop2&4_run_max=2
+```
+
+Next recommended voicing-only task: `v2_6_50_engine_medium_swing_open_drop_ii_v_i_orientation_method_alignment`.
+
+## v2_6_47 Completed — Engine Medium Swing OPEN Drop-Family Section Boundary Method-Lock Review
+
+Completed a behavior-preserving Medium Swing voicing checkpoint on the merged `v2_10_8` baseline plus `v2_6_46` continuity audit.
+
+Implemented:
+
+- added section-boundary method-lock readability audit fields;
+- confirmed section boundaries enter with readable `drop2` / `drop3` methods;
+- confirmed `drop2_and_4` stays away from boundary entry and remains phrase-internal low-frequency color;
+- added `docs/ENGINE_VOICING_MEDIUM_SWING_OPEN_DROP_SECTION_BOUNDARY_METHOD_LOCK_REVIEW_V2_6_47.md`;
+- added `tests/test_v2_6_47_engine_medium_swing_open_drop_section_boundary_method_lock_review.py`;
+- preserved selected notes, OPEN method weights, Pattern, Anticipation, Expression, Gesture, MIDI, Agent, API, and HarmonyOS behavior.
+
+Reference three-chorus audit:
+
+```text
+All The Things You Are: boundaries=11, boundary_method_switches=8, drop2_and_4_entries=0, warnings=0, avg_motion_max=4.5
+Autumn Leaves: boundaries=11, boundary_method_switches=8, drop2_and_4_entries=0, warnings=0, avg_motion_max=5.25
+```
+
+Next recommended voicing-only task: `v2_6_48_engine_medium_swing_open_drop_phrase_scope_method_continuity_plan`.
+
+## v2_6_46 Completed — Engine Medium Swing OPEN Drop-Family Voice-Leading Continuity Audit
+
+Completed a behavior-preserving Medium Swing voicing checkpoint on the merged `v2_10_8` baseline plus `v2_6_45` method calibration.
+
+Implemented:
+
+- added cross-region OPEN drop-family voice-leading continuity audit fields;
+- tracked method-switch and section-boundary transitions separately;
+- added accepted motion guardrails for top, low, average motion, and span jump;
+- updated the Medium Swing audit script so the two reference standard demos verify continuity in addition to method ratios;
+- added `docs/ENGINE_VOICING_MEDIUM_SWING_OPEN_DROP_VOICE_LEADING_CONTINUITY_AUDIT_V2_6_46.md`;
+- added `tests/test_v2_6_46_engine_medium_swing_open_drop_voice_leading_continuity_audit.py`;
+- preserved selected notes, OPEN method weights, Pattern, Anticipation, Expression, Gesture, MIDI, Agent, API, and HarmonyOS behavior.
+
+Reference three-chorus audit:
+
+```text
+All The Things You Are: transitions=119, method_switches=51, section_boundaries=11, warnings=0, top_motion_max_abs=5, low_motion_max_abs=7, avg_motion_max=5.25
+Autumn Leaves: transitions=161, method_switches=68, section_boundaries=11, warnings=0, top_motion_max_abs=5, low_motion_max_abs=7, avg_motion_max=5.25
+```
+
+Next recommended voicing-only task: `v2_6_47_engine_medium_swing_open_drop_section_boundary_method_lock_review`.
+
+## v2_6_45 Completed — Engine Medium Swing Open/Drop Method Lock Calibration
+
+Completed a voicing-only Medium Swing OPEN drop-family calibration on the merged `v2_10_8` baseline.
+
+Implemented:
+
+- kept Medium Swing in OPEN family only;
+- kept `generic_open` as fallback-only with normal runtime weight `0.0`;
+- recalibrated baseline OPEN weights to `drop2=0.52`, `drop3=0.38`, `drop2_and_4=0.10`;
+- recalibrated bridge/final-chorus contrast weights so DROP3 remains the contrast/lift method while DROP2&4 stays controlled;
+- added `docs/ENGINE_VOICING_MEDIUM_SWING_OPEN_DROP_METHOD_LOCK_CALIBRATION_V2_6_45.md`;
+- added `tests/test_v2_6_45_engine_medium_swing_open_drop_method_lock_calibration.py`;
+- added piano audit checkpoint fields for the Medium Swing open/drop calibration profile.
+
+Reference three-chorus audit:
+
+```text
+All the Things You Are: events=174, methods={drop2:104, drop3:69, drop2_and_4:1}
+Autumn Leaves: events=223, methods={drop2:87, drop3:103, drop2_and_4:33}
+```
+
+Both pass the control rules: OPEN family only, bridge/final DROP3 share above baseline, DROP2&4 total ratio <= 0.20, no failed register guards, and no missing piano events.
+
+Next recommended voicing-only task: `v2_6_46_engine_medium_swing_open_drop_voice_leading_continuity_audit`.
+
 ## v2_6_44 Completed — Engine Ballad SPREAD Voicing Phase Summary and Handoff
 
 Completed behavior-preserving Ballad SPREAD voicing phase handoff.
@@ -1061,3 +1215,418 @@ Recommended next task:
 ```text
 v2_6_44_engine_ballad_spread_voicing_phase_summary_and_handoff
 ```
+
+## v2_6_48_engine_medium_swing_open_drop_phrase_scope_method_continuity_plan — Completed
+
+Scope: Engine voicing-only, behavior-preserving audit pass.
+
+Implemented:
+
+```text
+medium_swing_phrase_scope_method_continuity_version = v2_6_48
+```
+
+The audit derives section-local four-region phrase windows from actual OPEN DROP-family chord-region events and reports:
+
+```text
+phrase-scope method switches
+DROP2&4 run length
+ii–V / V–I / ii–V–I local method consistency
+high-motion method switches
+warnings
+checkpoint pass/fail
+```
+
+Current 3-chorus Medium Swing checkpoints:
+
+```text
+All The Things You Are:
+phrase_scope_events: 84
+phrase_scope_method_switch_ratio: 0.4048
+drop2_and_4_run_max: 1
+ii_v_i_events: 27
+ii_v_i_method_consistent_events: 10
+ii_v_i_method_switch_events: 17
+high_motion_switch_events: 0
+checkpoint_passed: true
+
+Autumn Leaves:
+phrase_scope_events: 117
+phrase_scope_method_switch_ratio: 0.4274
+drop2_and_4_run_max: 2
+ii_v_i_events: 21
+ii_v_i_method_consistent_events: 8
+ii_v_i_method_switch_events: 13
+high_motion_switch_events: 0
+checkpoint_passed: true
+```
+
+Conclusion:
+
+```text
+Do not tune global OPEN weights yet.
+DROP2&4 is still phrase-internal color, not phrase body.
+Method switches are smooth.
+The next useful issue is local ii–V / V–I / ii–V–I method alignment, not global ratio tuning.
+```
+
+Recommended next task:
+
+```text
+v2_6_49_engine_medium_swing_open_drop_phrase_scope_method_lock_policy
+```
+
+## v2_6_52_engine_medium_swing_open_drop_same_chord_reattack_comping_reuse — Completed
+
+Scope: Engine voicing-only, behavior-preserving checkpoint.
+
+Implemented:
+
+```text
+medium_swing_same_chord_reattack_comping_reuse_version = v2_6_52
+```
+
+The runtime already owned the correct same-region cache boundary through `RealizerVoicingRequestOrchestrator`. v2_6_52 formalizes that Medium Swing OPEN / DROP comping consumes this boundary:
+
+```text
+same chord region + same track + no explicit fresh-revoicing flag
+→ reuse cached region voicing exactly
+```
+
+Current 3-chorus Medium Swing checkpoints:
+
+```text
+All The Things You Are:
+same_chord_reattack_comping_reuse_events: 54
+region_voicing_reused_events: 54
+exact_voicing_reuse_events: 54
+foundation_stable_events: 54
+fresh_revoicing_events: 0
+warning_events: 0
+checkpoint_passed: true
+
+Autumn Leaves:
+same_chord_reattack_comping_reuse_events: 61
+region_voicing_reused_events: 61
+exact_voicing_reuse_events: 61
+foundation_stable_events: 61
+fresh_revoicing_events: 0
+warning_events: 0
+checkpoint_passed: true
+```
+
+Recommended next task:
+
+```text
+v2_6_53_engine_medium_swing_open_drop_safe_extension_and_top_register_checkpoint
+```
+
+## v2_6_53 — Medium Swing OPEN/DROP Safe Extension + Top Register Checkpoint
+
+Status: completed.
+
+Scope: Engine voicing-only, behavior-preserving checkpoint after the Medium Swing OPEN/DROP method-lock, generic 4-note rotation alignment, and same-chord reattack reuse passes.
+
+Accepted guardrails:
+
+```text
+All The Things You Are / Medium Swing / 3 choruses / seed 3300
+- top_note_max: 72
+- top_note_ge_75_events: 0
+- major_seventh_unnotated_sharp11_events: 0
+- register_guard_failed_events: 0
+- voice_leading_warning_events: 0
+
+Autumn Leaves / Medium Swing / 3 choruses / seed 3301
+- top_note_max: 72
+- top_note_ge_75_events: 0
+- major_seventh_unnotated_sharp11_events: 0
+- register_guard_failed_events: 0
+- voice_leading_warning_events: 0
+```
+
+Do not use this checkpoint to force more harmonic color. In chord-symbol-only Medium Swing, basic 4-note seventh voicings are acceptable. Safe extension means that when color is allowed, major-seventh defaults prefer `9 / 13` and do not introduce unnotated `#11` unless the chart or harmonic-color intent explicitly asks for it.
+
+Next recommended task: `v2_6_54_engine_medium_swing_open_drop_deliberate_revoice_gesture_boundary_plan`.
+
+## v2_6_54 — Medium Swing OPEN/DROP Deliberate Revoice Gesture Boundary Plan
+
+Status: completed.
+
+Scope: Engine voicing-only, behavior-preserving boundary checkpoint after same-chord reattack reuse and safe-extension/top-register checks.
+
+Runtime boundary:
+
+```text
+same chord region + same track + no explicit revoice intent
+→ reuse_cached_region_voicing_exactly
+
+same chord region + explicit pitchless revoice intent
+→ bypass cache, resolve fresh VoicingPlan, annotate deliberate boundary
+```
+
+Allowed escape hatches:
+
+```text
+force_fresh_voicing
+revoice_within_region
+```
+
+Allowed intent sources:
+
+```text
+event_metadata
+gesture_metadata
+```
+
+Current 3-chorus Medium Swing checkpoints:
+
+```text
+All The Things You Are:
+default_reuse_events: 54
+explicit_revoice_events: 0
+implicit_revoice_events: 0
+warning_events: 0
+checkpoint_passed: true
+
+Autumn Leaves:
+default_reuse_events: 61
+explicit_revoice_events: 0
+implicit_revoice_events: 0
+warning_events: 0
+checkpoint_passed: true
+```
+
+Next recommended task: `v2_6_55_engine_medium_swing_open_drop_deliberate_revoice_micro_motion_policy_probe`.
+
+## v2_6_55 — Medium Swing OPEN/DROP Deliberate Revoice Micro-Motion Policy Probe
+
+Status: completed.
+
+Scope: Engine voicing-only. This task does not create any new revoice gestures and does not change Pattern, Anticipation, Expression, MIDI, Agent, API, HarmonyOS, or shared integration files.
+
+Runtime boundary:
+
+```text
+same chord region + no explicit fresh-revoice intent
+→ reuse_cached_region_voicing_exactly
+
+same chord region + explicit fresh-revoice intent + micro_motion policy
+→ filter candidate pool to safe micro-motion candidates when available
+```
+
+Default micro-motion thresholds:
+
+```text
+foundation stable: required
+max_low_motion:    0 semitones
+max_top_motion:    2 semitones
+max_avg_motion:    2.5 semitones
+```
+
+Allowed explicit motion policies:
+
+```text
+micro_motion
+inner_motion
+top_voice_answer
+```
+
+Current 3-chorus Medium Swing checkpoints:
+
+```text
+All The Things You Are:
+micro_motion_runtime_enabled_events: 0
+filter_applied_events: 0
+warning_events: 0
+checkpoint_passed: true
+
+Autumn Leaves:
+micro_motion_runtime_enabled_events: 0
+filter_applied_events: 0
+warning_events: 0
+checkpoint_passed: true
+```
+
+Targeted probe confirms that explicit micro-motion revoice keeps only safe candidates with stable foundation, `top_motion_abs <= 2`, and `avg_motion_abs <= 2.5`.
+
+Next recommended task: `v2_6_56_engine_medium_swing_deliberate_revoice_gesture_inventory_plan`.
+
+## v2_6_56 — Engine Medium Swing Piano Region-Length Pattern Vocabulary Baseline
+
+- Started the Medium Swing piano pattern track in the existing `styles/medium_swing/comping_patterns.py` source; no parallel pattern line or shadow selector was introduced.
+- Replaced old bar-first / `two_chord_bar` terminology with ChordRegion-first `one_beat_region`, `two_beat_region`, `four_beat_region`, and future-safe `three_beat_region` / `five_beat_region` vocabulary metadata.
+- Added region-local metadata for rhythm family, phrase role, semantic expression hint, tail-push risk, and pattern/expression/voicing boundaries.
+- Preserved the current runtime-active v2_6_55 behavior by keeping newly added vocabulary zero-weight until the next lookup/weight-calibration task.
+- Added `tests/test_v2_6_56_engine_medium_swing_piano_region_length_pattern_vocabulary.py` and `docs/ENGINE_MEDIUM_SWING_PIANO_REGION_LENGTH_PATTERN_VOCABULARY_BASELINE_V2_6_56.md`.
+
+Recommended next task: `v2_6_57_engine_medium_swing_piano_region_length_candidate_lookup_policy`.
+
+## v2_6_57 — Engine Medium Swing Piano Region-Length Candidate Lookup Policy
+
+- Continued the Medium Swing piano pattern track in the existing `styles/medium_swing/comping_patterns.py` source; no parallel pattern source or bar-first `two_chord_bar` route was added.
+- Kept `PATTERN_LIBRARY_VERSION=v2_6_56` as the vocabulary baseline and added `candidate_lookup_policy_version=v2_6_57` metadata for ChordRegion-length-aware candidate routing.
+- Conservatively activated selected 4-beat, 2-beat, and 1-beat region-local vocabulary candidates with low positive weights inside their matching region-length family.
+- Added arrangement policy metadata for `piano_region_length_candidate_lookup_policy_version`.
+- Updated older Medium Swing exact-count voicing tests to assert reuse/top-register invariants instead of frozen event counts, because pattern activation can legitimately increase same-region reattack events while preserving exact cached-voicing reuse.
+- Confirmed All The Things You Are / Medium Swing / 3 choruses: active region-length lookup candidates appear, `top_note_max=72`, `top_note_ge_75_events=0`, `voice_leading_warning_events=0`.
+- Confirmed Autumn Leaves / Medium Swing / 3 choruses: active region-length lookup candidates appear, `top_note_max=72`, `top_note_ge_75_events=0`, `voice_leading_warning_events=0`.
+- Added `tests/test_v2_6_57_engine_medium_swing_piano_region_length_candidate_lookup_policy.py` and `docs/ENGINE_MEDIUM_SWING_PIANO_REGION_LENGTH_CANDIDATE_LOOKUP_POLICY_V2_6_57.md`.
+
+Recommended next task: `v2_6_58_engine_medium_swing_piano_region_length_weight_calibration`.
+
+## v2_6_58 — Engine Medium Swing Piano Region-Length Weight Calibration
+
+- Calibrated the existing `styles/medium_swing/comping_patterns.py` region-length-aware piano vocabulary without adding a parallel selector or bar-first path.
+- Kept `PATTERN_LIBRARY_VERSION=v2_6_56` and `CANDIDATE_LOOKUP_POLICY_VERSION=v2_6_57`; added `WEIGHT_CALIBRATION_POLICY_VERSION=v2_6_58`.
+- Adjusted 4-beat candidate weights toward stable primary / offbeat secondary / active controlled / tail-push rare.
+- Made 2-beat and 1-beat short-region candidates more anchor-led so dense harmonic rhythm stays supported without overproducing offbeats.
+- Updated Medium Swing pattern organization tests and added `tests/test_v2_6_58_engine_medium_swing_piano_region_length_weight_calibration.py`.
+- Generated All The Things You Are and Autumn Leaves three-chorus Medium Swing demos plus audit summary/report.
+
+Recommended next task: `v2_6_59_engine_medium_swing_piano_comping_history_continuity_scorer`.
+
+## v2_6_59 — Engine Medium Swing Piano Comping History Continuity Scorer
+
+- Continued directly on the existing Medium Swing piano region-length pattern line; no parallel selector or shadow pattern source was added.
+- Added a lightweight history scorer to `StyleProfile.plan_region()` that reweights the existing region-length candidate pool before normal weighted sampling.
+- Added Medium Swing arrangement policy metadata: `piano_comping_history_continuity_scorer=True`, `piano_comping_history_continuity_scorer_version=v2_6_59`, and a no-parallel-selector contract.
+- The scorer penalizes exact repeats, non-stable family repeat, consecutive offbeat, recent offbeat clusters, recent active, and recent tail-push; it gives small stable-reset bonuses after active/offbeat contexts.
+- Selected piano events expose v2_6_59 history metadata for audit while remaining pitchless and free of final velocity/duration/pedal or voicing fields.
+- Generated All The Things You Are and Autumn Leaves three-chorus demos plus v2_6_59 audit summary/report.
+
+Recommended next task: `v2_6_60_engine_medium_swing_harmonic_function_aware_piano_comping_policy`.
+
+## v2_6_60 — Engine Medium Swing Harmonic-Function-Aware Piano Comping Policy
+
+- Continued directly on the existing ChordRegion-first Medium Swing piano pattern system; no new parallel selector or bar-level two-chord-bar logic was added.
+- Added a conservative harmonic-function multiplier stage in `StyleProfile.plan_region()` before the v2_6_59 history scorer.
+- Added Medium Swing arrangement policy metadata: `piano_comping_harmonic_function_policy=True`, `piano_comping_harmonic_function_policy_version=v2_6_60`, and a no-parallel-selector/no-two-chord-bar contract.
+- The policy uses `classify_functional_motion()` and ChordRegion section/ending flags to label `predominant_to_dominant`, `dominant_resolution`, `tonic_resolution`, `section_start`, `section_end`, `ending`, `tonic_prolongation`, and `turnaround_like` contexts.
+- Selected piano events expose v2_6_60 harmonic metadata for audit while remaining pitchless and free of final velocity/duration/pedal or voicing fields.
+- Generated All The Things You Are and Autumn Leaves three-chorus demos plus v2_6_60 audit summary/report.
+
+Recommended next task: `v2_6_61_engine_medium_swing_region_first_anticipation_compatibility_checkpoint`.
+
+## v2_6_61 — Engine Medium Swing Region-First Anticipation Compatibility Checkpoint
+
+Status: completed.
+
+Scope: Engine pattern/anticipation compatibility checkpoint. This does not add new piano rhythm cells, voicing behavior, expression realization, gesture behavior, MIDI writer behavior, Agent/API/HarmonyOS changes, or a parallel pattern path.
+
+Runtime contract:
+
+```text
+previous ChordRegion tail slot = previous_region.duration_beats - 0.5
+4-beat previous region → local 3.5
+2-beat previous region → local 1.5
+1-beat previous region → local 0.5, usually blocked by existing anchor occupancy
+```
+
+Current standard-tune checkpoints:
+
+```text
+All The Things You Are:
+active_anticipation_count: 8
+target_local_counts: {3.5: 7, 1.5: 1}
+invalid_region_first_rows: 0
+top_note_max: 72
+voice_leading_warning_events: 0
+
+Autumn Leaves:
+active_anticipation_count: 3
+target_local_counts: {1.5: 2, 3.5: 1}
+invalid_region_first_rows: 0
+top_note_max: 72
+voice_leading_warning_events: 0
+```
+
+Next recommended task: `v2_6_62_engine_medium_swing_coverage_guard_region_first_cleanup`.
+
+## v2_6_62 — Engine Medium Swing CoverageGuard Region-First Cleanup
+
+Status: completed.
+
+Scope: Engine Medium Swing piano region-first coverage checkpoint. This does not add new rhythm cells, voicing behavior, expression realization, gesture behavior, MIDI writer behavior, Agent/API/HarmonyOS changes, or a parallel pattern path.
+
+Runtime contract:
+
+```text
+CoverageGuard is backup-only.
+It checks the selected ChordRegion-local piano PatternPlan after normal candidate lookup/scoring.
+If the region already has piano harmonic presence, it only stamps audit metadata.
+If a ChordRegion would otherwise be uncovered, it inserts one pitchless region-start fallback anchor.
+It never routes through bar-first/two-chord-bar logic.
+```
+
+Current standard-tune checkpoints:
+
+```text
+All The Things You Are:
+expected_region_count: 120
+covered_region_count: 120
+uncovered_region_count: 0
+short_uncovered_region_count: 0
+coverage_inserted_events: 0
+top_note_max: 72
+voice_leading_warning_events: 0
+
+Autumn Leaves:
+expected_region_count: 162
+covered_region_count: 162
+uncovered_region_count: 0
+short_uncovered_region_count: 0
+coverage_inserted_events: 0
+top_note_max: 72
+voice_leading_warning_events: 0
+```
+
+Next recommended task: `v2_6_63_engine_medium_swing_piano_expression_hint_handoff_checkpoint`.
+
+## v2_6_64 — Engine Medium Swing Piano V1 Idiom Delta Audit Checkpoint
+
+Status: completed.
+
+Scope: behavior-preserving audit/checkpoint. This step studies the uploaded V1 Medium Swing piano report and maps V1's useful idioms into V2's ChordRegion-first, pattern/voicing/expression-decoupled architecture. It does not change runtime selection logic, voicing, expression realization, gesture behavior, MIDI writing, Agent/API/HarmonyOS code, or any shared integration-track files.
+
+Key result:
+
+```text
+V1 base stable/offbeat vocabulary      -> covered by 4-beat ChordRegion pitchless cells
+V1 two_chord_bar split vocabulary      -> covered as 2-beat / 1-beat ChordRegion vocabulary
+V1 251 / two_five / ii_setup priority  -> partial; current V2 only has harmonic-function multipliers
+V1 fill / variation vocabulary         -> partial; active/fill/busy memory should come before enabling more
+V1 ending vocabulary                   -> partial; final_hold hint exists but ending subset is pending
+V1 4& policy                           -> covered but needs V1-ratio no-4& / delayed-tail reinforcement
+V1 history guard                       -> partial; busy/fill/multi-region memory pending
+V1 touch numeric ranges                -> reference only; ExpressionPolicy calibration pending
+V1 shell2/shell4/rootless4 expansion   -> rejected from pattern layer; remains voicing policy concern
+```
+
+Current standard-tune checkpoints:
+
+```text
+All The Things You Are:
+piano_events: 205
+region_length_counts: {four_beat_region: 175, two_beat_region: 30}
+tail_push_events: 0
+active_or_tail_push_events: 9
+no_4and_delayed_tail_events: 67
+forbidden_expression_events: 0
+bar_first_two_chord_bar_events: 0
+top_note_max: 72
+voice_leading_warning_events: 0
+
+Autumn Leaves:
+piano_events: 234
+region_length_counts: {two_beat_region: 179, four_beat_region: 55}
+tail_push_events: 0
+active_or_tail_push_events: 0
+no_4and_delayed_tail_events: 47
+forbidden_expression_events: 0
+bar_first_two_chord_bar_events: 0
+top_note_max: 72
+voice_leading_warning_events: 0
+```
+
+Next recommended task: `v2_6_65_engine_medium_swing_progression_specific_candidate_subset_policy`.

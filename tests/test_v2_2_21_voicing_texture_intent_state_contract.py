@@ -22,9 +22,9 @@ def _read(rel: str) -> str:
 
 
 def test_v2_2_21_version_is_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_3_9"
+    assert ENGINE_VERSION_TAG == "v2_10_8"
     assert VOICING_CONTRACT_VERSION == "v2_2_21"
-    assert _read("VERSION").strip() == "v2_3_9"
+    assert _read("VERSION").strip() == "v2_10_8"
 
 
 def test_medium_swing_texture_state_reuses_existing_policy_metadata() -> None:
@@ -38,8 +38,8 @@ def test_medium_swing_texture_state_reuses_existing_policy_metadata() -> None:
     assert state.primary_family == DispositionFamily.OPEN
     assert state.allowed_families == (DispositionFamily.OPEN,)
     assert debug["contract"] == "voicing_texture_state_engine_resolved_contract_v2_2_21"
-    assert debug["open_method_weights"]["drop2"] == 0.50
-    assert debug["open_method_weights"]["drop2_and_4"] == 0.14
+    assert debug["open_method_weights"]["drop2"] == 0.52
+    assert debug["open_method_weights"]["drop2_and_4"] == 0.10
     assert debug["family_stickiness"] >= 0.85
     assert state.progression_method_lock_mode == VoicingMethodLockMode.STRICT
 

@@ -1,6 +1,6 @@
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_8_24`.
+Current baseline: `v2_10_8`.
 
 This file is now the stable integration index. To reduce Agent/Engine merge conflicts, rolling task plans are split:
 
@@ -19,10 +19,51 @@ Rules:
 ## Current Recommended Next Tasks
 
 ```text
-Engine: v2_6_31_engine_ballad_spread_lower_upper_gap_and_weight_balance
-Agent: v2_9_x_agent_persistence_implementation planning only after explicit approval
+Engine: continue ballad SPREAD lower/upper gap and weight balance from v2_6_44
+Agent: continue persistence implementation planning only after explicit approval
 Integration: verify/refresh shared HarmonyOS fixtures and API docs when either track changes public contracts
 ```
+
+
+## v2_10_7 Integration HarmonyOS Agent Today Guidance Runtime Smoke
+
+This runtime smoke remains part of the integrated `v2_10_8` baseline. It validates the HarmonyOS Agent today-guidance runtime path with `frontend_fixtures/harmonyos/smoke/curl_agent_today_guidance_runtime_smoke.sh` and is preserved here as a shared integration index entry.
+
+## v2_10_8 Integration Agent / Engine Merge
+
+Current integrated baseline: `v2_10_8`.
+
+Merged sources:
+
+```text
+Engine Track: v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff
+Agent Track:  v2_10_7_agent_harmonyos_today_guidance_runtime_smoke
+```
+
+Integration scope:
+
+- Engine generation chain uses the Engine Track package through v2.6.44 (frozen Ballad SPREAD guardrails, lower-foundation calibration, safe extension frequency, phrase-state anchor policy).
+- Agent / LLM / trace / tool-preview / context-guidance / persistence / HarmonyOS product routes use the Agent Track package through v2.10.7.
+- Shared files reconciled here: `README.md`, `agent.md`, `VERSION`, `pyproject.toml`, `docs/ARCHITECTURE_V2.md`, `docs/API_CONTRACT_V2.md`, `docs/DEVELOPMENT_TASK_PLAN_V2.md`, `docs/CHANGELOG.md`, and `frontend_fixtures/harmonyos/`.
+- No new Engine music rule or V1 code migration was added by this integration pass.
+
+Next split after this integration package:
+
+```text
+Engine: continue ballad SPREAD lower/upper gap and weight balance from v2_6_44.
+Agent: continue persistence implementation planning only after explicit approval.
+Integration: only reconcile shared docs/API/fixtures/version when one track changes public contracts.
+```
+
+
+## v2_8_24 Integration Agent / Engine Merge
+
+Integration scope:
+
+- Added `frontend_fixtures/harmonyos/smoke/curl_agent_today_guidance_runtime_smoke.sh` for real FastAPI runtime validation of the two HarmonyOS Agent product routes.
+- Updated HarmonyOS smoke README and smoke pack metadata with the strict runtime sequence.
+- The strict smoke validates backend SQLite context write/readback without calling Engine generation or playback routes.
+- Next recommended integration task: run the same strict smoke from a real HarmonyOS device against the Mac LAN IP and then wire the two calls into the app-side routine-end / today-guidance screens.
 
 ---
 

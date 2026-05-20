@@ -1,0 +1,13 @@
+{
+  "userId": "harmonyos_smoke_user_001",
+  "sqliteDbPath": "/tmp/jammate_agent_harmonyos_today_guidance_smoke.sqlite",
+  "environment": "test",
+  "userInput": "今天该练什么？",
+  "availableMinutes": 25,
+  "providerResult": {
+    "ok": true,
+    "provider_name": "fixture",
+    "model": "fixture-model",
+    "content": "{\"guidance_mode\": \"adjust_based_on_history\", \"summary\": \"刚完成 Medium Swing guide-tone comping，今天可以承接计划进入 Blue Bossa comping review，并保留短时间 time feel 复盘。\", \"recommended_focus\": \"Bossa comping stability after recent swing guide-tone work\", \"recommended_blocks\": [{\"blockId\": \"block_bossa_comping\", \"title\": \"Blue Bossa comping review\", \"style\": \"bossa_nova\", \"tempo\": 118, \"durationMinutes\": 10, \"goal\": \"保持 bossa batida 稳定\"}, {\"blockId\": \"block_swing_review\", \"title\": \"Medium Swing time-feel recap\", \"style\": \"medium_swing\", \"tempo\": 104, \"durationMinutes\": 5, \"goal\": \"复盘刚完成的 guide-tone comping\"}], \"routine_candidates\": [{\"candidateId\": \"routine_harmonyos_bossa_review\", \"routineName\": \"Blue Bossa comping review\", \"style\": \"bossa_nova\", \"tempo\": 118, \"durationMinutes\": 10, \"practiceGoal\": \"根据最近完成记录继续推进\"}], \"adjustment_reason\": \"routine history shows Medium Swing guide-tone comping was completed recently\", \"profile_considerations\": \"匹配用户 medium_swing/bossa_nova 偏好与 ii-V-I/comping focus。\", \"user_confirmation_required\": true, \"next_client_actions\": [\"show_guidance\", \"present_routine_candidate\"]}"
+  }
+}

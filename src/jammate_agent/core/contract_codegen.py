@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-CONTRACT_VERSION = "v2_8_24"
+CONTRACT_VERSION = "v2_10_8"
 
 
 @dataclass(frozen=True)

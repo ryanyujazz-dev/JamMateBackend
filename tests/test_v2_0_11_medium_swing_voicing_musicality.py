@@ -73,14 +73,17 @@ def test_medium_swing_voicing_policy_exposes_musicality_weights() -> None:
     assert policy.selection_pool_size >= 3
 
 
-def test_medium_swing_piano_comping_candidates_have_density_metadata() -> None:
+def test_medium_swing_piano_comping_candidates_have_density_and_weight_calibration_metadata() -> None:
     candidates = comping_patterns.get_pattern_candidates({"region_duration_beats": 4.0})
     densities = {candidate.metadata.get("density") for candidate in candidates}
-    assert "dense" in densities
+    calibration_classes = {candidate.metadata.get("weight_calibration_class") for candidate in candidates}
+    assert "medium" in densities
     assert "sparse" in densities
+    assert {"stable", "offbeat", "active", "tail_push"}.issubset(calibration_classes)
+    assert all(candidate.metadata.get("weight_calibration_policy_version") == "v2_6_58" for candidate in candidates)
 
 
-def test_medium_swing_history_guard_can_avoid_dense_after_dense() -> None:
+def test_medium_swing_history_guard_can_avoid_immediate_stable_pattern_repeat_after_v2_6_58_calibration() -> None:
     style = get_style("medium_swing")
     region1 = HarmonicRegion(
         region_id="r1",
@@ -103,13 +106,13 @@ def test_medium_swing_history_guard_can_avoid_dense_after_dense() -> None:
         duration_beats=4.0,
     )
     history: dict[str, str] = {}
-    # Force deterministic highest-weight choice: first region chooses the dense
-    # Charleston candidate, second region should be prevented from choosing a
-    # dense piano candidate immediately afterward.
+    # With v2_6_58 calibration, the deterministic no-RNG choice is the stable
+    # region-start anchor. The history guard should still prevent immediate
+    # exact repetition on the following region.
     plan1 = style.plan_region(region1, {"style_pattern_history": history})
     plan2 = style.plan_region(region2, {"style_pattern_history": history})
     first_piano = next(event for event in plan1.events if event.track == "piano")
     second_piano_events = [event for event in plan2.events if event.track == "piano"]
 
-    assert first_piano.metadata["candidate"] == "medium_swing_piano_charleston_1_2and"
-    assert all(event.metadata["candidate"] != "medium_swing_piano_charleston_1_2and" for event in second_piano_events)
+    assert first_piano.metadata["candidate"] == "medium_swing_piano_anchor_1"
+    assert all(event.metadata["candidate"] != "medium_swing_piano_anchor_1" for event in second_piano_events)

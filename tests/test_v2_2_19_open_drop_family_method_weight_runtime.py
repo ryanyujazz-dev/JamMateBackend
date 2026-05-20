@@ -10,9 +10,9 @@ from jammate_engine.styles.bossa_nova.voicing_policy import get_voicing_policy a
 
 
 def test_v2_2_20_version_is_current() -> None:
-    assert ENGINE_VERSION_TAG == "v2_3_9"
+    assert ENGINE_VERSION_TAG == "v2_10_8"
     assert VOICING_CONTRACT_VERSION == "v2_2_21"
-    assert Path("VERSION").read_text(encoding="utf-8").strip() == "v2_3_9"
+    assert Path("VERSION").read_text(encoding="utf-8").strip() == "v2_10_8"
 
 
 def test_medium_swing_enables_open_drop_family_pool_and_runtime_weight_scoring() -> None:
@@ -22,9 +22,9 @@ def test_medium_swing_enables_open_drop_family_pool_and_runtime_weight_scoring()
     assert metadata["disposition_method_weights_enabled_for_scoring"] is True
     assert metadata["disposition_method_weights"]["open"] == {
         "generic_open": 0.0,
-        "drop2": 0.50,
-        "drop3": 0.36,
-        "drop2_and_4": 0.14,
+        "drop2": 0.52,
+        "drop3": 0.38,
+        "drop2_and_4": 0.10,
     }
 
     candidates = generate_candidates("G7", policy)

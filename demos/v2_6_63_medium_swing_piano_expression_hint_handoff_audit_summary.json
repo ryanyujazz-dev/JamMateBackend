@@ -1,0 +1,162 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_63 — Medium Swing Piano Expression-Hint Handoff Checkpoint",
+  "scope": "Audit that Medium Swing piano patterns carry semantic expression hints only, include accent_hold, and that hold-style hints are resolved by ExpressionResolver as hold-until-next-touch durations rather than fixed pattern durations.",
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_63_all_the_things_you_are_medium_swing_piano_expression_hint_handoff_demo.mid",
+      "piano_events": 207,
+      "semantic_hint_counts": {
+        "soft_hold": 73,
+        "light_stab": 58,
+        "backbeat_hold": 59,
+        "accent_hold": 17
+      },
+      "profile_counts": {
+        "comp_medium": 73,
+        "comp_short": 58,
+        "comp_backbeat_hold": 59,
+        "comp_accent_hold": 17
+      },
+      "hold_hint_events": 149,
+      "hold_until_next_touch_applied_events": 149,
+      "hold_until_next_touch_missing_events": 0,
+      "hold_reason_counts": {
+        "held_until_next_same_track_touch": 148,
+        "no_next_same_track_touch_held_to_region_end": 1
+      },
+      "accent_hold_events": 17,
+      "accent_hold_profile_events": 17,
+      "accent_hold_duration_min": 1.6666666666666572,
+      "accent_hold_duration_max": 2.0,
+      "non_hold_next_touch_applied_events": 0,
+      "missing_handoff_events": 0,
+      "invalid_semantic_hint_events": 0,
+      "pattern_forbidden_expression_key_events": 0,
+      "duration_min": 0.3333333333333144,
+      "duration_max": 6.0,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_63_autumn_leaves_medium_swing_piano_expression_hint_handoff_demo.mid",
+      "piano_events": 223,
+      "semantic_hint_counts": {
+        "soft_hold": 99,
+        "light_stab": 83,
+        "backbeat_hold": 35,
+        "accent_hold": 6
+      },
+      "profile_counts": {
+        "comp_medium": 99,
+        "comp_short": 83,
+        "comp_backbeat_hold": 35,
+        "comp_accent_hold": 6
+      },
+      "hold_hint_events": 140,
+      "hold_until_next_touch_applied_events": 140,
+      "hold_until_next_touch_missing_events": 0,
+      "hold_reason_counts": {
+        "held_until_next_same_track_touch": 139,
+        "no_next_same_track_touch_held_to_region_end": 1
+      },
+      "accent_hold_events": 6,
+      "accent_hold_profile_events": 6,
+      "accent_hold_duration_min": 1.6666666666666572,
+      "accent_hold_duration_max": 1.6666666666666856,
+      "non_hold_next_touch_applied_events": 0,
+      "missing_handoff_events": 0,
+      "invalid_semantic_hint_events": 0,
+      "pattern_forbidden_expression_key_events": 0,
+      "duration_min": 0.3333333333333144,
+      "duration_max": 4.0,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: all piano events carry v2_6_63 handoff metadata",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: semantic hints stay in approved set",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: patterns still contain no final expression values",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: hold hints use next-touch duration semantics",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: non-hold hints do not accidentally use hold semantics",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: accent_hold is available and routed",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: all piano events carry v2_6_63 handoff metadata",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: semantic hints stay in approved set",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: patterns still contain no final expression values",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: hold hints use next-touch duration semantics",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: non-hold hints do not accidentally use hold semantics",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: accent_hold is available and routed",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  }
+}
