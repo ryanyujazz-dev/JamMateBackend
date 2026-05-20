@@ -100,3 +100,14 @@ cannot_proceed -> plain error/empty-state message
 ```
 
 The state mapper keeps `safeToAutostartRoutine=false` for every response. Even when a routine card is ready, the user must explicitly tap the frontend start button.
+
+## v2_10_27 Practice Coach UI integration
+
+Use `POST /agent/harmonyos/practice-coach-session/message/execute` as the main Practice Coach product endpoint. Responses include `data.frontendUiAction` as a rendering helper:
+
+- `show_plan_proposal_card` for `practice_plan_proposal`
+- `replace_plan_proposal_card` for `practice_plan_revision`
+- `show_routine_card` for `routine_card_ready`
+- `show_routine_summary_recorded` for successful `routine-completion-record/execute`
+
+The frontend must never auto-start Routine from these responses. Completion summary should show “已记录” and should not auto-open Practice Coach.

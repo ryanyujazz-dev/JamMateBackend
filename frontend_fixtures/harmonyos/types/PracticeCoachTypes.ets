@@ -1,4 +1,4 @@
-// JamMate Practice Coach Session Types v2_10_25
+// JamMate Practice Coach Session Types v2_10_27
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/model/PracticeCoachTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 // Production HarmonyOS requests must NOT include llmActionDecisionResult; that field exists only in backend smoke fixtures.
@@ -95,6 +95,32 @@ export interface PracticeCoachRoutineCardPayload {
   [key: string]: unknown
 }
 
+
+export interface PracticeCoachFrontendUiAction {
+  version: string
+  purpose?: string
+  responseType: string
+  status: string
+  renderMode: string
+  visibleContent?: string | null
+  nextClientActions: string[]
+  shouldAppendAssistantMessage: boolean
+  shouldOpenProfileSheet: boolean
+  shouldRenderPlanProposalCard: boolean
+  shouldReplaceCurrentProposal: boolean
+  shouldRenderRoutineCard: boolean
+  shouldShowRecordedSummary?: boolean
+  shouldOpenPracticeCoach?: boolean
+  shouldShowPostSessionRecommendationCard?: boolean
+  canStartRoutineByUserTap: boolean
+  safeToAutostartRoutine: false
+  backendStartsRoutine: false
+  requiresUserTapToStart?: boolean
+  conversationStatePersisted?: boolean
+  payloadRefs?: Record<string, string | null>
+  frontendRules?: string[]
+}
+
 export interface PracticeCoachDeviceFeedbackTracePack {
   tracePackVersion: string
   purpose?: string
@@ -132,6 +158,7 @@ export interface PracticeCoachMessageData {
   llmRequestPreview?: Record<string, unknown> | null
   stateAfter?: Record<string, unknown> | null
   deviceFeedbackTracePack?: PracticeCoachDeviceFeedbackTracePack | null
+  frontendUiAction?: PracticeCoachFrontendUiAction | null
   [key: string]: unknown
 }
 
@@ -155,6 +182,6 @@ export interface PracticeCoachMessageExecuteResponse {
   code: string
   message: string
   data: PracticeCoachMessageData
-  debug: Record<string, unknown> & { deviceFeedbackTracePack?: PracticeCoachDeviceFeedbackTracePack }
+  debug: Record<string, unknown> & { deviceFeedbackTracePack?: PracticeCoachDeviceFeedbackTracePack, frontendUiAction?: PracticeCoachFrontendUiAction }
   safety: PracticeCoachSafety
 }

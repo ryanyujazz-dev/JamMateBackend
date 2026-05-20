@@ -917,5 +917,37 @@
       "startsPlayback": false,
       "writesHarmonyOSLocalState": false
     }
+  },
+  "practice_coach_routine_card_completion_loop": {
+    "version": "v2_10_26",
+    "script": "curl_practice_coach_routine_card_completion_loop_smoke.sh",
+    "fixture": "product_practice_coach_routine_card_completion_loop_sequence.json",
+    "practice_coach_endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "completion_endpoint": "/agent/harmonyos/routine-completion-record/execute",
+    "purpose": "Validate plan proposal/revision -> routine_card_ready -> routine completion persistence -> next Practice Coach readback of completion history.",
+    "expects_context_block": "recent_practice_memory_summary",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_harmonyos_ui_integration_feedback_fit": {
+    "version": "v2_10_27",
+    "script": "curl_practice_coach_harmonyos_ui_integration_smoke.sh",
+    "fixture": "product_practice_coach_harmonyos_ui_integration_sequence.json",
+    "practice_coach_endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "completion_endpoint": "/agent/harmonyos/routine-completion-record/execute",
+    "purpose": "Validate frontendUiAction hints for proposal, revision replacement, routine card display, completion recorded summary, and next Practice Coach history readback.",
+    "ui_action_field": "data.frontendUiAction",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
   }
 }

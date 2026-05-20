@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+import tempfile
 from pathlib import Path
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -7885,16 +7886,32 @@ def _is_allowed_context_persistence_sqlite_path(path_value: str | None) -> bool:
         return False
     path_text = str(path_value)
     normalized = path_text.replace("\\", "/")
-    if ".." in Path(normalized).parts:
+    path = Path(normalized).expanduser()
+    if ".." in path.parts:
         return False
     lowered = normalized.lower()
     if any(part in lowered for part in ("/prod", "production", "secrets", "private_key", "api_key")):
         return False
     if not lowered.endswith((".db", ".sqlite", ".sqlite3")):
         return False
-    if normalized.startswith("/mnt/data/") or normalized.startswith("/tmp/"):
+    if not path.is_absolute():
         return True
-    return not Path(normalized).is_absolute()
+
+    candidate = path.resolve(strict=False)
+    allowed_roots = [
+        Path("/mnt/data").resolve(strict=False),
+        Path("/tmp").resolve(strict=False),
+        Path(tempfile.gettempdir()).resolve(strict=False),
+    ]
+    return any(_context_persistence_path_is_relative_to(candidate, root) for root in allowed_roots)
+
+
+def _context_persistence_path_is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
 
 
 def _context_persistence_sqlite_schema() -> dict[str, str]:

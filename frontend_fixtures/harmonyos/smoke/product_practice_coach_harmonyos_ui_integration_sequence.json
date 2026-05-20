@@ -1,0 +1,89 @@
+{
+  "version": "v2_10_27",
+  "purpose": "Practice Coach HarmonyOS UI integration sequence validating frontendUiAction hints for proposal, revision, routine card, completion summary, and next guidance history readback.",
+  "practiceCoachEndpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+  "completionEndpoint": "/agent/harmonyos/routine-completion-record/execute",
+  "baseRequest": {
+    "userId": "local-dev-user",
+    "sessionId": "practice-coach-ui-integration-product-session-local",
+    "deviceId": "harmonyos-device-local",
+    "clientLocalDate": "2026-05-20",
+    "clientTimezone": "Asia/Shanghai",
+    "locale": "zh-CN"
+  },
+  "steps": [
+    {
+      "name": "create_initial_plan_card",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "中级，今天可以练30分钟，目标是提升伴奏稳定性，喜欢 bossa 和 swing。",
+      "expectedResponseType": "practice_plan_proposal",
+      "expectedUiAction": {
+        "status": "plan_proposal",
+        "renderMode": "show_plan_proposal_card",
+        "shouldRenderPlanProposalCard": true,
+        "shouldReplaceCurrentProposal": false,
+        "safeToAutostartRoutine": false
+      }
+    },
+    {
+      "name": "revise_plan_card_replace_current",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "我想调整为20分钟",
+      "expectedResponseType": "practice_plan_revision",
+      "expectedUiAction": {
+        "status": "plan_proposal",
+        "renderMode": "replace_plan_proposal_card",
+        "shouldRenderPlanProposalCard": true,
+        "shouldReplaceCurrentProposal": true,
+        "safeToAutostartRoutine": false
+      }
+    },
+    {
+      "name": "confirm_to_routine_card",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "确认这个安排",
+      "expectedResponseType": "routine_card_ready",
+      "expectedUiAction": {
+        "status": "routine_card",
+        "renderMode": "show_routine_card",
+        "shouldRenderRoutineCard": true,
+        "canStartRoutineByUserTap": true,
+        "safeToAutostartRoutine": false,
+        "backendStartsRoutine": false
+      }
+    },
+    {
+      "name": "submit_completion_and_show_recorded_summary",
+      "endpoint": "/agent/harmonyos/routine-completion-record/execute",
+      "expectedUiAction": {
+        "status": "completion_recorded",
+        "renderMode": "show_routine_summary_recorded",
+        "shouldShowRecordedSummary": true,
+        "shouldOpenPracticeCoach": false,
+        "shouldShowPostSessionRecommendationCard": false,
+        "safeToAutostartRoutine": false
+      }
+    },
+    {
+      "name": "next_guidance_reads_history",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "今天该练什么？",
+      "expectedContextBlock": "recent_practice_memory_summary"
+    }
+  ],
+  "forbiddenProductRequestFields": [
+    "dbPath",
+    "sqliteDbPath",
+    "clientConfirmedRecordWrite",
+    "providerResult",
+    "llmActionDecisionResult",
+    "apiKey"
+  ],
+  "safety": {
+    "startsRoutine": false,
+    "callsEngineAdapter": false,
+    "createsMidiAsset": false,
+    "startsPlayback": false,
+    "writesHarmonyOSLocalState": false
+  }
+}

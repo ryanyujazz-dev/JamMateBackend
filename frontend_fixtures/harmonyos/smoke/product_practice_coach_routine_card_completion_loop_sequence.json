@@ -1,0 +1,98 @@
+{
+  "version": "v2_10_26",
+  "purpose": "Product-shaped Practice Coach loop smoke: plan proposal/revision -> routine_card_ready -> routine-completion-record persistence -> next Practice Coach request reads completion history.",
+  "baseRequest": {
+    "userId": "local-dev-user",
+    "sessionId": "practice-coach-routine-card-completion-loop-local",
+    "deviceId": "harmonyos-device-local",
+    "clientLocalDate": "2026-05-20",
+    "clientTimezone": "Asia/Shanghai",
+    "locale": "zh-CN"
+  },
+  "forbiddenProductFields": [
+    "dbPath",
+    "sqliteDbPath",
+    "sqlite_db_path",
+    "clientConfirmedRecordWrite",
+    "client_confirmed_record_write",
+    "providerResult",
+    "llmActionDecisionResult",
+    "apiKey"
+  ],
+  "practiceCoachEndpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+  "completionEndpoint": "/agent/harmonyos/routine-completion-record/execute",
+  "steps": [
+    {
+      "step": 1,
+      "name": "create_initial_bossa_plan",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "中级，今天可以练30分钟，目标是提升伴奏稳定性，喜欢 bossa 和 swing。",
+      "expect": {
+        "responseType": "practice_plan_proposal",
+        "planProposalReady": true,
+        "totalDurationMinutes": 30,
+        "practiceFocus": "bossa"
+      }
+    },
+    {
+      "step": 2,
+      "name": "revise_duration_to_20",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "我想调整为20分钟",
+      "expect": {
+        "responseType": "practice_plan_revision",
+        "planProposalReady": true,
+        "totalDurationMinutes": 20,
+        "practiceFocus": "bossa",
+        "revisionReason": "adjust_duration"
+      }
+    },
+    {
+      "step": 3,
+      "name": "confirm_revised_plan_to_routine_card",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "userMessage": "确认这个安排",
+      "expect": {
+        "responseType": "routine_card_ready",
+        "routineCardReady": true,
+        "totalDurationMinutes": 20,
+        "practiceFocus": "bossa"
+      }
+    },
+    {
+      "step": 4,
+      "name": "submit_routine_completion_record",
+      "endpoint": "/agent/harmonyos/routine-completion-record/execute",
+      "completionRecordTemplate": {
+        "completedAt": "2026-05-20T20:30:00+08:00",
+        "durationSeconds": 1200,
+        "status": "completed",
+        "notes": "今天节拍器稳定性比上次好，Bossa 切换仍需继续。"
+      },
+      "expect": {
+        "completionRecordPersisted": true,
+        "nextTodayGuidanceCanReadHistory": true
+      }
+    },
+    {
+      "step": 5,
+      "name": "next_practice_coach_reads_completion_history",
+      "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+      "sessionIdSuffix": "next",
+      "userMessage": "今天该练什么？",
+      "expect": {
+        "sqliteRowsReadAtLeast": 1,
+        "recentPracticeHistoryContainsRoutineTitle": true,
+        "recentPracticeHistoryContainsItemSummaries": true,
+        "recentPracticeHistoryContainsUserNoteSummary": true
+      }
+    }
+  ],
+  "safetyExpectations": {
+    "startsRoutine": false,
+    "callsEngineAdapter": false,
+    "createsMidiAsset": false,
+    "startsPlayback": false,
+    "writesHarmonyOSLocalState": false
+  }
+}

@@ -102,6 +102,8 @@ from jammate_agent.core.practice_coach_session import (
     PRACTICE_COACH_SQLITE_PATH_GUARD_MACOS_TEMPDIR_HOTFIX_VERSION,
     PRACTICE_COACH_PLAN_REVISION_INTENT_ROUTING_HOTFIX_VERSION,
     PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
+    PRACTICE_COACH_ROUTINE_CARD_COMPLETION_LOOP_SMOKE_VERSION,
+    PRACTICE_COACH_HARMONYOS_UI_INTEGRATION_FEEDBACK_FIT_VERSION,
 )
 from jammate_agent.core.tool_invocation import (
     ToolInvocationProposal,
@@ -3431,6 +3433,103 @@ def _practice_coach_device_feedback_trace_pack(
     }
 
 
+def _practice_coach_frontend_ui_action(
+    *,
+    response_type: str,
+    content: str,
+    agent_action: dict,
+    sheet_intent: dict | None,
+    plan_proposal: dict | None,
+    routine_card: dict | None,
+    persisted: bool,
+) -> dict:
+    """Normalized HarmonyOS UI action hint for Practice Coach rendering.
+
+    The backend still returns the canonical response fields. This compact object
+    is a stable frontend integration aid: HarmonyOS may render by responseType
+    directly, or consume this object to avoid re-inferring whether a plan card
+    should be replaced, whether a sheet may open, or whether a routine card is
+    display-only. It is not an instruction to auto-start Routine.
+    """
+
+    status_by_type = {
+        "ask_clarifying_question": "clarifying",
+        "request_profile_sheet": "profile_sheet",
+        "practice_plan_proposal": "plan_proposal",
+        "practice_plan_revision": "plan_proposal",
+        "routine_card_ready": "routine_card",
+        "chat_message": "chat_message",
+        "cannot_proceed": "cannot_proceed",
+    }
+    render_mode_by_type = {
+        "ask_clarifying_question": "append_assistant_message",
+        "request_profile_sheet": "open_or_show_profile_sheet_prompt",
+        "practice_plan_proposal": "show_plan_proposal_card",
+        "practice_plan_revision": "replace_plan_proposal_card",
+        "routine_card_ready": "show_routine_card",
+        "chat_message": "append_assistant_message",
+        "cannot_proceed": "show_blocking_message",
+    }
+    next_client_actions = list(agent_action.get("nextClientActions") or [])
+    return {
+        "version": PRACTICE_COACH_HARMONYOS_UI_INTEGRATION_FEEDBACK_FIT_VERSION,
+        "purpose": "Frontend-facing normalized UI action hint; canonical source remains data.responseType and payload fields.",
+        "responseType": response_type,
+        "status": status_by_type.get(response_type, "chat_message"),
+        "renderMode": render_mode_by_type.get(response_type, "append_assistant_message"),
+        "visibleContent": content,
+        "nextClientActions": next_client_actions,
+        "shouldAppendAssistantMessage": response_type in {"ask_clarifying_question", "chat_message", "cannot_proceed"},
+        "shouldOpenProfileSheet": response_type == "request_profile_sheet" and isinstance(sheet_intent, dict),
+        "shouldRenderPlanProposalCard": response_type in {"practice_plan_proposal", "practice_plan_revision"} and isinstance(plan_proposal, dict),
+        "shouldReplaceCurrentProposal": response_type == "practice_plan_revision" and isinstance(plan_proposal, dict),
+        "shouldRenderRoutineCard": response_type == "routine_card_ready" and isinstance(routine_card, dict),
+        "shouldShowRecordedSummary": False,
+        "canStartRoutineByUserTap": response_type == "routine_card_ready" and isinstance(routine_card, dict) and bool(routine_card.get("startEnabled", False)),
+        "safeToAutostartRoutine": False,
+        "backendStartsRoutine": False,
+        "requiresUserTapToStart": response_type == "routine_card_ready" and isinstance(routine_card, dict),
+        "conversationStatePersisted": bool(persisted),
+        "payloadRefs": {
+            "sheetIntent": "data.sheetIntent" if isinstance(sheet_intent, dict) else None,
+            "planProposal": "data.planProposal" if isinstance(plan_proposal, dict) else None,
+            "routineCardPayload": "data.routineCardPayload" if isinstance(routine_card, dict) else None,
+            "deviceFeedbackTracePack": "data.deviceFeedbackTracePack",
+        },
+        "frontendRules": [
+            "Never auto-start Routine from Practice Coach response.",
+            "Render practice_plan_revision by replacing the current proposal card, not by stacking a second proposal card.",
+            "Render routine_card_ready as a display card with a user-tap start button only.",
+            "If request_profile_sheet is returned, the frontend owns native bindSheet rendering.",
+        ],
+    }
+
+
+def _routine_completion_frontend_ui_action(*, persisted: bool, content: str, record: dict | None) -> dict:
+    return {
+        "version": PRACTICE_COACH_HARMONYOS_UI_INTEGRATION_FEEDBACK_FIT_VERSION,
+        "purpose": "Frontend-facing normalized UI action hint for Routine completion summary rendering.",
+        "responseType": "routine_completion_recorded" if persisted else "routine_completion_record_failed",
+        "status": "completion_recorded" if persisted else "backend_error",
+        "renderMode": "show_routine_summary_recorded" if persisted else "show_completion_error",
+        "visibleContent": content,
+        "shouldShowRecordedSummary": bool(persisted),
+        "shouldOpenPracticeCoach": False,
+        "shouldShowPostSessionRecommendationCard": False,
+        "safeToAutostartRoutine": False,
+        "backendStartsRoutine": False,
+        "nextClientActions": ["show_completion_recorded_summary"] if persisted else ["show_completion_record_error"],
+        "payloadRefs": {
+            "routineCompletionRecord": "data.routineCompletionRecord" if isinstance(record, dict) else None,
+        },
+        "frontendRules": [
+            "RoutineSummaryPage should show that the practice was recorded.",
+            "Do not auto-open Practice Coach after practice completion.",
+            "The next Practice Coach guidance happens only when the user asks again.",
+        ],
+    }
+
+
 def _practice_coach_plan_summary(plan: object) -> dict | None:
     if not isinstance(plan, dict):
         return None
@@ -3618,6 +3717,15 @@ def execute_harmonyos_practice_coach_session_unified_message_request(request: di
     routine_card = execution.get("routineCardPayload") if isinstance(execution.get("routineCardPayload"), dict) else None
     sheet_intent = execution.get("sheetIntent") if isinstance(execution.get("sheetIntent"), dict) else None
     plan_proposal = execution.get("planProposal") if isinstance(execution.get("planProposal"), dict) else None
+    frontend_ui_action = _practice_coach_frontend_ui_action(
+        response_type=response_type,
+        content=content,
+        agent_action=agent_action,
+        sheet_intent=sheet_intent,
+        plan_proposal=plan_proposal,
+        routine_card=routine_card,
+        persisted=persisted,
+    )
     device_feedback_trace_pack = _practice_coach_device_feedback_trace_pack(
         product_arguments=product_arguments,
         execution=execution,
@@ -3657,9 +3765,12 @@ def execute_harmonyos_practice_coach_session_unified_message_request(request: di
             "llmRequestPreview": execution.get("llmRequestPreview"),
             "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
             "deviceFeedbackTracePack": device_feedback_trace_pack,
+            "frontendUiAction": frontend_ui_action,
         },
         "debug": {
             "traceVersion": "v2_10_16",
+            "frontendUiActionVersion": PRACTICE_COACH_HARMONYOS_UI_INTEGRATION_FEEDBACK_FIT_VERSION,
+            "frontendUiAction": frontend_ui_action,
             "deviceFeedbackTracePackVersion": PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
             "deviceFeedbackTracePack": device_feedback_trace_pack,
             "llmActionDecisionTraceVersion": "v2_10_17",
@@ -4000,6 +4111,12 @@ def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
     content = str(terminal_response.get("content") or "本次练习记录写入不可用。")
     persisted = bool(summary.get("completion_record_persisted", False))
     code = "routine_completion_record_persisted" if persisted else "routine_completion_record_blocked"
+    routine_completion_record = payload_dict.get("routine_completion_record") if isinstance(payload_dict.get("routine_completion_record"), dict) else None
+    frontend_ui_action = _routine_completion_frontend_ui_action(
+        persisted=persisted,
+        content=content,
+        record=routine_completion_record,
+    )
     return {
         "ok": persisted,
         "code": code,
@@ -4009,10 +4126,13 @@ def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
             "completionRecordPersisted": persisted,
             "nextTodayGuidanceCanReadHistory": bool(summary.get("next_today_guidance_can_read_history", False)),
             "idempotentReplay": bool(summary.get("idempotent_replay", False)),
-            "routineCompletionRecord": payload_dict.get("routine_completion_record"),
+            "routineCompletionRecord": routine_completion_record,
+            "frontendUiAction": frontend_ui_action,
         },
         "debug": {
             "agentHarmonyOSTodayGuidanceApiContractAlignmentVersion": agent_harmonyos_today_guidance_api_contract_alignment_contract()["version"],
+            "frontendUiActionVersion": PRACTICE_COACH_HARMONYOS_UI_INTEGRATION_FEEDBACK_FIT_VERSION,
+            "frontendUiAction": frontend_ui_action,
             "underlyingVersion": summary.get("agent_routine_completion_record_to_backend_context_write_mvp_version"),
             "validationStatus": summary.get("validation_status"),
             "backendDatabaseWritten": bool(summary.get("backend_database_written", False)),

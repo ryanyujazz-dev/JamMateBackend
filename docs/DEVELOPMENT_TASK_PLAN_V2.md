@@ -1,3 +1,29 @@
+## v2_10_28 — Context persistence SQLite path guard macOS tempdir hotfix
+
+Status: completed.
+
+Goal: fix the routine completion context persistence route on macOS pytest tempdirs while preserving the existing safety allowlist.
+
+Boundary:
+- Agent / Integration only.
+- Do not modify Engine generation logic.
+
+Validation:
+- compileall
+- v2_10_28 focused tests
+- v2_10_26 / v2_10_27 regression tests that use routine completion history persistence
+- v2_10 full regression
+- v2_8 + v2_9 + v2_10 regression
+- development harness
+
+## v2_10_27 — Practice Coach HarmonyOS UI integration feedback fit
+
+Agent / Integration 线完成 Practice Coach 前端 UI action hint 契约：`data.frontendUiAction` 帮助 HarmonyOS 渲染多轮对话、计划草案替换、Routine 卡片、完成记录摘要和下一次历史读取。Engine 线无改动。
+
+## v2_10_26 — Practice Coach routine-card completion loop smoke
+
+Integration/Agent task only. Adds the smoke and docs needed to validate the end-to-end product loop after `routine_card_ready`: HarmonyOS submits a completion record, and the next Practice Coach turn reads that completion history through the context builder.
+
 ## v2_10_25 — Practice Coach device feedback trace pack
 
 - Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.

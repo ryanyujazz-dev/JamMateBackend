@@ -1,3 +1,23 @@
+## v2_10_28 — Context persistence SQLite path guard macOS tempdir hotfix
+
+- Fixed `routine-completion-record/execute` context persistence SQLite path guard for macOS pytest tempdirs such as `/private/var/folders/...`.
+- Aligned `tool_invocation.py` with the v2_10_22 Practice Coach session-state path policy by allowing the resolved `tempfile.gettempdir()` root.
+- Added v2_10_28 regression tests for direct guard behavior and route persistence.
+- No Engine generation logic changed.
+
+## v2_10_27 — Practice Coach HarmonyOS UI integration feedback fit
+
+- Added normalized frontend UI action hints for Practice Coach response rendering.
+- `practice_plan_revision` explicitly maps to `replace_plan_proposal_card`.
+- `routine_card_ready` remains user-tap-only; completion success maps to recorded summary with no post-session recommendation auto-open.
+- Added v2_10_27 regression tests and HarmonyOS smoke fixtures.
+
+## v2_10_26 — Practice Coach routine-card completion loop smoke
+
+- Added a product-loop smoke for `practice_plan_proposal/practice_plan_revision -> routine_card_ready -> routine-completion-record -> next Practice Coach readback`.
+- Verified Routine completion records enter `recent_practice_memory_summary` with title, item summaries, duration, and user note summary.
+- Kept all safety flags unchanged: no Routine auto-start, no Engine call, no MIDI generation, no playback, no HarmonyOS local-state write.
+
 ## v2_10_25 — Practice Coach device feedback trace pack
 
 - Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.
