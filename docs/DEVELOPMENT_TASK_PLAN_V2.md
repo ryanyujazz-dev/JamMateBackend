@@ -1,6 +1,124 @@
+## v2_10_28 — Context persistence SQLite path guard macOS tempdir hotfix
+
+Status: completed.
+
+Goal: fix the routine completion context persistence route on macOS pytest tempdirs while preserving the existing safety allowlist.
+
+Boundary:
+- Agent / Integration only.
+- Do not modify Engine generation logic.
+
+Validation:
+- compileall
+- v2_10_28 focused tests
+- v2_10_26 / v2_10_27 regression tests that use routine completion history persistence
+- v2_10 full regression
+- v2_8 + v2_9 + v2_10 regression
+- development harness
+
+## v2_10_27 — Practice Coach HarmonyOS UI integration feedback fit
+
+Agent / Integration 线完成 Practice Coach 前端 UI action hint 契约：`data.frontendUiAction` 帮助 HarmonyOS 渲染多轮对话、计划草案替换、Routine 卡片、完成记录摘要和下一次历史读取。Engine 线无改动。
+
+## v2_10_26 — Practice Coach routine-card completion loop smoke
+
+Integration/Agent task only. Adds the smoke and docs needed to validate the end-to-end product loop after `routine_card_ready`: HarmonyOS submits a completion record, and the next Practice Coach turn reads that completion history through the context builder.
+
+## v2_10_25 — Practice Coach device feedback trace pack
+
+- Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.
+- The pack summarizes request, responseType, decision source/fallback, schema repair, state digests, plan/card artifacts, SQLite IO, and safety flags.
+- Added HarmonyOS smoke fixture and curl script for verifying the trace pack.
+- Updated frontend type fixtures with `PracticeCoachDeviceFeedbackTracePack`.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
+
+## v2_10_24 — Practice Coach plan revision E2E smoke
+
+- Validate the full one-session plan adjustment flow for HarmonyOS frontend integration.
+- Keep `existing_draft_plan_waiting_for_confirmation` as a fallback only; clear revision requests must continue returning `practice_plan_revision`.
+- Provide a curl smoke and product-shaped sequence fixture so frontend can retest without inventing workaround sessions or client-side plan rewriting.
+
+Recommended next task:
+
+```text
+v2_10_25_agent_practice_coach_device_feedback_trace_pack
+```
+
+Purpose: collect real device/provider feedback fields into a compact debug trace once frontend reruns the revision E2E smoke.
+
+## v2_10_22_agent_practice_coach_sqlite_path_guard_macos_tempdir_hotfix
+
+Integration/Agent hotfix: allow Practice Coach SQLite state-store paths under the resolved OS tempdir root (`tempfile.gettempdir()`), fixing macOS pytest `/private/var/folders/...` failures while keeping the DB path safety guard strict.
+
+## v2_10_21_agent_practice_coach_live_llm_response_repair_and_schema_hardening
+
+Integration/Agent task: add response repair and schema hardening for Practice Coach LLM action decisions. This prepares the unified endpoint for real provider/device feedback while preserving deterministic fallback and safety.
+
+## v2_10_20_agent_practice_coach_real_llm_provider_execution_guarded_smoke
+
+Integration/Agent task: guarded real LLM provider smoke for the unified Practice Coach endpoint. The product request remains black-box HarmonyOS friendly; provider configuration lives on the FastAPI server. No Engine generation files are modified.
+
+Recommended next task: `v2_10_21_agent_practice_coach_live_llm_response_repair_and_schema_hardening`.
+
+## v2_10_19_agent_practice_coach_frontend_contract_types_and_state_mapper
+
+Integration/Agent line completed: added copy-friendly HarmonyOS Practice Coach types, state mapper, and API client method for the unified `message/execute` endpoint. Engine generation logic remains untouched.
+
+## v2_10_18 — Practice Coach Frontend LLM Action Fixture Smoke
+
+Status: completed.
+
+This Integration/Agent pass prepares HarmonyOS frontend/device smoke for the unified Practice Coach Session endpoint. It keeps the v2_10_17 LLM-action-decision-first architecture intact and gives frontend Claude copyable fixtures for responseType rendering.
+
+Boundary: no Engine music generation changes. No accompaniment generation, MIDI generation, playback, style, voicing, bass, piano, or drum logic was modified.
+
+Recommended next task: `v2_10_19_agent_practice_coach_frontend_contract_types_and_state_mapper`.
+
+## v2_10_17 — Practice Coach LLM Action Decision Contract
+
+Integration / Agent line update: the unified Practice Coach endpoint is now LLM-action-decision-first, with deterministic fallback. This keeps the frontend contract stable while moving the product logic toward the intended Agent behavior: the LLM decides whether to ask a clarifying question, request a profile sheet, propose/revise a plan, or return a routine card after confirmation. No Engine music generation logic was changed.
+
+## v2_10_16 — Practice Coach Unified Message/Action Router
+
+Integration/Agent update: added unified `practice-coach-session/message/execute` route so HarmonyOS can send one user message and render by `responseType` / `nextClientActions`.
+
+Recommended next task: `v2_10_17_agent_practice_coach_unified_frontend_fixture_and_smoke`.
+
+## v2_10_15 — Practice Coach Profile Sheet Intent Contract
+
+Integration/Agent milestone for structured profile capture in the Practice Coach Session flow. Added `/agent/harmonyos/practice-coach-session/profile-sheet/execute`, which returns `request_profile_sheet` / `sheetIntent` for HarmonyOS native bindSheet rendering or records submitted `profileFormResult` into backend session state. This preserves black-box product boundaries and does not touch Engine generation.
+
+## v2_10_14 — Practice Coach Plan Confirmation to Routine Card Contract
+
+- Agent / Integration boundary update only.
+- Added `POST /agent/harmonyos/practice-coach-session/routine-card/execute`.
+- Converts a confirmed Practice Coach `draft_plan` into frontend-presentable `routineCardPayload`.
+- Keeps Routine start client-owned: backend returns card data but does not start Routine, call Engine, create MIDI, start playback, write HarmonyOS local state, or call an LLM.
+- Recommended next task: `v2_10_15_agent_practice_coach_profile_sheet_intent_contract`.
+
+## v2_10_13 — Practice Coach Session Plan Proposal Contract
+
+Integration/Agent step for the Practice Coach Session product loop. After missing info is collected, the backend can now return a structured `practice_plan_proposal` and persist it as `draft_plan`, while still requiring explicit user confirmation before any Routine card is created.
+
+Endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/plan-proposal/execute
+```
+
+Boundary: no Engine changes; no LLM call; no Routine start.
+
+## v2_10_12 — Practice Coach Session Conversation State Store
+
+- Agent/Integration milestone for user-facing Practice Coach Session continuity.
+- New route: `POST /agent/harmonyos/practice-coach-session/message-state/execute`.
+- Stores and restores same-session missing-info state so `今日练什么` does not end after one preview response.
+- Boundary: backend SQLite session-state write only; no LLM call, no Routine start, no Engine call, no MIDI/playback, no HarmonyOS local write.
+
 # JamMate Development Task Plan V2
 
-Current baseline: `v2_10_8`.
+Current baseline: `v2_10_11`.
 
 This file is now the stable integration index. To reduce Agent/Engine merge conflicts, rolling task plans are split:
 
@@ -21,8 +139,49 @@ Rules:
 ```text
 Engine: continue ballad SPREAD lower/upper gap and weight balance from v2_6_44
 Agent: continue persistence implementation planning only after explicit approval
-Integration: verify/refresh shared HarmonyOS fixtures and API docs when either track changes public contracts
+Integration: use v2_10_10 LLM payload trace to verify prompt/context, then fit UI state mapping from frontend feedback
 ```
+
+
+
+## v2_10_10 Integration HarmonyOS Agent Today Guidance LLM Payload Trace
+
+Status: completed.
+
+Scope:
+
+- Added `POST /agent/harmonyos/today-practice-guidance/llm-payload-trace` as a read-only debug endpoint.
+- The endpoint accepts the same black-box `userMessage` product body as the normal HarmonyOS today-guidance route.
+- It returns `data.llmRequestPreview` with `internalPromptMessages`, `chatCompletionsMessagesIfCalled`, `chatCompletionsRequestBodyPreview`, `assembledPracticeContext`, `outputSchema`, and `promptPolicy`.
+- It explicitly performs no LLM/network call, no tool execution, no Routine start, no Engine adapter call, no MIDI creation, and no playback.
+- It documents the role normalization from internal `system/developer/user/context` messages to OpenAI-compatible `system/user/assistant` messages.
+
+Recommended next task:
+
+```text
+v2_10_11_agent_today_guidance_compact_history_enrichment_or_frontend_trace_review
+```
+
+Goal: decide whether stored Routine completion `items` and `notes` should be summarized into the compact LLM history context, after reviewing real trace payloads.
+
+## v2_10_9 Integration HarmonyOS Agent Black-Box Runtime and Device Smoke
+
+Status: completed.
+
+Scope:
+
+- Added product-contract smoke fixtures that match the frontend report body and do not expose backend DB paths or internal write gates.
+- Added `frontend_fixtures/harmonyos/smoke/curl_agent_black_box_product_contract_smoke.sh` for local Mac and phone-to-Mac LAN smoke.
+- Updated API contract, smoke README, smoke pack, changelog, and targeted tests.
+- Kept Engine music generation unchanged.
+
+Next recommended integration task:
+
+```text
+v2_10_10_integration_harmonyos_agent_guidance_ui_state_mapping_feedback_fit
+```
+
+Goal: use real HarmonyOS device feedback to tune UI-state mapping around `loading`, `success`, `empty-context`, `backend-error`, `network-error`, and `user-confirmation-required` without changing Engine behavior.
 
 
 ## v2_10_8 Integration Agent / Engine Merge
@@ -249,3 +408,21 @@ Next: run real device LAN smoke against `http://192.168.1.16:8000` or the curren
 
 Status: completed. Runtime smoke script is available at `frontend_fixtures/harmonyos/smoke/curl_agent_today_guidance_runtime_smoke.sh`.
 
+
+## v2_10_11 Integration / Agent Practice Coach Session Context Builder
+
+- Current integration baseline adds the Practice Coach Session context-builder preview.
+- New route: `POST /agent/harmonyos/practice-coach-session/context-builder-preview`.
+- Purpose: inspect cache-friendly LLM messages and block digests before implementing full multi-turn Practice Coach conversation execution.
+- Boundaries: no Engine change, no MIDI/playback, no Routine start, no HarmonyOS local-state write, no LLM/provider call.
+
+Next integration/agent step:
+
+```text
+v2_10_12_agent_practice_coach_conversation_state_store
+```
+
+
+## v2_10_23 — Agent hotfix
+
+Practice Coach 统一入口新增待确认草案下的调整意图路由修复。此任务属于 Agent / Integration 边界，不改 Engine 音乐生成逻辑。

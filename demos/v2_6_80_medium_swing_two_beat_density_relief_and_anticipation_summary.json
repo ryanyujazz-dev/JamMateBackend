@@ -1,0 +1,540 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_80 — Medium Swing 2-Beat Region Density Relief + Anticipation Audit",
+  "scope": "Relax Medium Swing piano in dense 2-beat ChordRegions and audit the generic region-first anticipation path on both All The Things You Are and Autumn Leaves. This stays in the style-owned candidate weighting layer and does not change core voicing internals, expression numeric values, rhythm vocabulary, API, Agent, or HarmonyOS.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_80",
+    "policy_enabled": true,
+    "policy_version": "v2_6_80",
+    "policy_contract": "v2_6_80 relaxes Medium Swing piano comping in dense 2-beat ChordRegions such as Autumn Leaves: it favors simple region-start anchors, downweights multi-touch/offbeat short-region cells, and preserves previous-region tail space so the generic AnticipationResolver can move next-region beat-1 events to the prior local 2& when probability permits. It stays inside the existing ChordRegion-local candidate weighting path and does not add vocabulary, restore bar-first/two-chord-bar routing, touch voicing/expression internals, or affect API/Agent/HarmonyOS behavior.",
+    "anticipation_checkpoint_version": "v2_6_61",
+    "anticipation_contract": "Medium Swing anticipation remains region-first: the previous ChordRegion tail slot is computed from region duration, so 4-beat regions use local 4&/3.5, 2-beat regions use local 2&/1.5, and short regions are never forced through a bar-first 4& assumption.",
+    "two_beat_candidate_count": 6,
+    "two_beat_candidate_names": [
+      "medium_swing_piano_two_beat_region_start_anchor",
+      "medium_swing_piano_two_beat_region_start_local2and",
+      "medium_swing_piano_two_beat_region_local2_only",
+      "medium_swing_piano_two_beat_region_start_local2",
+      "medium_swing_piano_two_beat_region_start_local1and",
+      "medium_swing_piano_two_beat_region_local1and_only"
+    ],
+    "bar_first_two_chord_bar_markers": []
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_80_all_the_things_you_are_medium_swing_two_beat_density_relief_and_anticipation_demo.mid",
+      "note_events_by_track": {
+        "piano": 777,
+        "bass": 456,
+        "drums": 864
+      },
+      "piano_active_pattern_events": 192,
+      "piano_two_beat_active_events": 24,
+      "two_beat_density_relief_applied_events": 24,
+      "two_beat_start_anchor_events": 21,
+      "two_beat_multi_touch_events": 0,
+      "two_beat_delayed_only_events": 3,
+      "two_beat_anchor_ratio": 0.875,
+      "two_beat_multi_touch_ratio": 0.0,
+      "two_beat_pattern_counts": {
+        "medium_swing_piano_two_beat_region_start_anchor": 21,
+        "medium_swing_piano_two_beat_region_local2_only": 3
+      },
+      "two_beat_relief_status_counts": {
+        "simple_anchor_preferred": 21,
+        "delayed_only_short_region_downweighted": 3
+      },
+      "active_anticipation_count": 5,
+      "two_beat_previous_tail_anticipation_count": 1,
+      "anticipation_target_counts": {
+        "prev_4.0_target_3.5": 4,
+        "prev_2.0_target_1.5": 1
+      },
+      "invalid_region_first_anticipations": [],
+      "sample_anticipations": [
+        {
+          "event_id": "c0_b21_ch0_medium_swing_piano_anchor_1_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_anchor_1",
+          "onset_beat": 83.5,
+          "local_beat": 3.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 21,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 4.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 3.5,
+          "anticipation_previous_region_last_beat_local": 3.0,
+          "anticipation_previous_region_last_upbeat_local": 3.5,
+          "anticipation_tail_checked_local_beats": [
+            3.0,
+            3.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c0_b35_ch0_medium_swing_piano_1_3and_answer_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_1_3and_answer",
+          "onset_beat": 139.5,
+          "local_beat": 1.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 35,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c1_b0_ch0_medium_swing_piano_charleston_1_2and_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_charleston_1_2and",
+          "onset_beat": 143.5,
+          "local_beat": 3.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 36,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 4.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 3.5,
+          "anticipation_previous_region_last_beat_local": 3.0,
+          "anticipation_previous_region_last_upbeat_local": 3.5,
+          "anticipation_tail_checked_local_beats": [
+            3.0,
+            3.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c2_b0_ch0_medium_swing_piano_anchor_1_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_anchor_1",
+          "onset_beat": 287.5,
+          "local_beat": 3.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 72,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 4.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 3.5,
+          "anticipation_previous_region_last_beat_local": 3.0,
+          "anticipation_previous_region_last_upbeat_local": 3.5,
+          "anticipation_tail_checked_local_beats": [
+            3.0,
+            3.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c2_b12_ch0_medium_swing_piano_charleston_1_2and_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_charleston_1_2and",
+          "onset_beat": 335.5,
+          "local_beat": 3.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 84,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 4.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 3.5,
+          "anticipation_previous_region_last_beat_local": 3.0,
+          "anticipation_previous_region_last_upbeat_local": 3.5,
+          "anticipation_tail_checked_local_beats": [
+            3.0,
+            3.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        }
+      ],
+      "low_register_dense_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_80_autumn_leaves_medium_swing_two_beat_density_relief_and_anticipation_demo.mid",
+      "note_events_by_track": {
+        "piano": 769,
+        "bass": 398,
+        "drums": 768
+      },
+      "piano_active_pattern_events": 190,
+      "piano_two_beat_active_events": 134,
+      "two_beat_density_relief_applied_events": 134,
+      "two_beat_start_anchor_events": 121,
+      "two_beat_multi_touch_events": 4,
+      "two_beat_delayed_only_events": 9,
+      "two_beat_anchor_ratio": 0.903,
+      "two_beat_multi_touch_ratio": 0.0299,
+      "two_beat_pattern_counts": {
+        "medium_swing_piano_two_beat_region_start_anchor": 121,
+        "medium_swing_piano_two_beat_region_local2_only": 9,
+        "medium_swing_piano_two_beat_region_start_local2": 4
+      },
+      "two_beat_relief_status_counts": {
+        "simple_anchor_preferred": 121,
+        "delayed_only_short_region_downweighted": 9,
+        "multi_touch_short_region_downweighted": 4
+      },
+      "active_anticipation_count": 14,
+      "two_beat_previous_tail_anticipation_count": 13,
+      "anticipation_target_counts": {
+        "prev_2.0_target_1.5": 13,
+        "prev_4.0_target_3.5": 1
+      },
+      "invalid_region_first_anticipations": [],
+      "sample_anticipations": [
+        {
+          "event_id": "c0_b5_ch1_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "onset_beat": 21.5,
+          "local_beat": 1.5,
+          "region_length_family": "two_beat_region",
+          "region_performance_bar_index": 5,
+          "two_beat_relief_applied": true,
+          "two_beat_relief_status": "simple_anchor_preferred",
+          "two_beat_relief_multiplier": 4.6,
+          "two_beat_relief_event_count": 1,
+          "two_beat_relief_reasons": [
+            "two_beat_dense_harmony_simple_anchor_bonus",
+            "second_half_region_prefers_light_anchor"
+          ],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 2.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c0_b8_ch1_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "onset_beat": 33.5,
+          "local_beat": 1.5,
+          "region_length_family": "two_beat_region",
+          "region_performance_bar_index": 8,
+          "two_beat_relief_applied": true,
+          "two_beat_relief_status": "simple_anchor_preferred",
+          "two_beat_relief_multiplier": 4.6,
+          "two_beat_relief_event_count": 1,
+          "two_beat_relief_reasons": [
+            "two_beat_dense_harmony_simple_anchor_bonus",
+            "second_half_region_prefers_light_anchor"
+          ],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 2.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c0_b9_ch1_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "onset_beat": 37.5,
+          "local_beat": 1.5,
+          "region_length_family": "two_beat_region",
+          "region_performance_bar_index": 9,
+          "two_beat_relief_applied": true,
+          "two_beat_relief_status": "simple_anchor_preferred",
+          "two_beat_relief_multiplier": 4.6,
+          "two_beat_relief_event_count": 1,
+          "two_beat_relief_reasons": [
+            "two_beat_dense_harmony_simple_anchor_bonus",
+            "second_half_region_prefers_light_anchor"
+          ],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 2.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c0_b31_ch0_medium_swing_piano_1_3and_answer_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_1_3and_answer",
+          "onset_beat": 123.5,
+          "local_beat": 1.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 31,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c1_b6_ch1_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "onset_beat": 153.5,
+          "local_beat": 1.5,
+          "region_length_family": "two_beat_region",
+          "region_performance_bar_index": 38,
+          "two_beat_relief_applied": true,
+          "two_beat_relief_status": "simple_anchor_preferred",
+          "two_beat_relief_multiplier": 4.6,
+          "two_beat_relief_event_count": 1,
+          "two_beat_relief_reasons": [
+            "two_beat_dense_harmony_simple_anchor_bonus",
+            "second_half_region_prefers_light_anchor"
+          ],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 2.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c1_b21_ch0_medium_swing_piano_1_3and_answer_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_1_3and_answer",
+          "onset_beat": 211.5,
+          "local_beat": 1.5,
+          "region_length_family": "four_beat_region",
+          "region_performance_bar_index": 53,
+          "two_beat_relief_applied": false,
+          "two_beat_relief_status": null,
+          "two_beat_relief_multiplier": null,
+          "two_beat_relief_event_count": null,
+          "two_beat_relief_reasons": [],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 4.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c1_b30_ch0_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "onset_beat": 247.5,
+          "local_beat": 1.5,
+          "region_length_family": "two_beat_region",
+          "region_performance_bar_index": 62,
+          "two_beat_relief_applied": true,
+          "two_beat_relief_status": "simple_anchor_preferred",
+          "two_beat_relief_multiplier": 4.0,
+          "two_beat_relief_event_count": 1,
+          "two_beat_relief_reasons": [
+            "two_beat_dense_harmony_simple_anchor_bonus"
+          ],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 2.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        },
+        {
+          "event_id": "c2_b0_ch1_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "status": "active",
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "onset_beat": 257.5,
+          "local_beat": 1.5,
+          "region_length_family": "two_beat_region",
+          "region_performance_bar_index": 64,
+          "two_beat_relief_applied": true,
+          "two_beat_relief_status": "simple_anchor_preferred",
+          "two_beat_relief_multiplier": 4.6,
+          "two_beat_relief_event_count": 1,
+          "two_beat_relief_reasons": [
+            "two_beat_dense_harmony_simple_anchor_bonus",
+            "second_half_region_prefers_light_anchor"
+          ],
+          "anticipation_kind": "next_beat1_to_previous_tail",
+          "anticipation_policy": "medium_swing_light_region_tail_push",
+          "anticipation_previous_region_duration_beats": 2.0,
+          "anticipation_current_region_duration_beats": 2.0,
+          "anticipation_target_local_beat_in_previous": 1.5,
+          "anticipation_previous_region_last_beat_local": 1.0,
+          "anticipation_previous_region_last_upbeat_local": 1.5,
+          "anticipation_tail_checked_local_beats": [
+            1.0,
+            1.5
+          ],
+          "anticipation_region_first_version": "v2_6_61",
+          "anticipation_bar_first_4and_assumption": false
+        }
+      ],
+      "low_register_dense_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "aggregate": {
+    "piano_active_pattern_events": 382,
+    "piano_two_beat_active_events": 158,
+    "two_beat_multi_touch_events": 4,
+    "two_beat_start_anchor_events": 142,
+    "two_beat_multi_touch_ratio": 0.0253,
+    "two_beat_anchor_ratio": 0.8987,
+    "active_anticipation_count": 19,
+    "two_beat_previous_tail_anticipation_count": 14,
+    "low_register_dense_events": 0,
+    "voice_leading_warning_events": 0
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "v2_6_80 two-beat relief policy declared",
+        "passed": true
+      },
+      {
+        "name": "no bar-first/two-chord-bar candidates",
+        "passed": true
+      },
+      {
+        "name": "All The Things generated and audited",
+        "passed": true
+      },
+      {
+        "name": "Autumn Leaves generated and audited",
+        "passed": true
+      },
+      {
+        "name": "Autumn Leaves two-beat comping relieved below v2_6_79 density",
+        "passed": true
+      },
+      {
+        "name": "Autumn Leaves multi-touch two-beat events are rare",
+        "passed": true
+      },
+      {
+        "name": "Autumn Leaves simple two-beat anchors dominate",
+        "passed": true
+      },
+      {
+        "name": "All The Things two-beat density also stays relaxed",
+        "passed": true
+      },
+      {
+        "name": "generic anticipation active on both tunes",
+        "passed": true
+      },
+      {
+        "name": "2-beat previous-region anticipation observed",
+        "passed": true
+      },
+      {
+        "name": "no invalid region-first anticipation rows",
+        "passed": true
+      },
+      {
+        "name": "low-register clarity preserved",
+        "passed": true
+      },
+      {
+        "name": "voice-leading remains calm",
+        "passed": true
+      }
+    ]
+  }
+}

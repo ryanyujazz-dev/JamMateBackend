@@ -1,0 +1,503 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_82 — Medium Swing Bass–Piano Interaction Audit",
+  "scope": "Full-band bass–piano interaction audit after v2_6_80/v2_6_81. It checks piano/bass low-register overlap, exact low unisons, two-beat region density sharing, bass continuity, optional 5/6-note SPREAD intrusion, and dry Medium Swing pedal behavior. For explicitly enabled optional 5/6-note grouped SPREAD demos, v2_6_82 requests stricter C3+ foundation-register metadata through the existing style/event policy adapter so piano does not duplicate the bass walking foundation in the low register. Core voicing internals, pattern rhythm, expression numbers, API, Agent, and HarmonyOS are unchanged.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_82",
+    "bass_piano_interaction_audit_enabled": true,
+    "bass_piano_interaction_audit_version": "v2_6_82",
+    "bass_piano_interaction_audit_contract": "v2_6_82 audits Medium Swing bass walking and piano comping interaction in full-band demos after the v2_6_80 density relief: piano/bass low-register overlap, exact low unisons, 2-beat region density sharing, bass continuity, optional 5/6-note SPREAD intrusion, and dry swing pedal behavior. It may request stricter style/event-scoped register metadata for explicitly enabled 5/6-note grouped SPREAD so piano does not duplicate the bass foundation in the low register; it does not modify core voicing internals, pattern rhythm, expression numbers, API, Agent, or HarmonyOS.",
+    "previous_full_band_checkpoint_version": "v2_6_81",
+    "two_beat_density_relief_policy_version": "v2_6_80",
+    "existing_voicing_capability_policy_version": "v2_6_77",
+    "low_register_clarity_guard_version": "v2_6_78",
+    "bass_piano_interaction_guard_version": "v2_6_82",
+    "bass_piano_interaction_guard_enabled": true,
+    "bass_piano_interaction_register_floor": 48,
+    "bass_piano_interaction_spread_root_bass_anchor_low": 48,
+    "bass_piano_interaction_spread_root_bass_anchor_high": 60,
+    "bass_piano_interaction_spread_root_bass_anchor_target": 54,
+    "existing_voicing_capability_available": true,
+    "existing_voicing_capability_default_enabled": false,
+    "existing_voicing_capability_ordinary_runtime_default": false,
+    "existing_voicing_capability_no_core_voicing_change": true,
+    "base_preferred_density": 4,
+    "base_preferred_disposition": "open"
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_82_all_the_things_you_are_medium_swing_bass_piano_interaction_audit_demo.mid",
+      "written_bars": 36,
+      "performance_choruses": 3,
+      "performance_bars": 108,
+      "note_events_by_track": {
+        "piano": 773,
+        "bass": 456,
+        "drums": 864
+      },
+      "track_presence_ok": true,
+      "piano_note_events": 773,
+      "bass_note_events": 456,
+      "drum_note_events": 864,
+      "piano_active_pattern_events": 192,
+      "piano_two_beat_active_events": 24,
+      "two_beat_start_anchor_events": 21,
+      "two_beat_anchor_ratio": 0.875,
+      "two_beat_multi_touch_events": 0,
+      "active_anticipation_count": 5,
+      "two_beat_previous_tail_anticipation_count": 1,
+      "piano_voicing_events": 192,
+      "density_counts": {
+        "4": 187,
+        "5": 5
+      },
+      "recipe_counts": {
+        "d4__2plus2__seventh_chord_basic__rootless_allowed": 122,
+        "d4__1plus3__seventh_chord_basic__rootless_allowed": 65,
+        "spread_2plus3_contract": 5
+      },
+      "grouped_spread_events": 5,
+      "five_note_events": 5,
+      "six_note_events": 0,
+      "ordinary_body_5_6_events": 0,
+      "five_six_low_below_c3_events": 0,
+      "max_top_note": 73,
+      "min_piano_low_note": 48,
+      "voice_leading_warning_events": 0,
+      "low_register_dense_events": 0,
+      "bar_88_rows": [
+        {
+          "event_id": "c2_b15_ch0_medium_swing_piano_charleston_1_2and_0",
+          "region_id": "c2_b15_ch0",
+          "chord_symbol": "Gmaj7",
+          "pattern_id": "medium_swing_piano_charleston_1_2and",
+          "density": 5,
+          "recipe_id": "spread_2plus3_contract",
+          "midi_notes": [
+            55,
+            59,
+            66,
+            69,
+            71
+          ],
+          "notes_below_c3": 0,
+          "low_note": 55,
+          "top_note": 71,
+          "region_performance_bar_index": 87,
+          "region_length_family": "four_beat_region",
+          "authorized_5_6_scene": true,
+          "top_voice_leap_exceeds_max": false
+        },
+        {
+          "event_id": "c2_b15_ch0_medium_swing_piano_charleston_1_2and_1",
+          "region_id": "c2_b15_ch0",
+          "chord_symbol": "Gmaj7",
+          "pattern_id": "medium_swing_piano_charleston_1_2and",
+          "density": 5,
+          "recipe_id": "spread_2plus3_contract",
+          "midi_notes": [
+            55,
+            59,
+            66,
+            69,
+            71
+          ],
+          "notes_below_c3": 0,
+          "low_note": 55,
+          "top_note": 71,
+          "region_performance_bar_index": 87,
+          "region_length_family": "four_beat_region",
+          "authorized_5_6_scene": true,
+          "top_voice_leap_exceeds_max": false
+        }
+      ],
+      "bar_88_low_register_dense_events": 0,
+      "bar_88_bass_piano_exact_low_unison_events": 0,
+      "optional_selected_events": 0,
+      "optional_selected_ratio": 0.0,
+      "bass_segments": 118,
+      "bass_span_violations": 0,
+      "bass_target_continuity_mismatches": 0,
+      "bass_repeated_root_violations": 0,
+      "bass_root_echo_bad_same": 0,
+      "bass_root_echo_bad_timing": 0,
+      "pedal_cc64_event_count": 0,
+      "pedal_warning_count": 0,
+      "bass_piano_joined_events": 188,
+      "bass_piano_exact_low_unison_events": 1,
+      "bass_piano_close_low_spacing_events": 3,
+      "bass_piano_foundation_gap_too_tight_events": 3,
+      "five_six_exact_low_unison_events": 0,
+      "five_six_low_below_c3_interaction_events": 0,
+      "two_beat_bass_compact_joined_events": 24,
+      "two_beat_piano_non_anchor_with_bass_events": 3,
+      "bass_piano_exact_low_unison_samples": [
+        {
+          "event_id": "c1_b34_ch1_medium_swing_piano_two_beat_region_local2_only_0",
+          "region_id": "c1_b34_ch1",
+          "bar": 70,
+          "pattern_id": "medium_swing_piano_two_beat_region_local2_only",
+          "region_length_family": "two_beat_region",
+          "piano_low_note": 48,
+          "piano_notes": [
+            48,
+            55,
+            64,
+            70
+          ],
+          "bass_notes": [
+            48,
+            43
+          ],
+          "bass_high_note": 48,
+          "piano_low_to_bass_high_gap": 0,
+          "min_piano_low_to_bass_note_distance": 0,
+          "density": 4,
+          "recipe_id": "d4__1plus3__seventh_chord_basic__rootless_allowed"
+        }
+      ],
+      "bass_piano_close_low_spacing_samples": [
+        {
+          "event_id": "c1_b6_ch0_medium_swing_piano_light_2and_only_0",
+          "region_id": "c1_b6_ch0",
+          "bar": 42,
+          "pattern_id": "medium_swing_piano_light_2and_only",
+          "region_length_family": "four_beat_region",
+          "piano_low_note": 48,
+          "piano_notes": [
+            48,
+            59,
+            64,
+            67
+          ],
+          "bass_notes": [
+            36,
+            40,
+            47,
+            43
+          ],
+          "bass_high_note": 47,
+          "piano_low_to_bass_high_gap": 1,
+          "min_piano_low_to_bass_note_distance": 1,
+          "density": 4,
+          "recipe_id": "d4__2plus2__seventh_chord_basic__rootless_allowed"
+        },
+        {
+          "event_id": "c1_b34_ch0_medium_swing_piano_two_beat_region_start_anchor_0",
+          "region_id": "c1_b34_ch0",
+          "bar": 70,
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "region_length_family": "two_beat_region",
+          "piano_low_note": 49,
+          "piano_notes": [
+            49,
+            55,
+            65,
+            70
+          ],
+          "bass_notes": [
+            43,
+            47
+          ],
+          "bass_high_note": 47,
+          "piano_low_to_bass_high_gap": 2,
+          "min_piano_low_to_bass_note_distance": 2,
+          "density": 4,
+          "recipe_id": "d4__2plus2__seventh_chord_basic__rootless_allowed"
+        },
+        {
+          "event_id": "c1_b34_ch1_medium_swing_piano_two_beat_region_local2_only_0",
+          "region_id": "c1_b34_ch1",
+          "bar": 70,
+          "pattern_id": "medium_swing_piano_two_beat_region_local2_only",
+          "region_length_family": "two_beat_region",
+          "piano_low_note": 48,
+          "piano_notes": [
+            48,
+            55,
+            64,
+            70
+          ],
+          "bass_notes": [
+            48,
+            43
+          ],
+          "bass_high_note": 48,
+          "piano_low_to_bass_high_gap": 0,
+          "min_piano_low_to_bass_note_distance": 0,
+          "density": 4,
+          "recipe_id": "d4__1plus3__seventh_chord_basic__rootless_allowed"
+        }
+      ],
+      "bass_piano_foundation_gap_too_tight_samples": [
+        {
+          "event_id": "c1_b6_ch0_medium_swing_piano_light_2and_only_0",
+          "region_id": "c1_b6_ch0",
+          "bar": 42,
+          "pattern_id": "medium_swing_piano_light_2and_only",
+          "region_length_family": "four_beat_region",
+          "piano_low_note": 48,
+          "piano_notes": [
+            48,
+            59,
+            64,
+            67
+          ],
+          "bass_notes": [
+            36,
+            40,
+            47,
+            43
+          ],
+          "bass_high_note": 47,
+          "piano_low_to_bass_high_gap": 1,
+          "min_piano_low_to_bass_note_distance": 1,
+          "density": 4,
+          "recipe_id": "d4__2plus2__seventh_chord_basic__rootless_allowed"
+        },
+        {
+          "event_id": "c1_b34_ch0_medium_swing_piano_two_beat_region_start_anchor_0",
+          "region_id": "c1_b34_ch0",
+          "bar": 70,
+          "pattern_id": "medium_swing_piano_two_beat_region_start_anchor",
+          "region_length_family": "two_beat_region",
+          "piano_low_note": 49,
+          "piano_notes": [
+            49,
+            55,
+            65,
+            70
+          ],
+          "bass_notes": [
+            43,
+            47
+          ],
+          "bass_high_note": 47,
+          "piano_low_to_bass_high_gap": 2,
+          "min_piano_low_to_bass_note_distance": 2,
+          "density": 4,
+          "recipe_id": "d4__2plus2__seventh_chord_basic__rootless_allowed"
+        },
+        {
+          "event_id": "c1_b34_ch1_medium_swing_piano_two_beat_region_local2_only_0",
+          "region_id": "c1_b34_ch1",
+          "bar": 70,
+          "pattern_id": "medium_swing_piano_two_beat_region_local2_only",
+          "region_length_family": "two_beat_region",
+          "piano_low_note": 48,
+          "piano_notes": [
+            48,
+            55,
+            64,
+            70
+          ],
+          "bass_notes": [
+            48,
+            43
+          ],
+          "bass_high_note": 48,
+          "piano_low_to_bass_high_gap": 0,
+          "min_piano_low_to_bass_note_distance": 0,
+          "density": 4,
+          "recipe_id": "d4__1plus3__seventh_chord_basic__rootless_allowed"
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_82_autumn_leaves_medium_swing_bass_piano_interaction_audit_demo.mid",
+      "written_bars": 32,
+      "performance_choruses": 3,
+      "performance_bars": 96,
+      "note_events_by_track": {
+        "piano": 765,
+        "bass": 398,
+        "drums": 768
+      },
+      "track_presence_ok": true,
+      "piano_note_events": 765,
+      "bass_note_events": 398,
+      "drum_note_events": 768,
+      "piano_active_pattern_events": 190,
+      "piano_two_beat_active_events": 134,
+      "two_beat_start_anchor_events": 121,
+      "two_beat_anchor_ratio": 0.903,
+      "two_beat_multi_touch_events": 4,
+      "active_anticipation_count": 14,
+      "two_beat_previous_tail_anticipation_count": 13,
+      "piano_voicing_events": 190,
+      "density_counts": {
+        "4": 185,
+        "5": 5
+      },
+      "recipe_counts": {
+        "d4__1plus3__seventh_chord_basic__rootless_allowed": 73,
+        "d4__2plus2__seventh_chord_basic__rootless_allowed": 112,
+        "spread_2plus3_contract": 5
+      },
+      "grouped_spread_events": 5,
+      "five_note_events": 5,
+      "six_note_events": 0,
+      "ordinary_body_5_6_events": 0,
+      "five_six_low_below_c3_events": 0,
+      "max_top_note": 72,
+      "min_piano_low_note": 48,
+      "voice_leading_warning_events": 0,
+      "low_register_dense_events": 0,
+      "bar_88_rows": [],
+      "bar_88_low_register_dense_events": 0,
+      "bar_88_bass_piano_exact_low_unison_events": 0,
+      "optional_selected_events": 0,
+      "optional_selected_ratio": 0.0,
+      "bass_segments": 162,
+      "bass_span_violations": 0,
+      "bass_target_continuity_mismatches": 0,
+      "bass_repeated_root_violations": 0,
+      "bass_root_echo_bad_same": 0,
+      "bass_root_echo_bad_timing": 0,
+      "pedal_cc64_event_count": 0,
+      "pedal_warning_count": 0,
+      "bass_piano_joined_events": 190,
+      "bass_piano_exact_low_unison_events": 0,
+      "bass_piano_close_low_spacing_events": 0,
+      "bass_piano_foundation_gap_too_tight_events": 0,
+      "five_six_exact_low_unison_events": 0,
+      "five_six_low_below_c3_interaction_events": 0,
+      "two_beat_bass_compact_joined_events": 134,
+      "two_beat_piano_non_anchor_with_bass_events": 13,
+      "bass_piano_exact_low_unison_samples": [],
+      "bass_piano_close_low_spacing_samples": [],
+      "bass_piano_foundation_gap_too_tight_samples": []
+    }
+  ],
+  "aggregate": {
+    "tracks_with_events_all_tunes": true,
+    "piano_note_events": 1538,
+    "bass_note_events": 854,
+    "drum_note_events": 1632,
+    "piano_active_pattern_events": 382,
+    "piano_voicing_events": 382,
+    "piano_two_beat_active_events": 158,
+    "two_beat_start_anchor_events": 142,
+    "two_beat_anchor_ratio": 0.8987,
+    "active_anticipation_count": 19,
+    "two_beat_previous_tail_anticipation_count": 14,
+    "grouped_spread_events": 10,
+    "five_note_events": 10,
+    "six_note_events": 0,
+    "five_six_ratio": 0.0262,
+    "ordinary_body_5_6_events": 0,
+    "five_six_low_below_c3_events": 0,
+    "five_six_low_below_c3_interaction_events": 0,
+    "five_six_exact_low_unison_events": 0,
+    "bass_piano_joined_events": 378,
+    "bass_piano_exact_low_unison_events": 1,
+    "bass_piano_close_low_spacing_events": 3,
+    "bass_piano_foundation_gap_too_tight_events": 3,
+    "bar_88_bass_piano_exact_low_unison_events": 0,
+    "two_beat_bass_compact_joined_events": 158,
+    "two_beat_piano_non_anchor_with_bass_events": 16,
+    "low_register_dense_events": 0,
+    "voice_leading_warning_events": 0,
+    "max_top_note": 73,
+    "min_piano_low_note": 48,
+    "bass_span_violations": 0,
+    "bass_target_continuity_mismatches": 0,
+    "bass_repeated_root_violations": 0,
+    "bass_root_echo_bad_same": 0,
+    "bass_root_echo_bad_timing": 0,
+    "pedal_cc64_event_count": 0,
+    "pedal_warning_count": 0
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "v2_6_82 bass-piano interaction audit declared",
+        "passed": true
+      },
+      {
+        "name": "post-density full-band checkpoint retained",
+        "passed": true
+      },
+      {
+        "name": "two-beat density relief retained",
+        "passed": true
+      },
+      {
+        "name": "existing 5/6-note capability remains explicit opt-in",
+        "passed": true
+      },
+      {
+        "name": "low-register clarity guard retained",
+        "passed": true
+      },
+      {
+        "name": "bass-piano interaction guard declared",
+        "passed": true
+      },
+      {
+        "name": "no core voicing change declared",
+        "passed": true
+      },
+      {
+        "name": "all full-band tracks present",
+        "passed": true
+      },
+      {
+        "name": "2-beat piano remains relieved",
+        "passed": true
+      },
+      {
+        "name": "All The Things not over-thinned",
+        "passed": true
+      },
+      {
+        "name": "generic anticipation still active",
+        "passed": true
+      },
+      {
+        "name": "explicit 5/6-note usage remains low intrusion",
+        "passed": true
+      },
+      {
+        "name": "optional 5/6-note no longer lives below C3",
+        "passed": true
+      },
+      {
+        "name": "optional 5/6-note avoids low bass unison",
+        "passed": true
+      },
+      {
+        "name": "low-register dense piano guard ok",
+        "passed": true
+      },
+      {
+        "name": "bar 88 bass-piano low unison cleared",
+        "passed": true
+      },
+      {
+        "name": "close low spacing stays rare",
+        "passed": true
+      },
+      {
+        "name": "voice-leading and top register ok",
+        "passed": true
+      },
+      {
+        "name": "bass foundation audit ok",
+        "passed": true
+      },
+      {
+        "name": "root echo and dry pedal ok",
+        "passed": true
+      }
+    ]
+  },
+  "recommended_next_task": "medium_swing_drum_piano_interaction_audit_or_phase_baseline_checkpoint"
+}

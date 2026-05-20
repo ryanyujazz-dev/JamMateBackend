@@ -23,7 +23,7 @@ def test_pattern_runtime_exposes_v2_0_42_pitchless_contract() -> None:
 def test_comping_libraries_are_describable_and_pitchless() -> None:
     for module in COMPING_MODULES:
         description = module.describe_pattern_library({})
-        assert description["version"] in {"v2_0_42", "v2_5_0", "v2_5_4", "v2_5_5", "v2_5_7", "v2_5_9"}
+        assert description["version"] in {"v2_0_42", "v2_5_0", "v2_5_4", "v2_5_5", "v2_5_7", "v2_5_9", "v2_6_56"}
         assert description["domain"] == "comping"
         assert description["track_role"] == "piano_harmonic_comping"
         assert "no_voicing_logic" in description["boundary_notes"]

@@ -1,0 +1,258 @@
+{
+  "milestone": "v2_6_58 — Medium Swing Piano Region-Length Weight Calibration",
+  "scope": "Calibrate existing ChordRegion-length-aware Medium Swing piano comping vocabulary weights; keep stable cells primary, offbeat conversation secondary, active controlled, native tail-push rare; no new pattern source or bar-first path.",
+  "pattern_library_version": "v2_6_56",
+  "candidate_lookup_policy_version": "v2_6_57",
+  "weight_calibration_policy_version": "v2_6_58",
+  "candidate_weight_ratios": {
+    "four_beat_region": {
+      "active": 0.0341,
+      "offbeat": 0.2263,
+      "stable": 0.7363,
+      "tail_push": 0.0033
+    },
+    "two_beat_region": {
+      "offbeat": 0.1223,
+      "stable": 0.8777
+    },
+    "one_beat_region": {
+      "inactive": 0.0,
+      "offbeat": 0.0099,
+      "stable": 0.9901
+    }
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_58_all_the_things_you_are_medium_swing_region_length_weight_calibration_demo.mid",
+      "piano_audit_path": "demos/v2_6_58_all_the_things_you_are_medium_swing_region_length_weight_calibration_piano_audit.md",
+      "piano_events": 204,
+      "top_patterns": [
+        [
+          "medium_swing_piano_anchor_1_3",
+          28
+        ],
+        [
+          "medium_swing_piano_charleston_1_2and",
+          24
+        ],
+        [
+          "medium_swing_piano_1_3and_answer",
+          22
+        ],
+        [
+          "medium_swing_piano_backbeat_2_4",
+          18
+        ],
+        [
+          "medium_swing_piano_reverse_charleston_1and_3",
+          18
+        ],
+        [
+          "medium_swing_piano_anchor_1",
+          17
+        ],
+        [
+          "medium_swing_piano_2and_4_answer",
+          16
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_local2",
+          12
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_anchor",
+          10
+        ],
+        [
+          "medium_swing_piano_2_3and_answer",
+          10
+        ],
+        [
+          "medium_swing_piano_1_2and_4",
+          9
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_local2and",
+          6
+        ],
+        [
+          "medium_swing_piano_two_beat_region_local2_only",
+          5
+        ],
+        [
+          "medium_swing_piano_light_2and_only",
+          5
+        ],
+        [
+          "medium_swing_piano_anchor_3",
+          2
+        ],
+        [
+          "medium_swing_piano_1_4_tail",
+          2
+        ]
+      ],
+      "calibration_class_event_counts": {
+        "stable": 140,
+        "offbeat": 55,
+        "active": 9
+      },
+      "calibration_class_event_ratios": {
+        "active": 0.0441,
+        "offbeat": 0.2696,
+        "stable": 0.6863
+      },
+      "region_length_event_counts": {
+        "four_beat_region": 171,
+        "two_beat_region": 33
+      },
+      "rhythmic_cell_event_counts": {
+        "1_3": 28,
+        "1_2and": 24,
+        "1_3and": 22,
+        "2_4": 18,
+        "1and_3": 18,
+        "1": 17,
+        "2and_4": 16,
+        "start_local2": 12,
+        "start": 10,
+        "2_3and": 10,
+        "1_2and_4": 9,
+        "start_local2and": 6,
+        "local2": 5,
+        "2and": 5,
+        "3": 2,
+        "1_4": 2
+      },
+      "tail_push_events": 0,
+      "active_events": 9,
+      "offbeat_events": 55,
+      "stable_events": 140,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0,
+      "same_chord_reattack_reuse_checkpoint_passed": true,
+      "safe_extension_top_register_checkpoint_passed": true
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_58_autumn_leaves_medium_swing_region_length_weight_calibration_demo.mid",
+      "piano_audit_path": "demos/v2_6_58_autumn_leaves_medium_swing_region_length_weight_calibration_piano_audit.md",
+      "piano_events": 224,
+      "top_patterns": [
+        [
+          "medium_swing_piano_two_beat_region_start_anchor",
+          55
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_local2",
+          48
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_local2and",
+          36
+        ],
+        [
+          "medium_swing_piano_two_beat_region_local2_only",
+          33
+        ],
+        [
+          "medium_swing_piano_1_3and_answer",
+          10
+        ],
+        [
+          "medium_swing_piano_charleston_1_2and",
+          10
+        ],
+        [
+          "medium_swing_piano_anchor_1_3",
+          8
+        ],
+        [
+          "medium_swing_piano_anchor_1",
+          6
+        ],
+        [
+          "medium_swing_piano_2and_4_answer",
+          4
+        ],
+        [
+          "medium_swing_piano_reverse_charleston_1and_3",
+          4
+        ],
+        [
+          "medium_swing_piano_light_2and_only",
+          3
+        ],
+        [
+          "medium_swing_piano_2_3and_answer",
+          2
+        ],
+        [
+          "medium_swing_piano_1_4_tail",
+          2
+        ],
+        [
+          "medium_swing_piano_two_beat_region_local1and_only",
+          2
+        ],
+        [
+          "medium_swing_piano_anchor_3",
+          1
+        ]
+      ],
+      "calibration_class_event_counts": {
+        "stable": 173,
+        "offbeat": 51
+      },
+      "calibration_class_event_ratios": {
+        "offbeat": 0.2277,
+        "stable": 0.7723
+      },
+      "region_length_event_counts": {
+        "two_beat_region": 174,
+        "four_beat_region": 50
+      },
+      "rhythmic_cell_event_counts": {
+        "start": 55,
+        "start_local2": 48,
+        "start_local2and": 36,
+        "local2": 33,
+        "1_3and": 10,
+        "1_2and": 10,
+        "1_3": 8,
+        "1": 6,
+        "2and_4": 4,
+        "1and_3": 4,
+        "2and": 3,
+        "2_3and": 2,
+        "1_4": 2,
+        "local1and": 2,
+        "3": 1
+      },
+      "tail_push_events": 0,
+      "active_events": 0,
+      "offbeat_events": 51,
+      "stable_events": 173,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0,
+      "same_chord_reattack_reuse_checkpoint_passed": true,
+      "safe_extension_top_register_checkpoint_passed": true
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      "generated",
+      "top_note_max<=72",
+      "top_note_ge_75_events==0",
+      "voice_leading_warning_events==0"
+    ]
+  }
+}

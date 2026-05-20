@@ -1,6 +1,6 @@
 {
-  "version": "v2_10_6",
-  "purpose": "Minimal HarmonyOS-to-Python smoke validation pack, including v2_10_6 Agent today-guidance context handoff routes.",
+  "version": "v2_10_20",
+  "purpose": "HarmonyOS-to-Python smoke validation pack, including black-box Agent product-contract runtime/device smoke.",
   "base_url_examples": {
     "local_mac": "http://127.0.0.1:8000",
     "phone_to_mac_lan": "http://<MAC_LAN_IP>:8000"
@@ -694,5 +694,260 @@
       "/agent/harmonyos/routine-completion-record/execute",
       "/agent/harmonyos/today-practice-guidance/preview"
     ]
+  },
+  "black_box_product_contract_runtime_device_smoke": {
+    "version": "v2_10_9",
+    "script": "curl_agent_black_box_product_contract_smoke.sh",
+    "default_base_url": "http://127.0.0.1:8000",
+    "phone_to_mac_lan_base_url": "http://<MAC_LAN_IP>:8000",
+    "recommended_server_env": "JAMMATE_AGENT_CONTEXT_DB_PATH=/tmp/jammate_agent_black_box_product_contract_smoke.sqlite3",
+    "purpose": "Run a strict runtime/device smoke using actual HarmonyOS black-box product request bodies: no dbPath/sqliteDbPath and no clientConfirmedRecordWrite/internal gate fields.",
+    "command": "bash curl_agent_black_box_product_contract_smoke.sh http://127.0.0.1:8000",
+    "device_command_example": "bash curl_agent_black_box_product_contract_smoke.sh http://192.168.1.16:8000",
+    "product_fixtures": {
+      "routine_completion": "product_contract_routine_completion_request.json",
+      "today_guidance": "product_contract_today_guidance_request.json"
+    },
+    "frontend_must_not_send": [
+      "dbPath",
+      "sqliteDbPath",
+      "clientConfirmedRecordWrite",
+      "internal write gate"
+    ],
+    "backend_owned": [
+      "JAMMATE_AGENT_CONTEXT_DB_PATH",
+      "local-dev default context DB path",
+      "internal write confirmation/gate injection"
+    ],
+    "sequence": [
+      {
+        "step": 1,
+        "method": "GET",
+        "path": "/health",
+        "expect": {
+          "http_status": 200
+        }
+      },
+      {
+        "step": 2,
+        "method": "POST",
+        "path": "/agent/harmonyos/routine-completion-record/execute",
+        "request_file": "product_contract_routine_completion_request.json",
+        "expect": {
+          "http_status": 200,
+          "ok": true,
+          "code": "routine_completion_record_persisted",
+          "data.completionRecordPersisted": true,
+          "data.nextTodayGuidanceCanReadHistory": true,
+          "debug.backendDatabaseWritten": true,
+          "safety.backendSQLiteWriteMayOccur": true,
+          "safety.writesHarmonyOSLocalState": false,
+          "safety.startsRoutine": false,
+          "safety.callsEngineAdapter": false,
+          "safety.createsMidiAsset": false,
+          "safety.startsPlayback": false
+        }
+      },
+      {
+        "step": 3,
+        "method": "POST",
+        "path": "/agent/harmonyos/today-practice-guidance/preview",
+        "request_file": "product_contract_today_guidance_request.json",
+        "expect": {
+          "http_status": 200,
+          "ok": true,
+          "code": "today_guidance_ready or today_guidance_needs_context_or_provider when no provider is configured",
+          "data.content": "non_empty_string",
+          "data.contextSource": "sqlite_backend",
+          "data.requiresUserConfirmationBeforeRoutineStart": true,
+          "debug.sqliteReadbackAttempted": true,
+          "debug.backendDatabaseRead": true,
+          "debug.sqliteRowsRead": "greater_than_or_equal:1",
+          "safety.backendSQLiteWriteMayOccur": false,
+          "safety.writesHarmonyOSLocalState": false,
+          "safety.startsRoutine": false,
+          "safety.callsEngineAdapter": false,
+          "safety.createsMidiAsset": false,
+          "safety.startsPlayback": false
+        }
+      }
+    ],
+    "lan_device_checklist": [
+      "Mac FastAPI uses --host 0.0.0.0 --port 8000",
+      "Phone and Mac are on the same Wi-Fi",
+      "HarmonyOS baseUrl is http://<MAC_LAN_IP>:8000, not 127.0.0.1",
+      "Mac firewall allows port 8000",
+      "Phone browser can open /health before Agent route tests"
+    ],
+    "excluded_routes": [
+      "/accompaniment/generate",
+      "/agent/playback/prepare"
+    ],
+    "side_effects": {
+      "backend_sqlite_write": "only in routine-completion execute route, owned by backend wrapper",
+      "backend_sqlite_read": "today guidance reads persisted context",
+      "harmonyos_local_state_write": false,
+      "routine_start": false,
+      "engine_adapter_call": false,
+      "midi_generation": false,
+      "playback_start": false,
+      "post_session_recommendation_card": false
+    }
+  },
+  "practice_coach_unified_llm_action_smoke": {
+    "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+    "script": "curl_practice_coach_llm_action_smoke.sh",
+    "product_fixtures": [
+      "product_practice_coach_message_today_request.json",
+      "product_practice_coach_profile_form_submit_request.json"
+    ],
+    "smoke_only_llm_action_fixtures": [
+      "smoke_llm_action_ask_clarifying_request.json",
+      "smoke_llm_action_request_profile_sheet_request.json",
+      "smoke_llm_action_plan_proposal_request.json",
+      "smoke_llm_action_routine_card_ready_request.json"
+    ],
+    "important_boundary": "llmActionDecisionResult is allowed only in smoke fixtures; HarmonyOS product requests must not send it.",
+    "verified_response_types": [
+      "ask_clarifying_question",
+      "request_profile_sheet",
+      "practice_plan_proposal",
+      "routine_card_ready"
+    ],
+    "safety_expectations": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_frontend_contract_types_state_mapper": {
+    "version": "v2_10_19",
+    "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+    "type_file": "../types/PracticeCoachTypes.ets",
+    "state_mapper": "../api/PracticeCoachStateMapper.ets",
+    "api_client_method": "executePracticeCoachMessage",
+    "production_request_fields": [
+      "userId",
+      "sessionId",
+      "deviceId",
+      "userMessage",
+      "profileFormResult"
+    ],
+    "production_request_forbidden_fields": [
+      "dbPath",
+      "sqliteDbPath",
+      "clientConfirmedRecordWrite",
+      "providerResult",
+      "llmActionDecisionResult"
+    ],
+    "response_type_to_ui_state": {
+      "ask_clarifying_question": "clarifying",
+      "request_profile_sheet": "profile_sheet",
+      "practice_plan_proposal": "plan_proposal",
+      "practice_plan_revision": "plan_proposal",
+      "routine_card_ready": "routine_card",
+      "chat_message": "chat_message",
+      "cannot_proceed": "cannot_proceed"
+    },
+    "autostart_routine": false,
+    "routine_card_rule": "routine_card_ready may enable a frontend start button, but the backend never starts Routine and the user must explicitly tap start."
+  },
+  "practice_coach_real_llm_provider_guarded_smoke": {
+    "version": "v2_10_20",
+    "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+    "script": "curl_practice_coach_live_llm_provider_smoke.sh",
+    "fixture": "product_practice_coach_live_llm_message_request.json",
+    "opt_in_env": "JAMMATE_ENABLE_LIVE_PRACTICE_COACH_LLM_SMOKE=1",
+    "purpose": "Opt-in smoke that uses a production-shaped Practice Coach request and requires the running FastAPI server to have a real OpenAI-compatible LLM provider configured server-side.",
+    "server_side_required_env": [
+      "JAMMATE_AGENT_CONTEXT_DB_PATH",
+      "JAMMATE_LLM_PROVIDER=openai_compatible or openai",
+      "JAMMATE_LLM_MODEL",
+      "JAMMATE_LLM_API_KEY",
+      "JAMMATE_LLM_ENABLE_NETWORK_CALLS=true",
+      "JAMMATE_LLM_BASE_URL for non-default providers"
+    ],
+    "product_request_forbidden_fields": {
+      "dbPath": true,
+      "sqliteDbPath": true,
+      "clientConfirmedRecordWrite": true,
+      "providerResult": true,
+      "llmActionDecisionResult": true
+    },
+    "expected_debug": {
+      "debug.llmCalled": true,
+      "debug.networkCallExecuted": true,
+      "debug.llmActionDecisionSource": "live_provider",
+      "debug.deterministicFallbackUsed": false,
+      "debug.llmActionDecisionValidation.ok": true
+    },
+    "safety_expectations": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_plan_revision_e2e": {
+    "script": "curl_practice_coach_plan_revision_e2e_smoke.sh",
+    "fixture": "product_practice_coach_plan_revision_e2e_sequence.json",
+    "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "purpose": "Validate one-session draft plan revisions and confirmation into Routine card without frontend workaround or internal fields.",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_device_feedback_trace_pack": {
+    "script": "curl_practice_coach_device_feedback_trace_smoke.sh",
+    "fixture": "product_practice_coach_device_feedback_trace_request.json",
+    "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "purpose": "Validate that unified Practice Coach responses include debug.deviceFeedbackTracePack for HarmonyOS device feedback reports.",
+    "copy_field": "debug.deviceFeedbackTracePack",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_routine_card_completion_loop": {
+    "version": "v2_10_26",
+    "script": "curl_practice_coach_routine_card_completion_loop_smoke.sh",
+    "fixture": "product_practice_coach_routine_card_completion_loop_sequence.json",
+    "practice_coach_endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "completion_endpoint": "/agent/harmonyos/routine-completion-record/execute",
+    "purpose": "Validate plan proposal/revision -> routine_card_ready -> routine completion persistence -> next Practice Coach readback of completion history.",
+    "expects_context_block": "recent_practice_memory_summary",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_harmonyos_ui_integration_feedback_fit": {
+    "version": "v2_10_27",
+    "script": "curl_practice_coach_harmonyos_ui_integration_smoke.sh",
+    "fixture": "product_practice_coach_harmonyos_ui_integration_sequence.json",
+    "practice_coach_endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "completion_endpoint": "/agent/harmonyos/routine-completion-record/execute",
+    "purpose": "Validate frontendUiAction hints for proposal, revision replacement, routine card display, completion recorded summary, and next Practice Coach history readback.",
+    "ui_action_field": "data.frontendUiAction",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
   }
 }

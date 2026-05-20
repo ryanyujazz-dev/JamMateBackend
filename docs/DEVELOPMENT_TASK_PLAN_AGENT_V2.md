@@ -1,3 +1,215 @@
+## v2_10_28 — Context persistence SQLite path guard macOS tempdir hotfix
+
+Status: completed.
+
+Goal: fix the routine completion context persistence route on macOS pytest tempdirs while preserving the existing safety allowlist.
+
+Boundary:
+- Agent / Integration only.
+- Do not modify Engine generation logic.
+
+Validation:
+- compileall
+- v2_10_28 focused tests
+- v2_10_26 / v2_10_27 regression tests that use routine completion history persistence
+- v2_10 full regression
+- v2_8 + v2_9 + v2_10 regression
+- development harness
+
+## v2_10_27 — Practice Coach HarmonyOS UI integration feedback fit
+
+已完成：
+
+- 在 Practice Coach 统一入口响应中新增 `data.frontendUiAction`。
+- 在 Routine completion 响应中新增 `data.frontendUiAction`。
+- 固化 HarmonyOS UI 渲染规则：proposal 显示、revision 替换、routine card 用户点击开始、completion 只显示已记录。
+- 新增 v2_10_27 fixture / curl smoke / pytest。
+
+下一步建议：基于真机 UI 接线反馈继续微调 Practice Coach 对话 UI 与 Routine completion 真实触发点。
+
+## v2_10_26 — Practice Coach routine-card completion loop smoke
+
+任务：验证 Practice Coach 从 plan proposal/revision 到 routine_card_ready，再到 Routine completion record 写入，最后下一次 Practice Coach 读取完成历史的产品闭环。
+
+完成项：
+- 新增 product_practice_coach_routine_card_completion_loop_sequence.json。
+- 新增 curl_practice_coach_routine_card_completion_loop_smoke.sh。
+- 新增 v2_10_26 回归测试。
+- 文档化 routine card → completion record → next guidance readback 边界。
+
+边界：不改 Engine，不启动 Routine，不生成 MIDI，不播放，不写 HarmonyOS 本地状态。
+
+## v2_10_25 — Practice Coach device feedback trace pack
+
+- Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.
+- The pack summarizes request, responseType, decision source/fallback, schema repair, state digests, plan/card artifacts, SQLite IO, and safety flags.
+- Added HarmonyOS smoke fixture and curl script for verifying the trace pack.
+- Updated frontend type fixtures with `PracticeCoachDeviceFeedbackTracePack`.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
+
+## v2_10_24 — Practice Coach plan revision E2E smoke
+
+- Validate the full one-session plan adjustment flow for HarmonyOS frontend integration.
+- Keep `existing_draft_plan_waiting_for_confirmation` as a fallback only; clear revision requests must continue returning `practice_plan_revision`.
+- Provide a curl smoke and product-shaped sequence fixture so frontend can retest without inventing workaround sessions or client-side plan rewriting.
+
+Recommended next task:
+
+```text
+v2_10_25_agent_practice_coach_device_feedback_trace_pack
+```
+
+Purpose: collect real device/provider feedback fields into a compact debug trace once frontend reruns the revision E2E smoke.
+
+## v2_10_22_agent_practice_coach_sqlite_path_guard_macos_tempdir_hotfix
+
+Goal: hotfix the Practice Coach Session state-store path guard so macOS local pytest temp dirs under `/private/var/folders/...` are accepted when they are under `Path(tempfile.gettempdir()).resolve(strict=False)`.
+
+Scope:
+- Update only the local-development SQLite path guard.
+- Preserve rejection of unsafe absolute paths, production/secrets markers, parent traversal, and non-SQLite extensions.
+- Add regression tests and docs.
+
+Boundary:
+- Do not change Engine music generation.
+- Do not start Routine.
+- Do not call Engine.
+- Do not generate MIDI/playback.
+- Do not write HarmonyOS local state.
+
+## v2_10_21_agent_practice_coach_live_llm_response_repair_and_schema_hardening
+
+Goal: harden the unified Practice Coach endpoint against real LLM output drift before deeper frontend/device feedback.
+
+Scope:
+- Repair Markdown fenced JSON / embedded JSON / nested action wrappers.
+- Repair responseType aliases and common field aliases.
+- Harden `request_profile_sheet` and `practice_plan_proposal` payloads.
+- Reject unsafe payload keys and use deterministic fallback.
+- Expose repair report in debug.
+
+Boundary:
+- Do not change Engine music generation.
+- Do not start Routine.
+- Do not call Engine.
+- Do not generate MIDI/playback.
+- Do not write HarmonyOS local state.
+
+## v2_10_19_agent_practice_coach_frontend_contract_types_and_state_mapper
+
+Goal: provide HarmonyOS-facing ArkTS contract fixtures and a frontend state mapper for the unified Practice Coach endpoint. Production types exclude `llmActionDecisionResult`; smoke fixtures remain the only place where that provider-boundary injection field is allowed.
+
+Completed:
+
+- Added `frontend_fixtures/harmonyos/types/PracticeCoachTypes.ets`.
+- Added `frontend_fixtures/harmonyos/api/PracticeCoachStateMapper.ets`.
+- Added `executePracticeCoachMessage(request)` to `JamMateApiClient.ets`.
+- Documented `responseType -> UI state` rendering rules and the explicit no-autostart Routine boundary.
+
+Next recommended task: `v2_10_20_agent_practice_coach_real_llm_provider_execution_guarded_smoke`.
+
+## v2_10_18_agent_practice_coach_frontend_llm_action_fixture_and_smoke
+
+Status: completed.
+
+Goal: provide HarmonyOS frontend/device fixtures and curl smoke for the unified Practice Coach Session endpoint after `v2_10_17` made action decisions LLM-first.
+
+Implemented:
+
+- product-shaped `message/execute` fixture without backend internals or LLM injection;
+- product-shaped profile form submission fixture;
+- smoke-only injected LLM action fixtures for `ask_clarifying_question`, `request_profile_sheet`, `practice_plan_proposal`, and `routine_card_ready`;
+- curl smoke script that validates the full responseType sequence without live provider credentials;
+- documentation that `llmActionDecisionResult` is a backend/device smoke hook, not a HarmonyOS product field.
+
+Next recommended task: `v2_10_19_agent_practice_coach_frontend_contract_types_and_state_mapper`.
+
+## v2_10_17_agent_practice_coach_llm_action_decision_contract
+
+已完成 Practice Coach unified endpoint 的 LLM-action-decision-first 改造：`POST /agent/harmonyos/practice-coach-session/message/execute` 现在优先由 LLM/provider 输出结构化 action intent，后端负责 schema validation、safety gate、state persistence，并在 provider 不可用或输出非法时回退到 v2_10_16 deterministic router。下一步建议：`v2_10_18_agent_practice_coach_frontend_llm_action_fixture_and_smoke`，为 HarmonyOS 前端提供统一入口的 LLM action fixtures 与 curl smoke。
+
+## v2_10_16_agent_practice_coach_unified_message_action_router
+
+已完成 Practice Coach Session unified message/action router：`POST /agent/harmonyos/practice-coach-session/message/execute`。该入口向下委派到 v2_10_12-v2_10_15 deterministic contracts，让前端按 `responseType` / `nextClientActions` 渲染下一步，减少对分散 endpoints 的依赖。
+
+Next recommended task: `v2_10_17_agent_practice_coach_unified_frontend_fixture_and_smoke`.
+
+## v2_10_15_agent_practice_coach_profile_sheet_intent_contract
+
+Goal: when Practice Coach Session lacks baseline practice profile fields, return a structured `request_profile_sheet` / `sheetIntent` that HarmonyOS can render as a native bindSheet, and record submitted `profileFormResult` into backend session state.
+
+Implemented endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/profile-sheet/execute
+```
+
+Rules:
+
+- If profile fields are missing, return `request_profile_sheet` with `sheetIntent`.
+- If a complete `profileFormResult` is submitted, persist it under `collected_fields.practice_profile`.
+- Project submitted profile into `llmRequestPreview.user_profile_summary`.
+- The frontend owns native sheet rendering; the LLM/backend only outputs structured intent.
+- Do not call an LLM, start Routine, call Engine, create MIDI, play audio, or write HarmonyOS local state.
+
+Next recommended task: `v2_10_16_agent_practice_coach_unified_message_action_router`.
+
+## v2_10_14_agent_practice_coach_plan_confirmation_to_routine_card_contract
+
+Goal: after v2_10_13 has saved a `draft_plan`, convert it into a HarmonyOS `routineCardPayload` only when the user explicitly confirms the arrangement. This is still a Practice Coach Session frontend-card contract, not a backend Routine start.
+
+Implemented endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/routine-card/execute
+```
+
+Rules:
+
+- If no draft plan exists, return `ask_clarifying_question` and direct the client back to plan proposal creation.
+- If a draft plan exists but the user did not confirm, return `practice_plan_proposal` and keep waiting for confirmation/adjustment.
+- If the user explicitly confirms, return `routine_card_ready` with `routineCardPayload`.
+- Persist confirmed card state in backend SQLite session state.
+- Do not start Routine, call Engine, create MIDI, write HarmonyOS local state, or call an LLM.
+
+Next recommended task: `v2_10_15_agent_practice_coach_profile_sheet_intent_contract`.
+
+## v2_10_13_agent_practice_coach_plan_proposal_contract
+
+Goal: after v2_10_12 has collected `available_minutes` and `practice_focus`, return a structured `practice_plan_proposal` that the user can confirm or adjust. This is still a Practice Coach Session planning step, not a Routine start.
+
+Implemented endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/plan-proposal/execute
+```
+
+Rules:
+
+- If required fields are missing, return `ask_clarifying_question`.
+- If fields are complete, return `practice_plan_proposal` with `requiresUserConfirmation=true`.
+- Persist the proposal as `draft_plan` in backend SQLite session state.
+- Do not create `routineCardPayload` yet.
+- Do not start Routine, call Engine, create MIDI, or call an LLM.
+
+Next recommended task: `v2_10_14_agent_practice_coach_plan_confirmation_to_routine_card_contract`.
+
+## v2_10_12_agent_practice_coach_conversation_state_store
+
+- Build the Practice Coach Session state store so a user can continue after an Agent clarifying question.
+- Route: `POST /agent/harmonyos/practice-coach-session/message-state/execute`.
+- Required behavior: first `今天该练什么？` turn can persist missing fields such as `available_minutes` and `practice_focus`; a later turn like `20 分钟，想练 Bossa` in the same `sessionId` must restore that pending state and collect the answer.
+- This milestone is deterministic state continuity only. It does not call an LLM, generate a final plan, create a Routine card, start Routine, call Engine, generate MIDI, or write HarmonyOS local state.
+- It may write backend SQLite state through `practice_coach_session_states` and `practice_coach_session_turns`.
+- It must continue returning a v2_10_11/v2_10_12-compatible `llmRequestPreview` so cache shape and changed blocks remain auditable.
+
+Next recommended Agent task:
+
+```text
+v2_10_13_agent_practice_coach_plan_proposal_contract
+```
+
 
 
 ## v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
@@ -1698,3 +1910,27 @@ integration handoff or v2_10_5_agent_harmonyos_today_guidance_api_contract_align
 ```
 
 Purpose: align the product-facing completion-write and today-guidance routes with the HarmonyOS API contract so the app can call the real loop without relying on developer smoke commands.
+
+
+## v2_10_11_agent_practice_coach_context_builder
+
+- Added the Practice Coach Session context engineering foundation.
+- Added `POST /agent/harmonyos/practice-coach-session/context-builder-preview`.
+- Introduced cache-friendly context block ordering: `stable_product_contract`, `stable_action_contract`, `user_profile_summary`, `active_practice_plan_summary`, `recent_practice_memory_summary`, `practice_coach_session_state`, `current_user_turn`.
+- Added canonical JSON digest output for each block plus stable-prefix/context-packet/current-turn digests.
+- Kept `sessionId`, `deviceId`, and trace/debug ids out of the LLM prompt body to protect provider prompt-cache shape.
+- Projected Routine completion `items` and `notes` into compact `item_summaries` and `user_note_summary` inside `recent_practice_memory_summary`.
+- The preview does not call an LLM/provider, start Routine, call Engine, generate MIDI, start playback, or write HarmonyOS local state.
+- Added `docs/AGENT_PRACTICE_COACH_CONTEXT_BUILDER_V2_10_11.md`.
+- Added `tests/test_v2_10_11_agent_practice_coach_context_builder.py`.
+
+Next recommended Agent task:
+
+```text
+v2_10_12_agent_practice_coach_conversation_state_store
+```
+
+
+## v2_10_23 — Practice Coach plan revision intent routing hotfix
+
+修复待确认草案状态下调整请求被 `existing_draft_plan_waiting_for_confirmation` 拦截的问题。明确调整进入 `practice_plan_revision`，确认进入 `routine_card_ready`，兜底提示仅用于非确认/非调整文本。

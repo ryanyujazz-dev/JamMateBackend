@@ -1,0 +1,1387 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_66 — Medium Swing No-4& Delayed-Tail Idiom + Hold Boundary Guard",
+  "scope": "V1 no-4& / delayed-tail idiom is translated into V2 ChordRegion-first candidate reweighting, while hold-until-next-touch duration is guarded so current-region harmony never sustains into a later ChordRegion. No voicing selection, final expression values in patterns, gesture, API, Agent, or HarmonyOS behavior is introduced.",
+  "v1_translated_idioms": [
+    {
+      "v1_idiom": "major_251 / minor_251 dominant-resolution vocabulary",
+      "v2_translation": "dominant-resolution ChordRegion preferred subset inside the existing region-length pool",
+      "status": "implemented_as_preferred_subset_v2_6_65"
+    },
+    {
+      "v1_idiom": "two_five / ii_setup vocabulary",
+      "v2_translation": "predominant-to-dominant ChordRegion preferred subset; short regions remain anchor-led",
+      "status": "implemented_as_preferred_subset_v2_6_65"
+    },
+    {
+      "v1_idiom": "two_chord_bar split vocabulary",
+      "v2_translation": "already translated as 2-beat / 1-beat ChordRegion vocabulary, not restored as bar-first templates",
+      "status": "kept_region_first"
+    },
+    {
+      "v1_idiom": "texture expansion shell2/shell4/rootless4",
+      "v2_translation": "explicitly excluded from pattern selection; remains voicing policy territory",
+      "status": "rejected_for_pattern_layer"
+    }
+  ],
+  "v2_static_progression_subset_audit": {
+    "checkpoint_version": "v2_6_66",
+    "pattern_library_version": "v2_6_56",
+    "candidate_lookup_policy_version": "v2_6_57",
+    "weight_calibration_policy_version": "v2_6_58",
+    "expression_hint_handoff_policy_version": "v2_6_63",
+    "progression_specific_subset_policy_enabled": true,
+    "progression_specific_subset_policy_version": "v2_6_65",
+    "progression_specific_subset_contract": "Medium Swing piano comping translates V1 major_251/minor_251/two_five/ii_setup priority into a ChordRegion-first preferred subset inside the existing region-length candidate pool; it never restores bar-first/two-chord-bar templates, never chooses voicing, and never writes final expression values.",
+    "no_4and_delayed_tail_policy_enabled": true,
+    "no_4and_delayed_tail_policy_version": "v2_6_66",
+    "no_4and_delayed_tail_contract": "Medium Swing piano comping translates V1 no-4& / delayed-tail preference as region-local candidate reweighting: native 4& tail-push remains available as rare lift, delayed/tail/backbeat cells get only modest bonuses, and routing remains ChordRegion-first.",
+    "translated_idioms": [
+      {
+        "v1_idiom": "major_251 / minor_251 dominant-resolution vocabulary",
+        "v2_translation": "dominant-resolution ChordRegion preferred subset inside the existing region-length pool",
+        "status": "implemented_as_preferred_subset_v2_6_65"
+      },
+      {
+        "v1_idiom": "two_five / ii_setup vocabulary",
+        "v2_translation": "predominant-to-dominant ChordRegion preferred subset; short regions remain anchor-led",
+        "status": "implemented_as_preferred_subset_v2_6_65"
+      },
+      {
+        "v1_idiom": "two_chord_bar split vocabulary",
+        "v2_translation": "already translated as 2-beat / 1-beat ChordRegion vocabulary, not restored as bar-first templates",
+        "status": "kept_region_first"
+      },
+      {
+        "v1_idiom": "texture expansion shell2/shell4/rootless4",
+        "v2_translation": "explicitly excluded from pattern selection; remains voicing policy territory",
+        "status": "rejected_for_pattern_layer"
+      }
+    ],
+    "candidate_count_total": 39,
+    "candidate_count_active": 37,
+    "active_by_region_length_family": {
+      "one_beat_region": 2,
+      "two_beat_region": 6,
+      "three_beat_region": 1,
+      "four_beat_region": 28
+    },
+    "active_by_weight_calibration_class": {
+      "stable": 19,
+      "offbeat": 12,
+      "active": 2,
+      "tail_push": 4
+    },
+    "forbidden_pattern_expression_key_candidates": [],
+    "bar_first_two_chord_bar_candidates": [],
+    "candidate_rows": [
+      {
+        "name": "medium_swing_piano_one_beat_region_start_anchor",
+        "duration_probe": 1.0,
+        "weight": 2.0,
+        "category": "very_short_region_anchor",
+        "region_length_family": "one_beat_region",
+        "rhythmic_cell": "start",
+        "rhythm_family": "one_beat_anchor",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_one_beat_region_local_and",
+        "duration_probe": 1.0,
+        "weight": 0.02,
+        "category": "region_lookup_one_beat_offbeat",
+        "region_length_family": "one_beat_region",
+        "rhythmic_cell": "local_and",
+        "rhythm_family": "one_beat_offbeat",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_one_beat_region_rest_if_covered",
+        "duration_probe": 1.0,
+        "weight": 0.0,
+        "category": "inactive_one_beat_rest_if_covered",
+        "region_length_family": "one_beat_region",
+        "rhythmic_cell": "rest_if_covered",
+        "rhythm_family": "one_beat_rest_if_covered",
+        "weight_calibration_class": "inactive",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_two_beat_region_start_anchor",
+        "duration_probe": 2.0,
+        "weight": 2.4,
+        "category": "short_region_anchor",
+        "region_length_family": "two_beat_region",
+        "rhythmic_cell": "start",
+        "rhythm_family": "short_region_anchor",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_two_beat_region_start_local2and",
+        "duration_probe": 2.0,
+        "weight": 0.35,
+        "category": "short_region_answer",
+        "region_length_family": "two_beat_region",
+        "rhythmic_cell": "start_local2and",
+        "rhythm_family": "short_region_answer",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_two_beat_region_local2_only",
+        "duration_probe": 2.0,
+        "weight": 0.55,
+        "category": "short_region_light_push",
+        "region_length_family": "two_beat_region",
+        "rhythmic_cell": "local2",
+        "rhythm_family": "short_region_delayed",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.0,
+            "event_role": "delayed_support",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_two_beat_region_start_local2",
+        "duration_probe": 2.0,
+        "weight": 0.35,
+        "category": "region_lookup_short_region_stable",
+        "region_length_family": "two_beat_region",
+        "rhythmic_cell": "start_local2",
+        "rhythm_family": "short_region_stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 1.0,
+            "event_role": "support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_two_beat_region_start_local1and",
+        "duration_probe": 2.0,
+        "weight": 0.08,
+        "category": "region_lookup_short_region_answer",
+        "region_length_family": "two_beat_region",
+        "rhythmic_cell": "start_local1and",
+        "rhythm_family": "short_region_answer",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 0.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_two_beat_region_local1and_only",
+        "duration_probe": 2.0,
+        "weight": 0.03,
+        "category": "region_lookup_short_region_offbeat",
+        "region_length_family": "two_beat_region",
+        "rhythmic_cell": "local1and",
+        "rhythm_family": "short_region_offbeat",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_three_beat_region_start_anchor",
+        "duration_probe": 3.0,
+        "weight": 1.0,
+        "category": "future_meter_region_anchor",
+        "region_length_family": "three_beat_region",
+        "rhythmic_cell": "start",
+        "rhythm_family": "future_meter_anchor",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_anchor_1",
+        "duration_probe": 4.0,
+        "weight": 1.1,
+        "category": "stable_comping_anchor",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1",
+        "rhythm_family": "stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_charleston_1_2and",
+        "duration_probe": 4.0,
+        "weight": 1.0,
+        "category": "swing_comping_charleston",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_2and",
+        "rhythm_family": "charleston",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "accent_hold",
+            "expression_hint": "comp_accent_hold"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_3and_answer",
+        "duration_probe": 4.0,
+        "weight": 0.8,
+        "category": "swing_comping_answer",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_3and",
+        "rhythm_family": "stable_answer",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 2.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_backbeat_2_4",
+        "duration_probe": 4.0,
+        "weight": 0.5,
+        "category": "swing_comping_backbeat",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2_4",
+        "rhythm_family": "backbeat",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.0,
+            "event_role": "backbeat_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_light_2and_only",
+        "duration_probe": 4.0,
+        "weight": 0.35,
+        "category": "sparse_offbeat_answer",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2and",
+        "rhythm_family": "offbeat_conversation",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_anchor_3",
+        "duration_probe": 4.0,
+        "weight": 0.2,
+        "category": "region_lookup_stable",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "3",
+        "rhythm_family": "stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 2.0,
+            "event_role": "delayed_anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_anchor_1_3",
+        "duration_probe": 4.0,
+        "weight": 0.9,
+        "category": "region_lookup_stable",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_3",
+        "rhythm_family": "stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 2.0,
+            "event_role": "support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_4_tail",
+        "duration_probe": 4.0,
+        "weight": 0.25,
+        "category": "region_lookup_stable_tail",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_4",
+        "rhythm_family": "stable_tail",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_2and_4",
+        "duration_probe": 4.0,
+        "weight": 0.22,
+        "category": "region_lookup_charleston_tail",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_2and_4",
+        "rhythm_family": "charleston_tail",
+        "weight_calibration_class": "active",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "accent_hold",
+            "expression_hint": "comp_accent_hold"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_reverse_charleston_1and_3",
+        "duration_probe": 4.0,
+        "weight": 0.38,
+        "category": "region_lookup_offbeat_conversation",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1and_3",
+        "rhythm_family": "offbeat_conversation",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.5,
+            "event_role": "pickup_answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 2.0,
+            "event_role": "support",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_2and_4_answer",
+        "duration_probe": 4.0,
+        "weight": 0.45,
+        "category": "region_lookup_offbeat_tail",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2and_4",
+        "rhythm_family": "offbeat_tail",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_2_3and_answer",
+        "duration_probe": 4.0,
+        "weight": 0.28,
+        "category": "region_lookup_delayed_answer",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2_3and",
+        "rhythm_family": "delayed_answer",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.0,
+            "event_role": "delayed_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          },
+          {
+            "local_beat": 2.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_4and_rare_push",
+        "duration_probe": 4.0,
+        "weight": 0.015,
+        "category": "region_lookup_tail_push",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_4and",
+        "rhythm_family": "tail_push",
+        "weight_calibration_class": "tail_push",
+        "tail_push_risk": "high",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 3.5,
+            "event_role": "tail_push",
+            "semantic_expression_hint": "accent_stab",
+            "expression_hint": "comp_accent"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_2and_4and_rare_push",
+        "duration_probe": 4.0,
+        "weight": 0.006,
+        "category": "region_lookup_tail_push",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_2and_4and",
+        "rhythm_family": "tail_push",
+        "weight_calibration_class": "tail_push",
+        "tail_push_risk": "high",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "accent_hold",
+            "expression_hint": "comp_accent_hold"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 3.5,
+            "event_role": "tail_push",
+            "semantic_expression_hint": "accent_stab",
+            "expression_hint": "comp_accent"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_anchor_1",
+        "duration_probe": 5.0,
+        "weight": 1.1,
+        "category": "stable_comping_anchor",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1",
+        "rhythm_family": "stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_charleston_1_2and",
+        "duration_probe": 5.0,
+        "weight": 1.0,
+        "category": "swing_comping_charleston",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_2and",
+        "rhythm_family": "charleston",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "accent_hold",
+            "expression_hint": "comp_accent_hold"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_3and_answer",
+        "duration_probe": 5.0,
+        "weight": 0.8,
+        "category": "swing_comping_answer",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_3and",
+        "rhythm_family": "stable_answer",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 2.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_backbeat_2_4",
+        "duration_probe": 5.0,
+        "weight": 0.5,
+        "category": "swing_comping_backbeat",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2_4",
+        "rhythm_family": "backbeat",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.0,
+            "event_role": "backbeat_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_light_2and_only",
+        "duration_probe": 5.0,
+        "weight": 0.35,
+        "category": "sparse_offbeat_answer",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2and",
+        "rhythm_family": "offbeat_conversation",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_anchor_3",
+        "duration_probe": 5.0,
+        "weight": 0.2,
+        "category": "region_lookup_stable",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "3",
+        "rhythm_family": "stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 2.0,
+            "event_role": "delayed_anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_anchor_1_3",
+        "duration_probe": 5.0,
+        "weight": 0.9,
+        "category": "region_lookup_stable",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_3",
+        "rhythm_family": "stable",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 2.0,
+            "event_role": "support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_4_tail",
+        "duration_probe": 5.0,
+        "weight": 0.25,
+        "category": "region_lookup_stable_tail",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_4",
+        "rhythm_family": "stable_tail",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_2and_4",
+        "duration_probe": 5.0,
+        "weight": 0.22,
+        "category": "region_lookup_charleston_tail",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_2and_4",
+        "rhythm_family": "charleston_tail",
+        "weight_calibration_class": "active",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "accent_hold",
+            "expression_hint": "comp_accent_hold"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_reverse_charleston_1and_3",
+        "duration_probe": 5.0,
+        "weight": 0.38,
+        "category": "region_lookup_offbeat_conversation",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1and_3",
+        "rhythm_family": "offbeat_conversation",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.5,
+            "event_role": "pickup_answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 2.0,
+            "event_role": "support",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_2and_4_answer",
+        "duration_probe": 5.0,
+        "weight": 0.45,
+        "category": "region_lookup_offbeat_tail",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2and_4",
+        "rhythm_family": "offbeat_tail",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 3.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_2_3and_answer",
+        "duration_probe": 5.0,
+        "weight": 0.28,
+        "category": "region_lookup_delayed_answer",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "2_3and",
+        "rhythm_family": "delayed_answer",
+        "weight_calibration_class": "offbeat",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 1.0,
+            "event_role": "delayed_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          },
+          {
+            "local_beat": 2.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_4and_rare_push",
+        "duration_probe": 5.0,
+        "weight": 0.015,
+        "category": "region_lookup_tail_push",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_4and",
+        "rhythm_family": "tail_push",
+        "weight_calibration_class": "tail_push",
+        "tail_push_risk": "high",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "soft_hold",
+            "expression_hint": "comp_medium"
+          },
+          {
+            "local_beat": 3.5,
+            "event_role": "tail_push",
+            "semantic_expression_hint": "accent_stab",
+            "expression_hint": "comp_accent"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_1_2and_4and_rare_push",
+        "duration_probe": 5.0,
+        "weight": 0.006,
+        "category": "region_lookup_tail_push",
+        "region_length_family": "four_beat_region",
+        "rhythmic_cell": "1_2and_4and",
+        "rhythm_family": "tail_push",
+        "weight_calibration_class": "tail_push",
+        "tail_push_risk": "high",
+        "no_4and_delayed_tail_idiom": false,
+        "events": [
+          {
+            "local_beat": 0.0,
+            "event_role": "anchor",
+            "semantic_expression_hint": "accent_hold",
+            "expression_hint": "comp_accent_hold"
+          },
+          {
+            "local_beat": 1.5,
+            "event_role": "answer",
+            "semantic_expression_hint": "light_stab",
+            "expression_hint": "comp_short"
+          },
+          {
+            "local_beat": 3.5,
+            "event_role": "tail_push",
+            "semantic_expression_hint": "accent_stab",
+            "expression_hint": "comp_accent"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      },
+      {
+        "name": "medium_swing_piano_five_beat_region_tail_support",
+        "duration_probe": 5.0,
+        "weight": 0.0,
+        "category": "inactive_future_meter_region_tail",
+        "region_length_family": "five_beat_region",
+        "rhythmic_cell": "local5_tail_support",
+        "rhythm_family": "future_meter_tail",
+        "weight_calibration_class": "stable",
+        "tail_push_risk": "none",
+        "no_4and_delayed_tail_idiom": true,
+        "events": [
+          {
+            "local_beat": 4.0,
+            "event_role": "tail_support",
+            "semantic_expression_hint": "backbeat_hold",
+            "expression_hint": "comp_backbeat_hold"
+          }
+        ],
+        "forbidden_pattern_expression_keys": [],
+        "has_bar_first_two_chord_bar_marker": false,
+        "is_region_first": true
+      }
+    ]
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_66_all_the_things_you_are_medium_swing_piano_no_4and_delayed_tail_demo.mid",
+      "piano_events": 210,
+      "progression_subset_applied_events": 192,
+      "progression_subset_preferred_events": 181,
+      "progression_subset_fallback_downweighted_events": 11,
+      "progression_subset_context_counts": {
+        "section_start": 21,
+        "predominant_to_dominant": 43,
+        "dominant_resolution": 54,
+        "tonic_resolution": 47,
+        "generic": 18,
+        "section_end": 16,
+        "tonic_prolongation": 5,
+        "ending": 6
+      },
+      "progression_subset_key_counts": {
+        "section_start_region": 21,
+        "ii_setup_region": 39,
+        "major_251_dominant_region": 49,
+        "tonic_resolution_region": 47,
+        "generic_region": 18,
+        "section_end_region": 16,
+        "tonic_prolongation_region": 5,
+        "minor_ii_setup_region": 4,
+        "minor_251_dominant_region": 5,
+        "ending_region": 6
+      },
+      "progression_subset_status_counts": {
+        "preferred_subset_candidate": 148,
+        "generic_context_no_subset": 18,
+        "preferred_short_region_subset_candidate": 33,
+        "fallback_candidate_downweighted": 11
+      },
+      "no_4and_policy_applied_events": 210,
+      "no_4and_preferred_events": 49,
+      "tail_push_rare_downweighted_events": 3,
+      "no_4and_status_counts": {
+        "neutral": 158,
+        "no_4and_delayed_tail_preferred": 49,
+        "tail_push_rare_lift_downweighted": 3
+      },
+      "hold_reason_counts": {
+        "held_until_next_same_track_touch_within_region": 121,
+        "next_same_track_touch_beyond_region_clamped_to_region_end": 23,
+        "no_next_same_track_touch_held_to_region_end": 1
+      },
+      "hold_cross_region_boundary_guard_events": 23,
+      "harmonic_function_applied_events": 210,
+      "history_penalty_events": 21,
+      "history_bonus_events": 56,
+      "hold_until_next_touch_applied_events": 145,
+      "pattern_forbidden_expression_key_events": 0,
+      "bar_first_two_chord_bar_events": 0,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_66_autumn_leaves_medium_swing_piano_no_4and_delayed_tail_demo.mid",
+      "piano_events": 227,
+      "progression_subset_applied_events": 187,
+      "progression_subset_preferred_events": 168,
+      "progression_subset_fallback_downweighted_events": 19,
+      "progression_subset_context_counts": {
+        "section_start": 34,
+        "tonic_resolution": 49,
+        "generic": 40,
+        "predominant_to_dominant": 37,
+        "dominant_resolution": 46,
+        "section_end": 15,
+        "ending": 6
+      },
+      "progression_subset_key_counts": {
+        "section_start_region": 34,
+        "tonic_resolution_region": 49,
+        "generic_region": 40,
+        "minor_ii_setup_region": 23,
+        "minor_251_dominant_region": 29,
+        "ii_setup_region": 14,
+        "major_251_dominant_region": 17,
+        "section_end_region": 15,
+        "ending_region": 6
+      },
+      "progression_subset_status_counts": {
+        "preferred_short_region_subset_candidate": 130,
+        "fallback_candidate_downweighted": 19,
+        "generic_context_no_subset": 40,
+        "preferred_subset_candidate": 38
+      },
+      "no_4and_policy_applied_events": 227,
+      "no_4and_preferred_events": 54,
+      "tail_push_rare_downweighted_events": 0,
+      "no_4and_status_counts": {
+        "neutral": 173,
+        "no_4and_delayed_tail_preferred": 54
+      },
+      "hold_reason_counts": {
+        "held_until_next_same_track_touch_within_region": 111,
+        "next_same_track_touch_beyond_region_clamped_to_region_end": 35,
+        "no_next_same_track_touch_held_to_region_end": 1
+      },
+      "hold_cross_region_boundary_guard_events": 35,
+      "harmonic_function_applied_events": 227,
+      "history_penalty_events": 4,
+      "history_bonus_events": 36,
+      "hold_until_next_touch_applied_events": 147,
+      "pattern_forbidden_expression_key_events": 0,
+      "bar_first_two_chord_bar_events": 0,
+      "top_note_max": 73,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "static: progression subset policy enabled",
+        "passed": true
+      },
+      {
+        "name": "static: progression subset policy version",
+        "passed": true
+      },
+      {
+        "name": "static: no-4& delayed-tail policy enabled",
+        "passed": true
+      },
+      {
+        "name": "static: no-4& delayed-tail policy version",
+        "passed": true
+      },
+      {
+        "name": "static: no pattern candidate writes final expression values",
+        "passed": true
+      },
+      {
+        "name": "static: no bar-first/two-chord-bar markers remain",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: progression subset metadata present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: preferred subset events present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no-4& delayed-tail policy metadata present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no-4& delayed-tail preferred events present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: hold boundary guard version present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: harmonic policy remains active",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: progression subset metadata present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: preferred subset events present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no-4& delayed-tail policy metadata present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no-4& delayed-tail preferred events present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: hold boundary guard version present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: harmonic policy remains active",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  },
+  "recommended_next_tasks": [
+    "v2_6_67_engine_medium_swing_active_fill_busy_multi_region_history_scorer",
+    "v2_6_68_engine_medium_swing_expression_policy_v1_numeric_calibration",
+    "v2_6_69_engine_medium_swing_piano_standard_tune_listening_checkpoint"
+  ]
+}

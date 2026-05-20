@@ -20,7 +20,7 @@ DEFAULT_STYLE_DISPOSITION_METHOD_WEIGHTS: dict[str, dict[str, dict[str, float]]]
         # available only as an explicit rescue/fallback safe method; normal
         # Medium Swing OPEN texture should use the named drop-family methods.
         "family": {"closed": 0.30, "open": 0.70, "spread": 0.00},
-        "open": {"generic_open": 0.0, "drop2": 0.50, "drop3": 0.36, "drop2_and_4": 0.14},
+        "open": {"generic_open": 0.0, "drop2": 0.52, "drop3": 0.38, "drop2_and_4": 0.10},
         "spread": {"lower_upper_grouped": 0.55, "foundation_projection": 0.20, "root_anchored": 0.15, "root_10th_projection": 0.10},
     },
     "bossa_nova": {

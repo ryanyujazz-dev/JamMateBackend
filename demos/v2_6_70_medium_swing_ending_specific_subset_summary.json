@@ -1,0 +1,385 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_70 — Medium Swing Ending-Specific Region Context Candidate Subset Policy",
+  "scope": "Medium Swing piano ending-specific candidate subset policy. Final-bar ChordRegions are reweighted inside the existing region-length pool toward stable region-start settling and away from active/4& push. This does not add an ending selector, new vocabulary, voicing logic, or final expression values.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_70",
+    "ending_specific_policy_enabled": true,
+    "ending_specific_policy_version": "v2_6_70",
+    "ending_specific_policy_contract": "v2_6_70 reweights final-bar Medium Swing piano comping candidates inside the existing ChordRegion-length pool toward stable region-start settling and away from active/4& push; it does not add an ending selector, new vocabulary, voicing logic, or final expression values.",
+    "arrangement_milestone": "v2_6_69_medium_swing_piano_standard_tune_listening_checkpoint",
+    "required_prior_policy_versions": {
+      "piano_region_length_pattern_vocabulary_version": "v2_6_56",
+      "piano_region_length_candidate_lookup_policy_version": "v2_6_57",
+      "piano_region_length_weight_calibration_policy_version": "v2_6_58",
+      "piano_comping_history_continuity_scorer_version": "v2_6_59",
+      "piano_comping_harmonic_function_policy_version": "v2_6_60",
+      "piano_region_first_anticipation_compatibility_checkpoint_version": "v2_6_61",
+      "piano_region_first_coverage_guard_version": "v2_6_62",
+      "piano_comping_progression_specific_subset_policy_version": "v2_6_65",
+      "piano_comping_no_4and_delayed_tail_idiom_policy_version": "v2_6_66",
+      "piano_comping_active_fill_busy_multi_region_history_scorer_version": "v2_6_67",
+      "piano_expression_policy_v1_numeric_calibration_version": "v2_6_68",
+      "piano_standard_tune_listening_checkpoint_version": "v2_6_69"
+    },
+    "missing_or_mismatched_prior_policy_versions": {},
+    "expression_policy_version": "v2_6_68",
+    "pattern_candidate_count": 39,
+    "pattern_forbidden_expression_candidates": [],
+    "pattern_forbidden_voicing_candidates": [],
+    "bar_first_two_chord_bar_candidates": []
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_70_all_the_things_you_are_medium_swing_ending_specific_subset_demo.mid",
+      "written_bars": 36,
+      "performance_choruses": 3,
+      "performance_bars": 108,
+      "regions": 120,
+      "note_events_by_track": {
+        "piano": 820,
+        "bass": 468,
+        "drums": 864
+      },
+      "piano_pattern_events": 205,
+      "selected_region_patterns": 120,
+      "ending_selected_region_patterns": 3,
+      "pattern_summary": {
+        "region_length_counts": {
+          "four_beat_region": 175,
+          "two_beat_region": 30
+        },
+        "rhythmic_cell_counts": {
+          "1_3": 28,
+          "1_2and": 42,
+          "2_4": 22,
+          "1": 17,
+          "local2": 6,
+          "start": 12,
+          "3": 1,
+          "1_4": 10,
+          "2and_4": 18,
+          "1_3and": 18,
+          "2and": 2,
+          "start_local2": 4,
+          "1_2and_4": 9,
+          "start_local2and": 4,
+          "start_local1and": 4,
+          "2_3and": 4,
+          "1and_3": 4
+        },
+        "history_metadata_events": 205,
+        "ending_specific_metadata_events": 205,
+        "ending_specific_applied_events": 5,
+        "expression_hint_handoff_events": 205,
+        "progression_subset_events": 205,
+        "no_4and_delayed_tail_policy_events": 205,
+        "forbidden_expression_key_events": 0,
+        "forbidden_voicing_key_events": 0,
+        "bar_first_two_chord_bar_events": 0
+      },
+      "ending_summary": {
+        "ending_selected_region_patterns": 3,
+        "status_counts": {
+          "ending_settle_anchor_preferred": 3
+        },
+        "cell_counts": {
+          "1_4": 1,
+          "1": 1,
+          "1_3and": 1
+        },
+        "push_count": 0,
+        "active_count": 0,
+        "region_start_count": 3,
+        "average_multiplier": 1.4144
+      },
+      "history_summary": {
+        "selected_region_patterns": 120,
+        "consecutive_flag_counts": {}
+      },
+      "expression_summary": {
+        "piano_expression_events": 205,
+        "calibrated_expression_events": 205,
+        "profile_counts": {
+          "comp_medium": 64,
+          "comp_backbeat_hold": 57,
+          "comp_accent_hold": 24,
+          "comp_short": 60
+        },
+        "hold_boundary_guard_events": 145,
+        "cross_region_count": 0,
+        "cross_next_event_count": 38,
+        "warning_count": 73
+      },
+      "voicing_summary": {
+        "top_note_max": 72,
+        "top_note_ge_75_events": 0,
+        "voice_leading_warning_events": 0,
+        "register_guard_failed_events": 0,
+        "method_counts": {
+          "drop2": 100,
+          "drop3": 101,
+          "drop2_and_4": 4
+        }
+      }
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_70_autumn_leaves_medium_swing_ending_specific_subset_demo.mid",
+      "written_bars": 32,
+      "performance_choruses": 3,
+      "performance_bars": 96,
+      "regions": 162,
+      "note_events_by_track": {
+        "piano": 948,
+        "bass": 400,
+        "drums": 768
+      },
+      "piano_pattern_events": 237,
+      "selected_region_patterns": 162,
+      "ending_selected_region_patterns": 3,
+      "pattern_summary": {
+        "region_length_counts": {
+          "two_beat_region": 182,
+          "four_beat_region": 55
+        },
+        "rhythmic_cell_counts": {
+          "start": 59,
+          "start_local2": 62,
+          "local2": 22,
+          "start_local1and": 10,
+          "1_4": 6,
+          "start_local2and": 28,
+          "local1and": 1,
+          "1_2and": 10,
+          "1_3": 14,
+          "2_4": 6,
+          "1": 5,
+          "1_3and": 6,
+          "2and": 1,
+          "2and_4": 2,
+          "1and_3": 2,
+          "1_2and_4": 3
+        },
+        "history_metadata_events": 237,
+        "ending_specific_metadata_events": 237,
+        "ending_specific_applied_events": 6,
+        "expression_hint_handoff_events": 237,
+        "progression_subset_events": 237,
+        "no_4and_delayed_tail_policy_events": 237,
+        "forbidden_expression_key_events": 0,
+        "forbidden_voicing_key_events": 0,
+        "bar_first_two_chord_bar_events": 0
+      },
+      "ending_summary": {
+        "ending_selected_region_patterns": 3,
+        "status_counts": {
+          "ending_settle_anchor_preferred": 3
+        },
+        "cell_counts": {
+          "1_3": 2,
+          "1_2and": 1
+        },
+        "push_count": 0,
+        "active_count": 0,
+        "region_start_count": 3,
+        "average_multiplier": 1.4688
+      },
+      "history_summary": {
+        "selected_region_patterns": 162,
+        "consecutive_flag_counts": {}
+      },
+      "expression_summary": {
+        "piano_expression_events": 237,
+        "calibrated_expression_events": 237,
+        "profile_counts": {
+          "comp_medium": 114,
+          "comp_backbeat_hold": 49,
+          "comp_short": 68,
+          "comp_accent_hold": 6
+        },
+        "hold_boundary_guard_events": 169,
+        "cross_region_count": 0,
+        "cross_next_event_count": 17,
+        "warning_count": 28
+      },
+      "voicing_summary": {
+        "top_note_max": 72,
+        "top_note_ge_75_events": 0,
+        "voice_leading_warning_events": 0,
+        "register_guard_failed_events": 0,
+        "method_counts": {
+          "drop3": 97,
+          "drop2": 117,
+          "drop2_and_4": 23
+        }
+      }
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "static: arrangement declares v2_6_70 ending-specific subset policy",
+        "passed": true
+      },
+      {
+        "name": "static: all prior Medium Swing piano milestones still declared",
+        "passed": true
+      },
+      {
+        "name": "static: ExpressionPolicy remains v2_6_68 calibrated",
+        "passed": true
+      },
+      {
+        "name": "static: no pattern candidate writes final expression values",
+        "passed": true
+      },
+      {
+        "name": "static: no pattern candidate writes voicing output",
+        "passed": true
+      },
+      {
+        "name": "static: no bar-first/two-chord-bar markers remain",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: generation ok",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: three-chorus listening loop",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: piano comping events present",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: v2_6_70 metadata reaches runtime piano events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: ending policy applies to at least final regions",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: ending push selected count remains controlled",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: v2_6_67 history metadata still covers piano events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: v2_6_68 calibrated expression covers piano events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no expression cross-region sustain",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no pattern events contain voicing output",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: busy does not repeat",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: tail-push does not repeat",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: top register calm",
+        "passed": true
+      },
+      {
+        "name": "all_the_things_you_are: voice-leading warnings calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: generation ok",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: three-chorus listening loop",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: piano comping events present",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: v2_6_70 metadata reaches runtime piano events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: ending policy applies to at least final regions",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: ending push selected count remains controlled",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: v2_6_67 history metadata still covers piano events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: v2_6_68 calibrated expression covers piano events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no expression cross-region sustain",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no pattern events contain concrete expression values",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no pattern events contain voicing output",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: no bar-first two_chord_bar runtime events",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: busy does not repeat",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: tail-push does not repeat",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: top register calm",
+        "passed": true
+      },
+      {
+        "name": "autumn_leaves: voice-leading warnings calm",
+        "passed": true
+      }
+    ]
+  },
+  "recommended_next_tasks": [
+    "v2_6_71_engine_medium_swing_optional_fill_variation_vocabulary_activation",
+    "v2_6_72_engine_medium_swing_ending_listening_refinement_after_user_review"
+  ]
+}

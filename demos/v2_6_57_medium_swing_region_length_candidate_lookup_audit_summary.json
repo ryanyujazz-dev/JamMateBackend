@@ -1,0 +1,252 @@
+{
+  "milestone": "v2_6_57 — Medium Swing Piano Region-Length Candidate Lookup Policy",
+  "scope": "Activate existing Medium Swing piano comping vocabulary through ChordRegion-length-aware candidate lookup in the existing style-owned pattern source; no parallel bar-first/two-chord-bar path.",
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_57_all_the_things_you_are_medium_swing_region_length_candidate_lookup_demo.mid",
+      "pattern_candidate_count": 120,
+      "candidate_lookup_policy_version": "v2_6_57",
+      "pattern_library_version": "v2_6_56",
+      "region_length_candidate_counts": {
+        "four_beat_region": 96,
+        "two_beat_region": 24
+      },
+      "rhythmic_cell_counts": {
+        "1_2and": 21,
+        "1": 26,
+        "1_3and": 14,
+        "start": 8,
+        "start_local2and": 10,
+        "2and": 20,
+        "2_4": 7,
+        "2_3and": 1,
+        "1_3": 2,
+        "1_2and_4": 1,
+        "local2": 6,
+        "1and_3": 1,
+        "1_4": 1,
+        "3": 1,
+        "2and_4": 1
+      },
+      "activation_counts": {
+        "active_runtime": 112,
+        "active_region_length_lookup_v2_6_57": 8
+      },
+      "density_counts": {
+        "dense": 52,
+        "sparse": 61,
+        "medium": 6,
+        "active": 1
+      },
+      "rhythm_family_counts": {
+        "charleston": 21,
+        "stable": 29,
+        "stable_answer": 14,
+        "short_region_anchor": 8,
+        "short_region_answer": 10,
+        "offbeat_conversation": 21,
+        "backbeat": 7,
+        "delayed_answer": 1,
+        "charleston_tail": 1,
+        "short_region_delayed": 6,
+        "stable_tail": 1,
+        "offbeat_tail": 1
+      },
+      "tail_push_risk_counts": {
+        "none": 120
+      },
+      "active_region_length_lookup_candidate_count": 8,
+      "tail_push_or_4and_candidates": 0,
+      "top_patterns": [
+        [
+          "medium_swing_piano_charleston_1_2and",
+          42
+        ],
+        [
+          "medium_swing_piano_1_3and_answer",
+          28
+        ],
+        [
+          "medium_swing_piano_anchor_1",
+          26
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_local2and",
+          20
+        ],
+        [
+          "medium_swing_piano_light_2and_only",
+          20
+        ],
+        [
+          "medium_swing_piano_backbeat_2_4",
+          14
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_anchor",
+          8
+        ],
+        [
+          "medium_swing_piano_two_beat_region_local2_only",
+          6
+        ],
+        [
+          "medium_swing_piano_anchor_1_3",
+          4
+        ],
+        [
+          "medium_swing_piano_1_2and_4",
+          3
+        ],
+        [
+          "medium_swing_piano_2_3and_answer",
+          2
+        ],
+        [
+          "medium_swing_piano_reverse_charleston_1and_3",
+          2
+        ]
+      ],
+      "same_chord_reattack_events": 60,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0,
+      "safe_extension_checkpoint_passed": true,
+      "audit_path": "demos/v2_6_57_all_the_things_you_are_medium_swing_region_length_candidate_lookup_piano_audit.md"
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_57_autumn_leaves_medium_swing_region_length_candidate_lookup_demo.mid",
+      "pattern_candidate_count": 162,
+      "candidate_lookup_policy_version": "v2_6_57",
+      "pattern_library_version": "v2_6_56",
+      "region_length_candidate_counts": {
+        "two_beat_region": 132,
+        "four_beat_region": 30
+      },
+      "rhythmic_cell_counts": {
+        "start": 50,
+        "start_local2and": 49,
+        "local2": 31,
+        "1_2and_4": 1,
+        "2_4": 3,
+        "1_3and": 4,
+        "2and": 5,
+        "1": 10,
+        "1_2and": 6,
+        "local1and": 1,
+        "1_3": 1,
+        "start_local1and": 1
+      },
+      "activation_counts": {
+        "active_runtime": 158,
+        "active_region_length_lookup_v2_6_57": 4
+      },
+      "density_counts": {
+        "sparse": 97,
+        "dense": 62,
+        "active": 1,
+        "medium": 2
+      },
+      "rhythm_family_counts": {
+        "short_region_anchor": 50,
+        "short_region_answer": 50,
+        "short_region_delayed": 31,
+        "charleston_tail": 1,
+        "backbeat": 3,
+        "stable_answer": 4,
+        "offbeat_conversation": 5,
+        "stable": 11,
+        "charleston": 6,
+        "short_region_offbeat": 1
+      },
+      "tail_push_risk_counts": {
+        "none": 162
+      },
+      "active_region_length_lookup_candidate_count": 4,
+      "tail_push_or_4and_candidates": 0,
+      "top_patterns": [
+        [
+          "medium_swing_piano_two_beat_region_start_local2and",
+          98
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_anchor",
+          50
+        ],
+        [
+          "medium_swing_piano_two_beat_region_local2_only",
+          31
+        ],
+        [
+          "medium_swing_piano_charleston_1_2and",
+          12
+        ],
+        [
+          "medium_swing_piano_anchor_1",
+          10
+        ],
+        [
+          "medium_swing_piano_1_3and_answer",
+          8
+        ],
+        [
+          "medium_swing_piano_backbeat_2_4",
+          6
+        ],
+        [
+          "medium_swing_piano_light_2and_only",
+          5
+        ],
+        [
+          "medium_swing_piano_1_2and_4",
+          3
+        ],
+        [
+          "medium_swing_piano_anchor_1_3",
+          2
+        ],
+        [
+          "medium_swing_piano_two_beat_region_start_local1and",
+          2
+        ],
+        [
+          "medium_swing_piano_two_beat_region_local1and_only",
+          1
+        ]
+      ],
+      "same_chord_reattack_events": 66,
+      "top_note_max": 72,
+      "top_note_ge_75_events": 0,
+      "voice_leading_warning_events": 0,
+      "safe_extension_checkpoint_passed": true,
+      "audit_path": "demos/v2_6_57_autumn_leaves_medium_swing_region_length_candidate_lookup_piano_audit.md"
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "all outputs generated",
+        "passed": true
+      },
+      {
+        "name": "no top note >=75",
+        "passed": true
+      },
+      {
+        "name": "no voice-leading warnings",
+        "passed": true
+      },
+      {
+        "name": "activated region-length candidates appear in demos",
+        "passed": true
+      }
+    ]
+  }
+}

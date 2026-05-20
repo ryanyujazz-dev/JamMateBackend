@@ -1,6 +1,6 @@
 [project]
 name = "jammate-engine"
-version = "2.10.8"
+version = "2.10.28"
 description = "JamMatePyEngineV2 Agent and Engine Integration Merge"
 requires-python = ">=3.10"
 dependencies = [

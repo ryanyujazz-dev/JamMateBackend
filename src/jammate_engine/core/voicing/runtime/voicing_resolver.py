@@ -119,6 +119,12 @@ class VoicingResolver:
             "content_family": candidate.content_family.value if candidate.content_family else None,
             "rootless_ab_content_type": candidate.metadata.get("rootless_ab_content_type"),
             "rootless_ab_orientation_family": candidate.metadata.get("rootless_ab_orientation_family"),
+            "four_note_rotation_family": candidate.metadata.get("four_note_rotation_family"),
+            "four_note_rotation_content_type": candidate.metadata.get("four_note_rotation_content_type"),
+            "four_note_rotation_source_family": candidate.metadata.get("four_note_rotation_source_family"),
+            "four_note_rotation_ab_side": candidate.metadata.get("four_note_rotation_ab_side"),
+            "four_note_rotation_ab_pair_index": candidate.metadata.get("four_note_rotation_ab_pair_index"),
+            "four_note_rotation_inversion_index": candidate.metadata.get("four_note_rotation_inversion_index"),
             # Preserve abstract SPREAD group state so later voicing selection can
             # voice-lead lower/foundation and upper/projection groups separately.
             "lower_group_notes": candidate.metadata.get("lower_group_notes"),

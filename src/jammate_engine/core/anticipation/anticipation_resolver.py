@@ -55,6 +55,8 @@ class AnticipationResolver:
             candidate = self._find_movable_beat1_event(events_by_region.get(current_region.region_id, []), policy)
             if candidate is None:
                 continue
+            if self._is_terminal_ending_candidate(candidate):
+                continue
 
             movability = current_plan.beat1_movability if current_plan is not None else None
             if movability is not None and not movability.movable:
@@ -83,6 +85,8 @@ class AnticipationResolver:
                 target_local_beat=tail.target_local_beat,
                 target_offset_beats=target_offset,
                 policy=policy,
+                tail_checked_local_beats=tail.checked_local_beats,
+                tail_availability_reason=tail.reason,
             )
             suppressed = self._make_suppressed_original(candidate, anticipated, previous_region, policy)
             replacements[candidate.event_id] = suppressed
@@ -94,6 +98,19 @@ class AnticipationResolver:
         rewritten = [replacements.get(event.event_id, event) for event in events]
         rewritten.extend(additions)
         return sorted(rewritten, key=self._sort_key)
+
+    def _is_terminal_ending_candidate(self, event: PatternEvent) -> bool:
+        metadata = dict(event.metadata or {})
+        try:
+            chorus_index = int(metadata.get("region_chorus_index"))
+            total_choruses = int(metadata.get("region_total_choruses"))
+        except (TypeError, ValueError):
+            return False
+        return (
+            bool(metadata.get("region_is_last_bar_of_chorus"))
+            and chorus_index == total_choruses - 1
+            and bool(metadata.get("region_is_last_bar_of_section", True))
+        )
 
     def _find_movable_beat1_event(self, events: list[PatternEvent], policy: AnticipationPolicy) -> PatternEvent | None:
         eligible = [
@@ -140,6 +157,8 @@ class AnticipationResolver:
         target_local_beat: float | None,
         target_offset_beats: float,
         policy: AnticipationPolicy,
+        tail_checked_local_beats: tuple[float, ...] = (),
+        tail_availability_reason: str = "",
     ) -> PatternEvent:
         anticipated_id = f"{candidate.event_id}__anticipated_from_previous"
         logical_lead_in = abs(float(target_abs_beat) - float(candidate.onset_beat))
@@ -149,6 +168,10 @@ class AnticipationResolver:
             else logical_lead_in
         )
         target_timing_intent = str(policy.target_timing_intent or "auto")
+        previous_duration = float(previous_region.duration_beats)
+        current_duration = float(current_region.duration_beats)
+        previous_last_beat_local = round(max(0.0, previous_duration - 1.0), 6)
+        previous_last_upbeat_local = round(max(0.0, previous_duration - 0.5), 6)
         metadata = {
             **dict(candidate.metadata),
             # The realized note builder consumes this.  For medium swing,
@@ -174,6 +197,15 @@ class AnticipationResolver:
                 "target_timing_intent": target_timing_intent,
                 "expected_upbeat_fraction": policy.expected_upbeat_fraction,
                 "target_local_beat_in_previous": target_local_beat,
+                "previous_region_duration_beats": round(previous_duration, 6),
+                "current_region_duration_beats": round(current_duration, 6),
+                "previous_region_last_beat_local": previous_last_beat_local,
+                "previous_region_last_upbeat_local": previous_last_upbeat_local,
+                "tail_checked_local_beats": tuple(tail_checked_local_beats),
+                "tail_availability_reason": tail_availability_reason,
+                "region_first_anticipation_compatibility_checkpoint_version": "v2_6_61",
+                "region_first_anticipation_contract": "target tail slot is previous_region.duration_beats - 0.5; 4-beat regions use local 3.5, 2-beat regions use local 1.5, and 1-beat regions use local 0.5 rather than a hard-coded bar 4&.",
+                "bar_first_4and_assumption": False,
                 "suppressed_original": policy.suppress_original,
                 "tie_from_previous": policy.tie_from_previous,
             },
@@ -194,6 +226,8 @@ class AnticipationResolver:
         anticipated: PatternEvent,
         previous_region: HarmonicRegion,
         policy: AnticipationPolicy,
+        tail_checked_local_beats: tuple[float, ...] = (),
+        tail_availability_reason: str = "",
     ) -> PatternEvent:
         if not policy.suppress_original:
             return candidate
