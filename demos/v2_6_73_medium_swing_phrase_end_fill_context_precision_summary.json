@@ -1,0 +1,384 @@
+{
+  "contract_version": "v2_10_8",
+  "milestone": "v2_6_73 — Medium Swing Phrase-End Fill Context Precision",
+  "scope": "Medium Swing phrase-end fill context precision. v2_6_73 keeps the v2_6_71/v2_6_72 optional fill vocabulary and listening-refinement layers unchanged, then narrows the existing transition-fill bonus toward explicit phrase ends, section tails, and 4/8-bar phrase tails while downweighting harmonic-transition-only regions. No phrase engine, fill selector, new vocabulary, voicing logic, or final expression values are introduced.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_73",
+    "optional_policy_enabled": true,
+    "optional_policy_version": "v2_6_71",
+    "optional_refinement_policy_enabled": true,
+    "optional_refinement_policy_version": "v2_6_72",
+    "optional_policy_contract": "v2_6_71 activates a very small optional fill/variation vocabulary inside the existing ChordRegion-length Medium Swing piano pool. These candidates stay pitchless, low-weight, context-reweighted, and guarded by the v2_6_67 active/fill/busy history scorer; no parallel fill selector, voicing logic, or final expression values are introduced.",
+    "optional_refinement_policy_contract": "v2_6_72 keeps the v2_6_71 optional vocabulary unchanged and only refines context/history multipliers after user review: light variation remains low-intrusion, transition fill is more phrase/section/turnaround-aware, busy fill stays near-blocked unless explicitly high-energy and history-safe.",
+    "phrase_end_precision_policy_enabled": true,
+    "phrase_end_precision_policy_version": "v2_6_73",
+    "phrase_end_precision_policy_contract": "v2_6_73 keeps the v2_6_71/v2_6_72 optional fill vocabulary unchanged and only sharpens where the existing transition-fill candidate receives support: explicit phrase ends, section tails, and 4/8-bar phrase tails are favored, while harmonic-transition-only regions are downweighted. No phrase engine, fill selector, new vocabulary, voicing logic, or final expression values are introduced.",
+    "required_prior_policy_versions": {
+      "piano_region_length_pattern_vocabulary_version": "v2_6_56",
+      "piano_region_length_candidate_lookup_policy_version": "v2_6_57",
+      "piano_region_length_weight_calibration_policy_version": "v2_6_58",
+      "piano_comping_history_continuity_scorer_version": "v2_6_59",
+      "piano_comping_harmonic_function_policy_version": "v2_6_60",
+      "piano_region_first_anticipation_compatibility_checkpoint_version": "v2_6_61",
+      "piano_region_first_coverage_guard_version": "v2_6_62",
+      "piano_comping_progression_specific_subset_policy_version": "v2_6_65",
+      "piano_comping_no_4and_delayed_tail_idiom_policy_version": "v2_6_66",
+      "piano_comping_active_fill_busy_multi_region_history_scorer_version": "v2_6_67",
+      "piano_expression_policy_v1_numeric_calibration_version": "v2_6_68",
+      "piano_standard_tune_listening_checkpoint_version": "v2_6_69",
+      "piano_comping_ending_specific_subset_policy_version": "v2_6_70",
+      "piano_comping_optional_fill_variation_vocabulary_policy_version": "v2_6_71",
+      "piano_comping_optional_fill_variation_listening_refinement_policy_version": "v2_6_72"
+    },
+    "missing_or_mismatched_prior_policy_versions": {},
+    "pattern_candidate_count": 45,
+    "optional_candidate_count": 3,
+    "optional_candidate_names": [
+      "medium_swing_piano_optional_busy_1and_2and_3and_4",
+      "medium_swing_piano_optional_fill_2and_4_4and",
+      "medium_swing_piano_optional_variation_1_2and_3and"
+    ],
+    "optional_candidate_roles": {
+      "variation": 1,
+      "transition_fill": 1,
+      "busy_fill": 1
+    },
+    "pattern_forbidden_expression_candidates": [],
+    "pattern_forbidden_voicing_candidates": [],
+    "bar_first_two_chord_bar_candidates": []
+  },
+  "outputs": [
+    {
+      "ok": true,
+      "title": "All the Things You Are",
+      "slug": "all_the_things_you_are",
+      "midi_path": "demos/v2_6_73_all_the_things_you_are_medium_swing_phrase_end_fill_context_precision_demo.mid",
+      "written_bars": 36,
+      "performance_choruses": 3,
+      "performance_bars": 108,
+      "regions": 120,
+      "note_events_by_track": {
+        "piano": 824,
+        "bass": 458,
+        "drums": 864
+      },
+      "piano_pattern_events": 206,
+      "selected_region_patterns": 120,
+      "optional_selected_region_patterns": 3,
+      "optional_summary": {
+        "selected_count": 3,
+        "phrase_end_context_count": 0,
+        "precise_transition_fill_context_count": 0,
+        "phrase_precision_status_counts": {
+          "harmonic_transition_without_phrase_tail": 3
+        },
+        "status_counts": {
+          "optional_context_allowed": 3
+        },
+        "role_counts": {
+          "variation": 3
+        },
+        "context_counts": {
+          "dominant_resolution": 3
+        },
+        "selected_rows": [
+          {
+            "event_id": "c0_b10_ch0_medium_swing_piano_optional_variation_1_2and_3and_0",
+            "region_id": "c0_b10_ch0",
+            "pattern_id": "medium_swing_piano_optional_variation_1_2and_3and",
+            "onset_beat": 40.0,
+            "local_beat": 0.0,
+            "chord_symbol": "Bb7",
+            "region_length_family": "four_beat_region",
+            "rhythmic_cell": "1_2and_3and",
+            "weight_calibration_class": "active",
+            "history_activity_class": "active",
+            "history_candidate_is_fill": false,
+            "history_candidate_is_busy": false,
+            "history_candidate_is_tail_push": false,
+            "history_policy_version": "v2_6_67",
+            "optional_fill_variation_policy_version": "v2_6_71",
+            "optional_fill_variation_listening_refinement_policy_version": "v2_6_72",
+            "optional_fill_variation_transition_context": true,
+            "phrase_end_precision_policy_version": "v2_6_73",
+            "phrase_end_precision_policy_applied": true,
+            "optional_fill_variation_phrase_end_context": false,
+            "optional_fill_variation_precise_transition_fill_context": false,
+            "optional_fill_variation_harmonic_transition_context": true,
+            "optional_fill_variation_phrase_precision_status": "harmonic_transition_without_phrase_tail",
+            "optional_fill_variation_candidate": true,
+            "optional_fill_variation_role_runtime": "variation",
+            "optional_fill_variation_status": "optional_context_allowed",
+            "optional_fill_variation_context_label": "dominant_resolution",
+            "optional_fill_variation_multiplier": 1.1448,
+            "optional_fill_variation_reasons": [
+              "dominant_resolution_light_variation_context_bonus_v2_6_72",
+              "variation_after_clear_recent_history_micro_bonus_v2_6_72"
+            ],
+            "ending_specific_subset_version": "v2_6_70",
+            "expression_hint_handoff_version": "v2_6_63",
+            "no_4and_delayed_tail_version": "v2_6_66",
+            "forbidden_pattern_expression_keys": [],
+            "forbidden_pattern_voicing_keys": [],
+            "has_bar_first_two_chord_bar_marker": false
+          },
+          {
+            "event_id": "c0_b17_ch0_medium_swing_piano_optional_variation_1_2and_3and_0",
+            "region_id": "c0_b17_ch0",
+            "pattern_id": "medium_swing_piano_optional_variation_1_2and_3and",
+            "onset_beat": 68.0,
+            "local_beat": 0.0,
+            "chord_symbol": "D7",
+            "region_length_family": "four_beat_region",
+            "rhythmic_cell": "1_2and_3and",
+            "weight_calibration_class": "active",
+            "history_activity_class": "active",
+            "history_candidate_is_fill": false,
+            "history_candidate_is_busy": false,
+            "history_candidate_is_tail_push": false,
+            "history_policy_version": "v2_6_67",
+            "optional_fill_variation_policy_version": "v2_6_71",
+            "optional_fill_variation_listening_refinement_policy_version": "v2_6_72",
+            "optional_fill_variation_transition_context": true,
+            "phrase_end_precision_policy_version": "v2_6_73",
+            "phrase_end_precision_policy_applied": true,
+            "optional_fill_variation_phrase_end_context": false,
+            "optional_fill_variation_precise_transition_fill_context": false,
+            "optional_fill_variation_harmonic_transition_context": true,
+            "optional_fill_variation_phrase_precision_status": "harmonic_transition_without_phrase_tail",
+            "optional_fill_variation_candidate": true,
+            "optional_fill_variation_role_runtime": "variation",
+            "optional_fill_variation_status": "optional_context_allowed",
+            "optional_fill_variation_context_label": "dominant_resolution",
+            "optional_fill_variation_multiplier": 1.1448,
+            "optional_fill_variation_reasons": [
+              "dominant_resolution_light_variation_context_bonus_v2_6_72",
+              "variation_after_clear_recent_history_micro_bonus_v2_6_72"
+            ],
+            "ending_specific_subset_version": "v2_6_70",
+            "expression_hint_handoff_version": "v2_6_63",
+            "no_4and_delayed_tail_version": "v2_6_66",
+            "forbidden_pattern_expression_keys": [],
+            "forbidden_pattern_voicing_keys": [],
+            "has_bar_first_two_chord_bar_marker": false
+          },
+          {
+            "event_id": "c1_b2_ch0_medium_swing_piano_optional_variation_1_2and_3and_0",
+            "region_id": "c1_b2_ch0",
+            "pattern_id": "medium_swing_piano_optional_variation_1_2and_3and",
+            "onset_beat": 152.0,
+            "local_beat": 0.0,
+            "chord_symbol": "Eb7",
+            "region_length_family": "four_beat_region",
+            "rhythmic_cell": "1_2and_3and",
+            "weight_calibration_class": "active",
+            "history_activity_class": "active",
+            "history_candidate_is_fill": false,
+            "history_candidate_is_busy": false,
+            "history_candidate_is_tail_push": false,
+            "history_policy_version": "v2_6_67",
+            "optional_fill_variation_policy_version": "v2_6_71",
+            "optional_fill_variation_listening_refinement_policy_version": "v2_6_72",
+            "optional_fill_variation_transition_context": true,
+            "phrase_end_precision_policy_version": "v2_6_73",
+            "phrase_end_precision_policy_applied": true,
+            "optional_fill_variation_phrase_end_context": false,
+            "optional_fill_variation_precise_transition_fill_context": false,
+            "optional_fill_variation_harmonic_transition_context": true,
+            "optional_fill_variation_phrase_precision_status": "harmonic_transition_without_phrase_tail",
+            "optional_fill_variation_candidate": true,
+            "optional_fill_variation_role_runtime": "variation",
+            "optional_fill_variation_status": "optional_context_allowed",
+            "optional_fill_variation_context_label": "dominant_resolution",
+            "optional_fill_variation_multiplier": 1.1448,
+            "optional_fill_variation_reasons": [
+              "dominant_resolution_light_variation_context_bonus_v2_6_72",
+              "variation_after_clear_recent_history_micro_bonus_v2_6_72"
+            ],
+            "ending_specific_subset_version": "v2_6_70",
+            "expression_hint_handoff_version": "v2_6_63",
+            "no_4and_delayed_tail_version": "v2_6_66",
+            "forbidden_pattern_expression_keys": [],
+            "forbidden_pattern_voicing_keys": [],
+            "has_bar_first_two_chord_bar_marker": false
+          }
+        ]
+      },
+      "history_summary": {
+        "activity_class_counts": {
+          "stable": 89,
+          "offbeat": 26,
+          "active": 5
+        },
+        "consecutive_busy_count": 0,
+        "consecutive_fill_count": 0,
+        "consecutive_tail_push_count": 0
+      },
+      "pattern_summary": {
+        "region_length_counts": {
+          "four_beat_region": 175,
+          "two_beat_region": 31
+        },
+        "rhythmic_cell_counts": {
+          "1": 21,
+          "1_3": 28,
+          "1_3and": 20,
+          "1_2and": 42,
+          "2and": 1,
+          "local2": 5,
+          "start": 12,
+          "1_2and_3and": 9,
+          "1and_3": 14,
+          "1_4": 16,
+          "2_4": 10,
+          "2and_4": 6,
+          "start_local2and": 8,
+          "1_2and_4": 6,
+          "start_local2": 6,
+          "2_3and": 2
+        },
+        "history_metadata_events": 206,
+        "optional_metadata_events": 206,
+        "optional_refinement_metadata_events": 206,
+        "phrase_end_precision_metadata_events": 206,
+        "ending_specific_metadata_events": 206,
+        "forbidden_pattern_expression_events": 0,
+        "forbidden_pattern_voicing_events": 0,
+        "bar_first_marker_events": 0
+      },
+      "expression_summary": {
+        "piano_expression_events": 206,
+        "calibrated_events": 206,
+        "cross_region_hold_guard_events": 0
+      },
+      "voicing_summary": {
+        "top_note_max": 72,
+        "top_note_ge_75_events": 0,
+        "voice_leading_warning_events": 0,
+        "register_guard_failed_events": 0,
+        "method_counts": {
+          "drop2": 99,
+          "drop3": 99,
+          "drop2_and_4": 8
+        }
+      }
+    },
+    {
+      "ok": true,
+      "title": "Autumn Leaves",
+      "slug": "autumn_leaves",
+      "midi_path": "demos/v2_6_73_autumn_leaves_medium_swing_phrase_end_fill_context_precision_demo.mid",
+      "written_bars": 32,
+      "performance_choruses": 3,
+      "performance_bars": 96,
+      "regions": 162,
+      "note_events_by_track": {
+        "piano": 928,
+        "bass": 396,
+        "drums": 768
+      },
+      "piano_pattern_events": 232,
+      "selected_region_patterns": 162,
+      "optional_selected_region_patterns": 0,
+      "optional_summary": {
+        "selected_count": 0,
+        "phrase_end_context_count": 0,
+        "precise_transition_fill_context_count": 0,
+        "phrase_precision_status_counts": {},
+        "status_counts": {},
+        "role_counts": {},
+        "context_counts": {},
+        "selected_rows": []
+      },
+      "history_summary": {
+        "activity_class_counts": {
+          "stable": 131,
+          "offbeat": 30,
+          "active": 1
+        },
+        "consecutive_busy_count": 0,
+        "consecutive_fill_count": 0,
+        "consecutive_tail_push_count": 0
+      },
+      "pattern_summary": {
+        "region_length_counts": {
+          "two_beat_region": 177,
+          "four_beat_region": 55
+        },
+        "rhythmic_cell_counts": {
+          "start": 60,
+          "local2": 25,
+          "start_local2and": 34,
+          "start_local2": 48,
+          "1_3and": 6,
+          "1": 6,
+          "start_local1and": 8,
+          "1_3": 8,
+          "2and_4": 4,
+          "1and_3": 4,
+          "2_4": 4,
+          "1_2and": 14,
+          "local1and": 2,
+          "1_4": 6,
+          "1_2and_4": 3
+        },
+        "history_metadata_events": 232,
+        "optional_metadata_events": 232,
+        "optional_refinement_metadata_events": 232,
+        "phrase_end_precision_metadata_events": 232,
+        "ending_specific_metadata_events": 232,
+        "forbidden_pattern_expression_events": 0,
+        "forbidden_pattern_voicing_events": 0,
+        "bar_first_marker_events": 0
+      },
+      "expression_summary": {
+        "piano_expression_events": 232,
+        "calibrated_events": 232,
+        "cross_region_hold_guard_events": 0
+      },
+      "voicing_summary": {
+        "top_note_max": 73,
+        "top_note_ge_75_events": 0,
+        "voice_leading_warning_events": 0,
+        "register_guard_failed_events": 0,
+        "method_counts": {
+          "drop2": 90,
+          "drop2_and_4": 36,
+          "drop3": 106
+        }
+      }
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "static_policy_enabled": true,
+      "static_policy_version": true,
+      "static_refinement_policy_enabled": true,
+      "static_refinement_policy_version": true,
+      "static_phrase_end_precision_policy_enabled": true,
+      "static_phrase_end_precision_policy_version": true,
+      "optional_candidate_count_is_small": true,
+      "prior_versions_match": true,
+      "no_pattern_expression_leakage": true,
+      "no_pattern_voicing_leakage": true,
+      "no_bar_first_markers": true,
+      "all_outputs_ok": true,
+      "optional_metadata_present": true,
+      "optional_refinement_metadata_present": true,
+      "phrase_end_precision_metadata_present": true,
+      "history_metadata_present": true,
+      "no_runtime_pattern_expression_leakage": true,
+      "no_runtime_pattern_voicing_leakage": true,
+      "no_runtime_bar_first_markers": true,
+      "busy_not_consecutive": true,
+      "tail_push_not_consecutive": true,
+      "voice_leading_safe": true,
+      "top_register_safe": true
+    }
+  },
+  "recommended_next_tasks": [
+    "v2_6_74_engine_medium_swing_standard_tune_fill_frequency_checkpoint_if_needed",
+    "v2_6_75_engine_medium_swing_optional_fill_density_macro_gate_if_needed"
+  ]
+}

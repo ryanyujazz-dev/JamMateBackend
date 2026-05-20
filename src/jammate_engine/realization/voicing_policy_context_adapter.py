@@ -6,10 +6,13 @@ from typing import Any
 
 from jammate_engine.core.harmony.chord_parser import parse_chord
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
-from jammate_engine.core.voicing import ColorPolicyMode, VoicingPolicy
+from jammate_engine.core.voicing import ColorPolicyMode, Disposition, VoicingPolicy
 
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_VERSION = "v2_6_23"
+MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION = "v2_6_77"
+MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_LOW_REGISTER_CLARITY_GUARD_VERSION = "v2_6_78"
+MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION = "v2_6_82"
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_OWNED_RESPONSIBILITIES = (
     "event_scoped_voicing_policy_metadata_bridge",
@@ -79,6 +82,7 @@ def _policy_with_event_texture_scope(policy: VoicingPolicy, event: PatternEvent)
     """
 
     policy = _policy_with_event_harmonic_context(policy, event)
+    policy = _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy, event)
     policy = _policy_with_ballad_spread_grouping_mix_policy(policy, event)
     policy = _policy_with_spread_upper_3note_expansion_ratio(policy, event)
     policy = _policy_with_spread_upper_4note_expansion_ratio(policy, event)
@@ -145,6 +149,182 @@ def _policy_with_event_harmonic_context(policy: VoicingPolicy, event: PatternEve
         "performance_bar_index": event_metadata.get("region_performance_bar_index"),
     }
     return replace(policy, metadata={**metadata, **harmonic_metadata})
+
+
+def _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
+    """Request existing 5/6-note SPREAD capability for sparse Medium Swing support scenes.
+
+    v2_6_77 is intentionally a style/intention selection layer, not a voicing
+    implementation change.  It only rewrites event-scoped policy metadata so
+    the existing grouped-SPREAD runtime candidate pool can be used for a small
+    set of Medium Swing support/climax contexts.  It does not construct degree
+    sources, project SPREAD voicings, rank candidates, apply expression, or
+    write MIDI.
+    """
+
+    metadata = dict(policy.metadata or {})
+    if str(metadata.get("style") or "") != "medium_swing":
+        return policy
+
+    nested = metadata.get("medium_swing_existing_voicing_capability_usage_policy") or {}
+    if not isinstance(nested, dict):
+        nested = {"enabled": nested}
+    if not _coerce_bool(nested.get("enabled"), default=False):
+        return policy
+
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    if getattr(event, "track", "") != "piano" or getattr(event, "role", "") != "harmonic":
+        return _medium_swing_existing_voicing_capability_policy_debug(
+            policy,
+            applied=False,
+            scene="non_piano_harmonic",
+            reason="event_is_not_piano_harmonic_comping",
+        )
+
+    scene = _medium_swing_existing_voicing_capability_scene(event_metadata)
+    if scene == "ordinary_open_drop":
+        return _medium_swing_existing_voicing_capability_policy_debug(
+            policy,
+            applied=False,
+            scene=scene,
+            reason="ordinary_medium_swing_keeps_existing_open_drop_policy",
+        )
+
+    if scene == "final_ending_climax":
+        selected_contract_id = "spread_3plus3_contract"
+        compatible_contract_ids = ("spread_2plus4_contract", "spread_3plus3_contract")
+        preferred_density = 6
+        policy_reason = "final_chorus_ending_requests_existing_6note_grouped_spread_support"
+    elif scene == "final_chorus_section_tail_support":
+        selected_contract_id = "spread_2plus3_contract"
+        compatible_contract_ids = ("spread_2plus3_contract",)
+        preferred_density = 5
+        policy_reason = "final_chorus_section_tail_requests_existing_5note_grouped_spread_support"
+    else:
+        return _medium_swing_existing_voicing_capability_policy_debug(
+            policy,
+            applied=False,
+            scene=scene,
+            reason="scene_not_authorized_for_medium_swing_thick_support",
+        )
+
+    scoped = {
+        **metadata,
+        "medium_swing_existing_voicing_capability_usage_policy_version": MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION,
+        "medium_swing_existing_voicing_capability_usage_policy_applied": True,
+        "medium_swing_existing_voicing_capability_usage_scene": scene,
+        "medium_swing_existing_voicing_capability_usage_reason": policy_reason,
+        "medium_swing_existing_voicing_capability_boundary": "style_event_scoped_policy_requests_existing_grouped_spread_runtime_candidates_only",
+        "medium_swing_existing_voicing_capability_no_core_voicing_change": True,
+        "medium_swing_existing_voicing_capability_selected_contract_id": selected_contract_id,
+        "medium_swing_existing_voicing_capability_compatible_contract_ids": list(compatible_contract_ids),
+        "medium_swing_existing_voicing_capability_low_register_clarity_guard_version": MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_LOW_REGISTER_CLARITY_GUARD_VERSION,
+        "medium_swing_existing_voicing_capability_low_register_clarity_guard_enabled": True,
+        "medium_swing_existing_voicing_capability_low_register_clarity_guard_contract": "optional Medium Swing 5/6-note grouped SPREAD support must not place more than one piano note below C3 in bass-present/full-band usage; this is an event-scoped metadata guard over existing spread candidates, not a core voicing implementation change",
+        "medium_swing_existing_voicing_capability_low_register_clarity_threshold": int(nested.get("spread_low_register_density_threshold", 48) or 48),
+        "medium_swing_existing_voicing_capability_low_register_clarity_max_notes_below": int(nested.get("spread_low_register_density_max_notes_below", 1) or 1),
+        "medium_swing_bass_piano_interaction_guard_version": str(nested.get("bass_piano_interaction_guard_version") or MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION),
+        "medium_swing_bass_piano_interaction_guard_enabled": _coerce_bool(nested.get("bass_piano_interaction_guard_enabled"), default=False),
+        "medium_swing_bass_piano_interaction_guard_contract": str(nested.get("bass_piano_interaction_guard_contract") or "optional Medium Swing 5/6-note grouped SPREAD may request C3+ foundation registers in bass-present/full-band demos so piano does not duplicate the bass walking foundation; this is event-scoped style metadata only"),
+        "ballad_spread_grouping_mix_selected_contract_id": selected_contract_id,
+        "spread_grouping_mix_selected_contract_id": selected_contract_id,
+        "primary_family": "spread",
+        "allowed_families": ["spread"],
+        "voicing_texture_primary_family": "spread",
+        "voicing_texture_allowed_families": ["spread"],
+        "spread_selector_enabled": True,
+        "spread_groupwise_voice_leading_runtime_enabled": True,
+        "spread_runtime_adapter_emit_all_candidates": True,
+        "spread_emit_all_candidates_for_groupwise_selection": True,
+        "spread_lower_foundation_quality_gate_enabled": True,
+        "spread_grouping_mix_candidate_pool": {
+            "version": MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION,
+            "style": "medium_swing",
+            "use_compatible_contracts": True,
+            "selected_contract_id": selected_contract_id,
+            "compatible_contract_ids": list(compatible_contract_ids),
+            "selection_boundary": "existing_grouped_spread_runtime_candidate_pool",
+        },
+        "spread_runtime_adapter": {
+            **dict(metadata.get("spread_runtime_adapter") or {}),
+            "version": MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION,
+            "adapter_conversion_allowed": True,
+            "request_source": "medium_swing_existing_voicing_capability_usage_policy",
+        },
+        "spread_rooted_bass_anchor_enabled": True,
+        "spread_root_bass_anchor_low": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_low", nested.get("spread_root_bass_anchor_low", 40)) or 40),
+        "spread_root_bass_anchor_high": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_high", nested.get("spread_root_bass_anchor_high", 52)) or 52),
+        "spread_root_bass_anchor_target": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_target", nested.get("spread_root_bass_anchor_target", 47)) or 47),
+        "spread_whole_register_low": int(nested.get("bass_piano_interaction_register_floor", nested.get("spread_whole_register_low", 40)) or 40),
+        "spread_whole_register_high": int(nested.get("spread_whole_register_high", 76) or 76),
+        "spread_upper_low": int(nested.get("spread_upper_low", 50) or 50),
+        "spread_upper_high": int(nested.get("spread_upper_high", 73) or 73),
+        "spread_upper_target_low": int(nested.get("spread_upper_target_low", 55) or 55),
+        "spread_min_group_gap": int(nested.get("spread_min_group_gap", 1) or 1),
+        "spread_max_group_gap": int(nested.get("spread_max_group_gap", 7) or 7),
+        "spread_low_register_density_guard_enabled": True,
+        "spread_low_register_density_threshold": int(nested.get("spread_low_register_density_threshold", 48) or 48),
+        "spread_low_register_density_max_notes_below": int(nested.get("spread_low_register_density_max_notes_below", 1) or 1),
+        "spread_lower_2note_low": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_low", nested.get("spread_lower_2note_low", 40)) or 40),
+        "spread_lower_2note_high": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_high", nested.get("spread_lower_2note_high", 58)) or 58),
+        "spread_lower_2note_target_low": int(nested.get("bass_piano_interaction_register_floor", nested.get("spread_lower_2note_target_low", 40)) or 40),
+        "spread_upper_4note_emit_all_parent_projections": True,
+        "spread_upper_4note_allow_octave_shift_candidates": True,
+    }
+    return replace(
+        policy,
+        preferred_disposition=Disposition.SPREAD,
+        allowed_dispositions=(Disposition.SPREAD, Disposition.OPEN),
+        preferred_density=preferred_density,
+        min_density=min(4, preferred_density),
+        max_density=max(6, int(policy.max_density)),
+        register_low=min(int(policy.register_low), 40),
+        register_high=min(int(policy.register_high), 74),
+        top_voice_high=min(int(policy.top_voice_high), 72),
+        harmonic_expansion_enabled=True,
+        color_policy_mode=ColorPolicyMode.STYLE_SAFE_EXTENSIONS,
+        metadata=scoped,
+    )
+
+
+def _medium_swing_existing_voicing_capability_scene(event_metadata: dict[str, Any]) -> str:
+    total_choruses = _safe_int(event_metadata.get("region_total_choruses"), default=0)
+    chorus_index = _safe_int(event_metadata.get("region_chorus_index"), default=0)
+    final_chorus = total_choruses <= 0 or chorus_index >= max(0, total_choruses - 1)
+    last_bar_of_chorus = _coerce_bool(event_metadata.get("region_is_last_bar_of_chorus"), default=False)
+    last_bar_of_section = _coerce_bool(event_metadata.get("region_is_last_bar_of_section"), default=False)
+    if final_chorus and last_bar_of_chorus:
+        return "final_ending_climax"
+    if final_chorus and last_bar_of_section:
+        return "final_chorus_section_tail_support"
+    return "ordinary_open_drop"
+
+
+def _medium_swing_existing_voicing_capability_policy_debug(
+    policy: VoicingPolicy,
+    *,
+    applied: bool,
+    scene: str,
+    reason: str,
+) -> VoicingPolicy:
+    metadata = dict(policy.metadata or {})
+    debug = {
+        **metadata,
+        "medium_swing_existing_voicing_capability_usage_policy_version": MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION,
+        "medium_swing_existing_voicing_capability_usage_policy_applied": bool(applied),
+        "medium_swing_existing_voicing_capability_usage_scene": scene,
+        "medium_swing_existing_voicing_capability_usage_reason": reason,
+        "medium_swing_existing_voicing_capability_boundary": "style_event_scoped_policy_requests_existing_grouped_spread_runtime_candidates_only",
+        "medium_swing_existing_voicing_capability_no_core_voicing_change": True,
+    }
+    return replace(policy, metadata=debug)
+
+
+def _safe_int(value: Any, *, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
 
 
 def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
@@ -262,7 +442,10 @@ def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event:
                 "spread_min_group_gap": 1,
                 "spread_max_group_gap": 7,
                 "spread_max_overall_span": 39,
-                "spread_upper_4note_emit_all_parent_projections": True,
+                "spread_lower_2note_low": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_low", nested.get("spread_lower_2note_low", 40)) or 40),
+        "spread_lower_2note_high": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_high", nested.get("spread_lower_2note_high", 58)) or 58),
+        "spread_lower_2note_target_low": int(nested.get("bass_piano_interaction_register_floor", nested.get("spread_lower_2note_target_low", 40)) or 40),
+        "spread_upper_4note_emit_all_parent_projections": True,
                 "spread_upper_4note_allow_octave_shift_candidates": True,
             }
         )

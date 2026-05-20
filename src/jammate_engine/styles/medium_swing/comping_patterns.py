@@ -12,6 +12,7 @@ CANDIDATE_LOOKUP_POLICY_VERSION = "v2_6_57"
 WEIGHT_CALIBRATION_POLICY_VERSION = "v2_6_58"
 EXPRESSION_HINT_HANDOFF_POLICY_VERSION = "v2_6_63"
 NO_4AND_DELAYED_TAIL_POLICY_VERSION = "v2_6_66"
+OPTIONAL_FILL_VARIATION_VOCABULARY_VERSION = "v2_6_71"
 PATTERN_DOMAIN = "comping"
 TRACK_ROLE = "piano_harmonic_comping"
 DEFAULT_ONSET_MODE = "simultaneous_onset"
@@ -25,6 +26,7 @@ BOUNDARY_NOTES = (
     "no_final_expression_values",
     "semantic_expression_hint_handoff_v2_6_63",
     "hold_hints_resolved_by_expression_as_hold_until_next_touch",
+    "optional_fill_variation_vocabulary_guarded_by_history_scorer_v2_6_71",
 )
 
 EXPRESSION_PROFILE_BY_SEMANTIC_HINT = {
@@ -104,6 +106,20 @@ def _comping_metadata(
         "no_4and_delayed_tail_static_policy_version": NO_4AND_DELAYED_TAIL_POLICY_VERSION,
         "no_4and_delayed_tail_idiom": bool(tail_push_risk != "high" and any(token in rhythm_family or token in cell for token in ("delayed", "tail", "backbeat"))),
         "time_reference": "region_local_beats",
+    }
+
+
+def _optional_fill_variation_metadata(*, role: str, activation_context: str) -> dict[str, Any]:
+    return {
+        "optional_fill_variation_vocabulary_candidate": True,
+        "optional_fill_variation_vocabulary_version": OPTIONAL_FILL_VARIATION_VOCABULARY_VERSION,
+        "optional_fill_variation_role": role,
+        "optional_fill_variation_activation": "guarded_low_frequency_v2_6_71",
+        "optional_fill_variation_activation_context": activation_context,
+        "optional_fill_variation_contract": (
+            "Optional fill/variation cells are pitchless ChordRegion-local candidates with very low base weight; "
+            "StyleProfile reweights them by region context and the v2_6_67 history scorer still prevents consecutive active/fill/busy/push behavior."
+        ),
     }
 
 
@@ -257,12 +273,97 @@ def _four_beat_region_candidates(duration: float = 4.0) -> tuple[PatternCandidat
         _four_beat_region_lookup_candidate("medium_swing_piano_1_4and_rare_push", 0.015, "1_4and", "rare_tail_push", ((0.0, "anchor", "soft_hold"), (3.5, "tail_push", "accent_stab")), "tail_push", "rare_push", density="rare_push", tail_push_risk="high", requires_anchor=True),
         _four_beat_region_lookup_candidate("medium_swing_piano_1_2and_4and_rare_push", 0.006, "1_2and_4and", "rare_charleston_tail_push", ((0.0, "anchor", "accent_hold"), (1.5, "answer", "light_stab"), (3.5, "tail_push", "accent_stab")), "tail_push", "rare_push", density="rare_push", tail_push_risk="high", requires_anchor=True),
     )
-    return active + region_lookup_expansion
+    optional_fill_variation = (
+        PatternCandidate(
+            name="medium_swing_piano_optional_variation_1_2and_3and",
+            weight=0.075,
+            category="optional_active_variation",
+            events=(
+                _event(0.0, event_role="anchor", semantic_expression_hint="accent_hold", can_anticipate=True, required=True),
+                _event(1.5, event_role="answer", semantic_expression_hint="light_stab"),
+                _event(2.5, event_role="answer", semantic_expression_hint="light_stab"),
+            ),
+            tail_policy=_tail((0.0, 1.5, 2.5)),
+            beat1_movability=_movable("optional_variation_region_start_can_be_anticipated_later"),
+            metadata={
+                **_comping_metadata(
+                    density="active",
+                    cell="1_2and_3and",
+                    function="optional_active_variation_no_4and",
+                    region_length_beats=duration,
+                    rhythm_family="optional_variation_no_4and",
+                    phrase_role="variation",
+                    requires_region_start_anchor=True,
+                    activation="optional_fill_variation_vocabulary_v2_6_71",
+                    weight_calibration_class="active",
+                ),
+                **_optional_fill_variation_metadata(role="variation", activation_context="generic_light_conversation_or_phrase_motion"),
+            },
+            tags=("swing", "piano", "optional_fill_variation", "variation", "no_4and", "comping"),
+        ),
+        PatternCandidate(
+            name="medium_swing_piano_optional_fill_2and_4_4and",
+            weight=0.018,
+            category="optional_transition_fill_tail_push",
+            events=(
+                _event(1.5, event_role="answer", semantic_expression_hint="light_stab"),
+                _event(3.0, event_role="tail_support", semantic_expression_hint="backbeat_hold"),
+                _event(3.5, event_role="tail_push", semantic_expression_hint="accent_stab"),
+            ),
+            tail_policy=_tail((1.5, 3.0, 3.5)),
+            beat1_movability=_not_movable("optional_fill_has_no_region_start_anchor"),
+            metadata={
+                **_comping_metadata(
+                    density="active",
+                    cell="2and_4_4and",
+                    function="optional_transition_fill_tail_push",
+                    region_length_beats=duration,
+                    rhythm_family="optional_fill_tail_push",
+                    phrase_role="turnaround_fill",
+                    tail_push_risk="high",
+                    activation="optional_fill_variation_vocabulary_v2_6_71",
+                    weight_calibration_class="tail_push",
+                ),
+                **_optional_fill_variation_metadata(role="transition_fill", activation_context="section_end_turnaround_or_dominant_resolution_only"),
+            },
+            tags=("swing", "piano", "optional_fill_variation", "fill", "tail_push", "comping"),
+        ),
+        PatternCandidate(
+            name="medium_swing_piano_optional_busy_1and_2and_3and_4",
+            weight=0.004,
+            category="optional_busy_fill_no_4and",
+            events=(
+                _event(0.5, event_role="pickup_answer", semantic_expression_hint="light_stab"),
+                _event(1.5, event_role="answer", semantic_expression_hint="light_stab"),
+                _event(2.5, event_role="answer", semantic_expression_hint="light_stab"),
+                _event(3.0, event_role="tail_support", semantic_expression_hint="backbeat_hold"),
+            ),
+            tail_policy=_tail((0.5, 1.5, 2.5, 3.0)),
+            beat1_movability=_not_movable("optional_busy_fill_has_no_region_start_anchor"),
+            metadata={
+                **_comping_metadata(
+                    density="busy",
+                    cell="1and_2and_3and_4",
+                    function="optional_busy_fill_no_4and",
+                    region_length_beats=duration,
+                    rhythm_family="optional_busy_fill_no_4and",
+                    phrase_role="section_fill",
+                    activation="optional_fill_variation_vocabulary_v2_6_71",
+                    weight_calibration_class="busy",
+                ),
+                **_optional_fill_variation_metadata(role="busy_fill", activation_context="explicit_high_energy_or_phrase_end_only"),
+            },
+            tags=("swing", "piano", "optional_fill_variation", "busy", "no_4and", "comping"),
+        ),
+    )
+    return active + region_lookup_expansion + optional_fill_variation
 
 
 def _infer_weight_calibration_class(density: str, rhythm_family: str, tail_push_risk: str = "none") -> str:
     if tail_push_risk == "high" or "push" in rhythm_family:
         return "tail_push"
+    if density == "busy" or "busy" in rhythm_family:
+        return "busy"
     if density == "active":
         return "active"
     if rhythm_family in {"offbeat_conversation", "offbeat_tail", "delayed_answer"}:
