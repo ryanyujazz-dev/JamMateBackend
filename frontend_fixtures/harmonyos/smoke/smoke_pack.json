@@ -890,5 +890,32 @@
       "startsPlayback": false,
       "writesHarmonyOSLocalState": false
     }
+  },
+  "practice_coach_plan_revision_e2e": {
+    "script": "curl_practice_coach_plan_revision_e2e_smoke.sh",
+    "fixture": "product_practice_coach_plan_revision_e2e_sequence.json",
+    "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "purpose": "Validate one-session draft plan revisions and confirmation into Routine card without frontend workaround or internal fields.",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
+  },
+  "practice_coach_device_feedback_trace_pack": {
+    "script": "curl_practice_coach_device_feedback_trace_smoke.sh",
+    "fixture": "product_practice_coach_device_feedback_trace_request.json",
+    "endpoint": "/agent/harmonyos/practice-coach-session/message/execute",
+    "purpose": "Validate that unified Practice Coach responses include debug.deviceFeedbackTracePack for HarmonyOS device feedback reports.",
+    "copy_field": "debug.deviceFeedbackTracePack",
+    "safety": {
+      "startsRoutine": false,
+      "callsEngineAdapter": false,
+      "createsMidiAsset": false,
+      "startsPlayback": false,
+      "writesHarmonyOSLocalState": false
+    }
   }
 }

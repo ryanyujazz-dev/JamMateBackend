@@ -1,3 +1,38 @@
+
+## v2_10_25 Practice Coach device feedback trace pack
+
+`POST /agent/harmonyos/practice-coach-session/message/execute` responses include `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`. For device feedback, return this object together with request URL, request JSON, HTTP status, response JSON, mapped UI state, and screenshot/logs if available. The pack is diagnostic only; frontend still must not send internal fields such as `sqliteDbPath`, `providerResult`, or `llmActionDecisionResult`.
+
+Smoke script: `curl_practice_coach_device_feedback_trace_smoke.sh`.
+
+# v2_10_24 Practice Coach plan revision E2E smoke
+
+`curl_practice_coach_plan_revision_e2e_smoke.sh` validates the one-session adjustment flow reported by HarmonyOS frontend testing:
+
+```text
+POST /agent/harmonyos/practice-coach-session/message/execute
+```
+
+Run against a local or LAN FastAPI server:
+
+```bash
+cd frontend_fixtures/harmonyos/smoke
+bash curl_practice_coach_plan_revision_e2e_smoke.sh http://127.0.0.1:8000
+```
+
+The smoke uses only product-shaped frontend requests from `product_practice_coach_plan_revision_e2e_sequence.json`. It must not include `dbPath`, `sqliteDbPath`, `providerResult`, `llmActionDecisionResult`, `apiKey`, or internal write gates. It validates:
+
+```text
+今天该练什么？ -> ask_clarifying_question
+30分钟 bossa -> practice_plan_proposal
+调整为20分钟 -> practice_plan_revision
+多安排基本功和节拍器 -> practice_plan_revision
+换成曲目练习 -> practice_plan_revision
+确认这个安排 -> routine_card_ready
+```
+
+Safety remains unchanged: no Routine auto-start, no Engine call, no MIDI asset, no playback, and no HarmonyOS local-state write.
+
 # v2_10_20 Practice Coach real LLM provider guarded smoke
 
 `curl_practice_coach_live_llm_provider_smoke.sh` validates a real LLM provider call through the unified Practice Coach endpoint:

@@ -1,3 +1,53 @@
+
+## v2_10_25 Practice Coach device feedback trace pack
+
+Unified endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/message/execute
+```
+
+Every successful response now includes a compact device feedback object in both:
+
+```text
+data.deviceFeedbackTracePack
+debug.deviceFeedbackTracePack
+```
+
+Frontend should copy `debug.deviceFeedbackTracePack` when reporting a true-device issue. It includes request summary, `responseType`, decision/fallback trace, state digests, artifact summary, SQLite IO status, and safety flags. It is a debug/reporting envelope only and does not grant any new client-side authority.
+
+Product requests still must not include:
+
+```text
+dbPath / sqliteDbPath / clientConfirmedRecordWrite / providerResult / llmActionDecisionResult / apiKey
+```
+
+## v2_10_24 Practice Coach plan revision E2E smoke
+
+The recommended product endpoint remains:
+
+```text
+POST /agent/harmonyos/practice-coach-session/message/execute
+```
+
+`v2_10_24` adds the frontend-facing plan revision E2E smoke for one-session Practice Coach adjustment:
+
+```text
+今天该练什么？ -> ask_clarifying_question
+30分钟 bossa -> practice_plan_proposal
+我想调整为20分钟 -> practice_plan_revision
+我想多安排基本功和节拍器稳定性练习 -> practice_plan_revision
+我想换成曲目练习 -> practice_plan_revision
+确认这个安排 -> routine_card_ready
+```
+
+HarmonyOS production requests still must not send `dbPath`, `sqliteDbPath`, `providerResult`, `llmActionDecisionResult`, `apiKey`, or internal write-gate fields. The smoke assets are:
+
+```text
+frontend_fixtures/harmonyos/smoke/product_practice_coach_plan_revision_e2e_sequence.json
+frontend_fixtures/harmonyos/smoke/curl_practice_coach_plan_revision_e2e_smoke.sh
+```
+
 ## v2_10_22 Practice Coach SQLite path guard macOS tempdir hotfix
 
 The HarmonyOS production request contract is unchanged. Frontend product requests still must not send `sqliteDbPath`, `dbPath`, `llmActionDecisionResult`, provider internals, or write-gate fields.
@@ -795,3 +845,8 @@ safety
 ```
 
 This route may write backend SQLite tables `practice_coach_session_states` and `practice_coach_session_turns`. It does not call an LLM/provider, start Routine, call Engine, generate MIDI, start playback, or write HarmonyOS local state.
+
+
+## v2_10_23 Practice Coach plan revision routing
+
+统一入口 `POST /agent/harmonyos/practice-coach-session/message/execute` 在已有待确认 `draft_plan` 时会先判断用户意图。`确认/就这个/开始` 生成 `routine_card_ready`；`我想调整为20分钟`、`改成20分钟`、`多安排基本功`、`加强节拍器稳定性`、`换成曲目练习`、`换一首 standard` 等明确调整请求返回 `responseType=practice_plan_revision`，并更新 `planProposal` / `stateAfter.draft_plan`，继续要求用户确认。

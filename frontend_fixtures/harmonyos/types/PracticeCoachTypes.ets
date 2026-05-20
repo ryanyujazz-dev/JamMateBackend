@@ -1,4 +1,4 @@
-// JamMate Practice Coach Session Types v2_10_19
+// JamMate Practice Coach Session Types v2_10_25
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/model/PracticeCoachTypes.ets
 // Backend responses are canonical snake_case. JamMateApiClient maps them into these camelCase client-domain types.
 // Production HarmonyOS requests must NOT include llmActionDecisionResult; that field exists only in backend smoke fixtures.
@@ -95,6 +95,22 @@ export interface PracticeCoachRoutineCardPayload {
   [key: string]: unknown
 }
 
+export interface PracticeCoachDeviceFeedbackTracePack {
+  tracePackVersion: string
+  purpose?: string
+  copyThisForBackendIssue: boolean
+  tracePackId: string
+  endpoint: string
+  requestSummary: Record<string, unknown>
+  responseSummary: Record<string, unknown>
+  decisionTrace: Record<string, unknown>
+  stateTrace: Record<string, unknown>
+  artifactTrace?: Record<string, unknown>
+  ioTrace: Record<string, unknown>
+  safetyTrace: Record<string, unknown>
+  frontendFeedbackChecklist?: string[]
+}
+
 export interface PracticeCoachMessageData {
   responseType: PracticeCoachResponseType
   content?: string | null
@@ -115,6 +131,7 @@ export interface PracticeCoachMessageData {
   selectedActionExecutor?: string | null
   llmRequestPreview?: Record<string, unknown> | null
   stateAfter?: Record<string, unknown> | null
+  deviceFeedbackTracePack?: PracticeCoachDeviceFeedbackTracePack | null
   [key: string]: unknown
 }
 
@@ -138,6 +155,6 @@ export interface PracticeCoachMessageExecuteResponse {
   code: string
   message: string
   data: PracticeCoachMessageData
-  debug: Record<string, unknown>
+  debug: Record<string, unknown> & { deviceFeedbackTracePack?: PracticeCoachDeviceFeedbackTracePack }
   safety: PracticeCoachSafety
 }

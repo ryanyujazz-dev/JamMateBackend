@@ -1,3 +1,19 @@
+## v2_10_25 — Practice Coach device feedback trace pack
+
+- Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.
+- The pack summarizes request, responseType, decision source/fallback, schema repair, state digests, plan/card artifacts, SQLite IO, and safety flags.
+- Added HarmonyOS smoke fixture and curl script for verifying the trace pack.
+- Updated frontend type fixtures with `PracticeCoachDeviceFeedbackTracePack`.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
+
+## v2_10_24
+
+- Added a HarmonyOS/front-end-facing Practice Coach plan revision E2E smoke pack.
+- Added `product_practice_coach_plan_revision_e2e_sequence.json` and `curl_practice_coach_plan_revision_e2e_smoke.sh`.
+- Locked the original reported flow in tests: initial plan, duration revision, fundamentals/metronome revision, tune-practice revision, and final confirmation to Routine card.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
 ## v2_10_22_agent_practice_coach_sqlite_path_guard_macos_tempdir_hotfix
 
 - Fixed a macOS local pytest compatibility issue where Practice Coach SQLite paths under `/private/var/folders/...` were blocked by a Linux-specific allowlist.
@@ -432,3 +448,9 @@ This file is the chronological project history. README should remain the project
 - Added `docs/INTEGRATION_HARMONYOS_AGENT_TODAY_GUIDANCE_RUNTIME_SMOKE_V2_10_7.md` and updated HarmonyOS smoke README / smoke pack metadata.
 - Runtime music generation behavior is unchanged; no Engine files were modified.
 
+
+
+## v2_10_23
+
+- Agent: hotfixed Practice Coach plan revision intent routing for pending draft plans.
+- No Engine generation changes.

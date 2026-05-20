@@ -22,6 +22,8 @@ PRACTICE_COACH_LLM_ACTION_DECISION_CONTRACT_VERSION = "v2_10_17"
 PRACTICE_COACH_REAL_LLM_PROVIDER_GUARDED_SMOKE_VERSION = "v2_10_20"
 PRACTICE_COACH_LLM_RESPONSE_REPAIR_SCHEMA_HARDENING_VERSION = "v2_10_21"
 PRACTICE_COACH_SQLITE_PATH_GUARD_MACOS_TEMPDIR_HOTFIX_VERSION = "v2_10_22"
+PRACTICE_COACH_PLAN_REVISION_INTENT_ROUTING_HOTFIX_VERSION = "v2_10_23"
+PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION = "v2_10_25"
 PRACTICE_COACH_CONTRACT_VERSION = "practice_coach_contract_v1"
 PRACTICE_COACH_CONTEXT_PACKET_VERSION = "practice_context_packet_v1"
 
@@ -1869,6 +1871,10 @@ def select_practice_coach_message_action_executor(
             merged[key] = value
 
     if state_before and isinstance(state_before.draft_plan, dict) and (state_before.awaiting_confirmation or is_confirmation_message(user_message)):
+        if is_confirmation_message(user_message):
+            return "routine_card", "existing_draft_plan_explicit_confirmation", read_result, state_payload
+        if is_practice_plan_revision_message(user_message):
+            return "plan_proposal", "existing_draft_plan_revision_requested", read_result, state_payload
         return "routine_card", "existing_draft_plan_waiting_for_confirmation", read_result, state_payload
 
     required = ["available_minutes", "practice_focus"]
@@ -1980,15 +1986,26 @@ def advance_practice_coach_plan_proposal_state(
         draft_plan = previous_draft
         awaiting_confirmation = False
     else:
+        revision_requested = bool(previous_draft and previous.awaiting_confirmation and is_practice_plan_revision_message(user_message))
         proposal = build_practice_plan_proposal(collected_fields=collected, user_id=user_id, session_id=session_id)
-        response_type = "practice_plan_proposal"
-        message = build_practice_plan_proposal_message(proposal)
+        if revision_requested:
+            proposal = {
+                **proposal,
+                "revisionOfProposalId": previous_draft.get("proposalId"),
+                "revisionReason": infer_practice_plan_revision_reason(user_message),
+                "source": "deterministic_practice_coach_plan_revision_routing_hotfix_v2_10_23",
+            }
+            response_type = "practice_plan_revision"
+            message = build_practice_plan_revision_message(proposal, previous_draft=previous_draft)
+        else:
+            response_type = "practice_plan_proposal"
+            message = build_practice_plan_proposal_message(proposal)
         action = {
             "responseType": response_type,
             "message": message,
             "missingFields": [],
             "collectedFields": normalize_mapping(collected),
-            "suggestedReplies": ["确认这个安排", "调整时长", "换个方向", "换一首曲子"],
+            "suggestedReplies": ["确认这个安排", "继续调整", "调整时长", "换个方向", "换一首曲子"],
             "requiresUserConfirmation": True,
             "planProposal": proposal,
             "routineCard": None,
@@ -2512,6 +2529,12 @@ def practice_focus_block_templates(focus: str) -> list[dict[str, str]]:
             {"title": "即兴限制练习", "goal": "限制材料做 chorus 循环，优先稳定动机发展。", "type": "improvisation_practice"},
             {"title": "回听与记录", "goal": "记录一个有效动机和一个需要修正的连接。", "type": "reflection"},
         ]
+    if normalized == "tune_practice":
+        return [
+            {"title": "曲目材料热身", "goal": "先确认曲式、关键和声和今天要处理的小节。", "type": "repertoire_warmup"},
+            {"title": "曲目循环练习", "goal": "围绕一首曲子做完整 chorus 循环，重点检查稳定性和衔接。", "type": "tune_practice"},
+            {"title": "回听与记录", "goal": "记录最需要下次继续处理的曲目段落。", "type": "reflection"},
+        ]
     if normalized == "fundamentals":
         return [
             {"title": "基础技术热身", "goal": "用慢速和稳定触键进入练习状态。", "type": "technique_warmup"},
@@ -2532,6 +2555,7 @@ def practice_focus_label(focus: str) -> str:
         "jazz_ballad": "Jazz Ballad",
         "comping": "伴奏",
         "improvisation": "即兴",
+        "tune_practice": "曲目",
         "fundamentals": "基本功",
         "general": "综合",
     }.get(str(focus or "general"), str(focus or "综合"))
@@ -2543,6 +2567,17 @@ def build_practice_plan_proposal_message(proposal: dict[str, Any]) -> str:
     blocks = proposal.get("blocks") if isinstance(proposal.get("blocks"), list) else []
     block_text = "；".join(f"{item.get('durationMinutes')} 分钟 {item.get('title')}" for item in blocks[:3])
     return f"我建议先按这个 {total} 分钟方案练：{title}。{block_text}。你可以确认，也可以继续调整。"
+
+
+def build_practice_plan_revision_message(proposal: dict[str, Any], *, previous_draft: dict[str, Any] | None = None) -> str:
+    title = proposal.get("title") or "今日练习安排"
+    total = proposal.get("totalDurationMinutes")
+    previous_total = previous_draft.get("totalDurationMinutes") if isinstance(previous_draft, dict) else None
+    blocks = proposal.get("blocks") if isinstance(proposal.get("blocks"), list) else []
+    block_text = "；".join(f"{item.get('durationMinutes')} 分钟 {item.get('title')}" for item in blocks[:3])
+    if previous_total and previous_total != total:
+        return f"我已把草案从 {previous_total} 分钟调整为 {total} 分钟：{title}。{block_text}。你可以确认，也可以继续调整。"
+    return f"我已根据你的反馈调整练习计划草案：{title}。{block_text}。你可以确认，也可以继续调整。"
 
 
 def conversation_state_from_payload(payload: dict[str, Any], *, user_id: str, session_id: str) -> PracticeCoachConversationStateRecord:
@@ -2586,7 +2621,9 @@ def infer_practice_focus(text: str) -> str | None:
         return "comping"
     if any(token in lowered for token in ("即兴", "improv", "solo")):
         return "improvisation"
-    if any(token in lowered for token in ("基本功", "技术", "手指")):
+    if any(token in lowered for token in ("曲目", "曲子", "standard", "tune", "repertoire")):
+        return "tune_practice"
+    if any(token in lowered for token in ("基本功", "技术", "手指", "节拍器", "metronome")):
         return "fundamentals"
     return None
 
@@ -2612,6 +2649,33 @@ def is_confirmation_message(message: str) -> bool:
     if any(token in text for token in negative_tokens):
         return False
     return any(token in text for token in confirmation_tokens)
+
+
+def is_practice_plan_revision_message(message: str) -> bool:
+    text = str(message or "").strip().lower()
+    if not text:
+        return False
+    revision_tokens = (
+        "调整", "改成", "改为", "换成", "换一", "换个", "换曲", "曲目",
+        "standard", "多安排", "少一点", "少安排", "延长", "缩短", "增加", "减少",
+        "加强", "节拍器", "基本功", "再调整", "再改", "revision", "revise",
+        "adjust", "change", "shorter", "longer", "duration", "focus", "tune",
+    )
+    has_duration_change = bool(re.search(r"(?:改成|改为|调整为|变成|换成)?\s*\d{1,3}\s*(?:分钟|min|mins|minute|minutes)", text, flags=re.IGNORECASE))
+    return has_duration_change or any(token in text for token in revision_tokens)
+
+
+def infer_practice_plan_revision_reason(message: str) -> str:
+    text = str(message or "").lower()
+    if re.search(r"\d{1,3}\s*(?:分钟|min|mins|minute|minutes)", text, flags=re.IGNORECASE):
+        return "adjust_duration"
+    if any(token in text for token in ("曲目", "换曲", "standard", "tune", "blue bossa", "girl from ipanema")):
+        return "change_tune"
+    if any(token in text for token in ("基本功", "节拍器", "伴奏", "bossa", "swing", "即兴", "focus")):
+        return "adjust_focus"
+    if any(token in text for token in ("取消", "不练")):
+        return "cancel_or_pause"
+    return "general_revision"
 
 
 def is_today_practice_intent(message: str) -> bool:

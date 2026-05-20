@@ -100,6 +100,8 @@ from jammate_agent.core.practice_coach_session import (
     PRACTICE_COACH_REAL_LLM_PROVIDER_GUARDED_SMOKE_VERSION,
     PRACTICE_COACH_LLM_RESPONSE_REPAIR_SCHEMA_HARDENING_VERSION,
     PRACTICE_COACH_SQLITE_PATH_GUARD_MACOS_TEMPDIR_HOTFIX_VERSION,
+    PRACTICE_COACH_PLAN_REVISION_INTENT_ROUTING_HOTFIX_VERSION,
+    PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
 )
 from jammate_agent.core.tool_invocation import (
     ToolInvocationProposal,
@@ -3259,6 +3261,189 @@ def _harmonyos_safety(*, writes_backend_sqlite: bool = False, llm_called: bool =
     }
 
 
+
+def _compact_preview(value: object, *, limit: int = 96) -> str:
+    text = str(value or "").replace("\n", " ").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
+
+
+def _short_digest(value: object) -> str:
+    try:
+        payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    except TypeError:
+        payload = str(value)
+    import hashlib
+
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _list_keys(value: object) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    return sorted(str(key) for key in value.keys())
+
+
+def _practice_coach_device_feedback_trace_pack(
+    *,
+    product_arguments: dict,
+    execution: dict,
+    agent_action: dict,
+    response_type: str,
+    content: str,
+    persisted: bool,
+    code: str,
+) -> dict:
+    """Compact, frontend-copyable trace pack for HarmonyOS device feedback.
+
+    This pack intentionally summarizes the Practice Coach decision path without
+    asking the client to understand Python internals. It is safe to copy into a
+    frontend/backend issue report; verbose LLM payload previews remain available
+    in data/debug separately for developer inspection.
+    """
+
+    state_before = execution.get("stateBefore") if isinstance(execution.get("stateBefore"), dict) else {}
+    state_after = execution.get("stateAfter") if isinstance(execution.get("stateAfter"), dict) else {}
+    plan = execution.get("planProposal") if isinstance(execution.get("planProposal"), dict) else None
+    card = execution.get("routineCardPayload") if isinstance(execution.get("routineCardPayload"), dict) else None
+    sheet = execution.get("sheetIntent") if isinstance(execution.get("sheetIntent"), dict) else None
+    safety = execution.get("safety") if isinstance(execution.get("safety"), dict) else {}
+    io = execution.get("io") if isinstance(execution.get("io"), dict) else {}
+    read_io = io.get("read") if isinstance(io.get("read"), dict) else {}
+    write_io = io.get("write") if isinstance(io.get("write"), dict) else {}
+    validation = execution.get("llmActionDecisionValidation") if isinstance(execution.get("llmActionDecisionValidation"), dict) else {}
+    repair = execution.get("llmActionDecisionRepairReport") if isinstance(execution.get("llmActionDecisionRepairReport"), dict) else {}
+    user_message = _harmonyos_first_present(product_arguments, "userMessage", "user_message", "userInput", "user_input", "message")
+    trace_pack_core = {
+        "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+        "userId": _harmonyos_first_present(product_arguments, "userId", "user_id"),
+        "sessionId": _harmonyos_first_present(product_arguments, "sessionId", "session_id"),
+        "responseType": response_type,
+        "stateDigestAfter": execution.get("stateDigestAfter"),
+        "code": code,
+    }
+    return {
+        "tracePackVersion": PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
+        "purpose": "Copy this object when reporting HarmonyOS Practice Coach device feedback.",
+        "copyThisForBackendIssue": True,
+        "tracePackId": "pcfb-" + _short_digest(trace_pack_core),
+        "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+        "requestSummary": {
+            "userId": _harmonyos_first_present(product_arguments, "userId", "user_id"),
+            "sessionId": _harmonyos_first_present(product_arguments, "sessionId", "session_id"),
+            "deviceId": _harmonyos_first_present(product_arguments, "deviceId", "device_id"),
+            "clientLocalDate": _harmonyos_first_present(product_arguments, "clientLocalDate", "client_local_date"),
+            "clientTimezone": _harmonyos_first_present(product_arguments, "clientTimezone", "client_timezone"),
+            "locale": _harmonyos_first_present(product_arguments, "locale"),
+            "userMessagePreview": _compact_preview(user_message),
+            "userMessageDigest": _short_digest(user_message),
+            "hasProfileFormResult": isinstance(product_arguments.get("profileFormResult"), dict) or isinstance(product_arguments.get("profile_form_result"), dict),
+            "productRequestMustNotContainInternalFields": [
+                "dbPath",
+                "sqliteDbPath",
+                "clientConfirmedRecordWrite",
+                "providerResult",
+                "llmActionDecisionResult",
+                "apiKey",
+            ],
+        },
+        "responseSummary": {
+            "ok": bool(persisted),
+            "code": code,
+            "responseType": response_type,
+            "messagePreview": _compact_preview(content),
+            "nextClientActions": list(agent_action.get("nextClientActions") or []),
+            "conversationStatePersisted": bool(persisted),
+            "planProposalReady": response_type in {"practice_plan_proposal", "practice_plan_revision"} and isinstance(plan, dict),
+            "routineCardReady": response_type == "routine_card_ready" and isinstance(card, dict),
+            "profileSheetIntentReady": response_type == "request_profile_sheet" and isinstance(sheet, dict),
+            "routineStartEnabled": response_type == "routine_card_ready" and isinstance(card, dict),
+            "requiresUserTapToStart": response_type == "routine_card_ready" and isinstance(card, dict),
+        },
+        "decisionTrace": {
+            "decisionMode": execution.get("decisionMode"),
+            "selectedActionExecutor": execution.get("selectedActionExecutor"),
+            "routerDecisionReason": execution.get("routerDecisionReason"),
+            "llmCalled": bool(safety.get("llmCalled", False)),
+            "networkCallExecuted": bool(safety.get("networkCallExecuted", False)),
+            "llmActionDecisionSource": execution.get("llmActionDecisionSource"),
+            "deterministicFallbackUsed": bool(execution.get("deterministicFallbackUsed", False)),
+            "deterministicFallbackReason": execution.get("deterministicFallbackReason"),
+            "llmActionDecisionValidationOk": bool(validation.get("ok", False)),
+            "llmActionDecisionValidationReason": validation.get("reason"),
+            "repairAnyApplied": bool(repair.get("anyRepairApplied", False)),
+            "repairWarnings": list((repair.get("parseWarnings") or [])) + list((repair.get("schemaWarnings") or [])),
+        },
+        "stateTrace": {
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "turnCountBefore": state_before.get("turn_count"),
+            "turnCountAfter": state_after.get("turn_count"),
+            "awaitingConfirmationBefore": bool(state_before.get("awaiting_confirmation", False)) if state_before else False,
+            "awaitingConfirmationAfter": bool(state_after.get("awaiting_confirmation", False)) if state_after else False,
+            "lastAgentActionAfter": state_after.get("last_agent_action"),
+            "pendingMissingFieldsAfter": list(state_after.get("pending_missing_fields") or []),
+            "collectedFieldKeysAfter": _list_keys(state_after.get("collected_fields")),
+            "draftPlanDigestBefore": _short_digest(state_before.get("draft_plan")) if isinstance(state_before.get("draft_plan"), dict) else None,
+            "draftPlanDigestAfter": _short_digest(state_after.get("draft_plan")) if isinstance(state_after.get("draft_plan"), dict) else None,
+            "draftPlanSummaryAfter": _practice_coach_plan_summary(state_after.get("draft_plan")),
+        },
+        "artifactTrace": {
+            "sheetType": sheet.get("sheetType") if isinstance(sheet, dict) else None,
+            "planProposalId": plan.get("proposalId") if isinstance(plan, dict) else None,
+            "planProposalTotalDurationMinutes": plan.get("totalDurationMinutes") if isinstance(plan, dict) else None,
+            "planProposalPracticeFocus": plan.get("practiceFocus") if isinstance(plan, dict) else None,
+            "routineCardId": card.get("routineCardId") if isinstance(card, dict) else None,
+            "routineId": card.get("routineId") if isinstance(card, dict) else None,
+        },
+        "ioTrace": {
+            "sqliteReadBlockedReasons": list(read_io.get("blockedReasons") or []),
+            "sqliteWriteBlockedReasons": list(write_io.get("blockedReasons") or []),
+            "sqliteConnectionCreated": bool(write_io.get("sqliteConnectionCreated", False) or read_io.get("sqliteConnectionCreated", False)),
+            "sqliteTablesCreated": bool(write_io.get("sqliteTablesCreated", False) or read_io.get("sqliteTablesCreated", False)),
+            "sqliteRowsWritten": bool(write_io.get("sqliteRowsWritten", False)),
+            "sqliteRowCountWritten": int(write_io.get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(write_io.get("transactionCommitted", False)),
+            "readError": read_io.get("readError"),
+            "writeError": write_io.get("writeError"),
+        },
+        "safetyTrace": {
+            "startsRoutine": False,
+            "callsEngineAdapter": False,
+            "createsMidiAsset": False,
+            "startsPlayback": False,
+            "writesHarmonyOSLocalState": False,
+            "backendValidatesLlmActionContract": True,
+            "clientMustStartRoutineExplicitly": response_type == "routine_card_ready",
+        },
+        "frontendFeedbackChecklist": [
+            "request URL and baseUrl",
+            "request JSON without internal fields",
+            "HTTP status and response JSON",
+            "mapped UI state kind",
+            "visible message/content",
+            "whether sheet/proposal/routine card rendered",
+            "whether Routine auto-start was avoided",
+            "deviceFeedbackTracePack object",
+        ],
+    }
+
+
+def _practice_coach_plan_summary(plan: object) -> dict | None:
+    if not isinstance(plan, dict):
+        return None
+    return {
+        "proposalId": plan.get("proposalId"),
+        "title": plan.get("title"),
+        "practiceFocus": plan.get("practiceFocus"),
+        "totalDurationMinutes": plan.get("totalDurationMinutes"),
+        "blockCount": len(plan.get("blocks") or []) if isinstance(plan.get("blocks"), list) else 0,
+        "confirmationStatus": plan.get("confirmationStatus"),
+    }
+
+
 @router.get("/harmonyos/today-guidance-api-contract-alignment/spec")
 def get_agent_harmonyos_today_guidance_api_contract_alignment_spec() -> dict:
     return {"ok": True, "spec": agent_harmonyos_today_guidance_api_contract_alignment_contract()}
@@ -3433,6 +3618,15 @@ def execute_harmonyos_practice_coach_session_unified_message_request(request: di
     routine_card = execution.get("routineCardPayload") if isinstance(execution.get("routineCardPayload"), dict) else None
     sheet_intent = execution.get("sheetIntent") if isinstance(execution.get("sheetIntent"), dict) else None
     plan_proposal = execution.get("planProposal") if isinstance(execution.get("planProposal"), dict) else None
+    device_feedback_trace_pack = _practice_coach_device_feedback_trace_pack(
+        product_arguments=product_arguments,
+        execution=execution,
+        agent_action=agent_action,
+        response_type=response_type,
+        content=content,
+        persisted=persisted,
+        code=code_by_type.get(response_type, "practice_coach_message_processed"),
+    )
     return {
         "ok": persisted,
         "code": code_by_type.get(response_type, "practice_coach_message_processed"),
@@ -3454,7 +3648,7 @@ def execute_harmonyos_practice_coach_session_unified_message_request(request: di
             "sheetIntent": sheet_intent,
             "profileSheetIntentReady": response_type == "request_profile_sheet" and sheet_intent is not None,
             "planProposal": plan_proposal,
-            "planProposalReady": response_type == "practice_plan_proposal" and plan_proposal is not None,
+            "planProposalReady": response_type in {"practice_plan_proposal", "practice_plan_revision"} and plan_proposal is not None,
             "routineCardPayload": routine_card,
             "routineCardReady": response_type == "routine_card_ready" and routine_card is not None,
             "routineStartEnabled": bool(response_type == "routine_card_ready" and routine_card is not None),
@@ -3462,13 +3656,17 @@ def execute_harmonyos_practice_coach_session_unified_message_request(request: di
             "backendStartsRoutine": False,
             "llmRequestPreview": execution.get("llmRequestPreview"),
             "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
+            "deviceFeedbackTracePack": device_feedback_trace_pack,
         },
         "debug": {
             "traceVersion": "v2_10_16",
+            "deviceFeedbackTracePackVersion": PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
+            "deviceFeedbackTracePack": device_feedback_trace_pack,
             "llmActionDecisionTraceVersion": "v2_10_17",
             "realLlmProviderGuardedSmokeVersion": PRACTICE_COACH_REAL_LLM_PROVIDER_GUARDED_SMOKE_VERSION,
             "llmResponseRepairSchemaHardeningVersion": PRACTICE_COACH_LLM_RESPONSE_REPAIR_SCHEMA_HARDENING_VERSION,
             "sqlitePathGuardMacOSTempdirHotfixVersion": PRACTICE_COACH_SQLITE_PATH_GUARD_MACOS_TEMPDIR_HOTFIX_VERSION,
+            "planRevisionIntentRoutingHotfixVersion": PRACTICE_COACH_PLAN_REVISION_INTENT_ROUTING_HOTFIX_VERSION,
             "llmCalled": bool((execution.get("safety") or {}).get("llmCalled", False)),
             "networkCallExecuted": bool((execution.get("safety") or {}).get("networkCallExecuted", False)),
             "decisionMode": execution.get("decisionMode"),

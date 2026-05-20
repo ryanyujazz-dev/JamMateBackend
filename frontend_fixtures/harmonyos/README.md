@@ -1,3 +1,8 @@
+
+## v2_10_25 Practice Coach device feedback trace pack
+
+`POST /agent/harmonyos/practice-coach-session/message/execute` responses include `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`. For device feedback, return this object together with request URL, request JSON, HTTP status, response JSON, mapped UI state, and screenshot/logs if available. The pack is diagnostic only; frontend still must not send internal fields such as `sqliteDbPath`, `providerResult`, or `llmActionDecisionResult`.
+
 # JamMate HarmonyOS Frontend Fixture Pack v2_10_6
 
 This folder is a copy-friendly frontend contract pack for HarmonyOS development.

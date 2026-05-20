@@ -1,3 +1,19 @@
+## v2_10_25 — Practice Coach device feedback trace pack
+
+- Added `deviceFeedbackTracePack` to unified Practice Coach responses at `data.deviceFeedbackTracePack` and `debug.deviceFeedbackTracePack`.
+- The pack summarizes request, responseType, decision source/fallback, schema repair, state digests, plan/card artifacts, SQLite IO, and safety flags.
+- Added HarmonyOS smoke fixture and curl script for verifying the trace pack.
+- Updated frontend type fixtures with `PracticeCoachDeviceFeedbackTracePack`.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
+
+## v2_10_24
+
+- Added a HarmonyOS/front-end-facing Practice Coach plan revision E2E smoke pack.
+- Added `product_practice_coach_plan_revision_e2e_sequence.json` and `curl_practice_coach_plan_revision_e2e_smoke.sh`.
+- Locked the original reported flow in tests: initial plan, duration revision, fundamentals/metronome revision, tune-practice revision, and final confirmation to Routine card.
+- Preserved black-box frontend contract and Agent/Engine boundaries: no Engine call, no MIDI/playback generation, no Routine auto-start, and no HarmonyOS local-state write.
+
 ## v2_10_22_agent_practice_coach_sqlite_path_guard_macos_tempdir_hotfix
 
 - Fixed Practice Coach Session SQLite state-store path guard compatibility for macOS pytest temp dirs.
@@ -918,3 +934,10 @@ integration handoff or v2_10_5_agent_harmonyos_today_guidance_api_contract_align
 - Added block digests and stable-prefix digest so cache misses can be traced to the changed context layer.
 - Routine completion `items` and `notes` now enter the Practice Coach LLM context projection as compact `item_summaries` and `user_note_summary`, not as raw blobs.
 - Preserved Agent/Engine boundaries: preview only, no LLM call, no Routine start, no Engine call, no MIDI, no playback, no HarmonyOS local-state write.
+
+
+## v2_10_23
+
+- Fixed Practice Coach plan revision routing when `draft_plan` exists and `awaiting_confirmation=true`.
+- Added deterministic recognition for duration, focus, metronome/fundamentals, and tune-practice adjustment phrases.
+- `practice_plan_revision` now updates backend draft plan without creating a Routine card.
