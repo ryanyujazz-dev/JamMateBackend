@@ -1688,3 +1688,37 @@ no bar-first two_chord_bar route
 ```
 
 Next recommended task: `v2_6_71_engine_medium_swing_optional_fill_variation_vocabulary_activation`.
+
+## v2_6_78 — Engine Medium Swing Existing Voicing Capability Low-Register Clarity Guard
+
+Status: completed.
+
+Scope: style/event metadata policy only. This fixes the muddy low-register case found at All The Things You Are performance bar 88 after v2_6_77 explicit 5/6-note grouped SPREAD support.
+
+Boundary:
+
+```text
+no core voicing source/projection/selector change
+no pattern vocabulary change
+no expression numeric change
+no API / Agent / HarmonyOS change
+ordinary Medium Swing default still OPEN/DROP 4-note
+5/6-note grouped SPREAD remains explicit opt-in
+```
+
+Current rule:
+
+```text
+optional Medium Swing grouped SPREAD 5/6-note support
+→ reuse existing spread low-register density guard
+→ max one piano note below C3 when bass/full band is present
+```
+
+Verified regression target:
+
+```text
+v2_6_77 bar 88 Gmaj7: [43, 47, 54, 59, 64]  # muddy, two notes below C3
+v2_6_78 bar 88 Gmaj7: [43, 54, 59, 66, 69]  # fixed, one note below C3
+```
+
+Next recommended task: `v2_6_79_engine_medium_swing_full_band_listening_checkpoint_after_low_register_clarity_guard`.

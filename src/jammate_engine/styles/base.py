@@ -92,6 +92,12 @@ PIANO_COMPING_HARMONIC_FUNCTION_POLICY_VERSION = "v2_6_60"
 PIANO_COMPING_PROGRESSION_SPECIFIC_SUBSET_POLICY_VERSION = "v2_6_65"
 PIANO_COMPING_NO_4AND_DELAYED_TAIL_POLICY_VERSION = "v2_6_66"
 PIANO_COMPING_ENDING_SPECIFIC_SUBSET_POLICY_VERSION = "v2_6_70"
+PIANO_COMPING_OPTIONAL_FILL_VARIATION_VOCABULARY_POLICY_VERSION = "v2_6_71"
+PIANO_COMPING_OPTIONAL_FILL_VARIATION_LISTENING_REFINEMENT_POLICY_VERSION = "v2_6_72"
+PIANO_COMPING_PHRASE_END_FILL_CONTEXT_PRECISION_POLICY_VERSION = "v2_6_73"
+PIANO_COMPING_STANDARD_TUNE_FILL_FREQUENCY_CHECKPOINT_VERSION = "v2_6_74"
+PIANO_COMPING_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_76"
+PIANO_COMPING_TWO_BEAT_REGION_DENSITY_RELIEF_POLICY_VERSION = "v2_6_80"
 PIANO_COMPING_REGION_FIRST_COVERAGE_GUARD_VERSION = "v2_6_62"
 
 
@@ -784,6 +790,121 @@ def _history_recent_entries(history: dict, source_key: str) -> list[dict[str, An
     return normalized
 
 
+def _candidate_local_beats(candidate: PatternCandidate) -> tuple[float, ...]:
+    return tuple(round(float(getattr(event, "local_beat", 0.0)), 6) for event in candidate.events)
+
+
+def _apply_piano_comping_two_beat_region_density_relief_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    region: HarmonicRegion,
+    context: dict[str, Any],
+    history: dict,
+    source_key: str,
+) -> tuple[PatternCandidate, ...]:
+    """Relax Medium Swing piano comping in dense 2-beat harmonic rhythm.
+
+    v2_6_80 responds to standard tunes such as Autumn Leaves where long runs of
+    2-beat ChordRegions can make the piano sound busy in a full band.  The
+    policy stays in the existing style-owned candidate weighting path: it does
+    not create a bar-first two-chord-bar selector, does not add rhythm
+    vocabulary, and does not touch voicing/expression/API behavior.
+
+    It also deliberately favors simple region-start anchors, which leave the
+    previous region tail slot free for the already-generic AnticipationResolver
+    to move a next-region beat-1 event to the prior local 2& when probability
+    permits.
+    """
+
+    if len(candidates) <= 1 or _region_length_family_for_coverage(float(region.duration_beats)) != "two_beat_region":
+        return tuple(candidates)
+
+    recent = _history_recent_entries(history, source_key)
+    previous = recent[-1] if recent else {}
+    previous_two_beat = str(previous.get("region_length_family") or "") == "two_beat_region"
+    previous_event_count = int(previous.get("event_count") or 0) if previous else 0
+    previous_dense_short = previous_two_beat and previous_event_count > 1
+    label = _piano_harmonic_context_label(region, _motion_from_region_context(region, context))
+    is_first_half = bool(region.is_first_region_of_bar) and not bool(region.is_last_region_of_bar)
+    is_second_half = bool(region.is_last_region_of_bar) and not bool(region.is_first_region_of_bar)
+
+    adjusted: list[PatternCandidate] = []
+    for candidate in candidates:
+        metadata = dict(candidate.metadata)
+        beats = _candidate_local_beats(candidate)
+        has_start = 0.0 in beats
+        event_count = len(beats)
+        is_start_only = has_start and event_count == 1
+        has_tail_upbeat = 1.5 in beats
+        has_midbeat = 1.0 in beats
+        has_early_upbeat = 0.5 in beats
+        calibration_class = str(metadata.get("weight_calibration_class") or "stable")
+
+        multiplier = 1.0
+        reasons: list[str] = []
+        relief_status = "neutral"
+
+        if is_start_only:
+            multiplier *= 4.00
+            relief_status = "simple_anchor_preferred"
+            reasons.append("two_beat_dense_harmony_simple_anchor_bonus")
+            if is_second_half:
+                multiplier *= 1.15
+                reasons.append("second_half_region_prefers_light_anchor")
+        elif event_count > 1:
+            multiplier *= 0.14
+            relief_status = "multi_touch_short_region_downweighted"
+            reasons.append("two_beat_dense_harmony_multi_touch_downweight")
+            if has_tail_upbeat:
+                multiplier *= 0.55
+                reasons.append("tail_slot_preserved_for_generic_anticipation")
+            if has_early_upbeat:
+                multiplier *= 0.55
+                reasons.append("early_upbeat_in_short_region_extra_downweight")
+            if is_second_half:
+                multiplier *= 0.55
+                reasons.append("avoid_both_halves_strong_comping")
+        elif not has_start:
+            multiplier *= 0.20
+            relief_status = "delayed_only_short_region_downweighted"
+            reasons.append("two_beat_dense_harmony_delayed_only_downweight")
+            if has_midbeat or has_tail_upbeat or has_early_upbeat:
+                reasons.append("offbeat_only_presence_kept_rare_in_full_band")
+
+        if previous_dense_short and event_count > 1:
+            multiplier *= 0.25
+            reasons.append("previous_two_beat_multi_touch_history_relief")
+        if previous_two_beat and not is_start_only and calibration_class == "offbeat":
+            multiplier *= 0.35
+            reasons.append("consecutive_two_beat_offbeat_relief")
+        if label in {"section_end", "ending"} and is_start_only:
+            multiplier *= 1.08
+            reasons.append(f"{label}_short_region_settle_anchor_bonus")
+
+        metadata.update(
+            {
+                "two_beat_region_density_relief_policy_version": PIANO_COMPING_TWO_BEAT_REGION_DENSITY_RELIEF_POLICY_VERSION,
+                "two_beat_region_density_relief_policy_applied": True,
+                "two_beat_region_density_relief_multiplier": round(multiplier, 4),
+                "two_beat_region_density_relief_status": relief_status,
+                "two_beat_region_density_relief_reasons": tuple(reasons),
+                "two_beat_region_density_relief_event_count": event_count,
+                "two_beat_region_density_relief_local_beats": beats,
+                "two_beat_region_density_relief_has_start": bool(has_start),
+                "two_beat_region_density_relief_has_tail_upbeat": bool(has_tail_upbeat),
+                "two_beat_region_density_relief_is_first_half_of_bar": is_first_half,
+                "two_beat_region_density_relief_is_second_half_of_bar": is_second_half,
+                "two_beat_region_density_relief_previous_two_beat": previous_two_beat,
+                "two_beat_region_density_relief_previous_dense_short": previous_dense_short,
+                "two_beat_region_density_relief_context_label": label,
+                "two_beat_region_density_relief_preserves_tail_space_for_generic_anticipation": bool(is_start_only),
+                "two_beat_region_density_relief_contract": "Dense 2-beat ChordRegions are relaxed inside the existing ChordRegion-local candidate pool: simple anchors are favored, multi-touch/offbeat short-region cells are reduced, and tail space is preserved for the generic AnticipationResolver. No bar-first/two-chord-bar selector, new vocabulary, voicing, expression values, API, Agent, or HarmonyOS behavior is introduced.",
+            }
+        )
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * multiplier), metadata=metadata))
+    return tuple(adjusted)
+
+
 def _candidate_continuity_metadata(candidate: PatternCandidate) -> dict[str, Any]:
     metadata = dict(candidate.metadata)
     calibration_class = str(metadata.get("weight_calibration_class") or "stable")
@@ -882,6 +1003,293 @@ def _is_busy_context(label: str, context: dict[str, Any] | None) -> bool:
     energy = str((context or {}).get("energy") or (context or {}).get("comping_energy") or "").lower()
     density = str((context or {}).get("piano_density") or "").lower()
     return label in {"section_end", "ending", "turnaround_like"} or energy in {"high", "active", "busy"} or density in {"high", "busy"}
+
+
+def _as_policy_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on", "end", "ending", "phrase_end", "section_end"}
+
+
+def _phrase_end_fill_precision_context(region: HarmonicRegion, label: str, context: dict[str, Any] | None) -> dict[str, Any]:
+    """Return a ChordRegion-first phrase-end gate for optional transition fills.
+
+    v2_6_73 intentionally stays inside the existing candidate weighting path.
+    It treats explicit bar/section metadata as highest trust, then uses a small
+    jazz-standard fallback: the last region of every 4-bar mini-phrase can act
+    as a light phrase end.  This does not create a phrase engine or bar-first
+    template; it only narrows where the existing optional transition-fill cell
+    may receive a bonus.
+    """
+
+    metadata = {**dict(getattr(region, "metadata", {}) or {}), **dict(context or {})}
+    explicit_keys = (
+        "phrase_end",
+        "is_phrase_end",
+        "phrase_boundary",
+        "section_end",
+        "is_section_end",
+        "turnaround",
+        "is_turnaround",
+    )
+    explicit_phrase_end = any(_as_policy_bool(metadata.get(key)) for key in explicit_keys)
+    phrase_position = str(metadata.get("phrase_position") or metadata.get("phrase_role") or "").strip().lower()
+    if phrase_position in {"end", "ending", "last", "tail", "cadence", "phrase_end", "section_end"}:
+        explicit_phrase_end = True
+
+    last_region_of_bar = bool(getattr(region, "is_last_region_of_bar", False))
+    # Older focused tests and a few synthetic probes may omit the bar-local
+    # last-region flag even for a full-bar ChordRegion.  Treat only that
+    # genuinely unknown/full-bar shape as a tail; an explicit bar-local end
+    # with is_last_region_of_bar=False remains non-tail.
+    if not last_region_of_bar and getattr(region, "bar_local_end_beat", None) is None and float(getattr(region, "duration_beats", 0.0) or 0.0) >= 3.75:
+        last_region_of_bar = True
+    last_bar_of_section = bool(getattr(region, "is_last_bar_of_section", False))
+    last_bar_of_chorus = bool(getattr(region, "is_last_bar_of_chorus", False))
+    source_bar_index = getattr(region, "source_bar_index", None)
+    try:
+        source_bar_mod4 = int(source_bar_index) % 4 if source_bar_index is not None else None
+        source_bar_mod8 = int(source_bar_index) % 8 if source_bar_index is not None else None
+    except (TypeError, ValueError):
+        source_bar_mod4 = None
+        source_bar_mod8 = None
+
+    four_bar_phrase_tail = last_region_of_bar and source_bar_mod4 == 3
+    eight_bar_phrase_tail = last_region_of_bar and source_bar_mod8 == 7
+    section_tail = last_region_of_bar and last_bar_of_section
+    chorus_tail = last_region_of_bar and last_bar_of_chorus
+    harmonic_tail = label in {"section_end", "turnaround_like", "dominant_resolution"}
+    ending_tail = label == "ending" or chorus_tail
+
+    phrase_end_context = bool((explicit_phrase_end and last_region_of_bar) or section_tail or four_bar_phrase_tail or eight_bar_phrase_tail)
+    precision_status = "non_phrase_end"
+    if ending_tail:
+        precision_status = "ending_controlled"
+    elif section_tail:
+        precision_status = "section_phrase_end"
+    elif explicit_phrase_end and last_region_of_bar:
+        precision_status = "explicit_phrase_end"
+    elif eight_bar_phrase_tail:
+        precision_status = "eight_bar_phrase_tail"
+    elif four_bar_phrase_tail:
+        precision_status = "four_bar_phrase_tail"
+    elif harmonic_tail:
+        precision_status = "harmonic_transition_without_phrase_tail"
+
+    return {
+        "phrase_end_context": phrase_end_context,
+        "section_tail": section_tail,
+        "chorus_tail": chorus_tail,
+        "ending_tail": ending_tail,
+        "harmonic_tail": harmonic_tail,
+        "explicit_phrase_end": explicit_phrase_end,
+        "four_bar_phrase_tail": four_bar_phrase_tail,
+        "eight_bar_phrase_tail": eight_bar_phrase_tail,
+        "last_region_of_bar": last_region_of_bar,
+        "source_bar_mod4": source_bar_mod4,
+        "source_bar_mod8": source_bar_mod8,
+        "precision_status": precision_status,
+    }
+
+
+def _apply_piano_comping_optional_fill_variation_vocabulary_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    region: HarmonicRegion,
+    context: dict[str, Any],
+    history: dict | None = None,
+    source_key: str | None = None,
+) -> tuple[PatternCandidate, ...]:
+    """Guard optional fill/variation candidates inside the existing region pool.
+
+    v2_6_71 activates only a few low-weight optional Medium Swing piano fill
+    and variation cells.  v2_6_72 refines the listening behavior after user
+    review by splitting variation/fill/busy context weights more precisely while
+    keeping the same vocabulary and the same normal ChordRegion-length path; it
+    is not a fill selector, phrase engine, voicing chooser, or expression-value
+    writer.
+    """
+
+    if len(candidates) <= 1:
+        return tuple(candidates)
+    motion = _motion_from_region_context(region, context)
+    label = _piano_harmonic_context_label(region, motion)
+    fill_context = _is_fill_context(label)
+    busy_context = _is_busy_context(label, context)
+    phrase_precision = _phrase_end_fill_precision_context(region, label, context)
+    phrase_end_context = bool(phrase_precision.get("phrase_end_context"))
+    harmonic_transition_context = label in {"section_end", "turnaround_like", "dominant_resolution"}
+    transition_context = phrase_end_context or harmonic_transition_context
+    precise_transition_fill_context = phrase_end_context and not bool(phrase_precision.get("ending_tail"))
+    generic_light_context = label in {"generic", "tonic_prolongation", "section_start", "tonic_resolution"}
+    recent = _history_recent_entries(history or {}, source_key or "") if history is not None and source_key else []
+    previous = recent[-1] if recent else {}
+    recent_active_count = _recent_flag_count(recent, "is_active")
+    recent_fill_count = _recent_flag_count(recent, "is_fill")
+    recent_busy_count = _recent_flag_count(recent, "is_busy")
+    recent_push_count = _recent_flag_count(recent, "is_push")
+    recent_tail_push_count = _recent_flag_count(recent, "is_tail_push")
+
+    adjusted: list[PatternCandidate] = []
+    optional_count = sum(1 for candidate in candidates if bool(candidate.metadata.get("optional_fill_variation_vocabulary_candidate")))
+    for candidate in candidates:
+        metadata = dict(candidate.metadata)
+        is_optional = bool(metadata.get("optional_fill_variation_vocabulary_candidate"))
+        role = str(metadata.get("optional_fill_variation_role") or "none")
+        info = _candidate_continuity_metadata(candidate)
+        multiplier = 1.0
+        reasons: list[str] = []
+        status = "non_optional_passthrough"
+
+        if is_optional:
+            status = "optional_low_weight_candidate"
+            if transition_context:
+                if role == "transition_fill":
+                    multiplier *= 1.34
+                    reasons.append(f"{label}_transition_fill_phrase_end_bonus_v2_6_72")
+                    if precise_transition_fill_context:
+                        multiplier *= 1.18
+                        reasons.append(f"{phrase_precision['precision_status']}_transition_fill_precision_bonus_v2_6_73")
+                        status = "optional_context_allowed" if phrase_precision.get("precision_status") == "section_phrase_end" else "optional_phrase_end_precise_context"
+                    elif phrase_end_context:
+                        multiplier *= 1.04
+                        reasons.append("phrase_tail_transition_fill_precision_micro_bonus_v2_6_73")
+                        status = "optional_phrase_end_precise_context"
+                    else:
+                        multiplier *= 0.72
+                        reasons.append("harmonic_transition_without_phrase_tail_fill_precision_guard_v2_6_73")
+                        status = "optional_transition_harmonic_only_guarded"
+                elif role == "variation":
+                    multiplier *= 1.06
+                    reasons.append(f"{label}_light_variation_context_bonus_v2_6_72")
+                    status = "optional_context_allowed"
+                elif role == "busy_fill":
+                    multiplier *= 0.82 if busy_context else 0.18
+                    reasons.append(f"{label}_busy_fill_still_guarded_v2_6_72")
+                    status = "optional_busy_context_guarded"
+                else:
+                    multiplier *= 1.0
+                    reasons.append(f"{label}_optional_context_passthrough_v2_6_72")
+                    status = "optional_context_allowed"
+            elif label == "ending":
+                multiplier *= 0.12 if info.get("is_push") or info.get("is_tail_push") else 0.32
+                reasons.append("ending_optional_fill_variation_stricter_control_v2_6_72")
+                status = "optional_ending_controlled"
+            elif generic_light_context and role == "variation" and not info.get("is_push"):
+                multiplier *= 0.52
+                reasons.append("generic_light_variation_low_frequency_allowance_v2_6_72")
+                status = "optional_generic_low_frequency"
+            else:
+                multiplier *= 0.34
+                reasons.append("generic_context_optional_stronger_downweight_v2_6_72")
+                status = "optional_generic_low_frequency"
+
+            if info.get("is_fill") and not fill_context:
+                multiplier *= 0.58
+                reasons.append("optional_fill_outside_fill_context_downweight")
+            if info.get("is_busy") and not busy_context:
+                multiplier *= 0.08
+                reasons.append("optional_busy_outside_busy_context_near_block")
+            if info.get("is_push") and label not in {"section_end", "turnaround_like", "dominant_resolution"}:
+                multiplier *= 0.30
+                reasons.append("optional_push_outside_transition_context_strong_downweight")
+
+            if previous.get("is_active") and info.get("is_active"):
+                multiplier *= 0.35
+                reasons.append("optional_active_after_active_history_guard")
+            if previous.get("is_fill") and info.get("is_fill"):
+                multiplier *= 0.25
+                reasons.append("optional_fill_after_fill_history_guard")
+            if previous.get("is_busy") and info.get("is_busy"):
+                multiplier *= 0.02
+                reasons.append("optional_busy_after_busy_near_block")
+            if recent_active_count >= 1 and info.get("is_active"):
+                multiplier *= 0.55
+                reasons.append("optional_recent_active_memory_guard")
+            if recent_fill_count >= 1 and info.get("is_fill"):
+                multiplier *= 0.45
+                reasons.append("optional_recent_fill_memory_guard")
+            if recent_busy_count >= 1 and info.get("is_busy"):
+                multiplier *= 0.04
+                reasons.append("optional_recent_busy_memory_guard")
+            if recent_push_count >= 1 and info.get("is_push"):
+                multiplier *= 0.35
+                reasons.append("optional_recent_push_memory_guard")
+            if recent_tail_push_count >= 1 and info.get("is_tail_push"):
+                multiplier *= 0.08
+                reasons.append("optional_recent_tail_push_memory_guard")
+
+            if role == "variation" and recent_fill_count == 0 and recent_busy_count == 0 and transition_context:
+                multiplier *= 1.08
+                reasons.append("variation_after_clear_recent_history_micro_bonus_v2_6_72")
+            if role == "transition_fill" and phrase_end_context and recent_fill_count == 0 and recent_busy_count == 0:
+                multiplier *= 1.06
+                reasons.append("transition_fill_clear_phrase_end_history_micro_bonus_v2_6_73")
+            if role == "transition_fill" and not transition_context:
+                multiplier *= 0.60
+                reasons.append("transition_fill_requires_transition_context_v2_6_72")
+            if role == "transition_fill" and harmonic_transition_context and not phrase_end_context:
+                multiplier *= 0.72
+                reasons.append("transition_fill_harmonic_only_context_precision_downweight_v2_6_73")
+            if role == "busy_fill" and recent_active_count >= 1:
+                multiplier *= 0.42
+                reasons.append("busy_fill_after_recent_activity_extra_guard_v2_6_72")
+
+            if info.get("region_length_family") in {"one_beat_region", "two_beat_region"}:
+                multiplier *= 0.20
+                reasons.append("optional_short_region_safety_downweight")
+
+        metadata.update(
+            {
+                "optional_fill_variation_policy_version": PIANO_COMPING_OPTIONAL_FILL_VARIATION_VOCABULARY_POLICY_VERSION,
+                "optional_fill_variation_listening_refinement_policy_version": PIANO_COMPING_OPTIONAL_FILL_VARIATION_LISTENING_REFINEMENT_POLICY_VERSION,
+                "optional_fill_variation_listening_refinement_policy_applied": True,
+                "phrase_end_fill_context_precision_policy_version": PIANO_COMPING_PHRASE_END_FILL_CONTEXT_PRECISION_POLICY_VERSION,
+                "phrase_end_fill_context_precision_policy_applied": True,
+                "standard_tune_fill_frequency_checkpoint_version": PIANO_COMPING_STANDARD_TUNE_FILL_FREQUENCY_CHECKPOINT_VERSION,
+                "standard_tune_fill_frequency_checkpoint_applied": True,
+                "standard_tune_fill_frequency_checkpoint_scope": "audit_only_no_behavior_change",
+                "medium_swing_piano_comping_phase_completion_checkpoint_version": PIANO_COMPING_PHASE_COMPLETION_CHECKPOINT_VERSION,
+                "medium_swing_piano_comping_phase_completion_checkpoint_applied": True,
+                "medium_swing_piano_comping_phase_completion_checkpoint_scope": "stage_summary_no_behavior_change",
+                "optional_fill_variation_policy_applied": True,
+                "optional_fill_variation_candidate": bool(is_optional),
+                "optional_fill_variation_context_label": label,
+                "optional_fill_variation_transition_context": transition_context,
+                "optional_fill_variation_phrase_end_context": phrase_end_context,
+                "optional_fill_variation_precise_transition_fill_context": precise_transition_fill_context,
+                "optional_fill_variation_harmonic_transition_context": harmonic_transition_context,
+                "optional_fill_variation_phrase_precision_status": phrase_precision.get("precision_status"),
+                "optional_fill_variation_phrase_source_bar_mod4": phrase_precision.get("source_bar_mod4"),
+                "optional_fill_variation_phrase_source_bar_mod8": phrase_precision.get("source_bar_mod8"),
+                "optional_fill_variation_phrase_last_region_of_bar": phrase_precision.get("last_region_of_bar"),
+                "optional_fill_variation_phrase_explicit_phrase_end": phrase_precision.get("explicit_phrase_end"),
+                "optional_fill_variation_phrase_four_bar_tail": phrase_precision.get("four_bar_phrase_tail"),
+                "optional_fill_variation_phrase_eight_bar_tail": phrase_precision.get("eight_bar_phrase_tail"),
+                "optional_fill_variation_generic_light_context": generic_light_context,
+                "optional_fill_variation_role_runtime": role,
+                "optional_fill_variation_status": status,
+                "optional_fill_variation_multiplier": round(multiplier, 4),
+                "optional_fill_variation_reasons": tuple(reasons),
+                "optional_fill_variation_total_optional_candidate_count": optional_count,
+                "optional_fill_variation_recent_active_count": recent_active_count,
+                "optional_fill_variation_recent_fill_count": recent_fill_count,
+                "optional_fill_variation_recent_busy_count": recent_busy_count,
+                "optional_fill_variation_recent_push_count": recent_push_count,
+                "optional_fill_variation_recent_tail_push_count": recent_tail_push_count,
+                "optional_fill_variation_contract": "Optional fill/variation candidates are reweighted inside the existing ChordRegion-length pool and remain protected by the v2_6_67 active/fill/busy history scorer; no parallel fill selector, bar-first phrase route, voicing logic, or final expression values are introduced.",
+                "optional_fill_variation_listening_refinement_contract": "v2_6_72 keeps the v2_6_71 three-candidate vocabulary unchanged and only refines context/history multipliers so variation stays low-intrusion, transition fill prefers phrase/section/turnaround contexts, and busy remains heavily guarded.",
+                "phrase_end_fill_context_precision_contract": "v2_6_73 narrows the existing optional transition-fill bonus toward explicit phrase ends, section tails, and 4/8-bar phrase tails while downweighting harmonic-transition-only regions; it does not add a phrase engine, fill selector, new vocabulary, voicing logic, or final expression values.",
+                "standard_tune_fill_frequency_checkpoint_contract": "v2_6_74 is an audit/listening checkpoint that measures optional fill/variation frequency, phrase-tail targeting, and continuity safety on standard-tune demos; it does not change weights, add vocabulary, create a fill selector, or touch voicing/expression/API behavior.",
+                "medium_swing_piano_comping_phase_completion_checkpoint_contract": "v2_6_76 is a stage-completion checkpoint for the v2_6_56 through v2_6_74 Medium Swing piano comping line. It summarizes vocabulary, history, expression handoff, ending, and optional-fill safety before returning to voicing or broader listening work; it does not change pattern weights, add vocabulary, or touch voicing/expression/API/Agent/HarmonyOS behavior.",
+            }
+        )
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * multiplier), metadata=metadata))
+    return tuple(adjusted)
 
 
 def _apply_piano_comping_history_continuity_scorer(
@@ -1126,6 +1534,8 @@ class StyleProfile:
         piano_progression_subset_policy = bool(self.arrangement_policy.get("piano_comping_progression_specific_subset_policy", False))
         piano_no_4and_delayed_tail_policy = bool(self.arrangement_policy.get("piano_comping_no_4and_delayed_tail_idiom_policy", False))
         piano_ending_subset_policy = bool(self.arrangement_policy.get("piano_comping_ending_specific_subset_policy", False))
+        piano_optional_fill_variation_policy = bool(self.arrangement_policy.get("piano_comping_optional_fill_variation_vocabulary_policy", False))
+        piano_two_beat_density_relief_policy = bool(self.arrangement_policy.get("piano_comping_two_beat_region_density_relief_policy", False))
         piano_region_first_coverage_guard = bool(self.arrangement_policy.get("piano_region_first_coverage_guard", False))
 
         plans: list[PatternPlan] = []
@@ -1135,18 +1545,23 @@ class StyleProfile:
             if not candidates:
                 continue
             source_key = f"{self.name}:{source_index}:{getattr(source, '__module__', '')}.{getattr(source, '__name__', 'source')}"
+            is_piano_comping_source = ".comping_patterns" in source_key
+            two_beat_density_relief_repeat_exception = (
+                is_piano_comping_source
+                and piano_two_beat_density_relief_policy
+                and _region_length_family_for_coverage(float(region.duration_beats)) == "two_beat_region"
+            )
             choice_pool = candidates
-            if avoid_repeat and len(choice_pool) > 1:
+            if avoid_repeat and not two_beat_density_relief_repeat_exception and len(choice_pool) > 1:
                 previous_name = history.get(source_key)
                 filtered = tuple(candidate for candidate in choice_pool if candidate.name != previous_name)
                 if filtered:
                     choice_pool = filtered
-            if avoid_category_repeat and len(choice_pool) > 1:
+            if avoid_category_repeat and not two_beat_density_relief_repeat_exception and len(choice_pool) > 1:
                 previous_category = history.get(f"{source_key}:category")
                 filtered = tuple(candidate for candidate in choice_pool if candidate.category != previous_category)
                 if filtered:
                     choice_pool = filtered
-            is_piano_comping_source = ".comping_patterns" in source_key
             if piano_density_guard and is_piano_comping_source and len(choice_pool) > 1:
                 previous_density = history.get(f"{source_key}:density")
                 if previous_density == "dense":
@@ -1157,6 +1572,10 @@ class StyleProfile:
                 choice_pool = _apply_piano_comping_progression_specific_subset_policy(choice_pool, region=region, context=region_context)
             if piano_ending_subset_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_ending_specific_subset_policy(choice_pool, region=region, context=region_context)
+            if piano_two_beat_density_relief_policy and is_piano_comping_source and len(choice_pool) > 1:
+                choice_pool = _apply_piano_comping_two_beat_region_density_relief_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
+            if piano_optional_fill_variation_policy and is_piano_comping_source and len(choice_pool) > 1:
+                choice_pool = _apply_piano_comping_optional_fill_variation_vocabulary_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
             if piano_no_4and_delayed_tail_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_no_4and_delayed_tail_policy(choice_pool)
             if piano_harmonic_function_policy and is_piano_comping_source and len(choice_pool) > 1:
@@ -1172,7 +1591,7 @@ class StyleProfile:
                     _record_piano_comping_history(history, source_key, candidate)
             selected.append(candidate.name)
             plan = candidate.instantiate(region)
-            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
+            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
                 plan = replace(
                     plan,
                     events=[

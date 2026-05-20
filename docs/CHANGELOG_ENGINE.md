@@ -854,3 +854,32 @@ Recommended next task: `v2_6_70_engine_medium_swing_ending_specific_region_conte
 - Added `tests/test_v2_6_70_engine_medium_swing_ending_specific_region_context_candidate_subset_policy.py` and `examples/scripts/generate_medium_swing_ending_specific_subset_audit.py`.
 
 Recommended next task: `v2_6_71_engine_medium_swing_optional_fill_variation_vocabulary_activation`.
+
+## v2_6_74 — Engine Medium Swing Standard-Tune Fill Frequency Checkpoint
+
+- Added a behavior-preserving Medium Swing standard-tune fill-frequency checkpoint after the v2_6_71 optional fill/variation vocabulary, v2_6_72 listening refinement, and v2_6_73 phrase-end precision policy.
+- Added `piano_comping_standard_tune_fill_frequency_checkpoint_version = v2_6_74` arrangement metadata and selected-candidate audit metadata, without changing candidate weights, adding vocabulary, creating a fill selector, or touching voicing/expression/API/Agent/HarmonyOS behavior.
+- Generated All The Things You Are and Autumn Leaves three-chorus Medium Swing demos with an aggregate optional-selection ratio and continuity audit.
+- Added `tests/test_v2_6_74_engine_medium_swing_standard_tune_fill_frequency_checkpoint.py`, `examples/scripts/generate_medium_swing_standard_tune_fill_frequency_checkpoint.py`, and `docs/ENGINE_MEDIUM_SWING_STANDARD_TUNE_FILL_FREQUENCY_CHECKPOINT_V2_6_74.md`.
+
+Recommended next task: `v2_6_75_engine_medium_swing_optional_fill_density_macro_gate_only_if_frequency_rises`.
+
+## v2_6_76 — Engine Medium Swing Piano Comping Phase Completion Checkpoint
+
+- Added a behavior-preserving Medium Swing piano comping phase-completion checkpoint after the v2_6_56 through v2_6_74 pattern/history/expression/ending/fill-frequency workset.
+- Added `medium_swing_piano_comping_phase_completion_checkpoint_version = v2_6_76` arrangement metadata and selected-candidate audit metadata, without changing candidate weights, adding vocabulary, creating a selector, or touching voicing/expression/API/Agent/HarmonyOS behavior.
+- Generated All The Things You Are and Autumn Leaves three-chorus Medium Swing demos with consolidated phase safety audit coverage.
+- Added `tests/test_v2_6_76_engine_medium_swing_piano_comping_phase_completion_checkpoint.py`, `examples/scripts/generate_medium_swing_piano_comping_phase_completion_checkpoint.py`, and `docs/ENGINE_MEDIUM_SWING_PIANO_COMPING_PHASE_COMPLETION_CHECKPOINT_V2_6_76.md`.
+
+Recommended next task: return to the voicing line, preferably a Medium Swing open-drop / spread continuity checkpoint.
+
+## v2_6_78 — Engine Medium Swing Existing Voicing Capability Low-Register Clarity Guard
+
+- Investigated the reported muddy low register at performance bar 88 of the v2_6_77 All The Things You Are demo.
+- Root cause: the explicit Medium Swing 5-note grouped SPREAD support selected `spread_2plus3_contract` on `Gmaj7` with piano notes `[43, 47, 54, 59, 64]`, stacking `G2+B2` below C3 while bass was present.
+- Fixed this at the style/event policy layer by enabling the existing spread low-register density guard for optional Medium Swing grouped SPREAD 5/6-note usage: no more than one piano note may sit below C3.
+- Kept the v2_6_77 capability explicit/opt-in; ordinary Medium Swing remains OPEN/DROP 4-note by default.
+- Did not modify core voicing source, projection, selector, pattern vocabulary, expression numeric calibration, API, Agent, or HarmonyOS.
+- Added `tests/test_v2_6_78_engine_medium_swing_existing_voicing_capability_low_register_clarity_guard.py` and `examples/scripts/generate_medium_swing_existing_voicing_capability_low_register_clarity_guard_audit.py`.
+
+Recommended next task: `v2_6_79_engine_medium_swing_full_band_listening_checkpoint_after_low_register_clarity_guard`.
