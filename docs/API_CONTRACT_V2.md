@@ -1,3 +1,51 @@
+# v2_10_28 Context persistence SQLite path guard hotfix
+
+No public API contract change.
+
+`POST /agent/harmonyos/routine-completion-record/execute` keeps the same black-box product request shape. The hotfix only aligns the backend dev/test SQLite path guard with the Practice Coach session-state guard so macOS pytest tempdirs such as `/private/var/folders/...` are accepted when they are under `tempfile.gettempdir()`.
+
+Frontend still must not send `dbPath`, `sqliteDbPath`, or any internal write gate.
+
+# v2_10_27 Practice Coach HarmonyOS UI integration fields
+
+The primary Practice Coach endpoint remains:
+
+```text
+POST /agent/harmonyos/practice-coach-session/message/execute
+```
+
+In addition to canonical fields such as `data.responseType`, `data.content`, `data.sheetIntent`, `data.planProposal`, `data.routineCardPayload`, and `data.deviceFeedbackTracePack`, responses now include:
+
+```text
+data.frontendUiAction
+debug.frontendUiAction
+```
+
+`frontendUiAction` is a frontend rendering hint, not a new backend execution command. HarmonyOS may render directly by `data.responseType`, or use `frontendUiAction.renderMode` for simpler UI branching.
+
+Important mappings:
+
+```text
+practice_plan_proposal -> show_plan_proposal_card
+practice_plan_revision -> replace_plan_proposal_card
+routine_card_ready -> show_routine_card, user tap required
+routine-completion-record success -> show_routine_summary_recorded, do not auto-open Practice Coach
+```
+
+Safety invariants remain:
+
+```text
+safeToAutostartRoutine=false
+backendStartsRoutine=false
+startsRoutine=false
+callsEngineAdapter=false
+createsMidiAsset=false
+startsPlayback=false
+writesHarmonyOSLocalState=false
+```
+
+Production HarmonyOS requests must not send `dbPath`, `sqliteDbPath`, `clientConfirmedRecordWrite`, `providerResult`, `llmActionDecisionResult`, or `apiKey`.
+
 
 ## v2_10_25 Practice Coach device feedback trace pack
 
