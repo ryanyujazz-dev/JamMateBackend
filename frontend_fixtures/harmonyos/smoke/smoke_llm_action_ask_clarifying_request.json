@@ -1,0 +1,25 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-coach-smoke-ask-001",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "今天该练什么？",
+  "llmActionDecisionResult": {
+    "responseType": "ask_clarifying_question",
+    "message": "我可以帮你安排，但还需要知道你今天大概有多少时间，以及想练曲子、基本功、即兴还是伴奏。",
+    "missingFields": [
+      "available_minutes",
+      "practice_focus"
+    ],
+    "suggestedReplies": [
+      "20 分钟",
+      "30 分钟",
+      "练 Bossa",
+      "练 Swing",
+      "练基本功"
+    ],
+    "nextClientActions": [
+      "show_chat_message",
+      "show_suggested_replies"
+    ]
+  }
+}

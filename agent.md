@@ -1,6 +1,40 @@
+Current version: `v2_10_25`.
+
+## v2_10_25 Agent / Integration Boundary Update
+
+Practice Coach unified endpoint now returns a compact `deviceFeedbackTracePack` for HarmonyOS true-device feedback. The pack is a debugging/reporting envelope only; it does not change user-facing behavior. Product requests remain black-box and must not include `dbPath`, `sqliteDbPath`, `providerResult`, or `llmActionDecisionResult`.
+
+
+## v2_10_24 Agent / Integration Boundary Update
+
+Practice Coach adds a plan-revision E2E smoke pack for the one-session proposal → revision → confirmation flow. Production requests remain black-box; no Engine generation logic changed.
+
+Practice Coach SQLite state-store path guard now accepts the resolved OS tempdir root (`tempfile.gettempdir()`), fixing macOS `/private/var/folders/...` pytest failures while preserving unsafe-path rejection. No Engine generation logic changed.
+
+Current version: `v2_10_21`.
+
+## v2_10_21 Agent / Integration Boundary Update
+
+Practice Coach now includes LLM response repair and schema hardening for `POST /agent/harmonyos/practice-coach-session/message/execute`.
+
+The backend may repair Markdown-fenced JSON, nested action wrappers, responseType aliases, and common field aliases. It must reject unsafe payload keys and use deterministic fallback when validation fails. This does not change Engine generation logic and still does not start Routine, call Engine, generate MIDI, or play anything.
+
+Current version: `v2_10_21`.
+
+## v2_10_21 Agent / Integration Boundary Update
+
+Practice Coach now has an opt-in guarded smoke for real LLM provider execution through `POST /agent/harmonyos/practice-coach-session/message/execute`. The frontend request remains product-shaped and must not include `llmActionDecisionResult`, `providerResult`, `dbPath`, or internal write gates. Provider configuration belongs to the FastAPI server environment. The route still never starts Routine, calls Engine, creates MIDI, starts playback, or writes HarmonyOS local state.
+
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_10_8`.
+Current version: `v2_10_19`.
+
+
+## v2_10_19 Agent / Integration Boundary Update
+
+Practice Coach frontend integration now has copy-friendly ArkTS contract fixtures for the unified endpoint `POST /agent/harmonyos/practice-coach-session/message/execute`: `PracticeCoachTypes.ets`, `PracticeCoachStateMapper.ets`, and `JamMateApiClient.executePracticeCoachMessage(request)`. Production ArkTS request types must not include backend DB path fields, internal write gates, provider test hooks, or `llmActionDecisionResult`. The latter remains smoke-only in `smoke_llm_action_*` fixtures.
+
+Frontend rendering should be driven by `data.responseType` and `nextClientActions`; `safeToAutostartRoutine` must remain false. Even when a routine card is ready, the user must explicitly tap the frontend start button.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -132,14 +166,6 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_10_8_integration_agent_engine_merge` is the active integration baseline for `integration/agent-engine-merge`. It merges Engine Track `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff` and Agent Track `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
+Current integration baseline: `v2_10_25`. Practice Coach unified endpoint returns `deviceFeedbackTracePack` for HarmonyOS device feedback. This is diagnostic only; product requests remain black-box and must not include internal DB/provider fields.
 
-Strict boundaries remain active:
-
-- Engine runtime/style/pattern/gesture/expression/voicing/realization behavior stays owned by the Engine Track.
-- Agent terminal, LLM/provider boundary, trace, tool-preview, context, and guidance contracts stay owned by the Agent Track; the `v2_4_13_agent_tool_call_preview_trace_contract` tool-call preview trace contract remains preserved.
-- Shared files, frontend fixtures, version surfaces, and public API docs are integration-task territory.
-- Do not migrate V1 code, create V1-style runtime mirrors, bind patterns to voicing textures, or place Agent practice orchestration inside engine generation runtime.
-- Do not let `jammate_engine` import `jammate_agent`; do not let `jammate_agent` import `jammate_engine` except through adapters.
-
-The direct HarmonyOS accompaniment response shape remains protected: `{ ok, asset: { format, midi_base64, midi_path, cache_key }, debug_summary }`.
+Strict boundaries remain active: Engine generation stays Engine-owned; Agent practice orchestration stays Agent-owned; Shared files are integration tasks per `BRANCH_AND_TRACK_OWNERSHIP_V2.md`.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 from fastapi import APIRouter
 
 from jammate_agent.adapters.jammate_engine_accompaniment_adapter import JamMateEngineAccompanimentAdapter
@@ -87,6 +89,20 @@ from jammate_agent.core.contracts import (
     tool_registry_contract,
 )
 from jammate_agent.core.jammate_agent import JamMateAgent
+from jammate_agent.core.llm_provider import _normalize_messages_for_chat_completions, build_llm_provider_from_env
+from jammate_agent.core.practice_coach_session import (
+    build_practice_coach_context_builder_preview,
+    build_practice_coach_conversation_state_store_execute,
+    build_practice_coach_plan_proposal_contract_execute,
+    build_practice_coach_profile_sheet_intent_contract_execute,
+    build_practice_coach_routine_card_contract_execute,
+    build_practice_coach_unified_message_action_router_execute,
+    PRACTICE_COACH_REAL_LLM_PROVIDER_GUARDED_SMOKE_VERSION,
+    PRACTICE_COACH_LLM_RESPONSE_REPAIR_SCHEMA_HARDENING_VERSION,
+    PRACTICE_COACH_SQLITE_PATH_GUARD_MACOS_TEMPDIR_HOTFIX_VERSION,
+    PRACTICE_COACH_PLAN_REVISION_INTENT_ROUTING_HOTFIX_VERSION,
+    PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
+)
 from jammate_agent.core.tool_invocation import (
     ToolInvocationProposal,
     build_controlled_workflow_execution_summary,
@@ -3017,6 +3033,134 @@ def submit_session_review(request: SessionReviewRequest) -> dict:
 
 
 
+def _harmonyos_nested_get(source: dict, path: tuple[str, ...]) -> dict:
+    current: object = source
+    for key in path:
+        if not isinstance(current, dict):
+            return {}
+        current = current.get(key)
+    return current if isinstance(current, dict) else {}
+
+
+def _extract_harmonyos_today_guidance_prompt_payload(agent_payload: dict, *, context_source: str | None = None) -> tuple[dict, str]:
+    """Return the provider-prompt payload used by the HarmonyOS guidance chain.
+
+    The ordinary product response intentionally hides this deep nesting. The
+    trace endpoint surfaces it explicitly so product and frontend debugging can
+    answer: "what would be sent to the LLM if provider calls were enabled?"
+    """
+
+    if not isinstance(agent_payload, dict):
+        return {}, "none"
+    sqlite_prompt = _harmonyos_nested_get(
+        agent_payload,
+        (
+            "sqlite_today_guidance_payload",
+            "today_guidance_recovery_payload",
+            "guidance_payload",
+            "action_card_payload",
+            "provider_boundary_e2e_payload",
+            "prompt_payload",
+        ),
+    )
+    ordinary_prompt = _harmonyos_nested_get(
+        agent_payload,
+        (
+            "ordinary_guidance_payload",
+            "action_card_payload",
+            "provider_boundary_e2e_payload",
+            "prompt_payload",
+        ),
+    )
+    if context_source == "sqlite_backend" and sqlite_prompt:
+        return sqlite_prompt, "sqlite_backend"
+    if ordinary_prompt:
+        return ordinary_prompt, "plain_fallback"
+    if sqlite_prompt:
+        return sqlite_prompt, "sqlite_readback_attempt"
+    return {}, "none"
+
+
+def _harmonyos_provider_envelope_messages_from_prompt(prompt_payload: dict) -> list[dict[str, str]]:
+    messages: list[dict[str, str]] = []
+    raw_messages = prompt_payload.get("prompt_messages") if isinstance(prompt_payload, dict) else None
+    if not isinstance(raw_messages, list):
+        return messages
+    for raw_message in raw_messages:
+        if not isinstance(raw_message, dict):
+            continue
+        role = str(raw_message.get("role") or "user")
+        if role not in {"system", "developer", "user", "assistant", "context"}:
+            role = "developer"
+        content = raw_message.get("content")
+        if content is None and "content_json" in raw_message:
+            content = json.dumps(raw_message.get("content_json"), ensure_ascii=False)
+        messages.append({"role": role, "content": str(content or "")})
+    return messages
+
+
+def _build_harmonyos_llm_request_trace(agent_payload: dict, summary: dict, product_arguments: dict) -> dict:
+    prompt_payload, prompt_source = _extract_harmonyos_today_guidance_prompt_payload(agent_payload, context_source=str(summary.get("context_source") or ""))
+    provider_status = {}
+    try:
+        provider = build_llm_provider_from_env()
+        provider_status = provider.status() if hasattr(provider, "status") else {}
+    except Exception as exc:  # pragma: no cover - defensive only.
+        provider_status = {"provider_status_error": str(exc)}
+
+    provider_envelope_messages = _harmonyos_provider_envelope_messages_from_prompt(prompt_payload)
+    max_prompt_chars = int(provider_status.get("max_prompt_chars") or 12000)
+    chat_messages = _normalize_messages_for_chat_completions(tuple(provider_envelope_messages), max_prompt_chars)
+    request_body_preview = {
+        "model": provider_status.get("model"),
+        "messages": chat_messages,
+        "temperature": provider_status.get("temperature"),
+        "max_tokens": provider_status.get("max_output_tokens"),
+    }
+    assembled_context = prompt_payload.get("assembled_practice_context") if isinstance(prompt_payload.get("assembled_practice_context"), dict) else {}
+    output_schema = prompt_payload.get("output_schema") if isinstance(prompt_payload.get("output_schema"), dict) else {}
+    prompt_policy = prompt_payload.get("prompt_policy") if isinstance(prompt_payload.get("prompt_policy"), dict) else {}
+    return {
+        "traceVersion": "v2_10_10",
+        "routePurpose": "debug_preview_only_no_llm_call",
+        "userMessage": product_arguments.get("userInput"),
+        "contextSource": summary.get("context_source"),
+        "promptSource": prompt_source,
+        "providerStatus": provider_status,
+        "internalPromptMessages": prompt_payload.get("prompt_messages") if isinstance(prompt_payload.get("prompt_messages"), list) else [],
+        "providerEnvelopeMessages": provider_envelope_messages,
+        "chatCompletionsMessagesIfCalled": chat_messages,
+        "chatCompletionsRequestBodyPreview": request_body_preview,
+        "assembledPracticeContext": assembled_context,
+        "outputSchema": output_schema,
+        "promptPolicy": prompt_policy,
+        "contextSummary": {
+            "sqliteReadbackAttempted": bool(summary.get("sqlite_readback_attempted", False)),
+            "backendDatabaseRead": bool(summary.get("backend_database_read", False)),
+            "sqliteRowsRead": int(summary.get("sqlite_rows_read") or 0),
+            "routineCandidateCount": int(summary.get("routine_candidate_count") or 0),
+            "guidanceActionCardIsValid": bool(summary.get("guidance_action_card_is_valid", False)),
+        },
+        "roleNormalization": {
+            "internalRolesMayInclude": ["system", "developer", "user", "context"],
+            "networkPayloadUsesCompatibleRoles": True,
+            "developerAndContextMergedIntoSystem": True,
+            "allowedNetworkRoles": ["system", "user", "assistant"],
+        },
+        "safety": {
+            "llmCalledByThisTraceRoute": False,
+            "networkCallExecuted": False,
+            "toolExecutionEnabled": False,
+            "routineStartEnabled": False,
+            "accompanimentGenerateCallEnabled": False,
+            "engineAdapterCalled": False,
+            "midiAssetCreated": False,
+            "playbackStarted": False,
+            "rawApiKeyIncluded": False,
+        },
+    }
+
+
 def _extract_harmonyos_action_card_payload(agent_payload: dict) -> dict:
     if not isinstance(agent_payload, dict):
         return {}
@@ -3037,10 +3181,74 @@ def _extract_harmonyos_action_card_payload(agent_payload: dict) -> dict:
     return {}
 
 
-def _harmonyos_safety(*, writes_backend_sqlite: bool = False) -> dict:
+
+
+_HARMONYOS_AGENT_CONTEXT_DB_PATH_ENV_VAR = "JAMMATE_AGENT_CONTEXT_DB_PATH"
+_HARMONYOS_AGENT_DEFAULT_CONTEXT_DB_PATH = "/tmp/jammate_agent_harmonyos_context.sqlite3"
+
+
+def _harmonyos_first_present(source: dict, *keys: str):
+    for key in keys:
+        if key in source and source[key] is not None:
+            return source[key]
+    return None
+
+
+def _harmonyos_backend_context_db_path(arguments: dict) -> str:
+    candidate = _harmonyos_first_present(
+        arguments,
+        "sqliteDbPath",
+        "sqlite_db_path",
+        "dbPath",
+        "db_path",
+        "contextDbPath",
+        "agentContextDbPath",
+    )
+    if candidate is None:
+        candidate = os.environ.get(_HARMONYOS_AGENT_CONTEXT_DB_PATH_ENV_VAR)
+    text = str(candidate or "").strip()
+    return text or _HARMONYOS_AGENT_DEFAULT_CONTEXT_DB_PATH
+
+
+def _harmonyos_product_arguments(arguments: dict, *, route_kind: str) -> dict:
+    """Normalize HarmonyOS black-box product payloads before internal builders.
+
+    The real HarmonyOS client treats the Agent as a black-box HTTP API and does
+    not send internal sqliteDbPath or persistence gate fields. Those are backend
+    concerns: the backend uses JAMMATE_AGENT_CONTEXT_DB_PATH when configured, or
+    a safe local-dev default path for Mac/device smoke.
+    """
+
+    normalized = dict(arguments or {})
+    normalized.setdefault("environment", "local_dev")
+    normalized.setdefault("sqliteDbPath", _harmonyos_backend_context_db_path(normalized))
+
+    if route_kind == "today_guidance":
+        if _harmonyos_first_present(normalized, "userInput", "user_input", "text") is None:
+            user_message = _harmonyos_first_present(normalized, "userMessage", "user_message", "message")
+            if user_message is not None:
+                normalized["userInput"] = user_message
+            else:
+                normalized["userInput"] = "今天该练什么？"
+    elif route_kind == "routine_completion":
+        # The product route itself is the user's/client's explicit submission of
+        # a finished practice record. Do not require HarmonyOS to know internal
+        # write-gate fields; inject them only when the client did not specify a
+        # contrary value for debugging.
+        normalized.setdefault("clientConfirmedRecordWrite", True)
+        normalized.setdefault("backendPersistenceEnabled", True)
+        normalized.setdefault("executeBackendPersistence", True)
+        normalized.setdefault("userDecision", "approved")
+        normalized.setdefault("confirmationStatus", "user_approved_future_executor_required")
+
+    return normalized
+
+def _harmonyos_safety(*, writes_backend_sqlite: bool = False, llm_called: bool = False, network_call_executed: bool = False) -> dict:
     return {
         "displayOnly": not writes_backend_sqlite,
         "backendSQLiteWriteMayOccur": writes_backend_sqlite,
+        "llmCalled": llm_called,
+        "networkCallExecuted": network_call_executed,
         "writesHarmonyOSLocalState": False,
         "startsRoutine": False,
         "callsAccompanimentGenerate": False,
@@ -3050,6 +3258,189 @@ def _harmonyos_safety(*, writes_backend_sqlite: bool = False) -> dict:
         "createsPostSessionRecommendationCard": False,
         "clientDecidesPresentation": True,
         "frontendFlowAssumption": False,
+    }
+
+
+
+def _compact_preview(value: object, *, limit: int = 96) -> str:
+    text = str(value or "").replace("\n", " ").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
+
+
+def _short_digest(value: object) -> str:
+    try:
+        payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    except TypeError:
+        payload = str(value)
+    import hashlib
+
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _list_keys(value: object) -> list[str]:
+    if not isinstance(value, dict):
+        return []
+    return sorted(str(key) for key in value.keys())
+
+
+def _practice_coach_device_feedback_trace_pack(
+    *,
+    product_arguments: dict,
+    execution: dict,
+    agent_action: dict,
+    response_type: str,
+    content: str,
+    persisted: bool,
+    code: str,
+) -> dict:
+    """Compact, frontend-copyable trace pack for HarmonyOS device feedback.
+
+    This pack intentionally summarizes the Practice Coach decision path without
+    asking the client to understand Python internals. It is safe to copy into a
+    frontend/backend issue report; verbose LLM payload previews remain available
+    in data/debug separately for developer inspection.
+    """
+
+    state_before = execution.get("stateBefore") if isinstance(execution.get("stateBefore"), dict) else {}
+    state_after = execution.get("stateAfter") if isinstance(execution.get("stateAfter"), dict) else {}
+    plan = execution.get("planProposal") if isinstance(execution.get("planProposal"), dict) else None
+    card = execution.get("routineCardPayload") if isinstance(execution.get("routineCardPayload"), dict) else None
+    sheet = execution.get("sheetIntent") if isinstance(execution.get("sheetIntent"), dict) else None
+    safety = execution.get("safety") if isinstance(execution.get("safety"), dict) else {}
+    io = execution.get("io") if isinstance(execution.get("io"), dict) else {}
+    read_io = io.get("read") if isinstance(io.get("read"), dict) else {}
+    write_io = io.get("write") if isinstance(io.get("write"), dict) else {}
+    validation = execution.get("llmActionDecisionValidation") if isinstance(execution.get("llmActionDecisionValidation"), dict) else {}
+    repair = execution.get("llmActionDecisionRepairReport") if isinstance(execution.get("llmActionDecisionRepairReport"), dict) else {}
+    user_message = _harmonyos_first_present(product_arguments, "userMessage", "user_message", "userInput", "user_input", "message")
+    trace_pack_core = {
+        "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+        "userId": _harmonyos_first_present(product_arguments, "userId", "user_id"),
+        "sessionId": _harmonyos_first_present(product_arguments, "sessionId", "session_id"),
+        "responseType": response_type,
+        "stateDigestAfter": execution.get("stateDigestAfter"),
+        "code": code,
+    }
+    return {
+        "tracePackVersion": PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
+        "purpose": "Copy this object when reporting HarmonyOS Practice Coach device feedback.",
+        "copyThisForBackendIssue": True,
+        "tracePackId": "pcfb-" + _short_digest(trace_pack_core),
+        "endpoint": "POST /agent/harmonyos/practice-coach-session/message/execute",
+        "requestSummary": {
+            "userId": _harmonyos_first_present(product_arguments, "userId", "user_id"),
+            "sessionId": _harmonyos_first_present(product_arguments, "sessionId", "session_id"),
+            "deviceId": _harmonyos_first_present(product_arguments, "deviceId", "device_id"),
+            "clientLocalDate": _harmonyos_first_present(product_arguments, "clientLocalDate", "client_local_date"),
+            "clientTimezone": _harmonyos_first_present(product_arguments, "clientTimezone", "client_timezone"),
+            "locale": _harmonyos_first_present(product_arguments, "locale"),
+            "userMessagePreview": _compact_preview(user_message),
+            "userMessageDigest": _short_digest(user_message),
+            "hasProfileFormResult": isinstance(product_arguments.get("profileFormResult"), dict) or isinstance(product_arguments.get("profile_form_result"), dict),
+            "productRequestMustNotContainInternalFields": [
+                "dbPath",
+                "sqliteDbPath",
+                "clientConfirmedRecordWrite",
+                "providerResult",
+                "llmActionDecisionResult",
+                "apiKey",
+            ],
+        },
+        "responseSummary": {
+            "ok": bool(persisted),
+            "code": code,
+            "responseType": response_type,
+            "messagePreview": _compact_preview(content),
+            "nextClientActions": list(agent_action.get("nextClientActions") or []),
+            "conversationStatePersisted": bool(persisted),
+            "planProposalReady": response_type in {"practice_plan_proposal", "practice_plan_revision"} and isinstance(plan, dict),
+            "routineCardReady": response_type == "routine_card_ready" and isinstance(card, dict),
+            "profileSheetIntentReady": response_type == "request_profile_sheet" and isinstance(sheet, dict),
+            "routineStartEnabled": response_type == "routine_card_ready" and isinstance(card, dict),
+            "requiresUserTapToStart": response_type == "routine_card_ready" and isinstance(card, dict),
+        },
+        "decisionTrace": {
+            "decisionMode": execution.get("decisionMode"),
+            "selectedActionExecutor": execution.get("selectedActionExecutor"),
+            "routerDecisionReason": execution.get("routerDecisionReason"),
+            "llmCalled": bool(safety.get("llmCalled", False)),
+            "networkCallExecuted": bool(safety.get("networkCallExecuted", False)),
+            "llmActionDecisionSource": execution.get("llmActionDecisionSource"),
+            "deterministicFallbackUsed": bool(execution.get("deterministicFallbackUsed", False)),
+            "deterministicFallbackReason": execution.get("deterministicFallbackReason"),
+            "llmActionDecisionValidationOk": bool(validation.get("ok", False)),
+            "llmActionDecisionValidationReason": validation.get("reason"),
+            "repairAnyApplied": bool(repair.get("anyRepairApplied", False)),
+            "repairWarnings": list((repair.get("parseWarnings") or [])) + list((repair.get("schemaWarnings") or [])),
+        },
+        "stateTrace": {
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "turnCountBefore": state_before.get("turn_count"),
+            "turnCountAfter": state_after.get("turn_count"),
+            "awaitingConfirmationBefore": bool(state_before.get("awaiting_confirmation", False)) if state_before else False,
+            "awaitingConfirmationAfter": bool(state_after.get("awaiting_confirmation", False)) if state_after else False,
+            "lastAgentActionAfter": state_after.get("last_agent_action"),
+            "pendingMissingFieldsAfter": list(state_after.get("pending_missing_fields") or []),
+            "collectedFieldKeysAfter": _list_keys(state_after.get("collected_fields")),
+            "draftPlanDigestBefore": _short_digest(state_before.get("draft_plan")) if isinstance(state_before.get("draft_plan"), dict) else None,
+            "draftPlanDigestAfter": _short_digest(state_after.get("draft_plan")) if isinstance(state_after.get("draft_plan"), dict) else None,
+            "draftPlanSummaryAfter": _practice_coach_plan_summary(state_after.get("draft_plan")),
+        },
+        "artifactTrace": {
+            "sheetType": sheet.get("sheetType") if isinstance(sheet, dict) else None,
+            "planProposalId": plan.get("proposalId") if isinstance(plan, dict) else None,
+            "planProposalTotalDurationMinutes": plan.get("totalDurationMinutes") if isinstance(plan, dict) else None,
+            "planProposalPracticeFocus": plan.get("practiceFocus") if isinstance(plan, dict) else None,
+            "routineCardId": card.get("routineCardId") if isinstance(card, dict) else None,
+            "routineId": card.get("routineId") if isinstance(card, dict) else None,
+        },
+        "ioTrace": {
+            "sqliteReadBlockedReasons": list(read_io.get("blockedReasons") or []),
+            "sqliteWriteBlockedReasons": list(write_io.get("blockedReasons") or []),
+            "sqliteConnectionCreated": bool(write_io.get("sqliteConnectionCreated", False) or read_io.get("sqliteConnectionCreated", False)),
+            "sqliteTablesCreated": bool(write_io.get("sqliteTablesCreated", False) or read_io.get("sqliteTablesCreated", False)),
+            "sqliteRowsWritten": bool(write_io.get("sqliteRowsWritten", False)),
+            "sqliteRowCountWritten": int(write_io.get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(write_io.get("transactionCommitted", False)),
+            "readError": read_io.get("readError"),
+            "writeError": write_io.get("writeError"),
+        },
+        "safetyTrace": {
+            "startsRoutine": False,
+            "callsEngineAdapter": False,
+            "createsMidiAsset": False,
+            "startsPlayback": False,
+            "writesHarmonyOSLocalState": False,
+            "backendValidatesLlmActionContract": True,
+            "clientMustStartRoutineExplicitly": response_type == "routine_card_ready",
+        },
+        "frontendFeedbackChecklist": [
+            "request URL and baseUrl",
+            "request JSON without internal fields",
+            "HTTP status and response JSON",
+            "mapped UI state kind",
+            "visible message/content",
+            "whether sheet/proposal/routine card rendered",
+            "whether Routine auto-start was avoided",
+            "deviceFeedbackTracePack object",
+        ],
+    }
+
+
+def _practice_coach_plan_summary(plan: object) -> dict | None:
+    if not isinstance(plan, dict):
+        return None
+    return {
+        "proposalId": plan.get("proposalId"),
+        "title": plan.get("title"),
+        "practiceFocus": plan.get("practiceFocus"),
+        "totalDurationMinutes": plan.get("totalDurationMinutes"),
+        "blockCount": len(plan.get("blocks") or []) if isinstance(plan.get("blocks"), list) else 0,
+        "confirmationStatus": plan.get("confirmationStatus"),
     }
 
 
@@ -3097,8 +3488,9 @@ def preview_harmonyos_today_practice_guidance_request(request: dict) -> dict:
     if not isinstance(arguments, dict):
         arguments = {}
     trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
     payload = build_agent_usable_today_practice_guidance_mvp_payload(
-        arguments,
+        product_arguments,
         trace_id=trace_id,
         source="agent_api_harmonyos_today_practice_guidance_preview",
     )
@@ -3133,9 +3525,458 @@ def preview_harmonyos_today_practice_guidance_request(request: dict) -> dict:
             "llmCalled": bool(summary.get("llm_called", False)),
             "blockedReasons": list(summary.get("blocked_reasons") or []),
             "warnings": list(summary.get("warnings") or []),
-            "agentPayload": payload_dict if bool(arguments.get("includeDebugPayload") or arguments.get("include_debug_payload")) else None,
+            "agentPayload": payload_dict if bool(product_arguments.get("includeDebugPayload") or product_arguments.get("include_debug_payload")) else None,
         },
         "safety": _harmonyos_safety(),
+    }
+
+
+@router.post("/harmonyos/today-practice-guidance/llm-payload-trace")
+def preview_harmonyos_today_practice_guidance_llm_payload_trace(request: dict) -> dict:
+    """HarmonyOS debug route showing the exact today-guidance LLM payload preview.
+
+    This endpoint is intentionally read-only and provider-call-free. It answers
+    product/debug questions such as: after the user taps "今天该练什么", what
+    messages would JamMate prepare for the model if provider execution were
+    enabled? The route uses the same black-box product request body as
+    /harmonyos/today-practice-guidance/preview.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    payload = build_agent_usable_today_practice_guidance_mvp_payload(
+        product_arguments,
+        trace_id=trace_id,
+        source="agent_api_harmonyos_today_practice_guidance_llm_payload_trace",
+    )
+    payload_dict = payload.to_dict()
+    summary = build_agent_usable_today_practice_guidance_mvp_summary(payload=payload, source="agent_api_harmonyos_llm_payload_trace")
+    llm_request_trace = _build_harmonyos_llm_request_trace(payload_dict, summary, product_arguments)
+    prompt_ready = bool(llm_request_trace.get("internalPromptMessages")) and bool(llm_request_trace.get("chatCompletionsMessagesIfCalled"))
+    return {
+        "ok": prompt_ready,
+        "code": "today_guidance_llm_payload_trace_ready" if prompt_ready else "today_guidance_llm_payload_trace_unavailable",
+        "message": "已生成今日练习建议的 LLM 请求预览；本接口不会调用大模型。" if prompt_ready else "暂时无法生成 LLM 请求预览，请检查 today guidance 链路。",
+        "data": {
+            "llmPayloadTraceReady": prompt_ready,
+            "content": "这是调试预览：展示如果调用大模型，将发送哪些 messages；本接口没有真正调用大模型。",
+            "userMessage": product_arguments.get("userInput"),
+            "contextSource": summary.get("context_source"),
+            "llmRequestPreview": llm_request_trace,
+        },
+        "debug": {
+            "agentHarmonyOSTodayGuidanceApiContractAlignmentVersion": agent_harmonyos_today_guidance_api_contract_alignment_contract()["version"],
+            "underlyingVersion": summary.get("agent_usable_today_practice_guidance_mvp_version"),
+            "traceVersion": "v2_10_10",
+            "validationStatus": summary.get("validation_status"),
+            "sqliteReadbackAttempted": bool(summary.get("sqlite_readback_attempted", False)),
+            "backendDatabaseRead": bool(summary.get("backend_database_read", False)),
+            "sqliteRowsRead": int(summary.get("sqlite_rows_read") or 0),
+            "llmCalled": False,
+            "networkCallExecuted": False,
+            "blockedReasons": list(summary.get("blocked_reasons") or []),
+            "warnings": list(summary.get("warnings") or []),
+        },
+        "safety": _harmonyos_safety(),
+    }
+
+
+
+@router.post("/harmonyos/practice-coach-session/message/execute")
+def execute_harmonyos_practice_coach_session_unified_message_request(request: dict) -> dict:
+    """Unified HarmonyOS Practice Coach message/action router.
+
+    This route lets HarmonyOS send one Practice Coach message and then render by
+    `responseType` / `nextClientActions`. Since v2_10_17, the route is
+    LLM-action-decision-first when a provider or injected smoke result is
+    available; deterministic routing is only fallback. It never starts Routine,
+    calls Engine, creates MIDI, starts playback, or writes HarmonyOS local state.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    execution = build_practice_coach_unified_message_action_router_execute(product_arguments, trace_id=trace_id)
+    persisted = bool(execution.get("statePersisted", False))
+    agent_action = execution.get("agentActionPreview") if isinstance(execution.get("agentActionPreview"), dict) else {}
+    response_type = str(agent_action.get("responseType") or execution.get("responseType") or "cannot_proceed")
+    content = str(agent_action.get("message") or "已处理 Practice Coach Session 消息。")
+    code_by_type = {
+        "ask_clarifying_question": "practice_coach_message_ask_clarifying_question",
+        "chat_message": "practice_coach_message_recorded",
+        "request_profile_sheet": "practice_coach_message_profile_sheet_intent_ready",
+        "practice_plan_proposal": "practice_coach_message_plan_proposal_ready",
+        "practice_plan_revision": "practice_coach_message_plan_revision_ready",
+        "routine_card_ready": "practice_coach_message_routine_card_ready",
+        "cannot_proceed": "practice_coach_message_cannot_proceed",
+    }
+    routine_card = execution.get("routineCardPayload") if isinstance(execution.get("routineCardPayload"), dict) else None
+    sheet_intent = execution.get("sheetIntent") if isinstance(execution.get("sheetIntent"), dict) else None
+    plan_proposal = execution.get("planProposal") if isinstance(execution.get("planProposal"), dict) else None
+    device_feedback_trace_pack = _practice_coach_device_feedback_trace_pack(
+        product_arguments=product_arguments,
+        execution=execution,
+        agent_action=agent_action,
+        response_type=response_type,
+        content=content,
+        persisted=persisted,
+        code=code_by_type.get(response_type, "practice_coach_message_processed"),
+    )
+    return {
+        "ok": persisted,
+        "code": code_by_type.get(response_type, "practice_coach_message_processed"),
+        "message": content,
+        "data": {
+            "content": content,
+            "responseType": response_type,
+            "selectedActionExecutor": execution.get("selectedActionExecutor"),
+            "routerDecisionReason": execution.get("routerDecisionReason"),
+            "nextClientActions": list(agent_action.get("nextClientActions") or []),
+            "conversationStatePersisted": persisted,
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateBefore": execution.get("stateBefore"),
+            "stateAfter": execution.get("stateAfter"),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "extractedFieldsFromCurrentTurn": execution.get("extractedFieldsFromCurrentTurn") or {},
+            "agentActionPreview": agent_action,
+            "sheetIntent": sheet_intent,
+            "profileSheetIntentReady": response_type == "request_profile_sheet" and sheet_intent is not None,
+            "planProposal": plan_proposal,
+            "planProposalReady": response_type in {"practice_plan_proposal", "practice_plan_revision"} and plan_proposal is not None,
+            "routineCardPayload": routine_card,
+            "routineCardReady": response_type == "routine_card_ready" and routine_card is not None,
+            "routineStartEnabled": bool(response_type == "routine_card_ready" and routine_card is not None),
+            "requiresUserTapToStart": bool(response_type == "routine_card_ready" and routine_card is not None),
+            "backendStartsRoutine": False,
+            "llmRequestPreview": execution.get("llmRequestPreview"),
+            "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
+            "deviceFeedbackTracePack": device_feedback_trace_pack,
+        },
+        "debug": {
+            "traceVersion": "v2_10_16",
+            "deviceFeedbackTracePackVersion": PRACTICE_COACH_DEVICE_FEEDBACK_TRACE_PACK_VERSION,
+            "deviceFeedbackTracePack": device_feedback_trace_pack,
+            "llmActionDecisionTraceVersion": "v2_10_17",
+            "realLlmProviderGuardedSmokeVersion": PRACTICE_COACH_REAL_LLM_PROVIDER_GUARDED_SMOKE_VERSION,
+            "llmResponseRepairSchemaHardeningVersion": PRACTICE_COACH_LLM_RESPONSE_REPAIR_SCHEMA_HARDENING_VERSION,
+            "sqlitePathGuardMacOSTempdirHotfixVersion": PRACTICE_COACH_SQLITE_PATH_GUARD_MACOS_TEMPDIR_HOTFIX_VERSION,
+            "planRevisionIntentRoutingHotfixVersion": PRACTICE_COACH_PLAN_REVISION_INTENT_ROUTING_HOTFIX_VERSION,
+            "llmCalled": bool((execution.get("safety") or {}).get("llmCalled", False)),
+            "networkCallExecuted": bool((execution.get("safety") or {}).get("networkCallExecuted", False)),
+            "decisionMode": execution.get("decisionMode"),
+            "llmActionDecisionSource": execution.get("llmActionDecisionSource"),
+            "llmProviderStatus": execution.get("llmProviderStatus"),
+            "llmProviderResult": execution.get("llmProviderResult"),
+            "llmActionDecisionValidation": execution.get("llmActionDecisionValidation"),
+            "llmActionDecisionRepairReport": execution.get("llmActionDecisionRepairReport"),
+            "deterministicFallbackUsed": bool(execution.get("deterministicFallbackUsed", False)),
+            "deterministicFallbackReason": execution.get("deterministicFallbackReason"),
+            "selectedActionExecutor": execution.get("selectedActionExecutor"),
+            "routerDecisionReason": execution.get("routerDecisionReason"),
+            "routerReadBeforeDecision": execution.get("routerReadBeforeDecision"),
+            "sqliteConnectionCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteConnectionCreated")),
+            "sqliteTablesCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteTablesCreated")),
+            "sqliteRowsWritten": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteRowsWritten")),
+            "sqliteRowCountWritten": int(((execution.get("io") or {}).get("write") or {}).get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(((execution.get("io") or {}).get("write") or {}).get("transactionCommitted")),
+            "stateStoreIo": execution.get("io"),
+            "practiceCoachStateStoreIo": execution.get("io"),
+        },
+        "safety": _harmonyos_safety(
+            writes_backend_sqlite=persisted,
+            llm_called=bool((execution.get("safety") or {}).get("llmCalled", False)),
+            network_call_executed=bool((execution.get("safety") or {}).get("networkCallExecuted", False)),
+        ) | {
+            "unifiedRouterOnlyDelegatesDeterministicContracts": False,
+            "deterministicFallbackUsed": bool(execution.get("deterministicFallbackUsed", False)),
+            "llmActionDecisionValidated": bool(((execution.get("llmActionDecisionValidation") or {}).get("ok", False))),
+            "backendValidatesLlmActionContract": True,
+            "backendRepairsLlmActionSchema": True,
+            "frontendMayOpenNativeSheet": bool(sheet_intent),
+            "frontendOwnsNativeSheetRendering": bool(sheet_intent),
+            "llmDoesNotRenderUi": bool(sheet_intent),
+        },
+    }
+
+@router.post("/harmonyos/practice-coach-session/context-builder-preview")
+def preview_harmonyos_practice_coach_session_context_builder(request: dict) -> dict:
+    """HarmonyOS debug route for the cache-friendly Practice Coach context builder.
+
+    This endpoint previews the new Practice Coach Session context engineering
+    shape. It is read-only: it may read backend SQLite context, but it never
+    calls an LLM/provider, starts Routine, calls Engine, creates MIDI, starts
+    playback, or writes HarmonyOS local state.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    preview = build_practice_coach_context_builder_preview(product_arguments)
+    return {
+        "ok": True,
+        "code": "practice_coach_context_builder_preview_ready",
+        "message": "已生成 Practice Coach Session 上下文工程预览；本接口不会调用大模型。",
+        "data": {
+            "contextBuilderPreviewReady": True,
+            "content": "这是调试预览：展示 Practice Coach Session 如何组织可缓存的上下文 messages；本接口没有真正调用大模型。",
+            "userMessage": preview.get("userMessage"),
+            "llmRequestPreview": preview,
+        },
+        "debug": {
+            "traceVersion": "v2_10_11",
+            "llmCalled": False,
+            "networkCallExecuted": False,
+            "sqliteReadOnlyConnectionCreated": bool((preview.get("sourceProjection") or {}).get("sqliteReadOnlyConnectionCreated")),
+            "sqliteRowsRead": int((preview.get("sourceProjection") or {}).get("sqliteRowsRead") or 0),
+            "stablePrefixDigest": (preview.get("debugMetadata") or {}).get("stable_prefix_digest"),
+            "contextPacketDigest": (preview.get("debugMetadata") or {}).get("context_packet_digest"),
+            "currentTurnDigest": (preview.get("debugMetadata") or {}).get("current_turn_digest"),
+        },
+        "safety": _harmonyos_safety(),
+    }
+
+
+@router.post("/harmonyos/practice-coach-session/message-state/execute")
+def execute_harmonyos_practice_coach_session_message_state_request(request: dict) -> dict:
+    """HarmonyOS route for Practice Coach Session conversation state continuity.
+
+    This route records one user message, restores the previous session state,
+    applies a deterministic state update for missing-info continuity, persists
+    the updated state to backend SQLite, and returns a cache-aware context
+    preview. It does not call an LLM/provider.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    execution = build_practice_coach_conversation_state_store_execute(product_arguments, trace_id=trace_id)
+    persisted = bool(execution.get("conversationStatePersisted", False))
+    agent_action = execution.get("agentActionPreview") if isinstance(execution.get("agentActionPreview"), dict) else {}
+    content = str(agent_action.get("message") or "已处理 Practice Coach Session 对话状态。")
+    return {
+        "ok": persisted,
+        "code": "practice_coach_session_state_persisted" if persisted else "practice_coach_session_state_not_persisted",
+        "message": content,
+        "data": {
+            "content": content,
+            "conversationStatePersisted": persisted,
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateBefore": execution.get("stateBefore"),
+            "stateAfter": execution.get("stateAfter"),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "extractedFieldsFromCurrentTurn": execution.get("extractedFieldsFromCurrentTurn") or {},
+            "agentActionPreview": agent_action,
+            "llmRequestPreview": execution.get("llmRequestPreview"),
+            "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
+        },
+        "debug": {
+            "traceVersion": "v2_10_12",
+            "llmCalled": False,
+            "networkCallExecuted": False,
+            "sqliteConnectionCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteConnectionCreated")),
+            "sqliteTablesCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteTablesCreated")),
+            "sqliteRowsWritten": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteRowsWritten")),
+            "sqliteRowCountWritten": int(((execution.get("io") or {}).get("write") or {}).get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(((execution.get("io") or {}).get("write") or {}).get("transactionCommitted")),
+            "stateStoreIo": execution.get("io"),
+            "practiceCoachStateStoreIo": execution.get("io"),
+        },
+        "safety": _harmonyos_safety(writes_backend_sqlite=persisted),
+    }
+
+
+@router.post("/harmonyos/practice-coach-session/plan-proposal/execute")
+def execute_harmonyos_practice_coach_session_plan_proposal_request(request: dict) -> dict:
+    """HarmonyOS route for Practice Coach practice-plan proposal contract.
+
+    This route reads/restores the Practice Coach Session state, merges the
+    current user turn, and returns either a missing-info clarification action or
+    a structured `practice_plan_proposal` awaiting explicit user confirmation.
+    It never starts a Routine or creates a Routine card.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    execution = build_practice_coach_plan_proposal_contract_execute(product_arguments, trace_id=trace_id)
+    persisted = bool(execution.get("planProposalStatePersisted", False))
+    agent_action = execution.get("agentActionPreview") if isinstance(execution.get("agentActionPreview"), dict) else {}
+    response_type = str(agent_action.get("responseType") or "cannot_proceed")
+    content = str(agent_action.get("message") or "已处理 Practice Coach 练习计划草案请求。")
+    proposal_ready = response_type == "practice_plan_proposal" and isinstance(agent_action.get("planProposal"), dict)
+    return {
+        "ok": persisted,
+        "code": "practice_coach_plan_proposal_ready" if proposal_ready else "practice_coach_plan_proposal_needs_more_context",
+        "message": content,
+        "data": {
+            "content": content,
+            "planProposalReady": proposal_ready,
+            "planProposalStatePersisted": persisted,
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateBefore": execution.get("stateBefore"),
+            "stateAfter": execution.get("stateAfter"),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "extractedFieldsFromCurrentTurn": execution.get("extractedFieldsFromCurrentTurn") or {},
+            "agentActionPreview": agent_action,
+            "planProposal": agent_action.get("planProposal") if isinstance(agent_action.get("planProposal"), dict) else None,
+            "requiresUserConfirmationBeforeRoutineCard": True,
+            "routineCardPayload": None,
+            "routineStartEnabled": False,
+            "llmRequestPreview": execution.get("llmRequestPreview"),
+            "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
+        },
+        "debug": {
+            "traceVersion": "v2_10_13",
+            "llmCalled": False,
+            "networkCallExecuted": False,
+            "sqliteConnectionCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteConnectionCreated")),
+            "sqliteTablesCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteTablesCreated")),
+            "sqliteRowsWritten": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteRowsWritten")),
+            "sqliteRowCountWritten": int(((execution.get("io") or {}).get("write") or {}).get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(((execution.get("io") or {}).get("write") or {}).get("transactionCommitted")),
+            "stateStoreIo": execution.get("io"),
+            "practiceCoachStateStoreIo": execution.get("io"),
+        },
+        "safety": _harmonyos_safety(writes_backend_sqlite=persisted),
+    }
+
+
+
+@router.post("/harmonyos/practice-coach-session/profile-sheet/execute")
+def execute_harmonyos_practice_coach_session_profile_sheet_request(request: dict) -> dict:
+    """HarmonyOS route for Practice Coach native profile sheet intent.
+
+    The route either returns `request_profile_sheet` / `sheetIntent` so the
+    frontend can open a native bindSheet, or records a submitted
+    `profileFormResult` into backend Practice Coach session state. It never
+    calls an LLM, starts Routine, calls Engine, creates MIDI, or writes
+    HarmonyOS local state.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    execution = build_practice_coach_profile_sheet_intent_contract_execute(product_arguments, trace_id=trace_id)
+    persisted = bool(execution.get("profileSheetStatePersisted", False))
+    agent_action = execution.get("agentActionPreview") if isinstance(execution.get("agentActionPreview"), dict) else {}
+    response_type = str(agent_action.get("responseType") or "cannot_proceed")
+    content = str(agent_action.get("message") or "已处理 Practice Coach 基础信息表单请求。")
+    sheet_intent_ready = response_type == "request_profile_sheet" and isinstance(agent_action.get("sheetIntent"), dict)
+    profile_recorded = response_type == "chat_message" and not sheet_intent_ready
+    return {
+        "ok": persisted,
+        "code": "practice_coach_profile_sheet_intent_ready" if sheet_intent_ready else "practice_coach_profile_sheet_result_recorded" if profile_recorded else "practice_coach_profile_sheet_not_ready",
+        "message": content,
+        "data": {
+            "content": content,
+            "profileSheetStatePersisted": persisted,
+            "profileSheetIntentReady": sheet_intent_ready,
+            "profileFormResultRecorded": profile_recorded,
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateBefore": execution.get("stateBefore"),
+            "stateAfter": execution.get("stateAfter"),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "extractedFieldsFromCurrentTurn": execution.get("extractedFieldsFromCurrentTurn") or {},
+            "agentActionPreview": agent_action,
+            "sheetIntent": agent_action.get("sheetIntent") if isinstance(agent_action.get("sheetIntent"), dict) else None,
+            "planProposal": None,
+            "routineCardPayload": None,
+            "routineStartEnabled": False,
+            "llmRequestPreview": execution.get("llmRequestPreview"),
+            "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
+        },
+        "debug": {
+            "traceVersion": "v2_10_15",
+            "llmCalled": False,
+            "networkCallExecuted": False,
+            "sqliteConnectionCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteConnectionCreated")),
+            "sqliteTablesCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteTablesCreated")),
+            "sqliteRowsWritten": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteRowsWritten")),
+            "sqliteRowCountWritten": int(((execution.get("io") or {}).get("write") or {}).get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(((execution.get("io") or {}).get("write") or {}).get("transactionCommitted")),
+            "stateStoreIo": execution.get("io"),
+            "practiceCoachStateStoreIo": execution.get("io"),
+        },
+        "safety": _harmonyos_safety(writes_backend_sqlite=persisted) | {
+            "frontendMayOpenNativeSheet": sheet_intent_ready,
+            "frontendOwnsNativeSheetRendering": True,
+            "llmDoesNotRenderUi": True,
+        },
+    }
+
+@router.post("/harmonyos/practice-coach-session/routine-card/execute")
+def execute_harmonyos_practice_coach_session_routine_card_request(request: dict) -> dict:
+    """HarmonyOS route for confirmed plan -> frontend Routine card payload.
+
+    This route only converts a previously saved draft plan into a
+    HarmonyOS-presentable card after an explicit confirmation message. It does
+    not start a Routine, call Engine, create MIDI, or write HarmonyOS local
+    state; the frontend remains responsible for rendering and local start.
+    """
+
+    arguments = request.get("arguments") or request.get("payload") or request
+    if not isinstance(arguments, dict):
+        arguments = {}
+    trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="today_guidance")
+    execution = build_practice_coach_routine_card_contract_execute(product_arguments, trace_id=trace_id)
+    persisted = bool(execution.get("routineCardStatePersisted", False))
+    agent_action = execution.get("agentActionPreview") if isinstance(execution.get("agentActionPreview"), dict) else {}
+    response_type = str(agent_action.get("responseType") or "cannot_proceed")
+    content = str(agent_action.get("message") or "已处理 Practice Coach 练习卡片请求。")
+    routine_card_ready = response_type == "routine_card_ready" and isinstance(agent_action.get("routineCard"), dict)
+    return {
+        "ok": persisted,
+        "code": "practice_coach_routine_card_ready" if routine_card_ready else "practice_coach_routine_card_needs_confirmation_or_plan",
+        "message": content,
+        "data": {
+            "content": content,
+            "routineCardReady": routine_card_ready,
+            "routineCardStatePersisted": persisted,
+            "stateFoundBeforeTurn": bool(execution.get("stateFoundBeforeTurn", False)),
+            "stateBefore": execution.get("stateBefore"),
+            "stateAfter": execution.get("stateAfter"),
+            "stateDigestBefore": execution.get("stateDigestBefore"),
+            "stateDigestAfter": execution.get("stateDigestAfter"),
+            "extractedFieldsFromCurrentTurn": execution.get("extractedFieldsFromCurrentTurn") or {},
+            "agentActionPreview": agent_action,
+            "planProposal": agent_action.get("planProposal") if isinstance(agent_action.get("planProposal"), dict) else None,
+            "routineCardPayload": agent_action.get("routineCard") if isinstance(agent_action.get("routineCard"), dict) else None,
+            "routineStartEnabled": bool(routine_card_ready),
+            "requiresUserTapToStart": bool(routine_card_ready),
+            "backendStartsRoutine": False,
+            "llmRequestPreview": execution.get("llmRequestPreview"),
+            "llmActionRequestPreview": execution.get("llmActionRequestPreview"),
+        },
+        "debug": {
+            "traceVersion": "v2_10_14",
+            "llmCalled": False,
+            "networkCallExecuted": False,
+            "sqliteConnectionCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteConnectionCreated")),
+            "sqliteTablesCreated": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteTablesCreated")),
+            "sqliteRowsWritten": bool(((execution.get("io") or {}).get("write") or {}).get("sqliteRowsWritten")),
+            "sqliteRowCountWritten": int(((execution.get("io") or {}).get("write") or {}).get("sqliteRowCountWritten") or 0),
+            "transactionCommitted": bool(((execution.get("io") or {}).get("write") or {}).get("transactionCommitted")),
+            "stateStoreIo": execution.get("io"),
+            "practiceCoachStateStoreIo": execution.get("io"),
+        },
+        "safety": _harmonyos_safety(writes_backend_sqlite=persisted),
     }
 
 
@@ -3147,8 +3988,9 @@ def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
     if not isinstance(arguments, dict):
         arguments = {}
     trace_id = request.get("trace_id") or request.get("traceId") or arguments.get("trace_id") or arguments.get("traceId")
+    product_arguments = _harmonyos_product_arguments(arguments, route_kind="routine_completion")
     payload = build_agent_routine_completion_record_to_backend_context_write_mvp_payload(
-        arguments,
+        product_arguments,
         trace_id=trace_id,
         source="agent_api_harmonyos_routine_completion_record_execute",
     )
@@ -3184,7 +4026,7 @@ def execute_harmonyos_routine_completion_record_request(request: dict) -> dict:
             "transactionCommitted": bool(summary.get("transaction_committed", False)),
             "blockedReasons": list(summary.get("blocked_reasons") or []),
             "warnings": list(summary.get("warnings") or []),
-            "agentPayload": payload_dict if bool(arguments.get("includeDebugPayload") or arguments.get("include_debug_payload")) else None,
+            "agentPayload": payload_dict if bool(product_arguments.get("includeDebugPayload") or product_arguments.get("include_debug_payload")) else None,
         },
         "safety": _harmonyos_safety(writes_backend_sqlite=True),
     }

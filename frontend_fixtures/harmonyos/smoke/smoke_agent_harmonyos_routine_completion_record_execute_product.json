@@ -1,0 +1,22 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-session-1779200000000",
+  "deviceId": "harmonyos-device-local",
+  "routineCompletionRecord": {
+    "routineId": "routine-xxx",
+    "routineTitle": "今日基础练习",
+    "completedAt": "2026-05-20T20:30:00-07:00",
+    "durationSeconds": 1800,
+    "status": "completed",
+    "items": [
+      {
+        "itemId": "item-1",
+        "title": "Blue Bossa comping practice",
+        "type": "tune_practice",
+        "durationSeconds": 900,
+        "status": "completed"
+      }
+    ],
+    "notes": "optional user note"
+  }
+}

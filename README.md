@@ -1,3 +1,21 @@
+Current package version: `v2_10_25`.
+
+`v2_10_25` adds a HarmonyOS Practice Coach device feedback trace pack. Unified Practice Coach responses now include `data.deviceFeedbackTracePack` / `debug.deviceFeedbackTracePack`, a compact object the frontend can copy into issue reports to show request summary, responseType, LLM/fallback decision trace, session state digests, SQLite IO, artifact summary, and safety flags. This is Agent/Integration-only; no Engine generation logic changed.
+
+Current package version: `v2_10_24`.
+
+`v2_10_24` adds a HarmonyOS/front-end-facing Practice Coach plan revision E2E smoke pack. It validates the real user loop in one session: ask for today practice, generate a draft plan, revise duration/focus/tune intent, and confirm into a Routine card. This is Agent/Integration-only; no Engine generation logic changed.
+
+Current package version: `v2_10_21`.
+
+`v2_10_21` adds Practice Coach LLM response repair / schema hardening for the unified HarmonyOS endpoint. The backend repairs safe shape drift from real models, rejects unsafe payloads, and keeps deterministic fallback. Safety remains: 不启动 Routine, 不调用 Engine, 不生成 MIDI, 不播放.
+
+Current package version: `v2_10_21`.
+
+`v2_10_21` adds a guarded real LLM provider execution smoke for the unified Practice Coach endpoint. HarmonyOS product requests still do not send `llmActionDecisionResult`, `providerResult`, `dbPath`, or internal write gates; the running FastAPI server owns provider configuration through environment variables. The smoke verifies `debug.llmActionDecisionSource=live_provider` while keeping `startsRoutine=false`, `callsEngineAdapter=false`, and `createsMidiAsset=false`.
+
+See `docs/AGENT_PRACTICE_COACH_REAL_LLM_PROVIDER_EXECUTION_GUARDED_SMOKE_V2_10_20.md` and `frontend_fixtures/harmonyos/smoke/curl_practice_coach_live_llm_provider_smoke.sh`.
+
 # JamMatePyEngineV2
 
 JamMatePyEngineV2 is the Python backend foundation for JamMate. It currently contains three sibling systems:
@@ -9,7 +27,24 @@ src/
   jammate_api/      # FastAPI service assembly layer
 ```
 
-Current package version: `v2_10_8`.
+Current package version: `v2_10_19`.
+
+
+## Current Agent / Integration Status
+
+`v2_10_19` adds HarmonyOS-facing ArkTS contract fixtures and a state mapper for the unified Practice Coach endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/message/execute
+```
+
+The frontend contract pack now includes:
+
+- `frontend_fixtures/harmonyos/types/PracticeCoachTypes.ets` for production request/response types.
+- `frontend_fixtures/harmonyos/api/PracticeCoachStateMapper.ets` for `data.responseType -> UI state` mapping.
+- `JamMateApiClient.executePracticeCoachMessage(request)` for the unified endpoint.
+
+Production HarmonyOS types intentionally exclude `llmActionDecisionResult`; that field remains smoke-only in `smoke_llm_action_*.json` fixtures and must not be copied into product ViewModels or API calls.
 
 This repository is intentionally designed so the accompaniment engine can run without LLM/Agent. Agent and LLM workflows are enhancement paths, not required paths.
 
@@ -296,16 +331,16 @@ docs/JAZZ_BALLAD_TWO_BEAT_1AND_PATTERN_PATCH_V2_5_5.md
 
 ## Current Development Status
 
-### v2_10_8 integration merge baseline
+### v2_10_9 HarmonyOS Agent black-box product-contract smoke baseline
 
-`v2_10_8` is the current integration/agent-engine-merge baseline. It merges Engine Track `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff` with Agent Track `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
+`v2_10_9` is the current integration baseline for HarmonyOS Agent black-box runtime/device smoke. It keeps Engine Track behavior from `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff`, keeps Agent Track behavior through `v2_10_8_harmonyos_agent_black_box_contract_fit`, and adds product-contract fixtures plus a curl smoke script that use the real frontend request shape: no `dbPath` / `sqliteDbPath`, no `clientConfirmedRecordWrite`, and `today-practice-guidance` uses `userMessage`.
 
 Integration handling:
 
 - Engine generation/runtime/voicing/style code remains from the Engine Track through v2.6.44, including frozen Ballad SPREAD guardrails, lower-foundation calibration, safe extension frequency calibration, and phrase-state anchor policy.
-- Agent orchestration, contracts, trace, terminal, tool-preview, context/guidance, persistence, and HarmonyOS product routes remain from the Agent Track through v2.10.7, including routine-completion-record persistence and today-practice-guidance runtime smoke.
-- Shared docs, version surfaces, and HarmonyOS fixture surfaces are reconciled in this integration package.
-- No new Engine music-generation rule and no new Agent/LLM product feature is introduced by this integration pass beyond what each track already delivered.
+- Agent orchestration, contracts, trace, terminal, tool-preview, context/guidance, persistence, and HarmonyOS product routes remain from the Agent Track through v2.10.8, including routine-completion-record persistence, today-practice-guidance readback, and black-box product contract fit.
+- Shared docs, version surfaces, and HarmonyOS fixture/smoke surfaces are reconciled in this integration package.
+- No new Engine music-generation rule and no new Agent/LLM product feature is introduced by this integration pass; the new work is runtime/device smoke coverage for the existing black-box product API.
 - `POST /accompaniment/generate` preserves the HarmonyOS playback-critical response shape: `ok`, `asset.format`, `asset.midi_base64`, `asset.midi_path`, `asset.cache_key`, and `debug_summary`.
 
 ### v2_8_24 integration merge baseline
