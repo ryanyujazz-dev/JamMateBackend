@@ -12,6 +12,7 @@ from jammate_engine.core.voicing import ColorPolicyMode, Disposition, VoicingPol
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_VERSION = "v2_6_23"
 MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION = "v2_6_77"
 MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_LOW_REGISTER_CLARITY_GUARD_VERSION = "v2_6_78"
+MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION = "v2_6_82"
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_OWNED_RESPONSIBILITIES = (
     "event_scoped_voicing_policy_metadata_bridge",
@@ -222,6 +223,9 @@ def _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy: V
         "medium_swing_existing_voicing_capability_low_register_clarity_guard_contract": "optional Medium Swing 5/6-note grouped SPREAD support must not place more than one piano note below C3 in bass-present/full-band usage; this is an event-scoped metadata guard over existing spread candidates, not a core voicing implementation change",
         "medium_swing_existing_voicing_capability_low_register_clarity_threshold": int(nested.get("spread_low_register_density_threshold", 48) or 48),
         "medium_swing_existing_voicing_capability_low_register_clarity_max_notes_below": int(nested.get("spread_low_register_density_max_notes_below", 1) or 1),
+        "medium_swing_bass_piano_interaction_guard_version": str(nested.get("bass_piano_interaction_guard_version") or MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION),
+        "medium_swing_bass_piano_interaction_guard_enabled": _coerce_bool(nested.get("bass_piano_interaction_guard_enabled"), default=False),
+        "medium_swing_bass_piano_interaction_guard_contract": str(nested.get("bass_piano_interaction_guard_contract") or "optional Medium Swing 5/6-note grouped SPREAD may request C3+ foundation registers in bass-present/full-band demos so piano does not duplicate the bass walking foundation; this is event-scoped style metadata only"),
         "ballad_spread_grouping_mix_selected_contract_id": selected_contract_id,
         "spread_grouping_mix_selected_contract_id": selected_contract_id,
         "primary_family": "spread",
@@ -248,10 +252,10 @@ def _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy: V
             "request_source": "medium_swing_existing_voicing_capability_usage_policy",
         },
         "spread_rooted_bass_anchor_enabled": True,
-        "spread_root_bass_anchor_low": int(nested.get("spread_root_bass_anchor_low", 40) or 40),
-        "spread_root_bass_anchor_high": int(nested.get("spread_root_bass_anchor_high", 52) or 52),
-        "spread_root_bass_anchor_target": int(nested.get("spread_root_bass_anchor_target", 47) or 47),
-        "spread_whole_register_low": int(nested.get("spread_whole_register_low", 40) or 40),
+        "spread_root_bass_anchor_low": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_low", nested.get("spread_root_bass_anchor_low", 40)) or 40),
+        "spread_root_bass_anchor_high": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_high", nested.get("spread_root_bass_anchor_high", 52)) or 52),
+        "spread_root_bass_anchor_target": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_target", nested.get("spread_root_bass_anchor_target", 47)) or 47),
+        "spread_whole_register_low": int(nested.get("bass_piano_interaction_register_floor", nested.get("spread_whole_register_low", 40)) or 40),
         "spread_whole_register_high": int(nested.get("spread_whole_register_high", 76) or 76),
         "spread_upper_low": int(nested.get("spread_upper_low", 50) or 50),
         "spread_upper_high": int(nested.get("spread_upper_high", 73) or 73),
@@ -261,6 +265,9 @@ def _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy: V
         "spread_low_register_density_guard_enabled": True,
         "spread_low_register_density_threshold": int(nested.get("spread_low_register_density_threshold", 48) or 48),
         "spread_low_register_density_max_notes_below": int(nested.get("spread_low_register_density_max_notes_below", 1) or 1),
+        "spread_lower_2note_low": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_low", nested.get("spread_lower_2note_low", 40)) or 40),
+        "spread_lower_2note_high": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_high", nested.get("spread_lower_2note_high", 58)) or 58),
+        "spread_lower_2note_target_low": int(nested.get("bass_piano_interaction_register_floor", nested.get("spread_lower_2note_target_low", 40)) or 40),
         "spread_upper_4note_emit_all_parent_projections": True,
         "spread_upper_4note_allow_octave_shift_candidates": True,
     }
@@ -435,7 +442,10 @@ def _policy_with_ballad_spread_grouping_mix_policy(policy: VoicingPolicy, event:
                 "spread_min_group_gap": 1,
                 "spread_max_group_gap": 7,
                 "spread_max_overall_span": 39,
-                "spread_upper_4note_emit_all_parent_projections": True,
+                "spread_lower_2note_low": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_low", nested.get("spread_lower_2note_low", 40)) or 40),
+        "spread_lower_2note_high": int(nested.get("bass_piano_interaction_spread_root_bass_anchor_high", nested.get("spread_lower_2note_high", 58)) or 58),
+        "spread_lower_2note_target_low": int(nested.get("bass_piano_interaction_register_floor", nested.get("spread_lower_2note_target_low", 40)) or 40),
+        "spread_upper_4note_emit_all_parent_projections": True,
                 "spread_upper_4note_allow_octave_shift_candidates": True,
             }
         )

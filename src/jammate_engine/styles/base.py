@@ -98,6 +98,10 @@ PIANO_COMPING_PHRASE_END_FILL_CONTEXT_PRECISION_POLICY_VERSION = "v2_6_73"
 PIANO_COMPING_STANDARD_TUNE_FILL_FREQUENCY_CHECKPOINT_VERSION = "v2_6_74"
 PIANO_COMPING_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_76"
 PIANO_COMPING_TWO_BEAT_REGION_DENSITY_RELIEF_POLICY_VERSION = "v2_6_80"
+MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_INTENT_USAGE_VERSION = "v2_6_85"
+MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_LISTENING_REFINEMENT_VERSION = "v2_6_86"
+MEDIUM_SWING_FULL_BAND_ENDING_REALIZATION_CHECKPOINT_VERSION = "v2_6_87"
+MEDIUM_SWING_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_88"
 PIANO_COMPING_REGION_FIRST_COVERAGE_GUARD_VERSION = "v2_6_62"
 
 
@@ -1462,6 +1466,84 @@ def _record_piano_comping_history(history: dict, source_key: str, candidate: Pat
     history[f"{source_key}:recent_tail_push_count"] = _recent_flag_count(recent, "is_tail_push")
 
 
+def _resolve_medium_swing_arrangement_arc_runtime_intent(region: HarmonicRegion) -> dict[str, Any]:
+    try:
+        from jammate_engine.styles.medium_swing.arrangement_policy import resolve_runtime_arrangement_arc_intent
+    except Exception:
+        return {}
+    return dict(resolve_runtime_arrangement_arc_intent(region.chorus_index, region.total_choruses))
+
+
+def _apply_medium_swing_arrangement_arc_runtime_intent_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    intent: dict[str, Any] | None,
+    listening_refinement_enabled: bool = False,
+    ending_realization_checkpoint_enabled: bool = False,
+    style_baseline_phase_completion_enabled: bool = False,
+) -> tuple[PatternCandidate, ...]:
+    """Use repeat-count-aware arrangement arc as style intent, not as a new selector."""
+
+    if len(candidates) <= 1 or not intent:
+        return tuple(candidates)
+    try:
+        from jammate_engine.styles.medium_swing.arrangement_policy import arrangement_arc_runtime_candidate_multiplier
+    except Exception:
+        return tuple(candidates)
+
+    adjusted: list[PatternCandidate] = []
+    for candidate in candidates:
+        multiplier, reasons, status = arrangement_arc_runtime_candidate_multiplier(dict(candidate.metadata), dict(intent))
+        metadata = {
+            **dict(candidate.metadata),
+            "medium_swing_arrangement_arc_runtime_intent_usage_version": MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_INTENT_USAGE_VERSION,
+            "medium_swing_arrangement_arc_runtime_intent_usage_applied": True,
+            "medium_swing_arrangement_arc_runtime_intent_phase": intent.get("phase"),
+            "medium_swing_arrangement_arc_runtime_intent_energy_band": intent.get("energy_band"),
+            "medium_swing_arrangement_arc_runtime_intent_density_bias": intent.get("density_bias"),
+            "medium_swing_arrangement_arc_runtime_intent_piano_comping_bias": intent.get("piano_comping_bias"),
+            "medium_swing_arrangement_arc_runtime_intent_piano_comping_runtime_intent": intent.get("piano_comping_runtime_intent"),
+            "medium_swing_arrangement_arc_runtime_intent_fill_bias": intent.get("fill_bias"),
+            "medium_swing_arrangement_arc_runtime_intent_thick_voicing_bias": intent.get("thick_voicing_bias"),
+            "medium_swing_arrangement_arc_runtime_intent_chorus_index": intent.get("chorus_index"),
+            "medium_swing_arrangement_arc_runtime_intent_total_choruses": intent.get("total_choruses"),
+            "medium_swing_arrangement_arc_runtime_intent_normalized_position": intent.get("normalized_position"),
+            "medium_swing_arrangement_arc_runtime_intent_loop_block_position": intent.get("loop_block_position"),
+            "medium_swing_arrangement_arc_runtime_intent_multiplier": round(float(multiplier), 4),
+            "medium_swing_arrangement_arc_runtime_intent_status": status,
+            "medium_swing_arrangement_arc_runtime_intent_reasons": tuple(reasons),
+            "medium_swing_arrangement_arc_runtime_intent_not_three_chorus_hardcoded": True,
+            "medium_swing_arrangement_arc_runtime_intent_boundary": "style_intent_metadata_and_candidate_weighting_only",
+            "medium_swing_arrangement_arc_runtime_intent_contract": "v2_6_85 connects the repeat-count-aware Medium Swing arc to runtime piano-comping candidate weighting and event metadata. It does not add vocabulary, create a selector, choose voicing sources, write expression values, or hard-code a 3-chorus arc.",
+        }
+        if listening_refinement_enabled:
+            metadata.update({
+                "medium_swing_arrangement_arc_runtime_listening_refinement": True,
+                "medium_swing_arrangement_arc_runtime_listening_refinement_version": MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_LISTENING_REFINEMENT_VERSION,
+                "medium_swing_arrangement_arc_runtime_listening_refinement_scope": "post_user_approved_runtime_arc_checkpoint_metadata_only",
+                "medium_swing_arrangement_arc_runtime_listening_refinement_behavior_change": False,
+                "medium_swing_arrangement_arc_runtime_listening_refinement_contract": "v2_6_86 preserves the v2_6_85 repeat-count-aware arc weighting after user listening approval and stamps checkpoint metadata for 3x/5x full-band audit. It does not add patterns, alter multipliers, change core voicing, write expression numbers, or touch API/Agent/HarmonyOS.",
+            })
+        if ending_realization_checkpoint_enabled:
+            metadata.update({
+                "medium_swing_full_band_ending_realization_checkpoint": True,
+                "medium_swing_full_band_ending_realization_checkpoint_version": MEDIUM_SWING_FULL_BAND_ENDING_REALIZATION_CHECKPOINT_VERSION,
+                "medium_swing_full_band_ending_realization_checkpoint_scope": "full_band_ending_audit_metadata_only",
+                "medium_swing_full_band_ending_realization_checkpoint_behavior_change": False,
+                "medium_swing_full_band_ending_realization_checkpoint_contract": "v2_6_87 audits full-band Medium Swing ending realization after the user-approved repeat-count-aware arc. It stamps checkpoint metadata only and does not add ending patterns, alter multipliers, modify core voicing, write expression numbers, or touch API/Agent/HarmonyOS.",
+            })
+        if style_baseline_phase_completion_enabled:
+            metadata.update({
+                "medium_swing_style_baseline_phase_completion_checkpoint": True,
+                "medium_swing_style_baseline_phase_completion_checkpoint_version": MEDIUM_SWING_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION,
+                "medium_swing_style_baseline_phase_completion_checkpoint_scope": "full_band_baseline_summary_metadata_only",
+                "medium_swing_style_baseline_phase_completion_checkpoint_behavior_change": False,
+                "medium_swing_style_baseline_phase_completion_checkpoint_contract": "v2_6_88 summarizes the Medium Swing v2_6_56-v2_6_87 full-band baseline: ChordRegion-first piano comping, semantic expression hints, generic anticipation, 2-beat density relief, explicit low-intrusion 5/6-note voicing intent, bass/piano and drum/piano interaction, repeat-count-aware arc, and ending realization. It stamps phase-completion audit metadata only and does not change pattern weights, add vocabulary, modify core voicing, write expression numbers, or touch API/Agent/HarmonyOS.",
+            })
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * float(multiplier)), metadata=metadata))
+    return tuple(adjusted)
+
+
 @dataclass(frozen=True)
 class StyleProfile:
     name: str
@@ -1536,7 +1618,16 @@ class StyleProfile:
         piano_ending_subset_policy = bool(self.arrangement_policy.get("piano_comping_ending_specific_subset_policy", False))
         piano_optional_fill_variation_policy = bool(self.arrangement_policy.get("piano_comping_optional_fill_variation_vocabulary_policy", False))
         piano_two_beat_density_relief_policy = bool(self.arrangement_policy.get("piano_comping_two_beat_region_density_relief_policy", False))
+        medium_swing_arrangement_arc_runtime_intent_usage = bool(self.arrangement_policy.get("medium_swing_arrangement_arc_runtime_intent_usage", False))
+        medium_swing_arrangement_arc_runtime_listening_refinement = bool(self.arrangement_policy.get("medium_swing_arrangement_arc_runtime_listening_refinement", False))
+        medium_swing_full_band_ending_realization_checkpoint = bool(self.arrangement_policy.get("medium_swing_full_band_ending_realization_checkpoint", False))
+        medium_swing_style_baseline_phase_completion_checkpoint = bool(self.arrangement_policy.get("medium_swing_style_baseline_phase_completion_checkpoint", False))
         piano_region_first_coverage_guard = bool(self.arrangement_policy.get("piano_region_first_coverage_guard", False))
+
+        arrangement_arc_intent: dict[str, Any] = {}
+        if self.name == "medium_swing" and medium_swing_arrangement_arc_runtime_intent_usage:
+            arrangement_arc_intent = _resolve_medium_swing_arrangement_arc_runtime_intent(region)
+            region_context["medium_swing_arrangement_arc_intent"] = arrangement_arc_intent
 
         plans: list[PatternPlan] = []
         selected: list[str] = []
@@ -1574,6 +1665,14 @@ class StyleProfile:
                 choice_pool = _apply_piano_comping_ending_specific_subset_policy(choice_pool, region=region, context=region_context)
             if piano_two_beat_density_relief_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_two_beat_region_density_relief_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
+            if medium_swing_arrangement_arc_runtime_intent_usage and is_piano_comping_source and len(choice_pool) > 1:
+                choice_pool = _apply_medium_swing_arrangement_arc_runtime_intent_policy(
+                    choice_pool,
+                    intent=arrangement_arc_intent,
+                    listening_refinement_enabled=medium_swing_arrangement_arc_runtime_listening_refinement,
+                    ending_realization_checkpoint_enabled=medium_swing_full_band_ending_realization_checkpoint,
+                    style_baseline_phase_completion_enabled=medium_swing_style_baseline_phase_completion_checkpoint,
+                )
             if piano_optional_fill_variation_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_optional_fill_variation_vocabulary_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
             if piano_no_4and_delayed_tail_policy and is_piano_comping_source and len(choice_pool) > 1:
@@ -1591,7 +1690,7 @@ class StyleProfile:
                     _record_piano_comping_history(history, source_key, candidate)
             selected.append(candidate.name)
             plan = candidate.instantiate(region)
-            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
+            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or medium_swing_arrangement_arc_runtime_intent_usage or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
                 plan = replace(
                     plan,
                     events=[

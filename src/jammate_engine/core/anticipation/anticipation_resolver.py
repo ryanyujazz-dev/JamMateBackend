@@ -55,6 +55,8 @@ class AnticipationResolver:
             candidate = self._find_movable_beat1_event(events_by_region.get(current_region.region_id, []), policy)
             if candidate is None:
                 continue
+            if self._is_terminal_ending_candidate(candidate):
+                continue
 
             movability = current_plan.beat1_movability if current_plan is not None else None
             if movability is not None and not movability.movable:
@@ -96,6 +98,19 @@ class AnticipationResolver:
         rewritten = [replacements.get(event.event_id, event) for event in events]
         rewritten.extend(additions)
         return sorted(rewritten, key=self._sort_key)
+
+    def _is_terminal_ending_candidate(self, event: PatternEvent) -> bool:
+        metadata = dict(event.metadata or {})
+        try:
+            chorus_index = int(metadata.get("region_chorus_index"))
+            total_choruses = int(metadata.get("region_total_choruses"))
+        except (TypeError, ValueError):
+            return False
+        return (
+            bool(metadata.get("region_is_last_bar_of_chorus"))
+            and chorus_index == total_choruses - 1
+            and bool(metadata.get("region_is_last_bar_of_section", True))
+        )
 
     def _find_movable_beat1_event(self, events: list[PatternEvent], policy: AnticipationPolicy) -> PatternEvent | None:
         eligible = [
