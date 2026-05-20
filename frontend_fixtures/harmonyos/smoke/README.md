@@ -1,3 +1,23 @@
+## v2_10_26 Practice Coach routine-card completion loop smoke
+
+`curl_practice_coach_routine_card_completion_loop_smoke.sh` validates the product loop:
+
+```text
+practice_plan_proposal / practice_plan_revision
+→ routine_card_ready
+→ POST /agent/harmonyos/routine-completion-record/execute
+→ next POST /agent/harmonyos/practice-coach-session/message/execute reads recent_practice_memory_summary
+```
+
+Run:
+
+```bash
+cd frontend_fixtures/harmonyos/smoke
+bash curl_practice_coach_routine_card_completion_loop_smoke.sh http://127.0.0.1:8000
+```
+
+Use `JAMMATE_AGENT_CONTEXT_DB_PATH` on the running FastAPI server to isolate the backend SQLite file. Product requests must not include `sqliteDbPath`, `providerResult`, `llmActionDecisionResult`, or internal write gates.
+
 
 ## v2_10_25 Practice Coach device feedback trace pack
 
@@ -308,3 +328,27 @@ cannot_proceed
 ```
 
 Every mapped UI state keeps `safeToAutostartRoutine=false`. Showing a routine card is allowed only as a user-confirmable UI state; backend never starts Routine automatically.
+
+
+## v2_10_27 Practice Coach HarmonyOS UI integration smoke
+
+Run after starting the backend:
+
+```bash
+export JAMMATE_AGENT_CONTEXT_DB_PATH=/tmp/jammate_v2_10_27_ui_integration.sqlite3
+export JAMMATE_LLM_ENABLE_NETWORK_CALLS=false
+PYTHONPATH=src python -m uvicorn jammate_api.app:app --host 127.0.0.1 --port 8027
+
+cd frontend_fixtures/harmonyos/smoke
+bash curl_practice_coach_harmonyos_ui_integration_smoke.sh http://127.0.0.1:8027
+```
+
+This smoke validates `data.frontendUiAction` for:
+
+- `practice_plan_proposal` -> `show_plan_proposal_card`
+- `practice_plan_revision` -> `replace_plan_proposal_card`
+- `routine_card_ready` -> `show_routine_card` with user-tap start only
+- routine completion -> `show_routine_summary_recorded` without opening Practice Coach
+- next Practice Coach request -> `recent_practice_memory_summary` readback
+
+Production HarmonyOS requests must not include `dbPath`, `sqliteDbPath`, `clientConfirmedRecordWrite`, `providerResult`, `llmActionDecisionResult`, or `apiKey`.

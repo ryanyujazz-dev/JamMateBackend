@@ -1,6 +1,14 @@
-Current package version: `v2_10_25`.
+Current package version: `v2_10_28`.
 
-`v2_10_25` adds a HarmonyOS Practice Coach device feedback trace pack. Unified Practice Coach responses now include `data.deviceFeedbackTracePack` / `debug.deviceFeedbackTracePack`, a compact object the frontend can copy into issue reports to show request summary, responseType, LLM/fallback decision trace, session state digests, SQLite IO, artifact summary, and safety flags. This is Agent/Integration-only; no Engine generation logic changed.
+`v2_10_28` is an Agent/Integration hotfix for macOS pytest tempdir compatibility in the routine completion context persistence SQLite guard. It aligns `tool_invocation.py` with the v2_10_22 Practice Coach session-state guard by allowing `Path(tempfile.gettempdir()).resolve(strict=False)` in addition to `/mnt/data` and `/tmp`, while preserving path traversal, production/secrets, and extension checks. No Engine generation logic changed.
+
+Current package version: `v2_10_27`.
+
+`v2_10_27` adds Practice Coach HarmonyOS UI integration feedback fit. The unified Practice Coach message endpoint now returns `data.frontendUiAction` / `debug.frontendUiAction` so the frontend can render proposal, revision replacement, routine card, completion recorded summary, and next-history readback without re-inferring backend state. This is Agent/Integration-only; no Engine generation logic changed.
+
+Current package version: `v2_10_26`.
+
+`v2_10_26` adds a Practice Coach routine-card → completion-record → next-guidance loop smoke. It validates the product path from plan proposal/revision to `routine_card_ready`, then HarmonyOS-style routine completion persistence, and finally a fresh Practice Coach request that reads the completed routine history through the cache-friendly context builder. This is Agent/Integration-only; no Engine generation logic changed.
 
 Current package version: `v2_10_24`.
 

@@ -1,4 +1,4 @@
-// JamMate Practice Coach State Mapper v2_10_25
+// JamMate Practice Coach State Mapper v2_10_27
 // Copy target suggestion: entry/src/main/ets/features/jammateAgent/model/PracticeCoachStateMapper.ets
 // This mapper is frontend-only guidance. It renders backend action intent; it must not infer hidden backend decisions.
 
@@ -9,6 +9,7 @@ import type {
   PracticeCoachSheetIntent,
   PracticeCoachPlanProposal,
   PracticeCoachRoutineCardPayload,
+  PracticeCoachFrontendUiAction,
 } from '../model/PracticeCoachTypes'
 
 export type PracticeCoachUiStateKind =
@@ -36,7 +37,10 @@ export interface PracticeCoachUiState {
   canShowPlanProposal: boolean
   canShowRoutineCard: boolean
   canStartRoutine: boolean
+  shouldReplaceCurrentProposal: boolean
+  shouldShowRecordedSummary: boolean
   safeToAutostartRoutine: false
+  frontendUiAction?: PracticeCoachFrontendUiAction | null
   deviceFeedbackTracePack?: Record<string, unknown> | null
   raw?: PracticeCoachMessageExecuteResponse | null
 }
@@ -52,6 +56,8 @@ export function practiceCoachLoadingState(message: string = '正在思考今天�
     canShowPlanProposal: false,
     canShowRoutineCard: false,
     canStartRoutine: false,
+    shouldReplaceCurrentProposal: false,
+    shouldShowRecordedSummary: false,
     safeToAutostartRoutine: false,
   }
 }
@@ -67,6 +73,8 @@ export function practiceCoachNetworkErrorState(message: string = '网络连接�
     canShowPlanProposal: false,
     canShowRoutineCard: false,
     canStartRoutine: false,
+    shouldReplaceCurrentProposal: false,
+    shouldShowRecordedSummary: false,
     safeToAutostartRoutine: false,
   }
 }
@@ -106,7 +114,8 @@ function buildState(
   const data = response.data || ({} as PracticeCoachMessageData)
   const nextClientActions = data.nextClientActions || []
   const routineCardPayload = data.routineCardPayload || null
-  const canShowRoutineCard = kind === 'routine_card' && !!routineCardPayload
+  const frontendUiAction = (data.frontendUiAction || response.debug?.frontendUiAction || null) as PracticeCoachFrontendUiAction | null
+  const canShowRoutineCard = (frontendUiAction?.shouldRenderRoutineCard === true) || (kind === 'routine_card' && !!routineCardPayload)
 
   return {
     kind,
@@ -118,11 +127,14 @@ function buildState(
     sheetIntent: data.sheetIntent || null,
     planProposal: data.planProposal || null,
     routineCardPayload,
-    canOpenProfileSheet: kind === 'profile_sheet' && !!data.sheetIntent && nextClientActions.indexOf('open_profile_sheet') >= 0,
-    canShowPlanProposal: kind === 'plan_proposal' && !!data.planProposal,
+    canOpenProfileSheet: (frontendUiAction?.shouldOpenProfileSheet === true) || (kind === 'profile_sheet' && !!data.sheetIntent && nextClientActions.indexOf('open_profile_sheet') >= 0),
+    canShowPlanProposal: (frontendUiAction?.shouldRenderPlanProposalCard === true) || (kind === 'plan_proposal' && !!data.planProposal),
     canShowRoutineCard,
-    canStartRoutine: canShowRoutineCard && routineCardPayload.startEnabled === true && routineCardPayload.requiresUserTapToStart === true,
+    canStartRoutine: (frontendUiAction?.canStartRoutineByUserTap === true) || (canShowRoutineCard && routineCardPayload.startEnabled === true && routineCardPayload.requiresUserTapToStart === true),
+    shouldReplaceCurrentProposal: frontendUiAction?.shouldReplaceCurrentProposal === true,
+    shouldShowRecordedSummary: frontendUiAction?.shouldShowRecordedSummary === true,
     safeToAutostartRoutine: false,
+    frontendUiAction,
     deviceFeedbackTracePack: (data.deviceFeedbackTracePack as Record<string, unknown> | undefined) || (response.debug?.deviceFeedbackTracePack as Record<string, unknown> | undefined) || null,
     raw: response,
   }
