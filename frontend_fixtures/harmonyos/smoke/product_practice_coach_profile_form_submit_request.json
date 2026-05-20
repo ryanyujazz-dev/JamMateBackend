@@ -1,0 +1,16 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-coach-product-session-001",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "提交基础练习信息",
+  "profileFormResult": {
+    "primaryInstrument": "piano",
+    "skillLevel": "intermediate",
+    "dailyAvailableMinutes": 30,
+    "mainGoal": "提升伴奏稳定性",
+    "preferredStyles": [
+      "bossa",
+      "swing"
+    ]
+  }
+}

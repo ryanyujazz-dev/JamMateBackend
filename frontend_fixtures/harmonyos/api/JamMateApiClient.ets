@@ -3,6 +3,7 @@
 // Requests may be sent as camelCase. Responses are mapped from backend snake_case to camelCase domain types.
 
 import type { AgentContextRuntimePreviewRequest, AgentContextRuntimePreviewResponse, AgentHarmonyOSRoutineCompletionRecordRequest, AgentHarmonyOSRoutineCompletionRecordResponse, AgentHarmonyOSTodayPracticeGuidanceRequest, AgentHarmonyOSTodayPracticeGuidanceResponse, AgentPlanRequest, AgentPlaybackPrepareRequest, AgentResponse, AgentToolInvocationPreviewRequest, AgentToolInvocationPreviewResponse, AgentTraceApiSpecResponse, HarmonyOSRoutineCompletionRecordExecuteRequest, HarmonyOSRoutineCompletionRecordExecuteResponse, HarmonyOSTodayPracticeGuidancePreviewRequest, HarmonyOSTodayPracticeGuidancePreviewResponse, AgentTraceDetailResponse, AgentTraceListResponse } from '../model/AgentTypes'
+import type { PracticeCoachMessageExecuteRequest, PracticeCoachMessageExecuteResponse } from '../model/PracticeCoachTypes'
 import type { DirectAccompanimentGenerateRequest, DirectAccompanimentGenerateResponse } from '../../practice/model/PlaybackTypes'
 import { deepSnakeToCamel, mapAgentResponse, mapDirectAccompanimentResponse } from './CaseAdapter'
 
@@ -78,6 +79,12 @@ export class JamMateApiClient {
   async getHarmonyOSTodayGuidanceContractSpec(): Promise<Record<string, unknown>> {
     const raw = await this.get('/agent/harmonyos/today-guidance-api-contract-alignment/spec')
     return deepSnakeToCamel(raw) as Record<string, unknown>
+  }
+
+
+  async executePracticeCoachMessage(request: PracticeCoachMessageExecuteRequest): Promise<PracticeCoachMessageExecuteResponse> {
+    const raw = await this.post('/agent/harmonyos/practice-coach-session/message/execute', request as Record<string, unknown>)
+    return deepSnakeToCamel(raw) as PracticeCoachMessageExecuteResponse
   }
 
   async generateDirectAccompaniment(request: DirectAccompanimentGenerateRequest): Promise<DirectAccompanimentGenerateResponse> {

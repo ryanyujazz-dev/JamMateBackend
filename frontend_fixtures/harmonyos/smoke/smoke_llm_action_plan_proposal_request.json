@@ -1,0 +1,37 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-coach-smoke-plan-001",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "我今天 20 分钟，想练 Bossa。",
+  "llmActionDecisionResult": {
+    "responseType": "practice_plan_proposal",
+    "message": "我建议今天安排 20 分钟 Bossa comping 稳定性练习，请确认或调整。",
+    "planProposal": {
+      "title": "今日 Bossa Comping 稳定性练习",
+      "practiceFocus": "bossa",
+      "totalDurationMinutes": 20,
+      "blocks": [
+        {
+          "title": "核心 Bossa batida 热身",
+          "durationMinutes": 5,
+          "goal": "稳定 1、2、3& 的核心触键。"
+        },
+        {
+          "title": "Blue Bossa 循环练习",
+          "durationMinutes": 10,
+          "goal": "在完整曲式里保持 comping 稳定。"
+        },
+        {
+          "title": "回听与记录",
+          "durationMinutes": 5,
+          "goal": "记录今天最不稳定的小节或换和弦位置。"
+        }
+      ]
+    },
+    "requiresUserConfirmation": true,
+    "nextClientActions": [
+      "show_practice_plan_proposal",
+      "ask_user_to_confirm_or_adjust"
+    ]
+  }
+}

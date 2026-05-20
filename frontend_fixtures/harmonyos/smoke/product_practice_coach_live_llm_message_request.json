@@ -1,0 +1,9 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-coach-live-llm-session-local",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "今天该练什么？",
+  "clientLocalDate": "2026-05-20",
+  "clientTimezone": "Asia/Singapore",
+  "locale": "zh-CN"
+}

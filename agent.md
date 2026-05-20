@@ -1,6 +1,33 @@
+Current version: `v2_10_22`.
+
+## v2_10_22 Agent / Integration Boundary Update
+
+Practice Coach SQLite state-store path guard now accepts the resolved OS tempdir root (`tempfile.gettempdir()`), fixing macOS `/private/var/folders/...` pytest failures while preserving unsafe-path rejection. No Engine generation logic changed.
+
+Current version: `v2_10_21`.
+
+## v2_10_21 Agent / Integration Boundary Update
+
+Practice Coach now includes LLM response repair and schema hardening for `POST /agent/harmonyos/practice-coach-session/message/execute`.
+
+The backend may repair Markdown-fenced JSON, nested action wrappers, responseType aliases, and common field aliases. It must reject unsafe payload keys and use deterministic fallback when validation fails. This does not change Engine generation logic and still does not start Routine, call Engine, generate MIDI, or play anything.
+
+Current version: `v2_10_21`.
+
+## v2_10_21 Agent / Integration Boundary Update
+
+Practice Coach now has an opt-in guarded smoke for real LLM provider execution through `POST /agent/harmonyos/practice-coach-session/message/execute`. The frontend request remains product-shaped and must not include `llmActionDecisionResult`, `providerResult`, `dbPath`, or internal write gates. Provider configuration belongs to the FastAPI server environment. The route still never starts Routine, calls Engine, creates MIDI, starts playback, or writes HarmonyOS local state.
+
 # JamMatePyEngineV2 Development Harness
 
-Current version: `v2_10_8`.
+Current version: `v2_10_19`.
+
+
+## v2_10_19 Agent / Integration Boundary Update
+
+Practice Coach frontend integration now has copy-friendly ArkTS contract fixtures for the unified endpoint `POST /agent/harmonyos/practice-coach-session/message/execute`: `PracticeCoachTypes.ets`, `PracticeCoachStateMapper.ets`, and `JamMateApiClient.executePracticeCoachMessage(request)`. Production ArkTS request types must not include backend DB path fields, internal write gates, provider test hooks, or `llmActionDecisionResult`. The latter remains smoke-only in `smoke_llm_action_*` fixtures.
+
+Frontend rendering should be driven by `data.responseType` and `nextClientActions`; `safeToAutostartRoutine` must remain false. Even when a routine card is ready, the user must explicitly tap the frontend start button.
 
 This file is the active development harness for ChatGPT and Claude Code. It is intentionally short and hard. README is the project overview. Historical implementation notes belong in `docs/CHANGELOG.md` or focused docs.
 
@@ -132,7 +159,7 @@ Preserve relevant small listening demos when the delivery changes music generati
 
 ## 8. Current Active Baseline
 
-`v2_10_8_integration_agent_engine_merge` is the active integration baseline for `integration/agent-engine-merge`. It merges Engine Track `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff` and Agent Track `v2_10_7_agent_harmonyos_today_guidance_runtime_smoke`.
+`v2_10_9_integration_harmonyos_agent_black_box_runtime_and_device_smoke` is the active integration baseline for `integration/agent-engine-merge`. It keeps Engine Track `v2_6_44_engine_ballad_spread_voicing_phase_summary_handoff`, preserves Agent black-box product wrappers through `v2_10_8`, and adds product-contract runtime/device smoke fixtures for the existing HarmonyOS Agent routes.
 
 Strict boundaries remain active:
 
