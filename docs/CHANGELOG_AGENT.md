@@ -1,3 +1,122 @@
+## v2_10_22_agent_practice_coach_sqlite_path_guard_macos_tempdir_hotfix
+
+- Fixed Practice Coach Session SQLite state-store path guard compatibility for macOS pytest temp dirs.
+- Allowed SQLite paths under `Path(tempfile.gettempdir()).resolve(strict=False)` in addition to `/mnt/data` and `/tmp`.
+- Preserved safety rejection for `..`, production/secrets/api-key markers, non-SQLite extensions, and unsafe absolute paths outside approved local-development roots.
+- Added regression coverage for macOS-style `/private/var/folders/...` tempdir paths.
+- Boundary unchanged: 不启动 Routine, 不调用 Engine, 不生成 MIDI, 不播放, 不写 HarmonyOS 本地状态.
+
+## v2_10_21_agent_practice_coach_live_llm_response_repair_and_schema_hardening
+
+- Added response repair for realistic LLM output drift on the unified Practice Coach endpoint.
+- Added Markdown fenced JSON and embedded JSON object extraction.
+- Added nested action unwrapping and responseType alias repair.
+- Added schema repair for message/content aliases, nextClientActions/actions aliases, sheetIntent aliases, and planProposal aliases.
+- Added backend hardening for profile sheet intent and plan proposal payloads.
+- Added `debug.llmActionDecisionRepairReport` and `debug.llmResponseRepairSchemaHardeningVersion`.
+- Kept deterministic fallback for invalid or unsafe LLM outputs.
+- Safety unchanged: 不启动 Routine, 不调用 Engine, 不生成 MIDI, 不播放, 不写 HarmonyOS 本地状态.
+
+## v2_10_20_agent_practice_coach_real_llm_provider_execution_guarded_smoke
+
+- Added guarded live provider smoke for `POST /agent/harmonyos/practice-coach-session/message/execute`.
+- Added `product_practice_coach_live_llm_message_request.json` with no injection/internal fields.
+- Added `curl_practice_coach_live_llm_provider_smoke.sh`, gated by `JAMMATE_ENABLE_LIVE_PRACTICE_COACH_LLM_SMOKE=1`.
+- Added unit coverage with a local OpenAI-compatible stub server to verify `live_provider`, `llmCalled=true`, `networkCallExecuted=true`, and provider payload role normalization.
+- Kept Practice Coach safety boundaries: no Routine autostart, no Engine call, no MIDI, no playback, no HarmonyOS local write.
+
+## v2_10_19_agent_practice_coach_frontend_contract_types_and_state_mapper
+
+- Added HarmonyOS-facing `PracticeCoachTypes.ets` for the unified `practice-coach-session/message/execute` endpoint.
+- Added `PracticeCoachStateMapper.ets` to map `data.responseType` into frontend UI states.
+- Updated `JamMateApiClient.ets` with `executePracticeCoachMessage(request)`.
+- Preserved the product boundary: `llmActionDecisionResult` is smoke-only and excluded from production request interfaces.
+- Added docs and tests for responseType rendering and no-autostart Routine safety.
+
+## v2_10_18_agent_practice_coach_frontend_llm_action_fixture_and_smoke
+
+- Added HarmonyOS product fixtures for unified Practice Coach `message/execute` requests.
+- Added smoke-only injected LLM action fixtures for `ask_clarifying_question`, `request_profile_sheet`, `practice_plan_proposal`, and `routine_card_ready`.
+- Added `frontend_fixtures/harmonyos/smoke/curl_practice_coach_llm_action_smoke.sh`.
+- Added `tests/test_v2_10_18_agent_practice_coach_frontend_llm_action_fixture_and_smoke.py`.
+- Added `docs/AGENT_PRACTICE_COACH_FRONTEND_LLM_ACTION_FIXTURE_SMOKE_V2_10_18.md`.
+- Clarified that product frontend payloads must not send `llmActionDecisionResult`; it is a smoke/provider-boundary injection hook only.
+- Updated unified route safety metadata to reflect that deterministic routing is fallback, not the primary router contract.
+
+## v2_10_17_agent_practice_coach_llm_action_decision_contract
+
+- Upgraded `POST /agent/harmonyos/practice-coach-session/message/execute` from deterministic-router-first to LLM-action-decision-first.
+- Added backend validation for allowed Practice Coach response types and forbidden LLM action payload keys.
+- Added provider-disabled / invalid-output deterministic fallback to the v2_10_16 router.
+- Added backend state advancement from valid LLM action intents.
+- Ensured `routine_card_ready` is rebuilt from the persisted backend `draft_plan`, not trusted from LLM-supplied card payload.
+- Added `tests/test_v2_10_17_agent_practice_coach_llm_action_decision_contract.py`.
+- Added `docs/AGENT_PRACTICE_COACH_LLM_ACTION_DECISION_CONTRACT_V2_10_17.md`.
+
+## v2_10_16_agent_practice_coach_unified_message_action_router
+
+- Added unified HarmonyOS endpoint `POST /agent/harmonyos/practice-coach-session/message/execute`.
+- Added deterministic router over message-state, profile-sheet, plan-proposal, and routine-card contracts.
+- Added `tests/test_v2_10_16_agent_practice_coach_unified_message_action_router.py`.
+- Added `docs/AGENT_PRACTICE_COACH_UNIFIED_MESSAGE_ACTION_ROUTER_V2_10_16.md`.
+- Preserved boundary: no LLM/provider call, no Routine start, no Engine call, no MIDI/playback, no HarmonyOS local-state write.
+
+## v2_10_15_agent_practice_coach_profile_sheet_intent_contract
+
+- Added `POST /agent/harmonyos/practice-coach-session/profile-sheet/execute`.
+- Added deterministic `request_profile_sheet` / `sheetIntent` contract for HarmonyOS native bindSheet profile capture.
+- Added `profileFormResult` recording into Practice Coach session state under `collected_fields.practice_profile`.
+- Projected submitted profile into cache-friendly `llmRequestPreview.user_profile_summary`.
+- Preserved safety boundary: no LLM/provider call, no Routine start, no Engine/MIDI/playback, no HarmonyOS local-state write.
+- Added `docs/AGENT_PRACTICE_COACH_PROFILE_SHEET_INTENT_CONTRACT_V2_10_15.md`.
+- Added `tests/test_v2_10_15_agent_practice_coach_profile_sheet_intent_contract.py`.
+
+Next recommended Agent task:
+
+```text
+v2_10_16_agent_practice_coach_unified_message_action_router
+```
+
+## v2_10_14_agent_practice_coach_plan_confirmation_to_routine_card_contract
+
+- Added `POST /agent/harmonyos/practice-coach-session/routine-card/execute`.
+- Added deterministic `routine_card_ready` contract after explicit user confirmation of an existing Practice Coach `draft_plan`.
+- Added HarmonyOS-facing `routineCardPayload` with `startEnabled=true` while preserving `backendStartsRoutine=false`.
+- Preserved safety boundary: no LLM call, no provider network call, no backend Routine start, no Engine/MIDI/playback, no HarmonyOS local-state write.
+- Added `docs/AGENT_PRACTICE_COACH_PLAN_CONFIRMATION_TO_ROUTINE_CARD_CONTRACT_V2_10_14.md`.
+- Added `tests/test_v2_10_14_agent_practice_coach_plan_confirmation_to_routine_card_contract.py`.
+
+Next recommended Agent task:
+
+```text
+v2_10_15_agent_practice_coach_profile_sheet_intent_contract
+```
+
+## v2_10_13_agent_practice_coach_plan_proposal_contract
+
+- Added `POST /agent/harmonyos/practice-coach-session/plan-proposal/execute`.
+- Added deterministic `practice_plan_proposal` contract when `available_minutes` and `practice_focus` are available.
+- Persisted generated proposal as `draft_plan` with `awaiting_confirmation=true` in Practice Coach Session state.
+- Preserved safety boundary: no LLM call, no Routine start, no Engine/MIDI/playback, no HarmonyOS local-state write.
+- Added `tests/test_v2_10_13_agent_practice_coach_plan_proposal_contract.py`.
+
+## v2_10_12_agent_practice_coach_conversation_state_store
+
+- Added Practice Coach Session conversation state persistence for HarmonyOS.
+- New route: `POST /agent/harmonyos/practice-coach-session/message-state/execute`.
+- The route restores the previous session state, records the current user message, extracts basic missing-info fields such as available minutes and practice focus, persists the updated state to backend SQLite, and returns an updated Practice Coach context-builder preview.
+- Added dedicated SQLite tables: `practice_coach_session_states` and `practice_coach_session_turns`.
+- Preserved cache-friendly context order and kept `sessionId` / `deviceId` out of the LLM prompt body.
+- Preserved boundaries: no LLM/provider call, no Routine start, no Engine call, no MIDI, no playback, and no HarmonyOS local-state write.
+- Added `docs/AGENT_PRACTICE_COACH_CONVERSATION_STATE_STORE_V2_10_12.md`.
+- Added `tests/test_v2_10_12_agent_practice_coach_conversation_state_store.py`.
+
+Next recommended Agent task:
+
+```text
+v2_10_13_agent_practice_coach_plan_proposal_contract
+```
+
 
 
 ## v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
@@ -789,3 +908,13 @@ Recommended next Agent / integration task:
 ```text
 integration handoff or v2_10_5_agent_harmonyos_today_guidance_api_contract_alignment
 ```
+
+
+## v2_10_11 — Practice Coach Session Context Builder
+
+- Added the first Practice Coach Session context builder preview for HarmonyOS Agent.
+- New route: `POST /agent/harmonyos/practice-coach-session/context-builder-preview`.
+- The new context shape is explicitly cache-aware: stable product/action contract first, user/profile/plan/history summaries next, session state and current user turn last.
+- Added block digests and stable-prefix digest so cache misses can be traced to the changed context layer.
+- Routine completion `items` and `notes` now enter the Practice Coach LLM context projection as compact `item_summaries` and `user_note_summary`, not as raw blobs.
+- Preserved Agent/Engine boundaries: preview only, no LLM call, no Routine start, no Engine call, no MIDI, no playback, no HarmonyOS local-state write.

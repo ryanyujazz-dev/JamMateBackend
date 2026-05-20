@@ -1,0 +1,21 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-coach-smoke-sheet-001",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "今天该练什么？",
+  "llmActionDecisionResult": {
+    "responseType": "request_profile_sheet",
+    "message": "为了给你安排更准确的练习，我需要先了解几个基础信息。",
+    "missingFields": [
+      "practice_profile.primary_instrument",
+      "practice_profile.skill_level",
+      "practice_profile.daily_available_minutes",
+      "practice_profile.main_goal",
+      "practice_profile.preferred_styles"
+    ],
+    "nextClientActions": [
+      "open_profile_sheet",
+      "submit_profile_form_result"
+    ]
+  }
+}

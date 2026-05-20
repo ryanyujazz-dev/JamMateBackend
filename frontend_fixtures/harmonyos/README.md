@@ -48,3 +48,50 @@ The API client sketch exposes:
 executeHarmonyOSRoutineCompletionRecord(request)
 previewHarmonyOSTodayPracticeGuidance(request)
 ```
+
+## v2_10_19 Practice Coach unified frontend contract types
+
+HarmonyOS can now use a single Practice Coach Session product endpoint:
+
+```text
+POST /agent/harmonyos/practice-coach-session/message/execute
+```
+
+Copy-friendly frontend files:
+
+```text
+types/PracticeCoachTypes.ets
+api/PracticeCoachStateMapper.ets
+```
+
+Recommended frontend call:
+
+```text
+JamMateApiClient.executePracticeCoachMessage(request)
+```
+
+Production requests contain only product fields such as:
+
+```text
+userId
+sessionId
+deviceId
+userMessage
+profileFormResult
+```
+
+Production requests must not include `llmActionDecisionResult`. That name is smoke-only and appears only in backend smoke fixtures as a provider-boundary simulation hook.
+
+Frontend rendering should be driven by `data.responseType`:
+
+```text
+ask_clarifying_question -> chat bubble + suggested replies
+request_profile_sheet -> native bindSheet / bottom sheet
+practice_plan_proposal -> proposal card with confirm / adjust actions
+practice_plan_revision -> updated proposal card
+routine_card_ready -> routine card with explicit user start button
+chat_message -> plain chat bubble
+cannot_proceed -> plain error/empty-state message
+```
+
+The state mapper keeps `safeToAutostartRoutine=false` for every response. Even when a routine card is ready, the user must explicitly tap the frontend start button.

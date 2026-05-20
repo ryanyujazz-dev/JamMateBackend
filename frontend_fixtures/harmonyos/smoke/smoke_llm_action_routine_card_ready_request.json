@@ -1,0 +1,17 @@
+{
+  "userId": "local-dev-user",
+  "sessionId": "practice-coach-smoke-plan-001",
+  "deviceId": "harmonyos-device-local",
+  "userMessage": "确认这个安排。",
+  "llmActionDecisionResult": {
+    "responseType": "routine_card_ready",
+    "message": "好的，我已经把这个安排整理成今天的练习卡片。",
+    "routineCard": {
+      "title": "前端不应信任这个字段；后端会从已保存草案重建卡片"
+    },
+    "nextClientActions": [
+      "show_routine_card",
+      "wait_for_user_start_routine"
+    ]
+  }
+}
