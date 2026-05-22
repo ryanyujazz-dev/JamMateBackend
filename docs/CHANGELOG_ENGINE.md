@@ -1229,3 +1229,54 @@ Recommended next task: `v2_6_110_engine_bossa_nova_bass_listening_refinement_or_
 - Added `tests/test_v2_6_110_engine_bossa_nova_drop_family_closed_parent_projection_fix.py` and `examples/scripts/generate_engine_bossa_nova_drop_family_closed_parent_projection_fix_audit.py`.
 
 Recommended next task: `v2_6_111_engine_bossa_nova_voicing_listening_checkpoint_or_continue_bass_drums`.
+
+## v2_6_111 — Engine Bossa Nova Named Open Projection Boundary Hardening
+
+- Hardened the existing named OPEN drop-family projection boundary after the v2_6_110 closed-parent fix.
+- DROP2 / DROP3 / DROP2&4 now only accept parent candidates from `compact_closed_parent_candidates_for_projection`; if no compact CLOSED parent exists, the named OPEN candidate is not emitted rather than silently falling back to a non-compact legacy parent.
+- Added metadata to named OPEN candidates proving the parent source and explicitly marking `open_named_projection_noncompact_parent_fallback_used = False`, `open_named_projection_legacy_parent_fallback_used = False`, and `open_named_projection_silent_fallback_allowed = False`.
+- Preserved the v2_6_103/104 cleanup: ordinary 4-note CLOSED/OPEN voicings do not report retired `1+3` / `2+2` grouped metadata, and Bossa OPEN runtime excludes `generic_open` from ordinary method selection.
+- This is a boundary guard over existing voicing behavior, not a new voicing method, not a style-local projection system, and not a parallel selector.
+- Preserved V2 boundaries: no piano rhythm change, no expression change, no bass/drum change, no API/Agent/HarmonyOS change, and no new SPREAD/grouped voicing behavior.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_111 named-open boundary hardening summary/report.
+- Added `tests/test_v2_6_111_engine_bossa_nova_named_open_projection_boundary_hardening.py` and `examples/scripts/generate_engine_bossa_nova_named_open_projection_boundary_hardening_audit.py`.
+
+Recommended next task: `v2_6_112_engine_bossa_nova_voicing_listening_checkpoint_or_continue_bass_drums`.
+
+## v2_6_112 — Engine Bossa Nova Voicing Listening Checkpoint
+
+- Added a Bossa voicing checkpoint after the v2_6_102 no-forced-low-density cleanup, v2_6_103 OPEN-main / taxonomy cleanup, v2_6_104 open method policy correction, v2_6_110 compact CLOSED parent fix, and v2_6_111 named-open boundary hardening.
+- This is a checkpoint/audit/demo milestone only: it does not add voicing sources, projection methods, selectors, piano rhythm, expression values, bass/drum behavior, API, Agent, or HarmonyOS changes.
+- Bossa remains OPEN-main with ordinary 4-to-5-note voicing and shared drop-family behavior: `drop2` primary, `drop3` secondary, `drop2_and_4` very low; `generic_open` stays excluded from ordinary runtime.
+- Confirmed ordinary Bossa runtime does not use forced 2-note/3-note voicings, does not report retired `1+3` / `2+2` grouped metadata, and does not use SPREAD grouped voicing.
+- Confirmed named OPEN runtime uses compact CLOSED parents only and has no non-compact/legacy/silent parent fallback events.
+- Added runtime checks for the previously reported Blue Bossa low-cluster/top-gap artifact around bars 14 / 19 / 29.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_112 voicing checkpoint summary/report.
+- Added `tests/test_v2_6_112_engine_bossa_nova_voicing_listening_checkpoint.py` and `examples/scripts/generate_engine_bossa_nova_voicing_listening_checkpoint.py`.
+
+Recommended next task: `v2_6_113_engine_bossa_nova_bass_or_voicing_listening_refinement`.
+
+## v2_6_113 — Engine Anticipation Source-Pattern Duration Contract
+
+- Fixed the shared AnticipationResolver / ExpressionResolver duration contract from first principles: anticipation moves a logical beat-1 event earlier, but it must preserve the suppressed source event's original continuation target.
+- The resolver now stamps anticipated events with source-pattern continuation metadata, including the source next same-track touch or source region end and the original continuation gap.
+- Expression duration now uses `lead_in + source continuation gap` for hold-style anticipated events, so a source beat-1 event that would have held to source 3& still holds to source 3& after being anticipated from previous 4&.
+- Fixed Bossa duration micro-tuning so source-continuation anticipations are not capped by the old generic post-downbeat Bossa cap; fixed short anticipations still remain short.
+- This is a shared runtime contract cleanup, not a Bossa-only patch, not a pattern-specific exception, and not a new anticipation engine.
+- Preserved V2 boundaries: no piano rhythm vocabulary change, no voicing change, no bass/drum behavior change, no API/Agent/HarmonyOS change.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_113 source-pattern duration contract summary/report.
+- Added `tests/test_v2_6_113_engine_anticipation_source_pattern_duration_contract.py` and `examples/scripts/generate_engine_anticipation_source_pattern_duration_contract_audit.py`.
+
+Recommended next task: listen to v2_6_113 3x/5x and decide whether Bossa anticipation sustain feels too connected in specific contexts, then refine via expression policy only if needed.
+
+## v2_6_114 — Engine Bossa Nova High-Color Harmonic Expansion Policy
+
+- Added a Bossa high-color harmonic-expansion policy for demos where `harmonic_expansion_enabled=true` / `color_policy_mode=style_safe_extensions` is requested.
+- Kept the change in the style harmonic-color/request boundary: Bossa may request richer effective chord symbols for voicing only, such as `Cm7 -> Cm9`, `Dm7b5 -> Dm7b5(11)`, `G7b9 -> G7b9b13`, `Ab7 -> Ab13`, and `Dbmaj7 -> Dbmaj9`.
+- Did not change core voicing sources, projection, drop-family methods, candidate generation, voicing selector, piano rhythm, bass, drums, expression, API, Agent, or HarmonyOS.
+- Increased Bossa source-balance weights under the existing harmonic-expansion gate so expanded demos strongly favor 9/11/13 and minor-cadence b9/b13 colors while keeping Bossa OPEN-main drop-family voicing intact.
+- Added a generic realization-boundary hook that lets event-scoped policy metadata supply an effective voicing chord symbol; this is a harmonic request handoff, not a voicing source/projection hook.
+- Generated Blue Bossa 3x and 5x expanded-harmony demos plus a v2_6_114 high-color harmonic-expansion summary/report.
+- Added `tests/test_v2_6_114_engine_bossa_nova_high_color_harmonic_expansion_policy.py` and `examples/scripts/generate_engine_bossa_nova_high_color_harmonic_expansion_policy.py`.
+
+Recommended next task: listen to v2_6_114 expanded-harmony 3x/5x demos and decide whether Bossa expansion is too colorful, then calibrate only the harmonic-color policy if needed.

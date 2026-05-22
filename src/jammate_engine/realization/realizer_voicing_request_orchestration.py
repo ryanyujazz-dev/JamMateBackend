@@ -132,9 +132,10 @@ class RealizerVoicingRequestOrchestrator:
                     previous_voicing=cached,
                     request=fresh_request,
                 )
+            request_chord_symbol = voicing_request_chord_symbol(event, event_policy)
             req = VoicingRequest(
                 event_id=event.event_id,
-                chord_symbol=event.chord_symbol,
+                chord_symbol=request_chord_symbol,
                 track=event.track,
                 gesture_type=event.gesture_type,
                 gesture=event.gesture,
@@ -144,6 +145,21 @@ class RealizerVoicingRequestOrchestrator:
                 onset_beat=event.onset_beat,
             )
             voicing = self.voicing_resolver.resolve(req)
+            if request_chord_symbol != event.chord_symbol:
+                voicing = replace(
+                    voicing,
+                    metadata={
+                        **dict(getattr(voicing, "metadata", {}) or {}),
+                        "voicing_request_chord_symbol_override_applied": True,
+                        "voicing_request_original_chord_symbol": event.chord_symbol,
+                        "voicing_request_effective_chord_symbol": request_chord_symbol,
+                        "voicing_request_chord_symbol_override_source": dict(event_policy.metadata or {}).get("voicing_request_chord_symbol_override_source"),
+                        "bossa_high_color_harmonic_expansion_policy_version": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_policy_version"),
+                        "bossa_high_color_harmonic_expansion_applied": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_applied"),
+                        "bossa_high_color_harmonic_expansion_color_family": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_color_family"),
+                        "bossa_high_color_harmonic_expansion_no_voicing_module_change": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_no_voicing_module_change"),
+                    },
+                )
             if cached is not None and fresh_request["requested"]:
                 voicing = annotate_deliberate_revoice_gesture_boundary(
                     voicing,
@@ -559,6 +575,25 @@ def policy_with_deliberate_revoice_micro_motion_context(
         }
     )
     return replace(policy, metadata=metadata)
+
+
+
+def voicing_request_chord_symbol(event: PatternEvent, policy: VoicingPolicy) -> str:
+    """Return the chord symbol used for one voicing request.
+
+    This is a harmonic-request boundary, not a voicing source/projection hook.
+    Styles may attach an explicit, event-scoped harmonic-expansion symbol in
+    policy metadata; the core voicing resolver still owns all source admission,
+    drop-family projection, scoring, and selection.
+    """
+
+    metadata = dict(getattr(policy, "metadata", {}) or {})
+    if not _coerce_bool(metadata.get("voicing_request_chord_symbol_override_enabled"), default=False):
+        return event.chord_symbol
+    override = str(metadata.get("voicing_request_chord_symbol_override") or "").strip()
+    if not override:
+        return event.chord_symbol
+    return override
 
 
 def region_voicing_cache_key(event: PatternEvent) -> RegionVoicingCacheKey:

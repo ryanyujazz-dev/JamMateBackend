@@ -83,6 +83,7 @@ class AnticipationResolver:
                 candidate=candidate,
                 previous_region=previous_region,
                 current_region=current_region,
+                source_region_events=events_by_region.get(current_region.region_id, []),
                 target_abs_beat=target_abs_beat,
                 target_local_beat=tail.target_local_beat,
                 target_offset_beats=target_offset,
@@ -161,6 +162,7 @@ class AnticipationResolver:
         candidate: PatternEvent,
         previous_region: HarmonicRegion,
         current_region: HarmonicRegion,
+        source_region_events: list[PatternEvent],
         target_abs_beat: float,
         target_local_beat: float | None,
         target_offset_beats: float,
@@ -178,6 +180,7 @@ class AnticipationResolver:
         target_timing_intent = str(policy.target_timing_intent or "auto")
         previous_duration = float(previous_region.duration_beats)
         current_duration = float(current_region.duration_beats)
+        source_continuation = self._source_continuation_target(candidate, current_region, source_region_events, policy)
         previous_last_beat_local = round(max(0.0, previous_duration - 1.0), 6)
         previous_last_upbeat_local = round(max(0.0, previous_duration - 0.5), 6)
         metadata = {
@@ -195,6 +198,17 @@ class AnticipationResolver:
                 "original_onset_beat": candidate.onset_beat,
                 "original_local_beat_in_source": candidate.local_beat,
                 "source_region_duration_beats": candidate.metadata.get("region_duration_beats"),
+                "source_continuation_contract_version": "v2_6_113",
+                "source_continuation_contract": "Anticipated event keeps the suppressed beat-1 event's source-pattern duration target; expression adds the lead-in to the original source continuation, rather than shortening the anticipation to the next downbeat.",
+                "source_continuation_target_kind": source_continuation["target_kind"],
+                "source_continuation_target_event_id": source_continuation.get("target_event_id"),
+                "source_continuation_target_onset_beat": source_continuation.get("target_onset_beat"),
+                "source_continuation_target_local_beat": source_continuation.get("target_local_beat"),
+                "source_continuation_gap_beats": source_continuation["gap_beats"],
+                "source_next_same_track_event_id": source_continuation.get("target_event_id") if source_continuation["target_kind"] == "next_same_track_touch" else None,
+                "source_next_same_track_onset_beat": source_continuation.get("target_onset_beat") if source_continuation["target_kind"] == "next_same_track_touch" else None,
+                "source_next_same_track_local_beat": source_continuation.get("target_local_beat") if source_continuation["target_kind"] == "next_same_track_touch" else None,
+                "source_next_same_track_gap_beats": source_continuation["gap_beats"] if source_continuation["target_kind"] == "next_same_track_touch" else None,
                 "target_offset_beats": target_offset_beats,
                 "lead_in_beats": round(logical_lead_in, 6),
                 "logical_lead_in_beats": round(logical_lead_in, 6),
@@ -229,6 +243,53 @@ class AnticipationResolver:
             status="active",
             metadata=metadata,
         )
+
+    def _source_continuation_target(
+        self,
+        candidate: PatternEvent,
+        current_region: HarmonicRegion,
+        source_region_events: list[PatternEvent],
+        policy: AnticipationPolicy,
+    ) -> dict:
+        """Return the source-pattern duration target for a moved beat-1 event.
+
+        First-principles contract: an anticipated event is the same logical
+        source-region beat-1 event performed earlier.  Its duration endpoint
+        should therefore be derived from the source timeline (usually the next
+        active same-track harmonic touch, otherwise the source ChordRegion end),
+        not from the new previous-tail onset.
+        """
+
+        later_events = [
+            event
+            for event in source_region_events
+            if event.event_id != candidate.event_id
+            and event.status == "active"
+            and event.track == candidate.track
+            and event.role in policy.eligible_roles
+            and float(event.onset_beat) > float(candidate.onset_beat) + 1e-6
+        ]
+        if later_events:
+            target = sorted(later_events, key=lambda event: (event.onset_beat, event.event_id))[0]
+            gap = max(0.0, float(target.onset_beat) - float(candidate.onset_beat))
+            return {
+                "target_kind": "next_same_track_touch",
+                "target_event_id": target.event_id,
+                "target_onset_beat": round(float(target.onset_beat), 6),
+                "target_local_beat": None if target.local_beat is None else round(float(target.local_beat), 6),
+                "gap_beats": round(gap, 6),
+            }
+
+        region_end = float(current_region.start_beat) + float(current_region.duration_beats)
+        gap = max(0.0, region_end - float(candidate.onset_beat))
+        return {
+            "target_kind": "source_region_end",
+            "target_event_id": None,
+            "target_onset_beat": round(region_end, 6),
+            "target_local_beat": round(float(current_region.duration_beats), 6),
+            "gap_beats": round(gap, 6),
+        }
+
 
     def _make_suppressed_original(
         self,

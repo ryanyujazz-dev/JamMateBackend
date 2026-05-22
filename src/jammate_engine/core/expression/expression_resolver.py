@@ -14,6 +14,7 @@ EXPRESSION_NEXT_EVENT_CLAMP_VERSION = "v2_3_9"
 EXPRESSION_NEXT_TOUCH_HOLD_VERSION = "v2_6_66"
 EXPRESSION_ANTICIPATION_PEDAL_RELEASE_VERSION = "v2_3_9"
 EXPRESSION_DISTANCE_ARTICULATION_VERSION = "v2_6_94"
+EXPRESSION_ANTICIPATION_SOURCE_CONTINUATION_VERSION = "v2_6_113"
 
 
 class ExpressionResolver:
@@ -176,16 +177,8 @@ class ExpressionResolver:
                 anticipation,
                 policy_metadata=policy_metadata,
                 profile_name=profile_name,
+                profile_metadata=profile_metadata,
             )
-            if _uses_next_touch_hold(event, profile_metadata):
-                hold_duration, hold_metadata = self._duration_hold_until_next_touch(
-                    event,
-                    max(float(duration), float(requested_duration)),
-                    next_same_track_start=next_same_track_start,
-                    profile_metadata=profile_metadata,
-                )
-                duration = max(float(duration), float(hold_duration))
-                metadata = {**metadata, **hold_metadata, "duration_clamped_beats": duration}
         else:
             if _uses_next_touch_hold(event, profile_metadata):
                 duration, metadata = self._duration_hold_until_next_touch(
@@ -332,6 +325,7 @@ class ExpressionResolver:
         *,
         policy_metadata: Mapping | None = None,
         profile_name: str | None = None,
+        profile_metadata: Mapping | None = None,
     ) -> tuple[float, dict]:
         """Let a next-chord anticipation ring across the barline.
 
@@ -366,14 +360,32 @@ class ExpressionResolver:
             original_region_duration = event.metadata.get("region_duration_beats")
             source_region_duration = _coerce_float(original_region_duration, None)
 
+        source_continuation_gap = _coerce_float(anticipation.get("source_continuation_gap_beats"), None)
+        source_continuation_kind = str(anticipation.get("source_continuation_target_kind") or "").strip().lower()
+        source_next_touch_gap = _coerce_float(anticipation.get("source_next_same_track_gap_beats"), None)
+        preserve_source_continuation = _uses_next_touch_hold(event, profile_metadata)
+
         if source_region_duration is None:
-            original_sustain = requested
             source_remaining = None
-            original_clamp_applied = False
         else:
             source_remaining = max(0.0, float(source_region_duration) - float(original_local))
-            original_sustain = max(0.05, min(requested, source_remaining)) if source_remaining > 0 else 0.05
+
+        if preserve_source_continuation and source_next_touch_gap is not None:
+            original_sustain = max(0.05, float(source_next_touch_gap))
+            original_clamp_applied = False
+            source_continuation_reason = "hold_until_source_next_same_track_touch"
+        elif preserve_source_continuation and source_continuation_gap is not None:
+            original_sustain = max(0.05, float(source_continuation_gap))
+            original_clamp_applied = False
+            source_continuation_reason = f"hold_until_{source_continuation_kind or 'source_continuation_target'}"
+        elif source_region_duration is None:
+            original_sustain = requested
+            original_clamp_applied = False
+            source_continuation_reason = "profile_requested_duration_no_source_region_metadata"
+        else:
+            original_sustain = max(0.05, min(requested, source_remaining)) if source_remaining and source_remaining > 0 else 0.05
             original_clamp_applied = original_sustain < requested - 1e-9
+            source_continuation_reason = "profile_requested_duration_clamped_to_source_region_remaining"
 
         duration = max(0.05, lead_in + original_sustain)
         duration, micro_duration_metadata = _micro_tuned_anticipated_duration(
@@ -382,6 +394,7 @@ class ExpressionResolver:
             original_sustain=original_sustain,
             style_id=str((policy_metadata or {}).get("style", "")),
             profile_name=profile_name or event.expression_hint or "",
+            source_continuation_applied=bool(preserve_source_continuation and source_continuation_gap is not None),
         )
         return duration, {
             "duration_region_clamp_version": EXPRESSION_REGION_DURATION_CLAMP_VERSION,
@@ -399,6 +412,12 @@ class ExpressionResolver:
             "duration_anticipation_original_sustain_beats": round(original_sustain, 6),
             "duration_anticipation_source_region_remaining_beats": None if source_remaining is None else round(source_remaining, 6),
             "duration_anticipation_original_region_clamp_applied": original_clamp_applied,
+            "duration_anticipation_source_continuation_version": EXPRESSION_ANTICIPATION_SOURCE_CONTINUATION_VERSION,
+            "duration_anticipation_source_continuation_applied": bool(preserve_source_continuation and source_continuation_gap is not None),
+            "duration_anticipation_source_continuation_reason": source_continuation_reason,
+            "duration_anticipation_source_continuation_target_kind": source_continuation_kind or None,
+            "duration_anticipation_source_continuation_gap_beats": None if source_continuation_gap is None else round(float(source_continuation_gap), 6),
+            "duration_anticipation_source_next_same_track_gap_beats": None if source_next_touch_gap is None else round(float(source_next_touch_gap), 6),
             "duration_clamped_beats": duration,
             **micro_duration_metadata,
         }
@@ -618,9 +637,17 @@ def _micro_tuned_anticipated_duration(
     original_sustain: float,
     style_id: str,
     profile_name: str,
+    source_continuation_applied: bool = False,
 ) -> tuple[float, dict]:
     style = str(style_id or "").strip().lower()
     profile = str(profile_name or "").strip().lower()
+    if source_continuation_applied:
+        return duration, {
+            "duration_anticipation_micro_tuning_version": EXPRESSION_ANTICIPATION_PEDAL_RELEASE_VERSION,
+            "duration_anticipation_micro_tuning_applied": False,
+            "duration_anticipation_micro_tuning_reason": "source_pattern_continuation_target_preserved",
+            "duration_anticipation_post_downbeat_sustain_cap": None,
+        }
     cap: float | None = None
     reason = "no_style_specific_duration_micro_tuning"
     if style == "bossa_nova":

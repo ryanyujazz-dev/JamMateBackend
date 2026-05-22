@@ -1440,31 +1440,13 @@ def _project_closed_parent_candidates_for_named_open_projection(
     Dropping from those non-compact parents produced illegal-sounding shapes
     like ``[53, 55, 56, 71]`` while still being labelled DROP2.
 
-    Use the existing closed-disposition compact parent helper directly here so
-    named OPEN methods always project from true compact parents.  This is not a
-    new voicing capability; it restores the intended drop-family boundary.
+    v2_6_111 hardens that boundary: named OPEN drop-family methods only accept
+    parents from the compact closed-parent helper.  If no compact parent exists,
+    this method returns an empty list so the named OPEN candidate is not emitted
+    rather than silently falling back to a non-compact legacy parent.
     """
 
-    compact_candidates = compact_closed_parent_candidates_for_projection(chord.root_pc, degrees, policy)
-    if compact_candidates:
-        return compact_candidates
-
-    # Conservative fallback for exotic sources that the compact pitch-class
-    # helper cannot represent.  Keep the old path available, but ordinary 4-note
-    # tertian/drop-family sources should never need it.
-    seed = _project_closed_parent_for_named_open_projection(chord, degrees, family, policy, validity_notes)
-    variants = register_variants(seed, policy, Disposition.CLOSED) if seed else []
-    if not variants:
-        return [seed] if seed else []
-    out: list[list[tuple[str, int]]] = []
-    seen: set[tuple[tuple[str, int], ...]] = set()
-    for variant in variants:
-        key = tuple((str(degree), int(note)) for degree, note in sorted(variant, key=lambda item: item[1]))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(list(key))
-    return out
+    return compact_closed_parent_candidates_for_projection(chord.root_pc, degrees, policy)
 
 
 

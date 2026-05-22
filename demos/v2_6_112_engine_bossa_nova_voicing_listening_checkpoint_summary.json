@@ -1,0 +1,650 @@
+{
+  "checkpoint_version": "v2_6_112",
+  "engine_version_tag": "v2_10_28",
+  "scope": "Checkpoint the Bossa OPEN-main voicing baseline after v2_6_102 through v2_6_111. This verifies ordinary runtime uses normal 4-to-5-note drop-family OPEN voicing, excludes generic_open, does not revive 2/3-note forced density or retired 1+3/2+2 grouped metadata, and has no low-cluster/top-gap artifact.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_112",
+    "engine_version_tag": "v2_10_28",
+    "policy_preferred_disposition": "open",
+    "policy_allowed_dispositions": [
+      "open",
+      "closed"
+    ],
+    "policy_density_range": [
+      4,
+      5
+    ],
+    "policy_open_projection_methods": [
+      "drop2",
+      "drop3",
+      "drop2_and_4"
+    ],
+    "checkpoint_metadata": {
+      "version": "v2_6_112",
+      "enabled": true,
+      "behavior_change": false,
+      "scope": "checkpoint the Bossa open-main voicing baseline after no-forced-low-density, open-main, method-policy correction, closed-parent fix, and named-open fallback hardening",
+      "completed_versions": [
+        "v2_6_102",
+        "v2_6_103",
+        "v2_6_104",
+        "v2_6_110",
+        "v2_6_111"
+      ],
+      "preferred_disposition": "open",
+      "normal_open_projection_methods": [
+        "drop2",
+        "drop3",
+        "drop2_and_4"
+      ],
+      "generic_open_role": "fallback_or_rescue_only_not_ordinary_runtime",
+      "ordinary_density_range": [
+        4,
+        5
+      ],
+      "forced_2_or_3_note_voicing": false,
+      "spread_grouped_voicing": false,
+      "ordinary_4note_grouping_metadata_retired": true,
+      "named_open_parent_boundary": "compact_closed_parent_candidates_for_projection_only",
+      "noncompact_parent_silent_fallback_allowed": false,
+      "no_new_voicing_ability": true,
+      "no_style_local_projection_system": true,
+      "no_parallel_selector": true,
+      "no_piano_rhythm_expression_bass_drums_api_agent_harmonyos_change": true,
+      "recommended_next_task": "v2_6_113_engine_bossa_nova_bass_or_voicing_listening_refinement"
+    },
+    "candidate_count": 72,
+    "method_counts": {
+      "drop2": 24,
+      "drop3": 24,
+      "drop2_and_4": 24
+    },
+    "density_counts": {
+      "4": 72
+    },
+    "content_counts": {
+      "seventh_chord_basic": 60,
+      "rooted_color": 12
+    },
+    "generic_open_candidate_count": 0,
+    "low_density_candidate_count": 0,
+    "fallback_parent_candidate_count": 0,
+    "wrong_parent_source_candidate_count": 0,
+    "silent_fallback_allowed_candidate_count": 0,
+    "parent_closed_span_over_12_candidate_count": 0,
+    "low_cluster_top_gap_candidate_count": 0,
+    "retired_4note_grouping_candidate_count": 0,
+    "bad_low_cluster_examples": [],
+    "retired_grouping_examples": [],
+    "inspected_symbols": [
+      "Cm7",
+      "Fm7",
+      "Dm7b5",
+      "G7b9",
+      "Ab7",
+      "Dbmaj7"
+    ]
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23112,
+      "midi_path": "demos/v2_6_112_blue_bossa_3x_bossa_nova_voicing_listening_checkpoint_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 396,
+        "bass": 100,
+        "drums": 593
+      },
+      "piano_notes": 396,
+      "bass_notes": 100,
+      "drums_notes": 593,
+      "piano_harmonic_event_count": 99,
+      "density_counts": {
+        "4": 99
+      },
+      "disposition_counts": {
+        "open": 99
+      },
+      "content_family_counts": {
+        "seventh_chord_basic": 83,
+        "rooted_color": 16
+      },
+      "open_method_counts": {
+        "drop2": 87,
+        "drop3": 12
+      },
+      "generic_open_event_count": 0,
+      "low_density_event_count": 0,
+      "non_open_event_count": 0,
+      "retired_4note_grouping_event_count": 0,
+      "fallback_parent_event_count": 0,
+      "wrong_parent_source_event_count": 0,
+      "silent_fallback_allowed_event_count": 0,
+      "parent_closed_span_over_12_count": 0,
+      "low_cluster_top_gap_event_count": 0,
+      "inspected_bars": [
+        14,
+        19,
+        29
+      ],
+      "inspected_bar_event_count": 5,
+      "inspected_bar_bad_event_count": 0,
+      "inspected_bar_examples": [
+        {
+          "bar": 14,
+          "start_beat": 52.0,
+          "chord": "G7b9",
+          "pattern_id": "bossa_piano_cell_A_1",
+          "notes": [
+            55,
+            59,
+            65,
+            68
+          ],
+          "intervals": [
+            4,
+            6,
+            3
+          ],
+          "span": 13,
+          "density": 4,
+          "content_family": "rooted_color",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__rooted_color__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            59,
+            65,
+            67,
+            68
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 14,
+          "start_beat": 55.5,
+          "chord": "Cm7",
+          "pattern_id": "bossa_piano_cell_A_1_3and",
+          "notes": [
+            55,
+            60,
+            63,
+            70
+          ],
+          "intervals": [
+            5,
+            3,
+            7
+          ],
+          "span": 15,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            60,
+            63,
+            67,
+            70
+          ],
+          "parent_closed_span": 10,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 19,
+          "start_beat": 72.0,
+          "chord": "Fm7",
+          "pattern_id": "bossa_piano_cell_A_1_2and",
+          "notes": [
+            56,
+            63,
+            65,
+            72
+          ],
+          "intervals": [
+            7,
+            2,
+            7
+          ],
+          "span": 16,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            63,
+            65,
+            68,
+            72
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 19,
+          "start_beat": 73.5,
+          "chord": "Fm7",
+          "pattern_id": "bossa_piano_cell_A_1_2and",
+          "notes": [
+            56,
+            63,
+            65,
+            72
+          ],
+          "intervals": [
+            7,
+            2,
+            7
+          ],
+          "span": 16,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            63,
+            65,
+            68,
+            72
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 29,
+          "start_beat": 114.5,
+          "chord": "Dm7b5",
+          "pattern_id": "bossa_piano_cell_A_1_3and",
+          "notes": [
+            56,
+            62,
+            65,
+            72
+          ],
+          "intervals": [
+            6,
+            3,
+            7
+          ],
+          "span": 16,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            62,
+            65,
+            68,
+            72
+          ],
+          "parent_closed_span": 10,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        }
+      ],
+      "bad_examples": []
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23113,
+      "midi_path": "demos/v2_6_112_blue_bossa_5x_bossa_nova_voicing_listening_checkpoint_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 668,
+        "bass": 172,
+        "drums": 989
+      },
+      "piano_notes": 668,
+      "bass_notes": 172,
+      "drums_notes": 989,
+      "piano_harmonic_event_count": 167,
+      "density_counts": {
+        "4": 167
+      },
+      "disposition_counts": {
+        "open": 167
+      },
+      "content_family_counts": {
+        "seventh_chord_basic": 135,
+        "rooted_color": 32
+      },
+      "open_method_counts": {
+        "drop2": 144,
+        "drop3": 23
+      },
+      "generic_open_event_count": 0,
+      "low_density_event_count": 0,
+      "non_open_event_count": 0,
+      "retired_4note_grouping_event_count": 0,
+      "fallback_parent_event_count": 0,
+      "wrong_parent_source_event_count": 0,
+      "silent_fallback_allowed_event_count": 0,
+      "parent_closed_span_over_12_count": 0,
+      "low_cluster_top_gap_event_count": 0,
+      "inspected_bars": [
+        14,
+        19,
+        29
+      ],
+      "inspected_bar_event_count": 7,
+      "inspected_bar_bad_event_count": 0,
+      "inspected_bar_examples": [
+        {
+          "bar": 14,
+          "start_beat": 52.0,
+          "chord": "G7b9",
+          "pattern_id": "bossa_piano_cell_A_1_3",
+          "notes": [
+            55,
+            59,
+            65,
+            68
+          ],
+          "intervals": [
+            4,
+            6,
+            3
+          ],
+          "span": 13,
+          "density": 4,
+          "content_family": "rooted_color",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__rooted_color__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            59,
+            65,
+            67,
+            68
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 14,
+          "start_beat": 54.0,
+          "chord": "G7b9",
+          "pattern_id": "bossa_piano_cell_A_1_3",
+          "notes": [
+            55,
+            59,
+            65,
+            68
+          ],
+          "intervals": [
+            4,
+            6,
+            3
+          ],
+          "span": 13,
+          "density": 4,
+          "content_family": "rooted_color",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__rooted_color__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            59,
+            65,
+            67,
+            68
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 14,
+          "start_beat": 55.5,
+          "chord": "Cm7",
+          "pattern_id": "bossa_piano_cell_A_1_3and",
+          "notes": [
+            55,
+            60,
+            63,
+            70
+          ],
+          "intervals": [
+            5,
+            3,
+            7
+          ],
+          "span": 15,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop2",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            60,
+            63,
+            67,
+            70
+          ],
+          "parent_closed_span": 10,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 19,
+          "start_beat": 72.0,
+          "chord": "Fm7",
+          "pattern_id": "bossa_piano_cell_A_1",
+          "notes": [
+            53,
+            63,
+            68,
+            72
+          ],
+          "intervals": [
+            10,
+            5,
+            4
+          ],
+          "span": 19,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop3",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            63,
+            65,
+            68,
+            72
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 29,
+          "start_beat": 113.0,
+          "chord": "Dm7b5",
+          "pattern_id": "bossa_piano_core_batida_1_2_3and",
+          "notes": [
+            53,
+            62,
+            68,
+            72
+          ],
+          "intervals": [
+            9,
+            6,
+            4
+          ],
+          "span": 19,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop3",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            62,
+            65,
+            68,
+            72
+          ],
+          "parent_closed_span": 10,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 29,
+          "start_beat": 114.5,
+          "chord": "Dm7b5",
+          "pattern_id": "bossa_piano_core_batida_1_2_3and",
+          "notes": [
+            53,
+            62,
+            68,
+            72
+          ],
+          "intervals": [
+            9,
+            6,
+            4
+          ],
+          "span": 19,
+          "density": 4,
+          "content_family": "seventh_chord_basic",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop3",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            62,
+            65,
+            68,
+            72
+          ],
+          "parent_closed_span": 10,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        },
+        {
+          "bar": 29,
+          "start_beat": 115.5,
+          "chord": "G7b9",
+          "pattern_id": "bossa_piano_cell_A_1_3and",
+          "notes": [
+            53,
+            59,
+            67,
+            68
+          ],
+          "intervals": [
+            6,
+            8,
+            1
+          ],
+          "span": 15,
+          "density": 4,
+          "content_family": "rooted_color",
+          "disposition": "open",
+          "recipe_id": "d4__unGrouped__rooted_color__rootless_allowed",
+          "functional_grouping": null,
+          "density_recipe_functional_grouping": null,
+          "method": "drop3",
+          "parent_source": "compact_closed_parent_candidates_for_projection",
+          "parent_closed_notes": [
+            59,
+            65,
+            67,
+            68
+          ],
+          "parent_closed_span": 9,
+          "noncompact_parent_fallback_used": false,
+          "legacy_parent_fallback_used": false,
+          "silent_fallback_allowed": false
+        }
+      ],
+      "bad_examples": []
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "policy_declares_checkpoint": true,
+      "checkpoint_is_metadata_only": true,
+      "policy_open_main_drop_family_only": true,
+      "policy_density_4_to_5": true,
+      "static_no_generic_open": true,
+      "static_no_low_density_candidates": true,
+      "static_no_fallback_or_wrong_parent": true,
+      "static_no_silent_fallback": true,
+      "static_parent_spans_compact": true,
+      "static_no_low_cluster_artifact": true,
+      "static_no_retired_grouping": true,
+      "runtime_demos_ok": true,
+      "runtime_open_only": true,
+      "runtime_no_generic_open": true,
+      "runtime_no_low_density": true,
+      "runtime_no_retired_grouping": true,
+      "runtime_no_fallback_or_wrong_parent": true,
+      "runtime_parent_spans_compact": true,
+      "runtime_no_low_cluster_artifact": true
+    }
+  }
+}
