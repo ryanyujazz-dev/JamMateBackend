@@ -101,9 +101,10 @@ def select_candidate(
         policy=policy,
         state=state,
         mode="weighted_pool",
-        pool_size=pool_size,
-        weights=weights if total > 0 else [1.0] + [0.0] * (pool_size - 1),
+        pool_size=len(pool),
+        weights=weights if total > 0 else [1.0] + [0.0] * (len(pool) - 1),
         selected_rank=selected_rank,
+        pool_override=pool,
     )
     return replace(
         selected,
@@ -1082,6 +1083,9 @@ def _source_realization_cost(candidate: VoicingCandidate, *, policy: VoicingPoli
     return (abs(avg - comfort_center), top_center_cost * 0.25, span * 0.05, -float(candidate.score), 0.0)
 
 
+
+
+
 def _selector_decision_metadata(
     *,
     selected: VoicingCandidate,
@@ -1092,8 +1096,9 @@ def _selector_decision_metadata(
     pool_size: int,
     weights: list[float],
     selected_rank: int,
+    pool_override: list[VoicingCandidate] | None = None,
 ) -> dict:
-    pool = scored[: max(1, min(pool_size, len(scored)))]
+    pool = list(pool_override) if pool_override is not None else scored[: max(1, min(pool_size, len(scored)))]
     total_weight = sum(weights) or 1.0
     probabilities = [weight / total_weight for weight in weights]
     selected_key = _candidate_key(selected)

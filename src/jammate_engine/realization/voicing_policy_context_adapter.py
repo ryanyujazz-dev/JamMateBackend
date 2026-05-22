@@ -15,6 +15,7 @@ MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_LOW_REGISTER_CLARITY_GUARD_VERSION = "v
 MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION = "v2_6_82"
 BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION = "v2_6_103"
 BOSSA_HIGH_COLOR_HARMONIC_EXPANSION_POLICY_VERSION = "v2_6_114"
+BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION = "v2_6_124"
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_OWNED_RESPONSIBILITIES = (
     "event_scoped_voicing_policy_metadata_bridge",
@@ -86,6 +87,7 @@ def _policy_with_event_texture_scope(policy: VoicingPolicy, event: PatternEvent)
     policy = _policy_with_event_harmonic_context(policy, event)
     policy = _policy_with_bossa_high_color_harmonic_expansion_policy(policy, event)
     policy = _policy_with_bossa_harmonic_rhythm_region_clarity_voicing_intent(policy, event)
+    policy = _policy_with_bossa_spread_5note_low_weight_policy(policy, event)
     policy = _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy, event)
     policy = _policy_with_ballad_spread_grouping_mix_policy(policy, event)
     policy = _policy_with_spread_upper_3note_expansion_ratio(policy, event)
@@ -428,6 +430,178 @@ def _bossa_voicing_intent_metadata(
         ),
     }
 
+
+
+def _policy_with_bossa_spread_5note_low_weight_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
+    """Request occasional existing grouped-SPREAD 5-note Bossa color.
+
+    This is the corrective v2_6_124 path: Bossa OPEN/drop-family remains the
+    ordinary 4-note body, and ``generic_open`` remains fallback/rescue only.
+    When Bossa wants a low-frequency 5-note texture, this adapter only writes
+    event-scoped metadata that asks the existing grouped-SPREAD runtime pool for
+    the 1+4 contract. It does not construct sources, change OPEN projection,
+    score/select candidates, apply expression, or write MIDI.
+    """
+
+    metadata = dict(policy.metadata or {})
+    if str(metadata.get("style") or "") != "bossa_nova":
+        return policy
+
+    nested = metadata.get("bossa_spread_5note_low_weight_policy") or {}
+    if not isinstance(nested, dict):
+        nested = {"enabled": nested}
+    if not _coerce_bool(nested.get("enabled"), default=False):
+        return policy
+
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    if getattr(event, "track", "") != "piano" or getattr(event, "role", "") != "harmonic":
+        return _bossa_spread_5note_policy_debug(
+            policy,
+            applied=False,
+            reason="event_is_not_piano_harmonic_comping",
+            slot=None,
+        )
+
+    eligible_hints = tuple(str(item) for item in nested.get("eligible_expression_hints", ("core_sustain", "cell_soft_hold")) or ())
+    expression_hint = str(getattr(event, "expression_hint", "") or "")
+    if eligible_hints and expression_hint not in set(eligible_hints):
+        return _bossa_spread_5note_policy_debug(
+            policy,
+            applied=False,
+            reason="event_expression_hint_not_sustain_or_hold",
+            slot=None,
+        )
+
+    try:
+        cycle = max(1, int(nested.get("weight_cycle", 16) or 16))
+    except (TypeError, ValueError):
+        cycle = 16
+    active_slots = nested.get("active_slots", (3,))
+    if isinstance(active_slots, (str, int, float)):
+        active_slots = (active_slots,)
+    try:
+        active_slot_set = {int(slot) % cycle for slot in active_slots}
+    except (TypeError, ValueError):
+        active_slot_set = {3 % cycle}
+    slot = _bossa_spread_5note_low_frequency_slot(event, cycle)
+    if slot not in active_slot_set:
+        return _bossa_spread_5note_policy_debug(
+            policy,
+            applied=False,
+            reason="low_frequency_slot_not_selected",
+            slot=slot,
+        )
+
+    selected_contract_id = str(nested.get("selected_contract_id") or "spread_1plus4_contract")
+    compatible_contract_ids = tuple(
+        str(item) for item in (nested.get("compatible_contract_ids") or (selected_contract_id,)) if str(item)
+    ) or (selected_contract_id,)
+
+    scoped = {
+        **metadata,
+        "bossa_spread_5note_low_weight_policy_version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+        "bossa_spread_5note_low_weight_policy_applied": True,
+        "bossa_spread_5note_low_weight_policy_reason": "event_scoped_low_frequency_spread_1plus4_request",
+        "bossa_spread_5note_low_weight_policy_slot": slot,
+        "bossa_spread_5note_low_weight_policy_cycle": cycle,
+        "bossa_spread_5note_low_weight_policy_expression_hint": expression_hint,
+        "bossa_spread_5note_low_weight_policy_boundary": "event_scoped_policy_requests_existing_grouped_spread_runtime_candidates_only",
+        "bossa_spread_5note_low_weight_policy_no_core_voicing_change": True,
+        "bossa_spread_5note_low_weight_policy_no_open_generic_5note_lane": True,
+        "primary_family": "spread",
+        "allowed_families": ["spread"],
+        "spread_selector_enabled": True,
+        "spread_groupwise_voice_leading_runtime_enabled": True,
+        "spread_grouping_mix_candidate_pool": {
+            "version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+            "use_compatible_contracts": True,
+            "compatible_contract_ids": list(compatible_contract_ids),
+            "selected_contract_id": selected_contract_id,
+            "selection_boundary": "existing_grouped_spread_runtime_candidate_pool",
+        },
+        "spread_runtime_adapter": {
+            **dict(metadata.get("spread_runtime_adapter") or {}),
+            "version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+            "adapter_conversion_allowed": True,
+            "request_source": "bossa_spread_5note_low_weight_policy",
+        },
+        "spread_runtime_adapter_emit_all_candidates": True,
+        "spread_emit_all_candidates_for_groupwise_selection": True,
+        "ballad_spread_grouping_mix_selected_contract_id": selected_contract_id,
+        "spread_grouping_mix_selected_contract_id": selected_contract_id,
+        "spread_density_runtime_contract_ids": list(compatible_contract_ids),
+        "spread_rooted_bass_anchor_enabled": True,
+        "spread_lower_low": int(nested.get("spread_lower_low", 48) or 48),
+        "spread_lower_high": int(nested.get("spread_lower_high", 60) or 60),
+        "spread_lower_1note_target_low": int(nested.get("spread_lower_1note_target_low", 48) or 48),
+        "spread_root_bass_anchor_low": int(nested.get("spread_root_bass_anchor_low", 48) or 48),
+        "spread_root_bass_anchor_high": int(nested.get("spread_root_bass_anchor_high", 60) or 60),
+        "spread_root_bass_anchor_target": int(nested.get("spread_root_bass_anchor_target", 48) or 48),
+        "spread_whole_register_low": int(nested.get("spread_whole_register_low", 48) or 48),
+        "spread_whole_register_high": int(nested.get("spread_whole_register_high", 76) or 76),
+        "spread_lower_2note_low": int(nested.get("spread_lower_2note_low", 48) or 48),
+        "spread_lower_2note_high": int(nested.get("spread_lower_2note_high", 60) or 60),
+        "spread_lower_2note_target_low": int(nested.get("spread_lower_2note_target_low", 54) or 54),
+        "spread_upper_low": int(nested.get("spread_upper_low", 56) or 56),
+        "spread_upper_high": int(nested.get("spread_upper_high", 76) or 76),
+        "spread_upper_target_low": int(nested.get("spread_upper_target_low", 60) or 60),
+        "spread_min_group_gap": int(nested.get("spread_min_group_gap", 1) or 1),
+        "spread_max_group_gap": int(nested.get("spread_max_group_gap", 14) or 14),
+        "spread_max_overall_span": int(nested.get("spread_max_overall_span", 28) or 28),
+        "spread_low_register_density_guard_enabled": True,
+        "spread_low_register_density_threshold": int(nested.get("spread_low_register_density_threshold", 48) or 48),
+        "spread_low_register_density_max_notes_below": int(nested.get("spread_low_register_density_max_notes_below", 1) or 1),
+        "spread_upper_4note_emit_all_parent_projections": True,
+        "spread_upper_4note_allow_octave_shift_candidates": True,
+    }
+    return replace(
+        policy,
+        preferred_disposition=Disposition.SPREAD,
+        allowed_dispositions=(Disposition.SPREAD, Disposition.OPEN),
+        preferred_density=5,
+        min_density=4,
+        max_density=5,
+        register_low=min(int(policy.register_low), 48),
+        register_high=int(policy.register_high),
+        top_voice_high=min(int(policy.top_voice_high), 72),
+        harmonic_expansion_enabled=True,
+        color_policy_mode=ColorPolicyMode.STYLE_SAFE_EXTENSIONS,
+        metadata=scoped,
+    )
+
+
+def _bossa_spread_5note_low_frequency_slot(event: PatternEvent, cycle: int) -> int:
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    bar = _safe_int(event_metadata.get("region_performance_bar_index", event_metadata.get("region_bar_index", 0)), default=0)
+    chord_index = _safe_int(event_metadata.get("region_chord_index", 0), default=0)
+    chorus = _safe_int(event_metadata.get("region_chorus_index", 0), default=0)
+    local_beat = getattr(event, "local_beat", None)
+    try:
+        local_slot = int(round(float(local_beat or 0.0) * 2.0))
+    except (TypeError, ValueError):
+        local_slot = 0
+    return (bar * 3 + chord_index * 5 + chorus * 7 + local_slot) % max(1, int(cycle))
+
+
+def _bossa_spread_5note_policy_debug(
+    policy: VoicingPolicy,
+    *,
+    applied: bool,
+    reason: str,
+    slot: int | None,
+) -> VoicingPolicy:
+    metadata = dict(policy.metadata or {})
+    debug = {
+        **metadata,
+        "bossa_spread_5note_low_weight_policy_version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+        "bossa_spread_5note_low_weight_policy_applied": bool(applied),
+        "bossa_spread_5note_low_weight_policy_reason": reason,
+        "bossa_spread_5note_low_weight_policy_slot": slot,
+        "bossa_spread_5note_low_weight_policy_boundary": "event_scoped_policy_requests_existing_grouped_spread_runtime_candidates_only",
+        "bossa_spread_5note_low_weight_policy_no_core_voicing_change": True,
+        "bossa_spread_5note_low_weight_policy_no_open_generic_5note_lane": True,
+    }
+    return replace(policy, metadata=debug)
 
 def _coerce_content_family(value: Any, default: ContentFamily) -> ContentFamily:
     if isinstance(value, ContentFamily):

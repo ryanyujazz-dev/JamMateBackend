@@ -18,6 +18,9 @@ DYNAMIC_VELOCITY = {
     "medium": 58,
     "soft": 54,
     "ghost": 45,
+    "pp": 28,
+    "p": 34,
+    "feather": 24,
     "hat": 50,
     "accent": 70,
     "shaker_light": 34,
@@ -43,12 +46,24 @@ DYNAMIC_VELOCITY = {
     "bossa_marker_micro": 35,
     "bossa_marker_turnaround_light": 39,
     "bossa_marker_ending_soft": 36,
+    "brush_motion_pp": 23,
+    "brush_skip_pp": 20,
+    "brush_breath_pp": 19,
+    "brush_hat_p": 30,
+    "brush_hat_pp": 24,
+    "brush_feather": 18,
+    "brush_cymbal_pp": 22,
 }
 
 STROKE_DURATION = {
     "swing_time": 0.08,
     "short": 0.08,
     "choked": 0.05,
+    "brush_sweep": 0.28,
+    "brush_swish": 0.18,
+    "brush_foot": 0.06,
+    "brush_cymbal": 0.32,
+    "feather": 0.05,
 }
 
 BOSSA_SHAKER_PULSE_SLOT_OFFSET = {
@@ -150,6 +165,7 @@ def _stable_tiny_light_marker_variation(event: PatternEvent) -> int:
     token = f"marker:{event.region_id}:{event.local_beat}:{event.pattern_id}"
     value = sum(ord(ch) for ch in token) % 3
     return value - 1
+
 
 
 def _resolve_velocity(event: PatternEvent, dynamic_profile: str) -> int:

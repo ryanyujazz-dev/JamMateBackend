@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from jammate_engine.styles.base import StylePolicyBundle, StyleProfile
 
-from . import anticipation_policy, bass_foundation_patterns, percussion_patterns, expression_policy, comping_patterns, voicing_policy, gesture_policy
+from . import anticipation_policy, arrangement_policy, bass_foundation_patterns, percussion_patterns, expression_policy, comping_patterns, voicing_policy, gesture_policy
 
 
 class JazzBalladProfile(StyleProfile):
@@ -21,7 +21,7 @@ class JazzBalladProfile(StyleProfile):
                     "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
                     "metadata": {"style": "jazz_ballad", "stage": "v2_5_9_ballad_default_swing8_timing"},
                 },
-                arrangement_policy={"default_feel": "jazz_ballad", "avoid_full_bar_silence": True},
+                arrangement_policy=arrangement_policy.get_arrangement_policy(),
             ),
             pattern_sources=(
                 comping_patterns.get_pattern_candidates,

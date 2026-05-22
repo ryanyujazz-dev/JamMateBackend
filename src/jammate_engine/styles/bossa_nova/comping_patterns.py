@@ -17,6 +17,7 @@ BOSSA_CONTEXT_ARCHETYPE_POLICY_VERSION = "v2_6_92"
 BOSSA_ANTICIPATION_TAIL_POLICY_VERSION = "v2_6_93"
 BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION = "v2_6_103"
 BOSSA_TWO_BEAT_PHRASE_PAIR_VOCABULARY_VERSION = "v2_6_120"
+BOSSA_LONG_SUSTAIN_WEIGHT_CALIBRATION_VERSION = "v2_6_125"
 BOSSA_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_99"
 BOUNDARY_NOTES = (
     "pitchless",
@@ -28,6 +29,7 @@ BOUNDARY_NOTES = (
     "anticipation_tail_policy_native_4and_audit_active",
     "harmonic_rhythm_region_clarity_voicing_intent_audit_active",
     "two_beat_phrase_pair_vocabulary_v2_6_120",
+    "long_sustain_pattern_weight_calibration_v2_6_125",
     "chord_region_first",
     "no_voicing_logic",
     "no_final_expression_values",
@@ -80,6 +82,7 @@ def _comping_metadata(
         "bossa_style_baseline_phase_completion_checkpoint_version": BOSSA_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION,
         "bossa_style_baseline_phase_completion_checkpoint_behavior_change": False,
         "bossa_style_baseline_phase_completion_checkpoint_boundary": "piano_pattern_metadata_only_no_vocabulary_or_weight_change",
+        "bossa_long_sustain_weight_calibration_version": BOSSA_LONG_SUSTAIN_WEIGHT_CALIBRATION_VERSION,
     }
     if extra_metadata:
         metadata.update(dict(extra_metadata))
@@ -129,6 +132,7 @@ def _event_metadata(
         "bossa_style_baseline_phase_completion_checkpoint_version": BOSSA_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION,
         "bossa_style_baseline_phase_completion_checkpoint_behavior_change": False,
         "bossa_style_baseline_phase_completion_checkpoint_boundary": "piano_event_metadata_only_no_expression_or_voicing_change",
+        "bossa_long_sustain_weight_calibration_version": BOSSA_LONG_SUSTAIN_WEIGHT_CALIBRATION_VERSION,
     }
 
 
@@ -248,7 +252,7 @@ def _half_region_candidate() -> PatternCandidate:
 def _half_region_1and_hold_candidate() -> PatternCandidate:
     return _candidate(
         name="bossa_piano_half_region_1and_hold",
-        weight=0.45,
+        weight=0.34,
         category="bossa_two_beat_phrase_response_hold",
         cell="bossa_half_region_1and_hold",
         rhythm_class="half_region_phrase_response",
@@ -276,7 +280,7 @@ def _class_a_candidates() -> tuple[PatternCandidate, ...]:
     return (
         _candidate(
             name="bossa_piano_cell_A_1",
-            weight=162.0,
+            weight=108.0,
             category="bossa_cell_A",
             cell="A_1",
             rhythm_class="class_A",
@@ -288,7 +292,7 @@ def _class_a_candidates() -> tuple[PatternCandidate, ...]:
         ),
         _candidate(
             name="bossa_piano_cell_A_1_2and",
-            weight=180.0,
+            weight=216.0,
             category="bossa_cell_A",
             cell="A_1_2and",
             rhythm_class="class_A",
@@ -300,7 +304,7 @@ def _class_a_candidates() -> tuple[PatternCandidate, ...]:
         ),
         _candidate(
             name="bossa_piano_cell_A_1_3and",
-            weight=252.0,
+            weight=198.0,
             category="bossa_cell_A",
             cell="A_1_3and",
             rhythm_class="class_A",
@@ -325,7 +329,7 @@ def _class_a_candidates() -> tuple[PatternCandidate, ...]:
         ),
         _candidate(
             name="bossa_piano_cell_A_1_3",
-            weight=72.0,
+            weight=56.0,
             category="bossa_cell_A_low",
             cell="A_1_3",
             rhythm_class="class_A",
@@ -337,7 +341,7 @@ def _class_a_candidates() -> tuple[PatternCandidate, ...]:
         ),
         _candidate(
             name="bossa_piano_cell_A_1_2_3and",
-            weight=207.0,
+            weight=236.0,
             category="bossa_cell_A",
             cell="A_1_2_3and",
             rhythm_class="class_A",
@@ -355,7 +359,7 @@ def _class_b_candidates() -> tuple[PatternCandidate, ...]:
     return (
         _candidate(
             name="bossa_piano_cell_B_1and",
-            weight=22.0,
+            weight=15.0,
             category="bossa_cell_B",
             cell="B_1and",
             rhythm_class="class_B",
@@ -379,7 +383,7 @@ def _class_b_candidates() -> tuple[PatternCandidate, ...]:
         ),
         _candidate(
             name="bossa_piano_cell_B_1and_3and",
-            weight=17.0,
+            weight=12.0,
             category="bossa_cell_B",
             cell="B_1and_3and",
             rhythm_class="class_B",
@@ -653,7 +657,7 @@ BOSSA_GROOVE_ARCHETYPES: dict[str, dict[str, Any]] = {
         "class_B_multiplier": 1.35,
         "native_4and_multiplier": 0.22,
         "three_hit_multiplier": 0.34,
-        "one_hit_multiplier": 1.55,
+        "one_hit_multiplier": 1.20,
         "anticipation_intent": "none",
     },
     "response_comping": {
@@ -680,7 +684,7 @@ BOSSA_GROOVE_ARCHETYPES: dict[str, dict[str, Any]] = {
         "class_B_multiplier": 0.24,
         "native_4and_multiplier": 0.10,
         "three_hit_multiplier": 0.28,
-        "one_hit_multiplier": 1.80,
+        "one_hit_multiplier": 1.35,
         "anticipation_intent": "none",
     },
     "dense_harmonic_marks": {
@@ -689,7 +693,7 @@ BOSSA_GROOVE_ARCHETYPES: dict[str, dict[str, Any]] = {
         "class_B_multiplier": 0.18,
         "native_4and_multiplier": 0.05,
         "three_hit_multiplier": 0.30,
-        "one_hit_multiplier": 1.30,
+        "one_hit_multiplier": 1.10,
         "anticipation_intent": "none",
     },
 }

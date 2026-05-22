@@ -1,0 +1,142 @@
+{
+  "checkpoint_version": "v2_6_125",
+  "engine_version_tag": "v2_10_28",
+  "label": "v2_6_125 — Engine Bossa Nova Long-Sustain Pattern Weight Calibration",
+  "scope": "Reduce slightly excessive Bossa long-sustain feeling through style-owned piano comping pattern weights only. No voicing, source inventory, OPEN/SPREAD routing, generic_open fallback, expression numeric profile, bass/drums, API, Agent, or HarmonyOS logic is changed.",
+  "baseline_v2_6_124_blue_bossa": {
+    "piano_harmonic_event_count": 95,
+    "pattern_counts": {
+      "bossa_piano_cell_A_1_3and": 28,
+      "bossa_piano_cell_A_1": 13,
+      "bossa_piano_cell_A_1_2and": 10,
+      "bossa_piano_core_batida_1_2_3and": 21,
+      "bossa_piano_cell_A_1_3": 6,
+      "bossa_piano_cell_A_1_2_3and": 6,
+      "bossa_piano_half_region_1_2": 6,
+      "bossa_piano_half_region_1and_hold": 3,
+      "bossa_piano_cell_B_1and_3and": 2
+    },
+    "extreme_long_duration_event_count_ge_3_beats": 17,
+    "long_hold_weighted_exposure_patterns": {
+      "bossa_piano_cell_A_1_3and": 54.76,
+      "bossa_piano_cell_A_1": 50.5
+    }
+  },
+  "static_pattern_weight_audit": {
+    "pattern_library_version": "v2_6_92",
+    "long_sustain_calibration_version": "v2_6_125",
+    "arrangement_policy_declares_calibration": true,
+    "arrangement_policy_no_voicing_change": true,
+    "arrangement_policy_no_expression_numeric_change": true,
+    "candidate_weights": {
+      "bossa_piano_cell_A_1": 108.0,
+      "bossa_piano_cell_A_1_2and": 216.0,
+      "bossa_piano_cell_A_1_3and": 198.0,
+      "bossa_piano_cell_A_1_3": 56.0,
+      "bossa_piano_cell_A_1_2_3and": 236.0,
+      "bossa_piano_cell_B_1and": 15.0,
+      "bossa_piano_cell_B_1and_3and": 12.0
+    },
+    "boundary_notes": [
+      "pitchless",
+      "style_owned",
+      "single_core_batida_identity_anchor",
+      "class_A_class_B_rhythm_cells_active",
+      "context_archetype_policy_active",
+      "history_scorer_refined",
+      "anticipation_tail_policy_native_4and_audit_active",
+      "harmonic_rhythm_region_clarity_voicing_intent_audit_active",
+      "two_beat_phrase_pair_vocabulary_v2_6_120",
+      "long_sustain_pattern_weight_calibration_v2_6_125",
+      "chord_region_first",
+      "no_voicing_logic",
+      "no_final_expression_values"
+    ]
+  },
+  "runtime_audit": {
+    "ok": true,
+    "midi_path": "demos/v2_6_125_blue_bossa_bossa_nova_long_sustain_pattern_weight_demo.mid",
+    "piano_harmonic_event_count": 98,
+    "pattern_counts": {
+      "bossa_piano_core_batida_1_2_3and": 21,
+      "bossa_piano_cell_A_1_3and": 22,
+      "bossa_piano_cell_A_1_3": 8,
+      "bossa_piano_cell_A_1_2and": 20,
+      "bossa_piano_cell_A_1": 10,
+      "bossa_piano_cell_B_1and_3and": 2,
+      "bossa_piano_half_region_1_2": 6,
+      "bossa_piano_half_region_1and_hold": 3,
+      "bossa_piano_cell_A_1_2_3and": 6
+    },
+    "cell_counts": {
+      "1_2_3and": 21,
+      "A_1_3and": 22,
+      "A_1_3": 8,
+      "A_1_2and": 20,
+      "A_1": 10,
+      "B_1and_3and": 2,
+      "half_region_1_2": 6,
+      "bossa_half_region_1and_hold": 3,
+      "A_1_2_3and": 6
+    },
+    "expression_counts": {
+      "core_short": 17,
+      "core_sustain": 10,
+      "cell_soft_hold": 69,
+      "cell_close_gap_short": 2
+    },
+    "duration_counts": {
+      "0.45": 14,
+      "1.00": 5,
+      "0.86": 3,
+      "1.30": 5,
+      "2.50": 19,
+      "1.50": 25,
+      "2.00": 10,
+      "0.42": 5,
+      "3.00": 2,
+      "3.50": 4,
+      "4.50": 3,
+      "4.00": 3
+    },
+    "extreme_long_duration_event_count_ge_3_beats": 12,
+    "current_long_hold_weighted_exposure_patterns": {
+      "bossa_piano_cell_A_1_3and": 40.68,
+      "bossa_piano_cell_A_1": 39.5
+    },
+    "baseline_long_hold_weighted_exposure_patterns": {
+      "bossa_piano_cell_A_1_3and": 54.76,
+      "bossa_piano_cell_A_1": 50.5
+    },
+    "a1_3and_count_delta_vs_v2_6_124": -6,
+    "a1_count_delta_vs_v2_6_124": -3,
+    "a1_2and_count_delta_vs_v2_6_124": 10,
+    "long_exposure_delta_vs_v2_6_124": {
+      "bossa_piano_cell_A_1_3and": -14.08,
+      "bossa_piano_cell_A_1": -11.0
+    },
+    "five_note_spread_1plus4_selected_count": 4,
+    "open_5note_selected_count": 0,
+    "generic_open_selected_count": 0,
+    "four_note_open_selected_count": 94,
+    "core_batida_front_velocities_first_four": [
+      48,
+      48,
+      48,
+      48
+    ]
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "pattern_weight_only_boundary_declared": true,
+      "long_hold_base_weights_reduced": true,
+      "shorter_split_cells_lifted": true,
+      "runtime_reduces_sparse_long_hold_cells": true,
+      "runtime_lifts_shorter_split_cell": true,
+      "runtime_reduces_extreme_long_duration_events": true,
+      "voicing_route_unchanged": true,
+      "core_batida_velocity_48_retained": true
+    }
+  }
+}

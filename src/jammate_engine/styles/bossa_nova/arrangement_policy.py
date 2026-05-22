@@ -20,6 +20,7 @@ BOSSA_NOVA_DRUM_BASELINE_CHECKPOINT_VERSION = "v2_6_107"
 BOSSA_NOVA_BASS_PICKUP_AND_NEXT_ROOT_ANTICIPATION_VERSION = "v2_6_108"
 BOSSA_NOVA_BASS_ARTICULATION_AND_REGISTER_POLICY_VERSION = "v2_6_109"
 BOSSA_NOVA_TWO_BEAT_PHRASE_PAIR_POLICY_VERSION = "v2_6_120"
+BOSSA_NOVA_LONG_SUSTAIN_PATTERN_WEIGHT_CALIBRATION_VERSION = "v2_6_125"
 
 
 def get_arrangement_policy() -> dict:
@@ -116,6 +117,18 @@ def get_arrangement_policy() -> dict:
         "bossa_nova_two_beat_phrase_pair_policy_no_expression_numeric_change": True,
         "bossa_nova_two_beat_phrase_pair_policy_no_api_agent_harmonyos_change": True,
         "bossa_nova_two_beat_phrase_pair_policy_recommended_next_task": "v2_6_121_engine_bossa_nova_two_beat_phrase_pair_listening_calibration",
+
+        "bossa_nova_long_sustain_pattern_weight_calibration_active": True,
+        "bossa_nova_long_sustain_pattern_weight_calibration_version": BOSSA_NOVA_LONG_SUSTAIN_PATTERN_WEIGHT_CALIBRATION_VERSION,
+        "bossa_nova_long_sustain_pattern_weight_calibration_milestone": "v2_6_125_engine_bossa_nova_long_sustain_pattern_weight_calibration",
+        "bossa_nova_long_sustain_pattern_weight_calibration_scope": (
+            "Reduce the frequency of Bossa long-hold rhythm cells by adjusting style-owned piano comping pattern weights only. "
+            "This preserves core_batida, Class A/Class B vocabulary, two-beat phrase-pair vocabulary, expression numeric profiles, voicing, OPEN/SPREAD routing, bass/drums, API, Agent, and HarmonyOS."
+        ),
+        "bossa_nova_long_sustain_pattern_weight_calibration_no_voicing_change": True,
+        "bossa_nova_long_sustain_pattern_weight_calibration_no_expression_numeric_change": True,
+        "bossa_nova_long_sustain_pattern_weight_calibration_no_new_pattern_vocabulary": True,
+        "bossa_nova_long_sustain_pattern_weight_calibration_no_open_or_generic_change": True,
         "bossa_nova_anticipation_tail_policy_active": True,
         "bossa_nova_anticipation_tail_policy_version": BOSSA_NOVA_ANTICIPATION_TAIL_POLICY_VERSION,
         "bossa_nova_anticipation_tail_policy_milestone": "v2_6_93_engine_bossa_nova_anticipation_tail_policy_and_native_4and_audit",
@@ -187,7 +200,10 @@ def get_arrangement_policy() -> dict:
         "bossa_nova_open_voicing_main_policy_active": True,
         "bossa_nova_open_voicing_main_policy_version": BOSSA_NOVA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION,
         "bossa_nova_open_voicing_main_policy_preferred_disposition": "open",
-        "bossa_nova_open_voicing_main_policy_no_spread_grouping": True,
+        "bossa_nova_open_voicing_main_policy_ordinary_body_no_spread_grouping": True,
+        "bossa_nova_spread_5note_low_weight_policy_active": True,
+        "bossa_nova_spread_5note_low_weight_policy_version": "v2_6_123",
+        "bossa_nova_spread_5note_low_weight_policy_scope": "low-frequency event-scoped grouped-SPREAD 2+3 color; ordinary Bossa body remains OPEN/drop-family 4-note; generic_open remains fallback-only",
         "bossa_nova_retired_ordinary_4note_grouping_metadata": True,
         "bossa_nova_retired_ordinary_4note_grouping_metadata_version": BOSSA_NOVA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION,
         "bossa_nova_open_method_policy_correction_active": True,
@@ -206,7 +222,7 @@ def get_arrangement_policy() -> dict:
         ),
         "bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_contract": (
             "This is a style-level VoicingPolicy intent plus core taxonomy cleanup. It does not add pattern vocabulary, restore two_chord_bar/bar-first routing, "
-            "write expression values in patterns, create a Bossa selector, or introduce SPREAD grouped voicing. The realization adapter only attaches event-scoped policy metadata; "
+            "write expression values in patterns, create a Bossa selector, or introduce SPREAD grouped voicing as the ordinary body. v2_6_123 allows only low-frequency event-scoped SPREAD 2+3 five-note color through existing capability. The realization adapter only attaches event-scoped policy metadata; "
             "ordinary 4-note CLOSED/OPEN stacks are no longer reported as 1+3/2+2 grouped voicings."
         ),
         "bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_recommended_next_task": "v2_6_105_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement",

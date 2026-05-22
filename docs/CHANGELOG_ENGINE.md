@@ -1,3 +1,34 @@
+## v2_6_125 — Engine Bossa Nova Long-Sustain Pattern Weight Calibration
+
+- Adjusted Bossa piano comping pattern weights only to reduce the slightly excessive long-sustain feel heard after v2_6_124.
+- Downweighted sparse/long-hold cells such as `A_1`, `A_1_3&`, and `A_1_3`; slightly lifted split/shorter-feel cells such as `A_1_2&` and `A_1_2_3&`.
+- Kept Bossa rhythm vocabulary unchanged: no new pattern candidate, no bar-first/two-chord-bar route, and no expression numeric change.
+- Preserved the corrected voicing boundary: ordinary Bossa remains 4-note OPEN drop-family, low-frequency 5-note remains event-scoped SPREAD `1+4`, and `generic_open` remains fallback/rescue only.
+- Preserved the v2_6_122 core batida front-hit calibration: beat 1 and beat 2 remain velocity 48.
+
+Recommended next task: listen to the v2_6_125 Blue Bossa runtime demo and decide whether the long-hold cells should stay at this reduced frequency or be trimmed one more small step.
+
+## v2_6_124 — Engine Bossa Nova SPREAD 1+4 5-note Correction
+
+- Corrected the v2_6_123 Bossa 5-note grouping: Bossa's occasional 5-note color now requests the existing grouped-SPREAD `spread_1plus4_contract` only.
+- Did not change core voicing, source inventory, OPEN projection, generic_open fallback behavior, selector logic, expression, piano rhythm, bass/drums, API, Agent, or HarmonyOS.
+- Bossa ordinary body remains 4-note OPEN drop-family (`drop2`, `drop3`, low-frequency `drop2_and_4`); `generic_open` remains fallback/rescue only and never acts as a 5-note lane.
+- Retained the valid core batida velocity calibration: beat-1 and beat-2 short hits remain velocity 48; 3& sustain remains `core_sustain` velocity 52.
+- Updated the Bossa SPREAD 5-note audit/test script to verify: ordinary candidate pools have no OPEN 5-note or `generic_open`, event-scoped 5-note probe returns only `spread_1plus4_contract`, and Blue Bossa runtime selects low-frequency SPREAD 1+4 while keeping 4-note OPEN as the main body.
+
+Recommended next task: listen to the v2_6_124 Blue Bossa runtime and SPREAD 1+4 audition demos; if the count feels too frequent/rare, adjust only the Bossa event-scoped SPREAD trigger slots, not core voicing.
+
+## v2_6_123 — Engine Bossa Nova SPREAD 5-note Correction / OPEN Generic Cleanup
+
+- Corrected the v2_6_121/v2_6_122 Bossa 5-note direction: OPEN/drop-family remains a 4-note body and `generic_open` remains fallback/rescue only.
+- Removed the incorrect Bossa `open_projection_method_density_gate` / `generic_open` 5-note lane and removed the selector-level tail candidate lane that was added only to make that wrong path audible.
+- Deleted the superseded v2_6_121/v2_6_122 Bossa 5-note open/generic audit scripts and tests to avoid preserving a misleading implementation path.
+- Added a Bossa event-scoped policy adapter that requests the existing grouped-SPREAD `spread_2plus3_contract` at low frequency on sustain/hold piano events. This only writes metadata for the existing SPREAD runtime candidate pool; it does not change source inventory, OPEN projection, selector logic, expression, bass/drums, API, Agent, or HarmonyOS.
+- Kept the valid v2_6_122 Bossa `core_short` velocity calibration: the core batida beat-1 and beat-2 short hits remain velocity 48; 3& sustain remains `core_sustain`.
+- Added `tests/test_v2_6_123_engine_bossa_nova_spread_5note_correction.py` and `examples/scripts/generate_engine_bossa_nova_spread_5note_correction.py`.
+
+Recommended next task: listen to the v2_6_123 Blue Bossa runtime demo and decide whether the low-frequency SPREAD 2+3 color count should stay around the current level or be made rarer.
+
 ## v2_6_115 — Engine Global Harmonic Expansion / Altered / AB Continuity Audit
 
 - Added a first-principles global audit for the interaction among harmonic expansion, altered dominant policy, progression method continuity, and AB/four-note orientation continuity.
@@ -1331,3 +1362,11 @@ Recommended next task: `v2_6_117_engine_style_neutral_four_note_ab_orientation_a
 - Added focused and standard-tune listening demos under `demos/`.
 
 Recommended next task: `v2_6_120_engine_medium_swing_two_beat_phrase_pair_listening_calibration`, using the new demos to decide whether the phrase-call/response weights should be softened or kept as-is.
+
+## v2_6_122 — Superseded Bossa 5-note Runtime Attempt
+
+- Superseded by v2_6_123. The v2_6_122 direction incorrectly modeled Bossa 5-note color as an OPEN/`generic_open` low-probability lane.
+- The only valid part retained from this milestone is the Bossa `core_short` velocity calibration: core batida beat-1 and beat-2 short hits use velocity 48 while the 3& sustain remains on `core_sustain`.
+- The open/generic 5-note lane, selector tail lane, audit script, and focused tests were removed in v2_6_123.
+
+Recommended next task: use the v2_6_123 SPREAD 5-note correction baseline rather than this superseded milestone.

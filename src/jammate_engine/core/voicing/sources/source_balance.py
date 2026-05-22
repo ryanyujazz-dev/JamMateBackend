@@ -86,6 +86,8 @@ def source_balance_key(candidate: VoicingCandidate) -> str:
         return _three_note_source_balance_key(candidate)
     if int(candidate.density or 0) == 4:
         return _four_note_source_balance_key(candidate)
+    if int(candidate.density or 0) == 5:
+        return _five_note_source_balance_key(candidate)
     return ""
 
 
@@ -116,7 +118,7 @@ def source_gate_mode(candidate: VoicingCandidate) -> str:
         note.startswith(prefix) for prefix in _BASIC_CONSERVATIVE_MARKER_PREFIXES for note in notes
     ):
         return "chord_symbol_only"
-    if int(candidate.density or 0) in {3, 4}:
+    if int(candidate.density or 0) in {3, 4, 5}:
         return "chord_symbol_only"
     return "unspecified"
 
@@ -136,9 +138,14 @@ def source_balance_profile(candidate: VoicingCandidate) -> SourceBalanceProfile:
 
 
 def score_source_balance(candidate: VoicingCandidate, policy: VoicingPolicy) -> float:
-    """Apply style-level source weights to functional 3-note/4-note sources."""
+    """Apply style-level source weights to functional source candidates.
 
-    if int(candidate.density or 0) not in {3, 4}:
+    This started as the 3/4-note balance gate.  v2_6_121 keeps the same
+    metadata-driven scoring boundary but allows explicitly declared 5-note
+    source families to receive low-frequency style priors as well.
+    """
+
+    if int(candidate.density or 0) not in {3, 4, 5}:
         return 0.0
     global_weights = dict(getattr(policy, "source_family_weights", None) or {})
     by_gate = dict(getattr(policy, "source_family_weights_by_gate", None) or {})
@@ -177,7 +184,7 @@ def altered_dominant_source_kind(candidate: VoicingCandidate) -> str:
     notes = set(_validity_notes(candidate))
     notes.update(str(item) for item in metadata.get("source_metadata", []) or [])
     notes.update(str(item) for item in metadata.get("upper_source_metadata", []) or [])
-    if "rooted_color_4note_altered_dominant_rooted_source" in notes:
+    if "rooted_color_4note_altered_dominant_rooted_source" in notes or "rooted_color_5note_altered_dominant_source" in notes:
         return "rooted_color"
     if "rootless_ab_altered_dominant_rootless_source" in notes or "rootless_ab_content_type_altered_dominant_rootless" in notes:
         return "rootless_ab"
@@ -204,6 +211,8 @@ def _source_weight_lookup_keys(candidate: VoicingCandidate, *, key: str | None =
         key.replace("root_", "", 1) if key.startswith("root_") else key,
         str(metadata.get("rootless_ab_content_type") or ""),
         str(metadata.get("rooted_color_4note_source_family") or ""),
+        str(metadata.get("rooted_color_5note_functional_content_type") or ""),
+        str(metadata.get("rooted_color_5note_source_family") or ""),
         str(metadata.get("basic_4note_source_family") or ""),
         str(metadata.get("triad_4note_source_family") or ""),
         str(content_family or ""),
@@ -254,12 +263,35 @@ def _four_note_source_balance_key(candidate: VoicingCandidate) -> str:
     return ""
 
 
+
+def _five_note_source_balance_key(candidate: VoicingCandidate) -> str:
+    metadata = dict(candidate.metadata or {})
+    key = str(
+        metadata.get("rooted_color_5note_functional_content_type")
+        or metadata.get("rooted_color_5note_source_family")
+        or ""
+    )
+    key = _strip_source_balance_prefix(key)
+    if key:
+        return key
+    notes = _validity_notes(candidate)
+    for marker in notes:
+        key = _strip_source_balance_prefix(marker)
+        if key != marker:
+            return key
+    return ""
+
 def _strip_four_note_source_prefix(value: str) -> str:
+    return _strip_source_balance_prefix(value)
+
+
+def _strip_source_balance_prefix(value: str) -> str:
     key = str(value or "")
     for prefix in (
         "triad_4note_functional_content_type_",
         "rootless_ab_functional_source_type_",
         "rooted_color_4note_functional_content_type_",
+        "rooted_color_5note_functional_content_type_",
         "basic_4note_functional_content_type_",
     ):
         if key.startswith(prefix):

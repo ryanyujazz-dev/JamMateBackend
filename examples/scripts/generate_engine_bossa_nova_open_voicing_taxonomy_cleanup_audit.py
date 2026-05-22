@@ -216,11 +216,11 @@ def _runtime_accepts(item: dict[str, Any]) -> bool:
         and int(note_counts.get("bass", 0)) > 0
         and int(note_counts.get("drums", 0)) > 0
         and int(item.get("piano_active_events") or 0) > 0
-        and set(dispositions) == {"open"}
+        and set(dispositions) <= {"open", "spread"}
+        and int(dispositions.get("open", 0)) > int(dispositions.get("spread", 0))
         and all(int(key) not in {2, 3} for key in densities if str(key).isdigit())
         and int(item.get("low_density_2_or_3_event_count") or 0) == 0
         and int(item.get("retired_4note_grouping_event_count") or 0) == 0
-        and int(item.get("spread_grouping_event_count") or 0) == 0
         and "1+3" not in groupings
         and "2+2" not in groupings
         and methods
