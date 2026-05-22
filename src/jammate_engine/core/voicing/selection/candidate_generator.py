@@ -17,6 +17,7 @@ from ..disposition.method_lock import (
     method_lock_spec_from_metadata,
 )
 from ..disposition.method_weights import disposition_method_weight_spec_from_metadata
+from ..disposition.closed import compact_closed_parent_candidates_for_projection
 from ..disposition.models import (
     ClosedProjectionMethod,
     DispositionFamily,
@@ -1430,14 +1431,27 @@ def _project_closed_parent_candidates_for_named_open_projection(
     policy: VoicingPolicy,
     validity_notes: tuple[str, ...] = (),
 ) -> list[list[tuple[str, int]]]:
-    """Return closed parent variants for project-then-filter DROP methods.
+    """Return compact closed parent variants for project-then-filter DROP methods.
 
-    DROP2, DROP3, and DROP2&4 should not inherit a single pre-selected closed
-    parent.  They need all source/orientation-aware closed register variants so
-    the dropped projections can be filtered by their own raised drop-register
-    guard and then selected.
+    DROP2, DROP3, and DROP2&4 are projections of compact CLOSED parents.  The
+    previous wiring reused ordinary CLOSED runtime placement variants; when a
+    style such as Bossa did not enable strict compact-closed metadata, those
+    "parents" could already be open/spread shapes such as ``[53, 56, 67, 71]``.
+    Dropping from those non-compact parents produced illegal-sounding shapes
+    like ``[53, 55, 56, 71]`` while still being labelled DROP2.
+
+    Use the existing closed-disposition compact parent helper directly here so
+    named OPEN methods always project from true compact parents.  This is not a
+    new voicing capability; it restores the intended drop-family boundary.
     """
 
+    compact_candidates = compact_closed_parent_candidates_for_projection(chord.root_pc, degrees, policy)
+    if compact_candidates:
+        return compact_candidates
+
+    # Conservative fallback for exotic sources that the compact pitch-class
+    # helper cannot represent.  Keep the old path available, but ordinary 4-note
+    # tertian/drop-family sources should never need it.
     seed = _project_closed_parent_for_named_open_projection(chord, degrees, family, policy, validity_notes)
     variants = register_variants(seed, policy, Disposition.CLOSED) if seed else []
     if not variants:

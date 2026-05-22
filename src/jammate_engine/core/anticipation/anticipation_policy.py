@@ -31,6 +31,7 @@ class AnticipationPolicy:
     require_previous_tail_space: bool = True
     require_previous_last_beat_empty: bool = True
     require_previous_last_upbeat_empty: bool = True
+    min_previous_region_duration_beats: float | None = None
     suppress_original: bool = True
     tie_from_previous: bool = True
     debug_name: str = "default_anticipation_policy"

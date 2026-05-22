@@ -1,3 +1,175 @@
+## v2_6_104 — Engine Bossa Nova Drop-family OPEN Method Policy Correction
+
+- Corrected the v2_6_103 Bossa OPEN voicing policy that accidentally promoted `generic_open` into the ordinary runtime method pool.
+- Bossa now keeps OPEN-main 4-to-5-note voicing, but ordinary open projection methods are limited to the existing drop-family consensus: `drop2` primary, `drop3` secondary, and `drop2_and_4` very low-frequency color.
+- `generic_open` is no longer in the Bossa style method pool and is documented as fallback/rescue only.
+- Removed Bossa style-local `disposition_method_weights`; runtime scoring now consumes the style-default drop-family consensus rather than a Bossa-local reweighting map.
+- Preserved the v2_6_103 taxonomy cleanup: ordinary 4-note CLOSED/OPEN stacks still do not report retired `1+3` / `2+2` grouped voicing metadata.
+- Kept the no-forced-2/3-note Bossa rule and did not change piano rhythm vocabulary, expression values, bass/drums, API, Agent, HarmonyOS, source inventory, or projection algorithms.
+- Added `examples/scripts/generate_engine_bossa_nova_open_method_policy_correction_audit.py` and `tests/test_v2_6_104_engine_bossa_nova_open_method_policy_correction.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- Bossa v2_6_90 through v2_6_104 focused tests: 77 passed
+- v2_6_104 Bossa audit script: acceptance passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_105_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement`.
+
+## v2_6_102 — Engine Bossa Nova No Forced 2/3-Note Voicing Policy
+
+- Superseded the earlier v2_6_95 Bossa short/dense ChordRegion voicing override that forced guide-tone / low-density behavior.
+- Bossa piano now keeps the normal style voicing policy for ordinary and short/dense ChordRegions: preferred density 4, minimum density 4, maximum density 5.
+- Removed `guide_tone` from the Bossa style-owned allowed content pool so Bossa does not intentionally select 2-note guide-tone comping as a style default.
+- The half-region piano rhythm adaptation remains ChordRegion-first, but its metadata now describes `dense_harmonic_rhythm_normal_voicing_adaptation` rather than a light/low-density voicing special case.
+- The realization `voicing_policy_context_adapter` still audits Bossa short/dense regions, but it no longer rewrites event-scoped policy density/content; it records that the normal 4-to-5-note Bossa voicing policy is being preserved.
+- Preserved V2 boundaries: no new pattern vocabulary, no expression numeric change, no core voicing source/projection/selector change, no API/Agent/HarmonyOS change, and no parallel route.
+- Added `examples/scripts/generate_engine_bossa_nova_no_forced_low_density_voicing_audit.py` and `tests/test_v2_6_102_engine_bossa_nova_no_forced_low_density_voicing.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- Bossa v2_6_90 through v2_6_102 focused tests: 68 passed
+- v2_6_102 Bossa audit script: acceptance passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_103_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement`.
+
+## v2_6_101 — Engine Bossa Nova Cross-stick Phrase-local Contour Refinement
+
+- Refined the existing Bossa cross-stick layer in place; no parallel percussion selector and no new drum pattern vocabulary were added.
+- Kept the v2_6_96 shaker/cross-stick/light-kick identity candidate, but changed cross-stick from mechanical A/B alternation into phrase-local A/B semantic slots.
+- Added cross-stick phrase slots such as `A_beat1_phrase_anchor`, `A_2and_syncopated_answer`, `A_beat4_phrase_tail`, `B_beat2_response_anchor`, and `B_3and_light_answer`.
+- Added arc-aware light subtraction: breath-space phases remove the A-tail push, and final-release phases remove forward tail pushes so the groove settles instead of pushing through the ending.
+- Preserved V2 pattern/expression separation: pattern events carry semantic phrase/contour metadata only and do not write MIDI velocity, duration, pedal, note, or other concrete performance values.
+- Extended the shared `PercussionRealizer` with Bossa cross-stick phrase-slot velocity shaping and deterministic tiny variation.
+- Kept Bossa timing straight-even, not swing; kept drums away from rock/swing backbeat or ride behavior.
+- Did not modify piano, bass, core voicing, API, Agent, HarmonyOS, or MIDI writer contracts.
+- Added `examples/scripts/generate_engine_bossa_nova_cross_stick_phrase_local_contour_refinement.py` and `tests/test_v2_6_101_engine_bossa_nova_cross_stick_phrase_local_contour.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- Bossa v2_6_90 through v2_6_101 focused tests: 63 passed
+- v2_6_101 Bossa audit script: acceptance passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_102_engine_bossa_nova_no_forced_2_or_3_note_voicing_policy`.
+
+## v2_6_100 — Engine Bossa Nova Drum Shaker Microdynamics + Pulse Shape
+
+- Refined the existing Bossa drum shaker/hi-hat proxy in place; no parallel percussion selector and no new drum pattern vocabulary were added.
+- Kept the v2_6_96 shaker/cross-stick/light-kick identity candidate shape, but annotated shaker events with semantic straight-8th pulse slots: `primary_clear`, `secondary_mid`, `offbeat_light`, and `offbeat_feather`.
+- Preserved V2 pattern/expression separation: pattern events do not write MIDI velocity, duration, pedal, note, or other concrete performance values.
+- Added shared `PercussionRealizer` support for Bossa shaker microdynamic velocity shaping based on semantic pulse slots and deterministic tiny variation.
+- Kept Bossa timing straight-even, not swing; kept drums away from rock/swing backbeat or ride behavior.
+- Kept split/short ChordRegion shaker events region-local so they do not spill across chord-region boundaries.
+- Did not modify piano, bass, core voicing, API, Agent, HarmonyOS, or MIDI writer contracts.
+- Added `examples/scripts/generate_engine_bossa_nova_drum_shaker_microdynamics_and_pulse_shape.py` and `tests/test_v2_6_100_engine_bossa_nova_drum_shaker_microdynamics.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- Bossa v2_6_90 through v2_6_100 focused tests: 57 passed
+- v2_6_100 Bossa audit script: acceptance passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_101_engine_bossa_nova_cross_stick_phrase_local_contour_refinement`.
+
+## v2_6_95 — Engine Bossa Nova Harmonic-Rhythm Region Clarity + Voicing Intent Audit
+
+- Refined Bossa dense harmonic-rhythm / short ChordRegion piano clarity in place, without adding a parallel selector or restoring bar-first `two_chord_bar` logic.
+- Kept the existing v2_6_91/v2_6_92 Bossa rhythm vocabulary unchanged: one `core_batida`, six Class A cells, six Class B cells, and the existing two-beat ChordRegion adaptation.
+- Marked the two-beat Bossa piano adaptation as `dense_harmonic_rhythm_light_clarity_adaptation` with `dense_harmonic_region` / `light_clarity_voicing_intent` metadata while preserving ChordRegion-first tags.
+- Added style-owned Bossa voicing intent metadata in `styles/bossa_nova/voicing_policy.py` for dense short regions: prefer existing guide-tone/rootless-light clarity, rootless-preferred support, density 2-3, and tighter span guard.
+- Wired the intent through `realization/voicing_policy_context_adapter.py` as event-scoped `VoicingPolicy` metadata/parameter rewrite only; it does not build sources, project notes, score candidates, write expression, or modify core voicing internals.
+- Blue Bossa short regions now use light guide-tone/rootless existing voicing capability instead of thick/root-heavy 4-note closed hits, while ordinary full-region Bossa comping keeps the base policy.
+- Did not modify pattern vocabulary, expression numeric values, core voicing sources/projections/selectors, API, Agent, HarmonyOS, bass, drums, or MIDI writer.
+- Added `examples/scripts/generate_engine_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_audit.py` and `tests/test_v2_6_95_engine_bossa_nova_harmonic_rhythm_region_clarity_voicing_intent.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- Bossa v2_6_90 through v2_6_95 focused tests: 30 passed
+- Core voicing adapter direct check: covered by v2_6_95 focused test
+- v2_6_95 Bossa audit script: acceptance passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_96_engine_bossa_nova_bass_and_drums_identity_audit`.
+
+## v2_6_91 — Engine Bossa Nova Non-Core Rhythm Cell Vocabulary
+
+- Activated Bossa Nova non-core piano rhythm cells directly in the existing `styles/bossa_nova/comping_patterns.py` path; this replaces the old core-only runtime behavior instead of creating a parallel selector.
+- Kept `core_batida = 1, 2, 3&` as the sole identity anchor and preserved the first-two-full-bars core-only opening rule.
+- Added six Class A beat-1-start cells and six Class B 1&-start cells as pitchless ChordRegion-first `PatternCandidate`s.
+- Added in-place Bossa context/history weighting: Class A remains the ordinary body, Class B stays occasional color, repeated same cells and repeated Class B/native-4&/three-hit/one-hit shapes are downweighted.
+- Preserved the native-4& versus anticipation distinction: native 4& candidates occupy the current-chord tail slot and therefore do not masquerade as next-chord anticipation.
+- Added `cell_close_gap_short` and `cell_soft_hold` expression-profile aliases that reuse existing `core_short` / `core_sustain` numeric values; no Bossa expression numeric calibration was performed in this step.
+- Did not modify core voicing, MIDI writer, API, Agent, HarmonyOS, bass, or drums.
+- Added `examples/scripts/generate_engine_bossa_nova_non_core_rhythm_cell_vocabulary_audit.py` and `tests/test_v2_6_91_engine_bossa_nova_non_core_rhythm_cell_vocabulary.py`.
+- Updated the v2_6_90 Bossa test so it records that the baseline audit is now superseded by v2_6_91 while still checking that the core identity and ChordRegion-first cleanup survive.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- v2_6_90 superseded-baseline + v2_6_91 focused tests: 7 passed
+- v2_6_91 Bossa audit script: acceptance passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_92_engine_bossa_nova_context_archetype_policy_and_history_scorer_refinement`.
+
+## v2_6_90 — Engine Bossa Nova Style Baseline Audit
+
+- Started the Bossa Nova baseline phase from the latest `v2_10_28` / `v2_6_89` Engine handoff baseline.
+- Added declarative Bossa arrangement-policy metadata in the existing `styles/bossa_nova/arrangement_policy.py` boundary.
+- Confirmed the current Bossa piano identity anchor remains `core_batida` = `1, 2, 3&` with `core_short`, `core_short`, `core_sustain` expression hints.
+- Cleaned the misleading legacy `two_chord_bar` tag from the two-beat Bossa piano adaptation and replaced it with ChordRegion-first tags: `two_beat_region` and `chord_region_first`.
+- Generated Blue Bossa full-band baseline audit demos for 3 choruses and 5 choruses.
+- Confirmed generic Bossa anticipation is active on the straight-upbeat grid, terminal ending downbeats are not anticipated away, expression warnings are zero, cross-region/cross-next-event expression overlap is zero, and Bossa pedal remains dry at MIDI CC64 level.
+- Recorded the next development gap: current Bossa only has `core_batida` plus the two-beat ChordRegion adaptation; non-core rhythm-cell vocabulary should be planned next without coupling articulation or voicing.
+- Added `examples/scripts/generate_engine_bossa_nova_style_baseline_audit.py`.
+- Added `tests/test_v2_6_90_engine_bossa_nova_style_baseline_audit.py`.
+- Updated the v2_6_89 handoff test so it remains forward-compatible after the v2_6_90 Bossa metadata cleanup.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- v2_6_90 focused Bossa audit test: 4 passed
+- v2_6_89 + v2_6_90 focused handoff/audit tests: 8 passed
+- v2_6_90 Bossa audit script: acceptance passed
+
+Recommended next task: `v2_6_91_engine_bossa_nova_non_core_rhythm_cell_vocabulary_planning`.
+
+## v2_6_89 — Engine Medium Swing Baseline Handoff / Next Style Selection
+
+- Added a behavior-preserving Engine-line handoff checkpoint on the latest `v2_10_28` integration baseline.
+- Declared `medium_swing_baseline_handoff_or_next_style_selection_version = v2_6_89` in the existing Medium Swing arrangement policy.
+- Froze the v2_6_88 Medium Swing full-band baseline as the current Engine reference unless the user reports a concrete listening issue.
+- Selected Bossa Nova as the default next style baseline audit target: `v2_6_90_engine_bossa_nova_style_baseline_audit_from_latest_v2_10_28`.
+- Preserved pattern vocabulary, candidate weights, expression numeric values, core voicing internals, API, Agent, HarmonyOS, and MIDI writer behavior.
+- Added `tests/test_v2_6_89_engine_medium_swing_baseline_handoff_or_next_style_selection.py`.
+- Added `examples/scripts/generate_engine_medium_swing_baseline_handoff_or_next_style_selection.py`, producing a summary/report that references the existing v2_6_88 Medium Swing standard-tune demos and confirms Bossa Nova core_batida audit readiness.
+- Recorded non-blocking Bossa audit targets for the next step, including opening two-bar `core_batida`, generic anticipation across barlines, distance-based articulation, full-band interaction, and cleanup of any misleading legacy `two_chord_bar` tags.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- Medium Swing v2_6_56 through v2_6_88 stable slice: 133 passed
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+- v2_6_89 focused handoff test: 4 passed
+- v2_6_89 handoff audit script: acceptance passed
+
+Recommended next task: `v2_6_90_engine_bossa_nova_style_baseline_audit_from_latest_v2_10_28`.
+
 ## v2_6_51 Completed — Engine Medium Swing Generic 4-Note Rotation Alignment Policy
 
 Completed a voicing-only correction pass on the merged `v2_10_8` baseline plus `v2_6_50` orientation checkpoint.
@@ -883,3 +1055,177 @@ Recommended next task: return to the voicing line, preferably a Medium Swing ope
 - Added `tests/test_v2_6_78_engine_medium_swing_existing_voicing_capability_low_register_clarity_guard.py` and `examples/scripts/generate_medium_swing_existing_voicing_capability_low_register_clarity_guard_audit.py`.
 
 Recommended next task: `v2_6_79_engine_medium_swing_full_band_listening_checkpoint_after_low_register_clarity_guard`.
+
+## v2_6_92 — Engine Bossa Nova Context Archetype Policy + History Scorer Refinement
+
+- Overwrote the previous simple v2_6_91 Bossa piano weighting in place with a V2-native context archetype policy inside `styles/bossa_nova/comping_patterns.py`.
+- Preserved the exact v2_6_91 rhythm vocabulary: one `core_batida` identity anchor, six Class A cells, six Class B cells, and one two-beat ChordRegion adaptation. No new pattern vocabulary or parallel selector was added.
+- Added Bossa archetypes as candidate metadata and multipliers: `core_batida_anchor`, `steady_batida_flow`, `breath_space`, `response_comping`, `transition_lift`, `release`, and `dense_harmonic_marks`.
+- Added rolling Bossa piano-comping history metadata in the existing `StyleProfile.plan_region()` path so Class B, native 4&, and dense three-hit cells can be guarded across recent regions without enabling the Medium Swing history scorer or creating a new selector.
+- Selected Bossa piano events now carry v2_6_92 archetype and weighting metadata for audit visibility while remaining pitchless and free of final velocity/duration/pedal or voicing fields.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_92 context-archetype audit summary/report.
+- Added `tests/test_v2_6_92_engine_bossa_nova_context_archetype_policy.py` and `examples/scripts/generate_engine_bossa_nova_context_archetype_policy_audit.py`.
+
+Recommended next task: `v2_6_93_engine_bossa_nova_anticipation_tail_policy_and_native_4and_audit`.
+## v2_6_93 — Engine Bossa Nova Anticipation Tail Policy + Native 4& Audit
+
+- Refined the existing Bossa Nova anticipation policy in place; no parallel anticipation engine, pattern-embedded anticipation, bar-first route, expression numeric change, core voicing change, API, Agent, or HarmonyOS change was introduced.
+- Added `min_previous_region_duration_beats` to the shared `AnticipationPolicy` and resolver so Bossa can require a full previous ChordRegion tail before moving next-region beat 1 to previous 4&; other styles keep the default unrestricted region-first behavior.
+- Set Bossa piano anticipation to require previous beat 4 and 4& to be empty, preserve native 4& current-chord events, and block anticipation into short/dense ChordRegions under 3.75 beats.
+- Stamped active anticipated events with v2_6_93 style policy metadata, including the tail gate and `style_anticipation_policy_metadata`, for runtime audit visibility.
+- Marked native 4& Bossa pattern events as current-chord events rather than anticipation slots, so they occupy the tail and block crossbar anticipation instead of being overwritten.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_93 anticipation-tail/native-4& audit summary/report.
+- Added `tests/test_v2_6_93_engine_bossa_nova_anticipation_tail_policy.py` and `examples/scripts/generate_engine_bossa_nova_anticipation_tail_policy_audit.py`.
+
+Recommended next task: `v2_6_94_engine_bossa_nova_distance_aware_expression_calibration`.
+
+
+## v2_6_94 — Engine Bossa Nova Distance-Aware Expression Calibration
+
+- Replaced the v2_6_91 alias-only Bossa non-core cell expression behavior with policy-driven distance articulation in the existing expression path.
+- Added a generic `ExpressionResolver` distance-articulation hook that is activated only by style-owned `ExpressionProfile` metadata; no Bossa-specific resolver, parallel runtime, MIDI writer change, API change, Agent change, or HarmonyOS change was introduced.
+- Calibrated Bossa `cell_close_gap_short` and `cell_soft_hold` profiles so close gaps at or under one beat resolve as light short touches, while wider gaps resolve as warm sustained touches after anticipation/timeline rewrite.
+- Preserved Pattern / Expression / Voicing separation: Bossa pattern events still carry semantic expression hints only and do not write final velocity, duration, pedal, release, pitch, voicing family, or texture.
+- Kept durations guarded by the shared next-event and ChordRegion clamps; Blue Bossa 3x/5x audits show zero expression warnings, zero cross-region events, zero cross-next-event events, zero short-overlap events, and zero sustain-chop-risk events.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_94 distance-aware expression calibration summary/report.
+- Added `tests/test_v2_6_94_engine_bossa_nova_distance_aware_expression_calibration.py` and `examples/scripts/generate_engine_bossa_nova_distance_aware_expression_calibration_audit.py`.
+
+Recommended next task: `v2_6_95_engine_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_audit`.
+
+## v2_6_96 — Engine Bossa Nova Bass + Drums Identity Audit
+
+- Replaced the old Bossa one-size bass root/fifth candidate in place with ChordRegion-duration-aware bass identity candidates.
+- Full Bossa regions now use root/fifth support; split and very short ChordRegions state root only so bass does not spill a fifth across dense harmonic rhythm.
+- Replaced the old Bossa drums `hihat_2_4_placeholder` in place with a region-local shaker/cross-stick/light-kick identity layer.
+- Added semantic Bossa bass length/dynamic profiles and generic percussion mappings for `cross_stick` and `shaker` realization; pattern candidates still declare abstract degree/drum/profile metadata and do not write concrete MIDI pitches or final expression values.
+- Did not change Bossa piano vocabulary, core voicing, API, Agent, HarmonyOS, or create a parallel selector/bar-first route.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_96 bass/drums identity summary/report.
+- Added `tests/test_v2_6_96_engine_bossa_nova_bass_and_drums_identity_audit.py` and `examples/scripts/generate_engine_bossa_nova_bass_and_drums_identity_audit.py`.
+
+Recommended next task: `v2_6_97_engine_bossa_nova_repeat_count_arrangement_arc_policy`.
+
+## v2_6_97 — Engine Bossa Nova Repeat-Count Arrangement Arc Policy
+
+- Added a Bossa-owned repeat-count-aware arrangement arc in place, without cloning Medium Swing's energy curve.
+- Added Bossa arc phases for arbitrary repeat counts: `single_pass_clear_light`, `head_in_core_identity`, `warm_flow`, `gentle_lift`, `final_soft_release`, and long-loop `loop_wave_reset` / `loop_wave_warm_flow` / `loop_wave_breath_space` / `loop_wave_gentle_lift` waves.
+- Audited repeat counts `1x / 2x / 3x / 5x / 10x / 50x`; long loops are explicitly non-monotonic and do not ramp forever.
+- Connected the Bossa arc to runtime piano comping candidate weighting as small style-owned semantic multipliers and event metadata only.
+- Preserved V2 boundaries: no new rhythm vocabulary, no parallel selector, no bar-first/two_chord_bar restore, no expression numeric change, no core voicing change, no API/Agent/HarmonyOS change.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_97 repeat-count arrangement arc summary/report.
+- Added `tests/test_v2_6_97_engine_bossa_nova_repeat_count_arrangement_arc_policy.py` and `examples/scripts/generate_engine_bossa_nova_repeat_count_arrangement_arc_policy.py`.
+
+Recommended next task: `v2_6_98_engine_bossa_nova_full_band_arrangement_arc_listening_refinement`.
+
+## v2_6_98 — Engine Bossa Nova Full-Band Arrangement Arc Listening Refinement
+
+- Refined the v2_6_97 Bossa repeat-count arrangement arc at full-band level, in place.
+- Piano keeps the existing v2_6_97 arc candidate weighting; v2_6_98 adds checkpoint metadata confirming piano participates in the full-band arc.
+- Bass and drums now read the same Bossa arrangement arc intent from the existing style context and switch semantic dynamic profiles by phase:
+  - breath-space phases use softer bass/drum profiles;
+  - gentle-lift phases use slightly lifted profiles;
+  - final-release phases use softer release profiles.
+- Preserved Bossa identity: bass remains root/fifth support, split/short ChordRegions remain root-only, drums remain shaker/cross-stick/light-kick, and no swing ride/rock backbeat/walking vocabulary was introduced.
+- Added semantic realization mappings for Bossa soft/lift/release bass and percussion profiles; no core voicing, rhythm vocabulary, API, Agent, or HarmonyOS change was introduced.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_98 full-band arrangement-arc refinement summary/report.
+- Added `tests/test_v2_6_98_engine_bossa_nova_full_band_arrangement_arc_listening_refinement.py` and `examples/scripts/generate_engine_bossa_nova_full_band_arrangement_arc_listening_refinement.py`.
+
+Recommended next task: `v2_6_99_engine_bossa_nova_style_baseline_phase_completion_checkpoint`.
+
+## v2_6_99 — Engine Bossa Nova Style Baseline Phase Completion Checkpoint
+
+- Added a metadata-only Bossa Nova phase-completion checkpoint summarizing the v2_6_90 ~ v2_6_98 full-band baseline.
+- Confirmed completed Bossa baseline elements: sole `core_batida` identity anchor, Class A/B piano rhythm cells, context/history weighting, strict native-4&/anticipation tail policy, distance-aware expression, dense ChordRegion clarity voicing intent, root/fifth bass support, shaker/cross-stick/light-kick drums, and Bossa-owned repeat-count full-band arc.
+- Stamped phase-completion metadata on piano, bass, and drums events for audit visibility.
+- Preserved V2 boundaries: no new pattern vocabulary, no candidate-weight changes, no expression numeric calibration change, no core voicing change, no bar-first/two_chord_bar restore, no parallel selector, and no API/Agent/HarmonyOS change.
+- Generated final Blue Bossa 3x and 5x full-band demos plus a v2_6_99 phase-completion summary/report.
+- Added `tests/test_v2_6_99_engine_bossa_nova_style_baseline_phase_completion_checkpoint.py` and `examples/scripts/generate_engine_bossa_nova_style_baseline_phase_completion_checkpoint.py`.
+
+Recommended next task: `v2_7_0_engine_jazz_ballad_style_baseline_audit_or_user_listening_feedback`.
+
+## v2_6_103 — Engine Bossa Nova OPEN Voicing + Retired 4-Note Grouping Metadata
+
+- Made Bossa piano voicing OPEN-main at the style policy level while preserving the normal 4-to-5-note density rule and avoiding forced 2-note / 3-note short-region voicings.
+- Enabled Bossa runtime texture filtering to the OPEN family and limited the ordinary OPEN method pool to `generic_open`, `drop2`, and `drop3`; SPREAD grouped contracts are not used for Bossa.
+- Retired the old core taxonomy behavior that labeled ordinary 4-note CLOSED/OPEN stacks as `1+3` or `2+2` functional groupings. Density-4 ordinary stacks now report `functional_grouping=None` and `d4__unGrouped__...` recipe ids.
+- Preserved the V2 boundaries: no new Bossa pattern vocabulary, no Bossa-specific selector, no expression numeric change, no core voicing source/projection rewrite, and no API/Agent/HarmonyOS change.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_103 open-voicing/taxonomy-cleanup summary/report.
+- Added `tests/test_v2_6_103_engine_bossa_nova_open_voicing_taxonomy_cleanup.py` and `examples/scripts/generate_engine_bossa_nova_open_voicing_taxonomy_cleanup_audit.py`.
+
+Recommended next task: `v2_6_104_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement`.
+
+## v2_6_105 — Engine Bossa Nova Kick/Bass Lock + Low-Frequency Shadow Refinement
+
+- Refined the existing Bossa low-frequency layer in place: bass remains root/fifth support and kick remains a low-velocity shadow locked to the same root/fifth beats.
+- Added semantic kick/bass lock metadata to Bossa bass and drum events: full regions use root-on-1 and fifth-on-3 lock slots; split/short ChordRegions stay root-only and do not add fifth shadows.
+- Added shared percussion-realizer kick shadow shaping from semantic slots only. Pattern events still do not write concrete MIDI velocity/duration/note values.
+- Preserved Bossa identity and V2 boundaries: no four-on-floor, no rock backbeat, no swing ride, no walking bass, no new percussion selector, no bar-first template restore, no piano rhythm change, no voicing change, and no API/Agent/HarmonyOS change.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_105 kick/bass lock summary/report.
+- Added `tests/test_v2_6_105_engine_bossa_nova_kick_bass_lock_low_frequency_shadow.py` and `examples/scripts/generate_engine_bossa_nova_kick_bass_lock_low_frequency_shadow_refinement.py`.
+
+Recommended next task: `v2_6_106_engine_bossa_nova_light_marker_fill_policy`.
+
+## v2_6_106 — Engine Bossa Nova Light Marker Fill Policy
+
+- Added sparse Bossa light marker / fill policy inside the existing Bossa percussion candidate.
+- Marker kinds are limited to `phrase_end_micro`, `turnaround_light`, and `ending_soft`; they are cross-stick/rim-click markers, not tom/crash/roll fills.
+- Kept the implementation ChordRegion-first: ordinary split/short regions suppress marker fills; the terminal final split region may receive a soft ending marker.
+- Pattern events carry semantic marker slots only and do not write concrete MIDI velocity, duration, pedal, note, or percussion MIDI number values.
+- Shared `PercussionRealizer` maps semantic marker profiles to light rim-click velocities while preserving straight-even timing.
+- Preserved V2 boundaries: no parallel selector, no bar-first restore, no piano rhythm change, no bass change, no voicing change, and no API/Agent/HarmonyOS change.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_106 light-marker summary/report.
+- Added `tests/test_v2_6_106_engine_bossa_nova_light_marker_fill_policy.py` and `examples/scripts/generate_engine_bossa_nova_light_marker_fill_policy.py`.
+
+Recommended next task: `v2_6_107_engine_bossa_nova_drum_baseline_checkpoint_or_listening_refinement`.
+
+## v2_6_107 — Engine Bossa Nova Drum Baseline Checkpoint
+
+- Added a metadata/audit/demo checkpoint for the current Bossa drum baseline after the v2_6_100 through v2_6_106 drum refinements.
+- Frozen drum layers now include shaker microdynamics, cross-stick phrase-local contour, kick/bass low-frequency shadow locking, and sparse light rim-click marker policy.
+- Stamped Bossa percussion candidates and drum events with v2_6_107 checkpoint metadata for audit coverage.
+- Preserved V2 boundaries: no new drum vocabulary, no parallel selector, no bar-first restore, no pattern-layer MIDI numeric values, no piano/bass/voicing change, and no API/Agent/HarmonyOS change.
+- Generated Blue Bossa 3x and 5x full-band demos plus a v2_6_107 drum-baseline summary/report.
+- Added `tests/test_v2_6_107_engine_bossa_nova_drum_baseline_checkpoint.py` and `examples/scripts/generate_engine_bossa_nova_drum_baseline_checkpoint.py`.
+
+Recommended next task: `v2_6_108_engine_bossa_nova_drum_listening_refinement_or_freeze`.
+
+## v2_6_108 — Engine Bossa Nova Bass Pickup + Next-Root Anticipation Policy
+
+- Refined the existing Bossa bass foundation in place after the drum checkpoint.
+- Kept root/fifth support as the skeleton and added optional full-region variants with:
+  - a light 2& fifth pickup;
+  - a controlled 4& next-root anticipation;
+  - a combined 2& pickup + 4& next-root variant for gentle-lift contexts.
+- Preserved ChordRegion-first behavior: split and very short ChordRegions remain root-only and do not receive fifth pickups or next-root anticipation.
+- Preserved Bossa identity and V2 boundaries: this is not walking bass, does not create a parallel selector, does not restore bar-first templates, and does not change piano patterning, core voicing, API, Agent, or HarmonyOS.
+- Added semantic bass length/dynamic profile mappings for pickup-aware articulation; pattern events still carry only degree tokens and semantic profile IDs, never concrete MIDI pitch/velocity/duration values.
+- Confirmed kick remains a main root/fifth shadow and does not follow 2& or 4& pickup events.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_108 bass pickup/next-root anticipation summary/report.
+- Added `tests/test_v2_6_108_engine_bossa_nova_bass_pickup_next_root_anticipation.py` and `examples/scripts/generate_engine_bossa_nova_bass_pickup_next_root_anticipation.py`.
+
+Recommended next task: `v2_6_109_engine_bossa_nova_bass_articulation_and_register_policy`.
+
+## v2_6_109 — Engine Bossa Nova Bass Articulation + Register Policy
+
+- Refined the existing Bossa bass foundation in place after the v2_6_108 pickup / next-root policy.
+- Kept the same ChordRegion-first root/fifth/pickup/next-root candidate set; no new bass selector, no new bass engine, and no bar-first template was introduced.
+- Added semantic Bossa bass articulation roles such as `main_root_support`, `main_fifth_support`, `light_2and_pickup_short`, and `light_4and_next_root_short`.
+- Added semantic Bossa bass register policy metadata such as `root_stable_floor`, `main_fifth_nearest_with_root_repeat_fallback`, `pickup_fifth_nearest_continuity`, and `next_root_light_nearest_continuity`.
+- Calibrated existing `BassFoundationRealizer` Bossa length profiles so 2& pickup and 4& next-root events remain short, roots shorten before 2& pickups, and fifths can sustain closer to a 4& next-root without overlap.
+- Preserved V2 boundaries: patterns still carry only degree tokens and semantic profile IDs, not concrete MIDI pitch/velocity/duration; no piano pattern, core voicing, API, Agent, or HarmonyOS behavior changed.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_109 bass articulation/register summary/report.
+- Added `tests/test_v2_6_109_engine_bossa_nova_bass_articulation_register_policy.py` and `examples/scripts/generate_engine_bossa_nova_bass_articulation_and_register_policy.py`.
+
+Recommended next task: `v2_6_110_engine_bossa_nova_bass_listening_refinement_or_checkpoint`.
+
+## v2_6_110 — Engine Bossa Nova Drop-Family Closed-Parent Projection Fix
+
+- Fixed the named OPEN drop-family wiring that could project DROP2/DROP3/DROP2&4 from an already-open runtime CLOSED variant instead of a compact CLOSED parent.
+- The audible symptom was reported in Bossa piano bars such as 14 / 19 / 29: low voices could cluster too tightly while the top voice sat far above, even though the candidate was labelled `drop2`.
+- Reused the existing compact CLOSED parent construction for named OPEN projection before applying drop-family methods. This is a targeted correction to the existing voicing boundary, not a new voicing capability, selector, style-local projection system, or new source inventory.
+- Preserved Bossa OPEN-main policy and the shared drop-family method consensus: `drop2` primary, `drop3` secondary, `drop2_and_4` very low; `generic_open` remains excluded from ordinary Bossa runtime.
+- Added runtime audit coverage for the reported Blue Bossa bars 14 / 19 / 29 and a guard against the low-cluster/top-gap artifact.
+- Preserved V2 boundaries: no piano rhythm change, no expression change, no bass/drum change, no API/Agent/HarmonyOS change, and no SPREAD/grouped voicing reintroduction.
+- Generated Blue Bossa 3x and 5x demos plus a v2_6_110 drop-family closed-parent projection fix summary/report.
+- Added `tests/test_v2_6_110_engine_bossa_nova_drop_family_closed_parent_projection_fix.py` and `examples/scripts/generate_engine_bossa_nova_drop_family_closed_parent_projection_fix_audit.py`.
+
+Recommended next task: `v2_6_111_engine_bossa_nova_voicing_listening_checkpoint_or_continue_bass_drums`.

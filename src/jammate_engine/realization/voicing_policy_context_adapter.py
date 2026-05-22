@@ -6,13 +6,14 @@ from typing import Any
 
 from jammate_engine.core.harmony.chord_parser import parse_chord
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
-from jammate_engine.core.voicing import ColorPolicyMode, Disposition, VoicingPolicy
+from jammate_engine.core.voicing import ColorPolicyMode, ContentFamily, Disposition, RootSupportPolicy, VoicingPolicy
 
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_VERSION = "v2_6_23"
 MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION = "v2_6_77"
 MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_LOW_REGISTER_CLARITY_GUARD_VERSION = "v2_6_78"
 MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION = "v2_6_82"
+BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION = "v2_6_103"
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_OWNED_RESPONSIBILITIES = (
     "event_scoped_voicing_policy_metadata_bridge",
@@ -82,6 +83,7 @@ def _policy_with_event_texture_scope(policy: VoicingPolicy, event: PatternEvent)
     """
 
     policy = _policy_with_event_harmonic_context(policy, event)
+    policy = _policy_with_bossa_harmonic_rhythm_region_clarity_voicing_intent(policy, event)
     policy = _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy, event)
     policy = _policy_with_ballad_spread_grouping_mix_policy(policy, event)
     policy = _policy_with_spread_upper_3note_expansion_ratio(policy, event)
@@ -149,6 +151,142 @@ def _policy_with_event_harmonic_context(policy: VoicingPolicy, event: PatternEve
         "performance_bar_index": event_metadata.get("region_performance_bar_index"),
     }
     return replace(policy, metadata={**metadata, **harmonic_metadata})
+
+
+def _policy_with_bossa_harmonic_rhythm_region_clarity_voicing_intent(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
+    """Attach Bossa dense-region voicing intent without implementing voicing.
+
+    v2_6_102 superseded the earlier v2_6_95 short/dense-region override, and
+    v2_6_103 makes Bossa OPEN-main while keeping the no-forced-2/3-note rule, and v2_6_104 removes generic_open from the ordinary Bossa method pool.
+    Short/dense Bossa ChordRegions remain ChordRegion-first, but they no longer
+    force 2-note guide-tone or 3-note low-density voicings.  This function now
+    only annotates the event-scoped policy metadata and lets the existing core
+    voicing resolver use the normal 4-to-5-note OPEN-main Bossa policy.  It does not
+    build sources, project notes, score candidates, realize MIDI, write
+    expression values, or restore bar-first/two_chord_bar logic.
+    """
+
+    metadata = dict(policy.metadata or {})
+    if str(metadata.get("style") or "") != "bossa_nova":
+        return policy
+    if not _coerce_bool(metadata.get("bossa_harmonic_rhythm_region_clarity_and_voicing_intent_active"), default=False):
+        return policy
+
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    if getattr(event, "track", "") != "piano" or getattr(event, "role", "") != "harmonic":
+        return _bossa_voicing_intent_debug(
+            policy,
+            applied=False,
+            reason="non_piano_harmonic_event",
+            event_metadata=event_metadata,
+        )
+
+    region_duration = _coerce_float(event_metadata.get("region_duration_beats"), default=4.0)
+    threshold = _coerce_float(metadata.get("bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_dense_short_region_threshold_beats"), default=2.25)
+    archetype = str(event_metadata.get("bossa_context_archetype") or "")
+    pattern_function = str(event_metadata.get("pattern_function") or "")
+    region_shape = str(event_metadata.get("region_shape") or "")
+    dense_short_region = (
+        region_duration <= threshold + 1e-9
+        or archetype == "dense_harmonic_marks"
+        or "harmonic_rhythm" in pattern_function
+        or region_shape in {"one_beat_region", "two_beat_region", "short_chord_region"}
+    )
+    if not dense_short_region:
+        return _bossa_voicing_intent_debug(
+            policy,
+            applied=False,
+            reason="ordinary_full_region_keeps_base_bossa_voicing_policy",
+            event_metadata=event_metadata,
+            region_duration=region_duration,
+        )
+
+    # v2_6_102 deliberately superseded the v2_6_95 short/dense-region
+    # guide-tone override.  v2_6_103 keeps that rule and changes the ordinary
+    # Bossa style texture to OPEN-main; v2_6_104 removes generic_open from the
+    # ordinary Bossa method pool.  This adapter still does not choose sources,
+    # project notes, or score candidates.
+    return _bossa_voicing_intent_debug(
+        policy,
+        applied=False,
+        reason="dense_short_region_keeps_normal_bossa_open_4_to_5_note_drop_family_policy_v2_6_104",
+        event_metadata=event_metadata,
+        region_duration=region_duration,
+    )
+
+
+def _bossa_voicing_intent_debug(
+    policy: VoicingPolicy,
+    *,
+    applied: bool,
+    reason: str,
+    event_metadata: dict[str, Any],
+    region_duration: float | None = None,
+) -> VoicingPolicy:
+    metadata = dict(policy.metadata or {})
+    return replace(
+        policy,
+        metadata={
+            **metadata,
+            **_bossa_voicing_intent_metadata(
+                applied=applied,
+                reason=reason,
+                event_metadata=event_metadata,
+                region_duration=region_duration,
+            ),
+        },
+    )
+
+
+def _bossa_voicing_intent_metadata(
+    *,
+    applied: bool,
+    reason: str,
+    event_metadata: dict[str, Any],
+    region_duration: float | None = None,
+) -> dict[str, Any]:
+    return {
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_version": BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION,
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_checked": True,
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_applied": bool(applied),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_reason": reason,
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_region_duration_beats": (
+            _coerce_float(region_duration, default=0.0) if region_duration is not None else _coerce_float(event_metadata.get("region_duration_beats"), default=0.0)
+        ),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_region_shape": event_metadata.get("region_shape"),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_archetype": event_metadata.get("bossa_context_archetype"),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_pattern_function": event_metadata.get("pattern_function"),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_contract": (
+            "Event-scoped Bossa voicing intent only; no core voicing source/projection/selector change, no pattern voicing, no expression values, and no bar-first routing."
+        ),
+    }
+
+
+def _coerce_content_family(value: Any, default: ContentFamily) -> ContentFamily:
+    if isinstance(value, ContentFamily):
+        return value
+    try:
+        return ContentFamily(str(value))
+    except Exception:
+        return default
+
+
+def _coerce_root_support(value: Any, default: RootSupportPolicy) -> RootSupportPolicy:
+    if isinstance(value, RootSupportPolicy):
+        return value
+    try:
+        return RootSupportPolicy(str(value))
+    except Exception:
+        return default
+
+
+def _coerce_float(value: Any, *, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return float(default)
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
 
 
 def _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:

@@ -7,6 +7,10 @@ from typing import Any
 from ..policy import ContentFamily, FunctionalGrouping, RootSupportPolicy, VoicingGroupRole
 
 
+VOICING_TAXONOMY_RETIRED_4NOTE_GROUPING_METADATA_VERSION = "v2_6_103"
+RETIRED_ORDINARY_4NOTE_GROUPINGS = (FunctionalGrouping.ONE_PLUS_THREE, FunctionalGrouping.TWO_PLUS_TWO)
+
+
 @dataclass(frozen=True)
 class VoicingRecipe:
     """Minimal density + functional grouping recipe contract.
@@ -66,7 +70,15 @@ def infer_functional_grouping(
     content_family: ContentFamily | None = None,
     root_support: RootSupportPolicy | None = None,
 ) -> FunctionalGrouping | None:
-    """Infer the V2 grouping shape from density and coarse content context."""
+    """Infer the V2 grouping shape from density and coarse content context.
+
+    v2_6_103 retires the old ordinary 4-note ``1+3`` / ``2+2``
+    functional-grouping metadata.  In the current architecture those grouped
+    names are reserved for lower/upper SPREAD-style projection contracts, while
+    ordinary 4-note CLOSED/OPEN stacks are compact/open voicings, not grouped
+    voicings.  Therefore density-4 recipes intentionally return ``None`` for
+    ``functional_grouping`` and use an ``unGrouped`` recipe id.
+    """
 
     degree_list = [str(degree) for degree in degrees]
     density = len(degree_list)
@@ -75,9 +87,7 @@ def infer_functional_grouping(
     if density == 3:
         return FunctionalGrouping.THREE
     if density == 4:
-        if _looks_like_anchor_plus_projection(degree_list, content_family, root_support):
-            return FunctionalGrouping.ONE_PLUS_THREE
-        return FunctionalGrouping.TWO_PLUS_TWO
+        return None
     if density == 5:
         return FunctionalGrouping.TWO_PLUS_THREE
     if density == 6:
@@ -142,6 +152,7 @@ def _looks_like_anchor_plus_projection(
     content_family: ContentFamily | None,
     root_support: RootSupportPolicy | None,
 ) -> bool:
+    """Legacy helper retained for compatibility audits; not used for density-4 grouping emission."""
     if not degrees:
         return False
     if degrees[0] == "R" and root_support in {

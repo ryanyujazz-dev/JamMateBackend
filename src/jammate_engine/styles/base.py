@@ -102,6 +102,8 @@ MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_INTENT_USAGE_VERSION = "v2_6_85"
 MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_LISTENING_REFINEMENT_VERSION = "v2_6_86"
 MEDIUM_SWING_FULL_BAND_ENDING_REALIZATION_CHECKPOINT_VERSION = "v2_6_87"
 MEDIUM_SWING_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_88"
+BOSSA_NOVA_REPEAT_COUNT_ARRANGEMENT_ARC_POLICY_VERSION = "v2_6_97"
+BOSSA_NOVA_FULL_BAND_ARRANGEMENT_ARC_LISTENING_REFINEMENT_VERSION = "v2_6_98"
 PIANO_COMPING_REGION_FIRST_COVERAGE_GUARD_VERSION = "v2_6_62"
 
 
@@ -1466,6 +1468,30 @@ def _record_piano_comping_history(history: dict, source_key: str, candidate: Pat
     history[f"{source_key}:recent_tail_push_count"] = _recent_flag_count(recent, "is_tail_push")
 
 
+def _record_bossa_piano_comping_history(history: dict, source_key: str, candidate: PatternCandidate) -> None:
+    metadata = dict(candidate.metadata)
+    info = {
+        "name": candidate.name,
+        "category": candidate.category,
+        "rhythm_class": str(metadata.get("rhythm_class", "")),
+        "rhythmic_cell": str(metadata.get("rhythmic_cell", "")),
+        "hit_count": int(metadata.get("hit_count") or 0),
+        "native_4and": bool(metadata.get("native_4and")),
+        "archetype": str(metadata.get("bossa_context_archetype", "")),
+        "weighting_status": str(metadata.get("bossa_context_weighting_status", "")),
+    }
+    recent = history.get(f"{source_key}:recent_bossa_comping")
+    if not isinstance(recent, list):
+        recent = []
+    recent.append(info)
+    history[f"{source_key}:recent_bossa_comping"] = recent[-6:]
+    history[f"{source_key}:bossa_rhythm_class"] = info["rhythm_class"]
+    history[f"{source_key}:bossa_archetype"] = info["archetype"]
+    history[f"{source_key}:bossa_recent_class_B_count"] = sum(1 for item in recent[-4:] if item.get("rhythm_class") == "class_B")
+    history[f"{source_key}:bossa_recent_native_4and_count"] = sum(1 for item in recent[-4:] if item.get("native_4and"))
+    history[f"{source_key}:bossa_recent_three_hit_count"] = sum(1 for item in recent[-4:] if int(item.get("hit_count") or 0) >= 3)
+
+
 def _resolve_medium_swing_arrangement_arc_runtime_intent(region: HarmonicRegion) -> dict[str, Any]:
     try:
         from jammate_engine.styles.medium_swing.arrangement_policy import resolve_runtime_arrangement_arc_intent
@@ -1540,6 +1566,62 @@ def _apply_medium_swing_arrangement_arc_runtime_intent_policy(
                 "medium_swing_style_baseline_phase_completion_checkpoint_behavior_change": False,
                 "medium_swing_style_baseline_phase_completion_checkpoint_contract": "v2_6_88 summarizes the Medium Swing v2_6_56-v2_6_87 full-band baseline: ChordRegion-first piano comping, semantic expression hints, generic anticipation, 2-beat density relief, explicit low-intrusion 5/6-note voicing intent, bass/piano and drum/piano interaction, repeat-count-aware arc, and ending realization. It stamps phase-completion audit metadata only and does not change pattern weights, add vocabulary, modify core voicing, write expression numbers, or touch API/Agent/HarmonyOS.",
             })
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * float(multiplier)), metadata=metadata))
+    return tuple(adjusted)
+
+
+def _resolve_bossa_nova_arrangement_arc_runtime_intent(region: HarmonicRegion) -> dict[str, Any]:
+    try:
+        from jammate_engine.styles.bossa_nova.arrangement_policy import resolve_runtime_arrangement_arc_intent
+    except Exception:
+        return {}
+    return dict(resolve_runtime_arrangement_arc_intent(region.chorus_index, region.total_choruses))
+
+
+def _apply_bossa_nova_arrangement_arc_runtime_intent_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    intent: dict[str, Any] | None,
+) -> tuple[PatternCandidate, ...]:
+    """Use Bossa repeat-count arrangement arc as style intent, not a selector."""
+
+    if not candidates or not intent:
+        return tuple(candidates)
+    try:
+        from jammate_engine.styles.bossa_nova.arrangement_policy import arrangement_arc_runtime_candidate_multiplier
+    except Exception:
+        return tuple(candidates)
+
+    adjusted: list[PatternCandidate] = []
+    for candidate in candidates:
+        multiplier, reasons, status = arrangement_arc_runtime_candidate_multiplier(dict(candidate.metadata), dict(intent))
+        metadata = {
+            **dict(candidate.metadata),
+            "bossa_nova_repeat_count_arrangement_arc_policy_version": BOSSA_NOVA_REPEAT_COUNT_ARRANGEMENT_ARC_POLICY_VERSION,
+            "bossa_nova_repeat_count_arrangement_arc_policy_applied": True,
+            "bossa_nova_repeat_count_arrangement_arc_phase": intent.get("phase"),
+            "bossa_nova_repeat_count_arrangement_arc_energy_band": intent.get("energy_band"),
+            "bossa_nova_repeat_count_arrangement_arc_density_bias": intent.get("density_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_piano_comping_bias": intent.get("piano_comping_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_piano_comping_runtime_intent": intent.get("piano_comping_runtime_intent"),
+            "bossa_nova_repeat_count_arrangement_arc_breath_bias": intent.get("breath_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_lift_bias": intent.get("lift_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_chorus_index": intent.get("chorus_index"),
+            "bossa_nova_repeat_count_arrangement_arc_total_choruses": intent.get("total_choruses"),
+            "bossa_nova_repeat_count_arrangement_arc_normalized_position": intent.get("normalized_position"),
+            "bossa_nova_repeat_count_arrangement_arc_loop_block_position": intent.get("loop_block_position"),
+            "bossa_nova_repeat_count_arrangement_arc_multiplier": round(float(multiplier), 4),
+            "bossa_nova_repeat_count_arrangement_arc_status": status,
+            "bossa_nova_repeat_count_arrangement_arc_reasons": tuple(reasons),
+            "bossa_nova_repeat_count_arrangement_arc_not_three_chorus_hardcoded": True,
+            "bossa_nova_repeat_count_arrangement_arc_not_medium_swing_clone": True,
+            "bossa_nova_repeat_count_arrangement_arc_boundary": "style_intent_metadata_and_candidate_weighting_only",
+            "bossa_nova_repeat_count_arrangement_arc_contract": "v2_6_97 connects the Bossa-owned repeat-count-aware arc to existing piano comping candidate weighting and event metadata. It does not add vocabulary, create a selector, restore bar-first logic, choose voicing sources, write expression values, or hard-code a 3-chorus arc.",
+            "bossa_full_band_arrangement_arc_listening_refinement_active": True,
+            "bossa_full_band_arrangement_arc_listening_refinement_version": BOSSA_NOVA_FULL_BAND_ARRANGEMENT_ARC_LISTENING_REFINEMENT_VERSION,
+            "bossa_full_band_arrangement_arc_listening_refinement_track_role": "piano",
+            "bossa_full_band_arrangement_arc_listening_refinement_boundary": "piano_already_shaped_by_arc_candidate_policy;_bass_drums_read_same_arc_for_semantic_dynamics",
+        }
         adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * float(multiplier)), metadata=metadata))
     return tuple(adjusted)
 
@@ -1623,11 +1705,16 @@ class StyleProfile:
         medium_swing_full_band_ending_realization_checkpoint = bool(self.arrangement_policy.get("medium_swing_full_band_ending_realization_checkpoint", False))
         medium_swing_style_baseline_phase_completion_checkpoint = bool(self.arrangement_policy.get("medium_swing_style_baseline_phase_completion_checkpoint", False))
         piano_region_first_coverage_guard = bool(self.arrangement_policy.get("piano_region_first_coverage_guard", False))
+        bossa_context_archetype_policy_active = bool(self.arrangement_policy.get("bossa_nova_context_archetype_policy_active", False))
+        bossa_repeat_count_arrangement_arc_policy_active = bool(self.arrangement_policy.get("bossa_nova_repeat_count_arrangement_arc_policy_active", False))
 
         arrangement_arc_intent: dict[str, Any] = {}
         if self.name == "medium_swing" and medium_swing_arrangement_arc_runtime_intent_usage:
             arrangement_arc_intent = _resolve_medium_swing_arrangement_arc_runtime_intent(region)
             region_context["medium_swing_arrangement_arc_intent"] = arrangement_arc_intent
+        if self.name == "bossa_nova" and bossa_repeat_count_arrangement_arc_policy_active:
+            arrangement_arc_intent = _resolve_bossa_nova_arrangement_arc_runtime_intent(region)
+            region_context["bossa_nova_arrangement_arc_intent"] = arrangement_arc_intent
 
         plans: list[PatternPlan] = []
         selected: list[str] = []
@@ -1673,6 +1760,11 @@ class StyleProfile:
                     ending_realization_checkpoint_enabled=medium_swing_full_band_ending_realization_checkpoint,
                     style_baseline_phase_completion_enabled=medium_swing_style_baseline_phase_completion_checkpoint,
                 )
+            if bossa_repeat_count_arrangement_arc_policy_active and is_piano_comping_source:
+                choice_pool = _apply_bossa_nova_arrangement_arc_runtime_intent_policy(
+                    choice_pool,
+                    intent=arrangement_arc_intent,
+                )
             if piano_optional_fill_variation_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_optional_fill_variation_vocabulary_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
             if piano_no_4and_delayed_tail_policy and is_piano_comping_source and len(choice_pool) > 1:
@@ -1688,9 +1780,11 @@ class StyleProfile:
                 history[f"{source_key}:density"] = str(candidate.metadata.get("density", "medium"))
                 if piano_history_scorer:
                     _record_piano_comping_history(history, source_key, candidate)
+                if self.name == "bossa_nova" and bossa_context_archetype_policy_active:
+                    _record_bossa_piano_comping_history(history, source_key, candidate)
             selected.append(candidate.name)
             plan = candidate.instantiate(region)
-            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or medium_swing_arrangement_arc_runtime_intent_usage or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
+            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or medium_swing_arrangement_arc_runtime_intent_usage or bossa_repeat_count_arrangement_arc_policy_active or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard or bossa_context_archetype_policy_active):
                 plan = replace(
                     plan,
                     events=[

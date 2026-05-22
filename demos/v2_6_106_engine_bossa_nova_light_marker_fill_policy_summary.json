@@ -1,0 +1,153 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_106 — Engine Bossa Nova Light Marker Fill Policy",
+  "scope": "Add sparse Bossa rim-click markers inside the existing percussion candidate for phrase-end, turnaround/gentle-lift, and terminal ending contexts. This is not a tom/crash/roll fill system and does not create a parallel selector, bar-first template path, piano/bass/voicing change, API, Agent, or HarmonyOS change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_106",
+    "engine_version_tag": "v2_10_28",
+    "policy_active": true,
+    "policy_version": "v2_6_106",
+    "fill_policy_version": "v2_6_106",
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_tom_crash_roll_fill": true,
+    "no_swing_or_rock_fill": true,
+    "no_piano_bass_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "allowed_marker_kinds": [
+      "phrase_end_micro",
+      "turnaround_light",
+      "ending_soft"
+    ],
+    "phrase_marker_slots": [
+      "micro_4and"
+    ],
+    "lift_marker_slots": [
+      "turnaround_4and"
+    ],
+    "ending_short_marker_slots": [
+      "ending_short_region_4and"
+    ],
+    "marker_drums": [
+      "cross_stick"
+    ],
+    "forbidden_pattern_numeric_keys": [],
+    "recommended_next_task": "v2_6_107_engine_bossa_nova_drum_baseline_checkpoint_or_listening_refinement"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23106,
+      "midi_path": "demos/v2_6_106_blue_bossa_3x_bossa_nova_light_marker_fill_policy_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 404,
+        "bass": 96,
+        "drums": 593
+      },
+      "piano_notes": 404,
+      "bass_notes": 96,
+      "drums_notes": 593,
+      "planned_drum_event_count": 593,
+      "marker_event_count": 8,
+      "marker_kind_counts": {
+        "phrase_end_micro": 4,
+        "turnaround_light": 2,
+        "ending_soft": 2
+      },
+      "marker_slot_counts": {
+        "micro_4and": 4,
+        "turnaround_4and": 2,
+        "ending_short_region_4and": 2
+      },
+      "marker_coverage_ratio": 1.0,
+      "marker_velocity_set": [
+        32,
+        33,
+        34,
+        36,
+        37,
+        40,
+        41
+      ],
+      "marker_min_velocity": 32,
+      "marker_max_velocity": 41,
+      "marker_kind_average_velocity": {
+        "ending_soft": 36.5,
+        "phrase_end_micro": 32.75,
+        "turnaround_light": 40.5
+      },
+      "tom_crash_roll_marker_events": 0,
+      "swing_or_rock_marker_events": 0,
+      "drum_swing_or_rock_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23112,
+      "midi_path": "demos/v2_6_106_blue_bossa_5x_bossa_nova_light_marker_fill_policy_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 664,
+        "bass": 160,
+        "drums": 989
+      },
+      "piano_notes": 664,
+      "bass_notes": 160,
+      "drums_notes": 989,
+      "planned_drum_event_count": 989,
+      "marker_event_count": 12,
+      "marker_kind_counts": {
+        "phrase_end_micro": 8,
+        "turnaround_light": 2,
+        "ending_soft": 2
+      },
+      "marker_slot_counts": {
+        "micro_4and": 8,
+        "turnaround_4and": 2,
+        "ending_short_region_4and": 2
+      },
+      "marker_coverage_ratio": 1.0,
+      "marker_velocity_set": [
+        32,
+        33,
+        34,
+        36,
+        38,
+        39,
+        40
+      ],
+      "marker_min_velocity": 32,
+      "marker_max_velocity": 40,
+      "marker_kind_average_velocity": {
+        "ending_soft": 37.0,
+        "phrase_end_micro": 33.12,
+        "turnaround_light": 39.5
+      },
+      "tom_crash_roll_marker_events": 0,
+      "swing_or_rock_marker_events": 0,
+      "drum_swing_or_rock_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "policy_declares_light_marker_fill": true,
+      "fill_policy_version_matches": true,
+      "no_parallel_or_bar_first": true,
+      "no_tom_crash_roll_or_swing_rock": true,
+      "static_marker_slots_present": true,
+      "markers_use_cross_stick_only": true,
+      "no_pattern_numeric_values": true,
+      "runtime_blue_bossa_light_markers_pass": true
+    }
+  },
+  "recommended_next_task": "v2_6_107_engine_bossa_nova_drum_baseline_checkpoint_or_listening_refinement"
+}

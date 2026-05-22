@@ -64,6 +64,8 @@ class AnticipationResolver:
 
             target_offset = movability.target_offset_beats if movability is not None else policy.target_offset_beats
             target_abs_beat = float(candidate.onset_beat) + float(target_offset)
+            if not self._previous_region_duration_is_allowed(previous_region, policy):
+                continue
             tail = self._check_tail(
                 previous_region=previous_region,
                 previous_events=events_by_region.get(previous_region.region_id, []),
@@ -125,6 +127,12 @@ class AnticipationResolver:
         if not eligible:
             return None
         return sorted(eligible, key=lambda event: (event.onset_beat, event.track, event.event_id))[0]
+
+    def _previous_region_duration_is_allowed(self, previous_region: HarmonicRegion, policy: AnticipationPolicy) -> bool:
+        minimum = policy.min_previous_region_duration_beats
+        if minimum is None:
+            return True
+        return float(previous_region.duration_beats) + 1e-6 >= float(minimum)
 
     def _check_tail(
         self,
@@ -201,8 +209,10 @@ class AnticipationResolver:
                 "current_region_duration_beats": round(current_duration, 6),
                 "previous_region_last_beat_local": previous_last_beat_local,
                 "previous_region_last_upbeat_local": previous_last_upbeat_local,
+                "min_previous_region_duration_beats": policy.min_previous_region_duration_beats,
                 "tail_checked_local_beats": tuple(tail_checked_local_beats),
                 "tail_availability_reason": tail_availability_reason,
+                "style_anticipation_policy_metadata": dict(policy.metadata),
                 "region_first_anticipation_compatibility_checkpoint_version": "v2_6_61",
                 "region_first_anticipation_contract": "target tail slot is previous_region.duration_beats - 0.5; 4-beat regions use local 3.5, 2-beat regions use local 1.5, and 1-beat regions use local 0.5 rather than a hard-coded bar 4&.",
                 "bar_first_4and_assumption": False,

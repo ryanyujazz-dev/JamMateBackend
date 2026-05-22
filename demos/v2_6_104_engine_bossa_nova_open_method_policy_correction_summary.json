@@ -1,0 +1,197 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_104 — Engine Bossa Nova Drop-Family OPEN Method Policy Correction",
+  "scope": "Correct the v2_6_103 Bossa OPEN method policy: keep OPEN-main 4-to-5-note Bossa voicing and retired ordinary 4-note grouping metadata, but remove generic_open from the ordinary runtime method pool. Bossa now requests the existing shared drop-family consensus only: drop2 primary, drop3 secondary, drop2&4 very low-frequency color; generic_open remains fallback/rescue only. No Bossa parallel selector, no projection/source algorithm change, no pattern vocabulary change, no expression numeric change, no API/Agent/HarmonyOS change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_104",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_103",
+    "arrangement_open_method_policy_correction_version": "v2_6_104",
+    "arrangement_open_policy_active": true,
+    "arrangement_retired_4note_grouping_metadata": true,
+    "preferred_disposition": "open",
+    "allowed_dispositions": [
+      "open",
+      "closed"
+    ],
+    "preferred_density": 4,
+    "min_density": 4,
+    "max_density": 5,
+    "texture_runtime_filtering_enabled": true,
+    "primary_texture_family": "open",
+    "allowed_texture_families": [
+      "open"
+    ],
+    "open_projection_methods": [
+      "drop2",
+      "drop3",
+      "drop2_and_4"
+    ],
+    "disposition_method_weights_enabled_for_scoring": true,
+    "has_style_local_disposition_method_weights": false,
+    "open_method_policy_correction": {
+      "version": "v2_6_104",
+      "enabled": true,
+      "scope": "all_bossa_piano_open_voicing_candidates",
+      "reason": "v2_6_103 incorrectly promoted generic_open into Bossa normal runtime; v2_6_104 removes it from the style method pool and returns method priority to the shared drop-family consensus.",
+      "normal_open_projection_methods": [
+        "drop2",
+        "drop3",
+        "drop2_and_4"
+      ],
+      "drop2_role": "primary_body",
+      "drop3_role": "secondary_contrast",
+      "drop2_and_4_role": "very_low_frequency_color",
+      "generic_open_role": "fallback_or_rescue_only_not_normal_candidate",
+      "no_style_local_method_reweighting": true,
+      "no_projection_algorithm_change": true,
+      "no_source_inventory_change": true,
+      "no_parallel_selector": true
+    },
+    "open_policy": {
+      "version": "v2_6_103",
+      "corrected_by": "v2_6_104",
+      "enabled": true,
+      "scope": "all_bossa_piano_harmonic_events",
+      "preferred_disposition": "open",
+      "allowed_runtime_texture_families": [
+        "open"
+      ],
+      "open_projection_methods": [
+        "drop2",
+        "drop3",
+        "drop2_and_4"
+      ],
+      "method_policy": "use_existing_drop_family_consensus; do not promote generic_open into ordinary Bossa runtime",
+      "retire_closed_as_default": true,
+      "closed_available_only_as_policy_level_compatibility_not_runtime_primary": true,
+      "no_spread_grouping": true
+    },
+    "retired_policy": {
+      "version": "v2_6_103",
+      "enabled": true,
+      "rule": "Ordinary 4-note CLOSED/OPEN stacks must not be reported as 1+3 or 2+2 grouped voicings; grouped names are reserved for SPREAD lower/upper contracts.",
+      "ordinary_4note_functional_grouping": null
+    },
+    "weight_spec_source": "style_default:bossa_nova",
+    "open_method_weights": {
+      "generic_open": 0.0,
+      "drop2": 0.52,
+      "drop3": 0.38,
+      "drop2_and_4": 0.1
+    },
+    "four_note_recipe_id": "d4__unGrouped__seventh_chord_basic__rootless_allowed",
+    "four_note_functional_grouping": null,
+    "four_note_group_roles": [],
+    "rootless_four_note_recipe_id": "d4__unGrouped__rootless_A__rootless_allowed",
+    "rootless_four_note_functional_grouping": null,
+    "rootless_four_note_group_roles": []
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22803,
+      "midi_path": "demos/v2_6_104_blue_bossa_3x_bossa_nova_open_method_policy_correction_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "note_events_by_track": {
+        "piano": 404,
+        "bass": 96,
+        "drums": 585
+      },
+      "piano_active_events": 101,
+      "piano_disposition_counts": {
+        "open": 101
+      },
+      "piano_density_counts": {
+        "4": 101
+      },
+      "piano_content_family_counts": {
+        "seventh_chord_basic": 84,
+        "rooted_color": 17
+      },
+      "piano_functional_grouping_counts": {
+        "none": 101
+      },
+      "piano_open_projection_method_counts": {
+        "drop2": 72,
+        "drop3": 27,
+        "drop2_and_4": 2
+      },
+      "piano_recipe_id_counts": {
+        "d4__unGrouped__seventh_chord_basic__rootless_allowed": 84,
+        "d4__unGrouped__rooted_color__rootless_allowed": 17
+      },
+      "retired_4note_grouping_event_count": 0,
+      "spread_grouping_event_count": 0,
+      "low_density_2_or_3_event_count": 0,
+      "root_included_count": 101,
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "pedal_cc64_event_count": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22855,
+      "midi_path": "demos/v2_6_104_blue_bossa_5x_bossa_nova_open_method_policy_correction_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "note_events_by_track": {
+        "piano": 676,
+        "bass": 160,
+        "drums": 977
+      },
+      "piano_active_events": 169,
+      "piano_disposition_counts": {
+        "open": 169
+      },
+      "piano_density_counts": {
+        "4": 169
+      },
+      "piano_content_family_counts": {
+        "seventh_chord_basic": 138,
+        "rooted_color": 31
+      },
+      "piano_functional_grouping_counts": {
+        "none": 169
+      },
+      "piano_open_projection_method_counts": {
+        "drop2": 128,
+        "drop2_and_4": 7,
+        "drop3": 34
+      },
+      "piano_recipe_id_counts": {
+        "d4__unGrouped__seventh_chord_basic__rootless_allowed": 138,
+        "d4__unGrouped__rooted_color__rootless_allowed": 31
+      },
+      "retired_4note_grouping_event_count": 0,
+      "spread_grouping_event_count": 0,
+      "low_density_2_or_3_event_count": 0,
+      "root_included_count": 169,
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "pedal_cc64_event_count": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_arrangement_registered": true,
+      "bossa_policy_is_open_main": true,
+      "bossa_uses_drop_family_method_pool_without_generic_open": true,
+      "density_stays_normal_4_to_5": true,
+      "ordinary_4note_grouping_metadata_retired": true,
+      "runtime_blue_bossa_full_band_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_105_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement"
+}

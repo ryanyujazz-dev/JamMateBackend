@@ -1,0 +1,156 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_95 — Engine Bossa Nova Harmonic-Rhythm Region Clarity + Voicing Intent Audit",
+  "scope": "Audit and refine Bossa dense harmonic-rhythm / short ChordRegion clarity in-place. Short regions keep ChordRegion-first pattern handling and request lighter existing voicing capabilities through style-level policy intent. No core voicing source/projection/selector changes, no new pattern vocabulary, no expression numeric changes, API, Agent, or HarmonyOS changes.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_95",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_95",
+    "behavior_change": true,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_new_pattern_vocabulary": true,
+    "no_expression_numeric_change": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "dense_short_threshold_beats": 2.25,
+    "voicing_policy_metadata_version": "v2_6_95",
+    "voicing_policy_no_core_voicing_change": true,
+    "dense_config_enabled": true,
+    "dense_config_preferred_density": 2,
+    "dense_config_min_density": 2,
+    "dense_config_max_density": 4,
+    "dense_config_preferred_content": "guide_tone",
+    "dense_config_root_support": "rootless_preferred",
+    "half_region_candidate_count": 1,
+    "half_region_candidate_name": "bossa_piano_half_region_1_2",
+    "half_region_region_shape": "two_beat_region",
+    "half_region_pattern_function": "dense_harmonic_rhythm_light_clarity_adaptation",
+    "half_region_candidate_metadata_version": "v2_6_95",
+    "recommended_next_task": "v2_6_96_engine_bossa_nova_bass_and_drums_identity_audit",
+    "known_next_gap": "Dense-region piano clarity and voicing intent are audited; next pass should review Bossa bass root/fifth support and drums shaker/cross-stick identity against the updated piano texture."
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22705,
+      "midi_path": "demos/v2_6_95_blue_bossa_3x_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 352,
+        "bass": 102,
+        "drums": 102
+      },
+      "piano_active_events": 104,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 15,
+        "bossa_piano_cell_A_1_3and": 20,
+        "bossa_piano_cell_A_1_2and": 20,
+        "bossa_piano_cell_A_1_3": 6,
+        "bossa_piano_cell_A_1": 7,
+        "bossa_piano_cell_B_1and_4and": 2,
+        "bossa_piano_cell_A_1_2_3and": 15,
+        "bossa_piano_cell_B_1and_3and": 4,
+        "bossa_piano_half_region_1_2": 12,
+        "bossa_piano_cell_B_1and_4": 2,
+        "bossa_piano_cell_B_1and": 1
+      },
+      "piano_non_core_pattern_event_count": 77,
+      "piano_class_A_event_count": 68,
+      "piano_class_B_event_count": 9,
+      "piano_class_B_ratio_of_non_core_events": 0.1169,
+      "short_region_piano_event_count": 12,
+      "short_region_content_family_counts": {
+        "guide_tone": 12
+      },
+      "short_region_density_counts": {
+        "2": 12
+      },
+      "short_region_root_included_count": 0,
+      "short_region_span_violation_count": 0,
+      "ordinary_region_content_family_counts": {
+        "seventh_chord_basic": 65,
+        "rooted_color": 7,
+        "guide_tone": 20
+      },
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "active_anticipation_count": 14,
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22755,
+      "midi_path": "demos/v2_6_95_blue_bossa_5x_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 580,
+        "bass": 170,
+        "drums": 170
+      },
+      "piano_active_events": 172,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 36,
+        "bossa_piano_cell_B_1and_3": 8,
+        "bossa_piano_cell_A_1_2and": 26,
+        "bossa_piano_cell_A_1_2_3and": 18,
+        "bossa_piano_cell_A_1": 14,
+        "bossa_piano_cell_A_1_3and": 36,
+        "bossa_piano_cell_B_1and": 2,
+        "bossa_piano_half_region_1_2": 20,
+        "bossa_piano_cell_A_1_4and": 2,
+        "bossa_piano_cell_A_1_3": 8,
+        "bossa_piano_cell_B_1and_3and": 2
+      },
+      "piano_non_core_pattern_event_count": 116,
+      "piano_class_A_event_count": 104,
+      "piano_class_B_event_count": 12,
+      "piano_class_B_ratio_of_non_core_events": 0.1034,
+      "short_region_piano_event_count": 20,
+      "short_region_content_family_counts": {
+        "guide_tone": 20
+      },
+      "short_region_density_counts": {
+        "2": 20
+      },
+      "short_region_root_included_count": 0,
+      "short_region_span_violation_count": 0,
+      "ordinary_region_content_family_counts": {
+        "seventh_chord_basic": 106,
+        "rooted_color": 12,
+        "guide_tone": 34
+      },
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "active_anticipation_count": 23,
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_policy_registered": true,
+      "in_place_boundaries_preserved": true,
+      "voicing_policy_declares_dense_short_region_intent": true,
+      "runtime_blue_bossa_full_band_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_96_engine_bossa_nova_bass_and_drums_identity_audit"
+}

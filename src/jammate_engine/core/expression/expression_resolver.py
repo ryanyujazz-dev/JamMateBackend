@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
 from .expression_plan import EventExpression, ExpressionPlan
@@ -12,6 +13,7 @@ EXPRESSION_ANTICIPATION_TIE_DURATION_VERSION = "v2_3_9"
 EXPRESSION_NEXT_EVENT_CLAMP_VERSION = "v2_3_9"
 EXPRESSION_NEXT_TOUCH_HOLD_VERSION = "v2_6_66"
 EXPRESSION_ANTICIPATION_PEDAL_RELEASE_VERSION = "v2_3_9"
+EXPRESSION_DISTANCE_ARTICULATION_VERSION = "v2_6_94"
 
 
 class ExpressionResolver:
@@ -37,6 +39,11 @@ class ExpressionResolver:
             if event.status != "active":
                 continue
             profile = policy.profile_for(event.expression_hint, event.track)
+            profile, distance_metadata = self._resolve_distance_sensitive_profile(
+                event,
+                profile,
+                next_same_track_start=next_same_track_starts.get(event.event_id),
+            )
             duration_beats, duration_metadata = self._resolve_duration(
                 event,
                 profile.duration_beats,
@@ -61,9 +68,95 @@ class ExpressionResolver:
                 release_beats=release_beats,
                 accent=profile.accent,
                 profile_name=profile.name,
-                metadata={**dict(profile.metadata), **duration_metadata, **pedal_release_metadata},
+                metadata={**dict(profile.metadata), **distance_metadata, **duration_metadata, **pedal_release_metadata},
             )
         return ExpressionPlan(events=resolved)
+
+
+    def _resolve_distance_sensitive_profile(
+        self,
+        event: PatternEvent,
+        profile,
+        *,
+        next_same_track_start: float | None,
+    ):
+        """Apply policy-driven distance articulation after timeline rewrites.
+
+        This hook is generic core expression infrastructure.  A style profile may
+        opt in through metadata, but the pattern still only supplies a semantic
+        expression hint and the resolver still consumes the already-final active
+        event timeline.  It is designed for Bossa cells whose earlier event is
+        generally short when the next piano touch is within one beat and sustained
+        when there is more space, while remaining reusable by other styles.
+        """
+
+        profile_metadata = dict(getattr(profile, "metadata", {}) or {})
+        mode = str(profile_metadata.get("distance_articulation") or "").strip().lower()
+        if mode not in {"short_if_close_else_sustain", "distance_sensitive"}:
+            return profile, {
+                "distance_articulation_version": EXPRESSION_DISTANCE_ARTICULATION_VERSION,
+                "distance_articulation_applied": False,
+                "distance_articulation_reason": "profile_not_distance_sensitive",
+            }
+
+        semantic_hint = str((event.metadata or {}).get("semantic_expression_hint") or "")
+        threshold = max(0.0, float(profile_metadata.get("distance_threshold_beats", 1.0)))
+        gap = None
+        if next_same_track_start is not None:
+            gap = max(0.0, float(next_same_track_start) - float(event.onset_beat))
+        elif event.metadata.get("region_duration_beats") is not None:
+            gap = max(0.0, float(event.metadata.get("region_duration_beats")) - float(event.local_beat or 0.0))
+        else:
+            gap = float("inf")
+
+        if gap <= threshold + 1e-9:
+            branch = "short"
+            duration = float(profile_metadata.get("distance_short_duration_beats", profile.duration_beats))
+            velocity = int(profile_metadata.get("distance_short_velocity", profile.velocity))
+            articulation = profile_metadata.get("distance_short_articulation", "short")
+            touch = profile_metadata.get("distance_short_touch", profile.touch.value)
+            pedal = profile_metadata.get("distance_short_pedal", "none")
+            release = float(profile_metadata.get("distance_short_release_beats", profile.release_beats))
+        else:
+            branch = "sustain"
+            duration = float(profile_metadata.get("distance_sustain_duration_beats", profile.duration_beats))
+            velocity = int(profile_metadata.get("distance_sustain_velocity", profile.velocity))
+            articulation = profile_metadata.get("distance_sustain_articulation", "sustain")
+            touch = profile_metadata.get("distance_sustain_touch", profile.touch.value)
+            pedal = profile_metadata.get("distance_sustain_pedal", profile.pedal.value)
+            release = float(profile_metadata.get("distance_sustain_release_beats", profile.release_beats))
+
+        resolved_metadata = {
+            **profile_metadata,
+            "distance_articulation_version": EXPRESSION_DISTANCE_ARTICULATION_VERSION,
+            "distance_articulation_applied": True,
+            "distance_articulation_mode": mode,
+            "distance_articulation_branch": branch,
+            "distance_articulation_gap_beats": None if gap == float("inf") else round(float(gap), 6),
+            "distance_articulation_threshold_beats": threshold,
+            "distance_articulation_semantic_hint": semantic_hint,
+            "distance_articulation_contract": (
+                "ExpressionResolver applies style-declared distance articulation after anticipation/timeline rewrites; "
+                "patterns still provide semantic hints only and do not write final velocity, duration, pedal, or articulation."
+            ),
+        }
+        return replace(
+            profile,
+            duration_beats=max(0.05, duration),
+            velocity=velocity,
+            articulation=articulation,
+            touch=touch,
+            pedal=pedal,
+            release_beats=max(0.0, release),
+            metadata=resolved_metadata,
+        ), {
+            "distance_articulation_version": EXPRESSION_DISTANCE_ARTICULATION_VERSION,
+            "distance_articulation_applied": True,
+            "distance_articulation_branch": branch,
+            "distance_articulation_gap_beats": None if gap == float("inf") else round(float(gap), 6),
+            "distance_articulation_threshold_beats": threshold,
+            "distance_articulation_semantic_hint": semantic_hint,
+        }
 
     def _resolve_duration(
         self,
@@ -456,7 +549,10 @@ class ExpressionResolver:
 
 
 def _uses_next_touch_hold(event: PatternEvent, profile_metadata: Mapping | None = None) -> bool:
-    semantics = str((profile_metadata or {}).get("duration_semantics") or "").strip().lower()
+    profile_data = dict(profile_metadata or {})
+    if bool(profile_data.get("distance_articulation_applied")) and str(profile_data.get("distance_articulation_branch") or "").strip().lower() == "short":
+        return False
+    semantics = str(profile_data.get("duration_semantics") or "").strip().lower()
     if semantics == "hold_until_next_touch":
         return True
     semantic_hint = str((event.metadata or {}).get("semantic_expression_hint") or "").strip().lower()
