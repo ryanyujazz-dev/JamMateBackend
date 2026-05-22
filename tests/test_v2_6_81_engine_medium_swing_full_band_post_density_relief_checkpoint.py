@@ -59,7 +59,7 @@ def test_v2_6_81_static_audit_and_mock_acceptance_contract() -> None:
     assert static["existing_voicing_capability_no_core_voicing_change"] is True
     assert static["base_preferred_density"] == 4
     assert static["base_preferred_disposition"] == "open"
-    assert static["two_beat_candidate_count"] == 6
+    assert static["two_beat_candidate_count"] >= 7
     assert static["pattern_forbidden_expression_candidates"] == []
     assert static["pattern_forbidden_voicing_candidates"] == []
     assert static["bar_first_two_chord_bar_candidates"] == []

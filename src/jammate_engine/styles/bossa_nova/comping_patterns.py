@@ -16,6 +16,7 @@ BOSSA_NON_CORE_RHYTHM_CELL_VOCABULARY_VERSION = "v2_6_91"
 BOSSA_CONTEXT_ARCHETYPE_POLICY_VERSION = "v2_6_92"
 BOSSA_ANTICIPATION_TAIL_POLICY_VERSION = "v2_6_93"
 BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION = "v2_6_103"
+BOSSA_TWO_BEAT_PHRASE_PAIR_VOCABULARY_VERSION = "v2_6_120"
 BOSSA_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_99"
 BOUNDARY_NOTES = (
     "pitchless",
@@ -26,6 +27,7 @@ BOUNDARY_NOTES = (
     "history_scorer_refined",
     "anticipation_tail_policy_native_4and_audit_active",
     "harmonic_rhythm_region_clarity_voicing_intent_audit_active",
+    "two_beat_phrase_pair_vocabulary_v2_6_120",
     "chord_region_first",
     "no_voicing_logic",
     "no_final_expression_values",
@@ -42,8 +44,9 @@ def _comping_metadata(
     native_4and: bool = False,
     hit_count: int = 1,
     ordinary_body_candidate: bool = False,
+    extra_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    metadata = {
         "density": density,
         "style_id": STYLE_ID,
         "pattern_domain": PATTERN_DOMAIN,
@@ -78,6 +81,26 @@ def _comping_metadata(
         "bossa_style_baseline_phase_completion_checkpoint_behavior_change": False,
         "bossa_style_baseline_phase_completion_checkpoint_boundary": "piano_pattern_metadata_only_no_vocabulary_or_weight_change",
     }
+    if extra_metadata:
+        metadata.update(dict(extra_metadata))
+    return metadata
+
+
+def _two_beat_phrase_pair_metadata(*, role: str, family: str = "beat1_beat2_to_1and_hold") -> dict[str, Any]:
+    metadata = {
+        "two_beat_phrase_pair_candidate": True,
+        "two_beat_phrase_pair_vocabulary_version": BOSSA_TWO_BEAT_PHRASE_PAIR_VOCABULARY_VERSION,
+        "two_beat_phrase_pair_family": family,
+        "two_beat_phrase_pair_role": role,
+        "two_beat_phrase_pair_contract": (
+            "Bossa models the common two-2-beat-ChordRegion phrase as region-local pitchless vocabulary plus shared history-aware weighting: "
+            "the first 2-beat region may play local beat 1+2, and the following 2-beat region may answer on local 1& with a hold, "
+            "corresponding to full-bar beat 3&. No bar-first selector, concrete voicing, velocity, duration, pedal, or MIDI pitch is embedded in the pattern."
+        ),
+    }
+    if role == "call":
+        metadata["two_beat_phrase_pair_triggers_response_cells"] = ("bossa_half_region_1and_hold",)
+    return metadata
 
 
 def _event_metadata(
@@ -146,6 +169,8 @@ def _candidate(
     region_shape: str = "four_beat_region",
     native_4and: bool = False,
     ordinary_body_candidate: bool = False,
+    extra_metadata: dict[str, Any] | None = None,
+    extra_tags: tuple[str, ...] = (),
 ) -> PatternCandidate:
     local_beats = tuple(float(beat) for beat, _role, _hint in beats)
     beat1_present = any(abs(beat) < 1e-6 for beat in local_beats)
@@ -183,8 +208,9 @@ def _candidate(
             native_4and=native_4and,
             hit_count=len(beats),
             ordinary_body_candidate=ordinary_body_candidate,
+            extra_metadata=extra_metadata,
         ),
-        tags=tags,
+        tags=tags + extra_tags,
     )
 
 
@@ -213,8 +239,36 @@ def _half_region_candidate() -> PatternCandidate:
         density="identity",
         function="dense_harmonic_rhythm_normal_voicing_adaptation",
         region_shape="two_beat_region",
+        extra_metadata=_two_beat_phrase_pair_metadata(role="call"),
+        extra_tags=("two_beat_phrase_pair", "phrase_call"),
         tags=("bossa", "piano", "core_batida", "two_beat_region", "dense_harmonic_region", "chord_region_first", "comping"),
     )
+
+
+def _half_region_1and_hold_candidate() -> PatternCandidate:
+    return _candidate(
+        name="bossa_piano_half_region_1and_hold",
+        weight=0.45,
+        category="bossa_two_beat_phrase_response_hold",
+        cell="bossa_half_region_1and_hold",
+        rhythm_class="half_region_phrase_response",
+        beats=((0.5, "phrase_response_hold", "cell_soft_hold"),),
+        density="low_mid",
+        function="two_beat_phrase_response_local_1and_hold",
+        region_shape="two_beat_region",
+        extra_metadata={
+            **_two_beat_phrase_pair_metadata(role="response"),
+            "two_beat_phrase_pair_responds_to_cell": "half_region_1_2",
+            "two_beat_phrase_pair_responds_to_cells": ("half_region_1_2",),
+            "two_beat_phrase_pair_local_beat_semantics": "second 2-beat Bossa region local 1& equals full-bar beat 3&",
+        },
+        extra_tags=("two_beat_phrase_pair", "phrase_response", "hold"),
+        tags=("bossa", "piano", "bossa_cell", "two_beat_region", "phrase_response", "chord_region_first", "comping"),
+    )
+
+
+def _half_region_phrase_pair_candidates() -> tuple[PatternCandidate, ...]:
+    return (_half_region_candidate(), _half_region_1and_hold_candidate())
 
 
 def _class_a_candidates() -> tuple[PatternCandidate, ...]:
@@ -411,7 +465,10 @@ def get_pattern_candidates(context: dict | None = None, *, apply_context_policy:
     context = dict(context or {})
     duration = float(context.get("region_duration_beats", 4.0))
     if duration <= 2.0:
-        return (_annotate_archetype(_half_region_candidate(), context, multiplier=1.0, status="dense_harmonic_short_region"),)
+        return tuple(
+            _annotate_archetype(candidate, context, multiplier=1.0, status="dense_harmonic_short_region")
+            for candidate in _half_region_phrase_pair_candidates()
+        )
 
     candidates: tuple[PatternCandidate, ...] = (_core_candidate(), *_ordinary_cell_pool())
     if not apply_context_policy:

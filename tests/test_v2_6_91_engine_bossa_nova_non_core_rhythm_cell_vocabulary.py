@@ -54,8 +54,8 @@ def test_v2_6_91_bossa_pattern_library_has_one_core_and_class_A_B_cells() -> Non
     assert len(class_b) == 6
     assert core[0]["rhythm_beats"] == [0.0, 1.0, 2.5]
     assert [event["expression_hint"] for event in core[0]["events"]] == ["core_short", "core_short", "core_sustain"]
-    assert half["candidate_count"] == 1
-    assert half_candidates[0]["rhythm_beats"] == [0.0, 1.0]
+    assert half["candidate_count"] >= 1
+    assert any(candidate["name"] == "bossa_piano_half_region_1_2" and candidate["rhythm_beats"] == [0.0, 1.0] for candidate in half_candidates)
     assert "chord_region_first" in all_tags
     assert "two_chord_bar" not in all_tags
     assert "bar_first" not in all_tags

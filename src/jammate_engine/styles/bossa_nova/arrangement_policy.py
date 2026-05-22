@@ -19,6 +19,7 @@ BOSSA_NOVA_LIGHT_MARKER_FILL_POLICY_VERSION = "v2_6_106"
 BOSSA_NOVA_DRUM_BASELINE_CHECKPOINT_VERSION = "v2_6_107"
 BOSSA_NOVA_BASS_PICKUP_AND_NEXT_ROOT_ANTICIPATION_VERSION = "v2_6_108"
 BOSSA_NOVA_BASS_ARTICULATION_AND_REGISTER_POLICY_VERSION = "v2_6_109"
+BOSSA_NOVA_TWO_BEAT_PHRASE_PAIR_POLICY_VERSION = "v2_6_120"
 
 
 def get_arrangement_policy() -> dict:
@@ -97,6 +98,24 @@ def get_arrangement_policy() -> dict:
         "bossa_nova_context_archetype_policy_recommended_next_task": "v2_6_93_engine_bossa_nova_anticipation_tail_policy_and_native_4and_audit",
         "bossa_nova_context_archetype_policy_known_next_gap": "Context/history weighting is active and superseded for anticipation-tail behavior by v2_6_93; next pass should do distance-aware expression calibration.",
         "bossa_nova_context_archetype_policy_superseded_for_anticipation_by": BOSSA_NOVA_ANTICIPATION_TAIL_POLICY_VERSION,
+        "piano_comping_two_beat_phrase_pair_policy": True,
+        "piano_comping_two_beat_phrase_pair_policy_version": BOSSA_NOVA_TWO_BEAT_PHRASE_PAIR_POLICY_VERSION,
+        "piano_comping_two_beat_phrase_pair_policy_milestone": "v2_6_120_engine_bossa_nova_two_beat_phrase_pair_local1and_hold",
+        "piano_comping_two_beat_phrase_pair_policy_contract": (
+            "v2_6_120 enables the shared two-2-beat-ChordRegion phrase-pair weighting for Bossa: "
+            "one 2-beat Bossa chord region may use local 1+2, and the following 2-beat region may answer on local 1& with a hold, corresponding to full-bar beat 3&. "
+            "The phrase remains pattern-layer, pitchless, ChordRegion-local vocabulary plus history-aware weighting; it does not restore bar-first/two-chord-bar routing or touch voicing/expression internals/API/Agent/HarmonyOS."
+        ),
+        "bossa_nova_two_beat_phrase_pair_policy_active": True,
+        "bossa_nova_two_beat_phrase_pair_policy_version": BOSSA_NOVA_TWO_BEAT_PHRASE_PAIR_POLICY_VERSION,
+        "bossa_nova_two_beat_phrase_pair_policy_behavior_change": True,
+        "bossa_nova_two_beat_phrase_pair_policy_tracks": ("piano",),
+        "bossa_nova_two_beat_phrase_pair_policy_no_parallel_selector": True,
+        "bossa_nova_two_beat_phrase_pair_policy_no_bar_first_restore": True,
+        "bossa_nova_two_beat_phrase_pair_policy_no_voicing_change": True,
+        "bossa_nova_two_beat_phrase_pair_policy_no_expression_numeric_change": True,
+        "bossa_nova_two_beat_phrase_pair_policy_no_api_agent_harmonyos_change": True,
+        "bossa_nova_two_beat_phrase_pair_policy_recommended_next_task": "v2_6_121_engine_bossa_nova_two_beat_phrase_pair_listening_calibration",
         "bossa_nova_anticipation_tail_policy_active": True,
         "bossa_nova_anticipation_tail_policy_version": BOSSA_NOVA_ANTICIPATION_TAIL_POLICY_VERSION,
         "bossa_nova_anticipation_tail_policy_milestone": "v2_6_93_engine_bossa_nova_anticipation_tail_policy_and_native_4and_audit",

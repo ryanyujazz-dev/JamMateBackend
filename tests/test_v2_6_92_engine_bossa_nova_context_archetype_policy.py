@@ -63,7 +63,8 @@ def test_v2_6_92_keeps_same_pattern_vocabulary_but_updates_policy_metadata() -> 
     assert full["class_A_candidate_count"] == 6
     assert full["class_B_candidate_count"] == 6
     assert full["core_candidate_count"] == 1
-    assert half["candidate_count"] == 1
+    assert half["candidate_count"] >= 1
+    assert any(candidate["name"] == "bossa_piano_half_region_1_2" for candidate in half["candidates"])
     assert "context_archetype_policy_active" in full["boundary_notes"]
     for candidate in full["candidates"]:
         metadata = candidate["metadata"]

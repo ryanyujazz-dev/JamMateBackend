@@ -1,3 +1,23 @@
+## v2_6_115 — Engine Global Harmonic Expansion / Altered / AB Continuity Audit
+
+- Added a first-principles global audit for the interaction among harmonic expansion, altered dominant policy, progression method continuity, and AB/four-note orientation continuity.
+- Audited `bossa_nova`, `medium_swing`, and `jazz_ballad` with `harmonic_expansion_enabled=true` and `color_policy_mode=altered_dominant`.
+- Confirmed the key architectural separation: expansion/alter choose source color before voicing; method lock and AB continuity are progression policies; drop-family projection remains unchanged.
+- Quantified the current wiring gap: Medium Swing has runtime method-lock wiring, while Bossa Nova and Jazz Ballad currently do not; AB metadata exists on eligible sources, including altered dominant rootless sources, but AB filtering is still not style-neutral.
+- Did not change voicing projection, source inventory, selector, style rhythm, expression, bass, drums, API, Agent, or HarmonyOS behavior.
+- Added `examples/scripts/generate_engine_global_harmonic_expansion_altered_ab_continuity_audit.py` and `tests/test_v2_6_115_engine_global_harmonic_expansion_altered_ab_continuity_audit.py`.
+
+Validation:
+
+- `compileall`: passed
+- `tools/check_development_harness.py`: HARNESS OK
+- v2_6_115 focused tests: 4 passed
+- v2_6_115 global audit script: acceptance passed
+- Bossa v2_6_90 through v2_6_115 focused tests: passed when run with current baseline slice
+- HarmonyOS today-guidance runtime smoke: 2 passed, 1 skipped
+
+Recommended next task: `v2_6_116_engine_style_neutral_progression_method_lock_wiring`.
+
 ## v2_6_104 — Engine Bossa Nova Drop-family OPEN Method Policy Correction
 
 - Corrected the v2_6_103 Bossa OPEN voicing policy that accidentally promoted `generic_open` into the ordinary runtime method pool.
@@ -1280,3 +1300,34 @@ Recommended next task: listen to v2_6_113 3x/5x and decide whether Bossa anticip
 - Added `tests/test_v2_6_114_engine_bossa_nova_high_color_harmonic_expansion_policy.py` and `examples/scripts/generate_engine_bossa_nova_high_color_harmonic_expansion_policy.py`.
 
 Recommended next task: listen to v2_6_114 expanded-harmony 3x/5x demos and decide whether Bossa expansion is too colorful, then calibrate only the harmonic-color policy if needed.
+
+## v2_6_115 — Engine Global Harmonic Expansion / Altered / AB Continuity Audit
+
+- Added a global first-principles audit across Bossa Nova, Medium Swing, and Jazz Ballad with `harmonic_expansion_enabled=true` and `color_policy_mode=altered_dominant`.
+- Confirmed altered-dominant color sources can carry AB/four-note rotation metadata; the primary gap was runtime wiring, not source impossibility.
+- Confirmed method-lock runtime wiring was still Medium Swing-specific before the v2_6_116 follow-up, while Bossa/Ballad policy had not yet been connected to the existing seed/follow method-lock path.
+- Did not change voicing projection, source inventory, selector, rhythm, expression, bass, drums, API, Agent, or HarmonyOS.
+- Added `tests/test_v2_6_115_engine_global_harmonic_expansion_altered_ab_continuity_audit.py` and `examples/scripts/generate_engine_global_harmonic_expansion_altered_ab_continuity_audit.py`.
+
+Recommended next task: `v2_6_116_engine_style_neutral_progression_method_lock_wiring`.
+
+## v2_6_116 — Engine Style-Neutral Progression Method Lock Wiring
+
+- Generalized the existing Medium Swing seed/follow progression method-lock runtime wiring into a style-neutral progression method-lock policy path.
+- Bossa Nova and Medium Swing now use the same runtime method-lock metadata contract for local ii–V, V–I, and ii–V–I drop-family continuity.
+- Preserved Medium Swing `medium_swing_*` method-lock audit fields as compatibility aliases while adding generic `progression_voicing_method_lock_policy_*` fields.
+- Bossa Nova opts into the shared progression method-lock policy without changing voicing projection, source inventory, selector, piano rhythm, expression, bass, drums, API, Agent, or HarmonyOS.
+- Jazz Ballad also declares the style-neutral policy, but the audit does not force open drop-family behavior when the current Ballad runtime remains SPREAD-dominant.
+- Kept AB/four-note rotation alignment deferred to the next step; this milestone only wires projection method continuity.
+- Added `tests/test_v2_6_116_engine_style_neutral_progression_method_lock_wiring.py` and `examples/scripts/generate_engine_style_neutral_progression_method_lock_audit.py`.
+
+Recommended next task: `v2_6_117_engine_style_neutral_four_note_ab_orientation_alignment_wiring`.
+
+## v2_6_119_engine_medium_swing_two_beat_phrase_pair_local1and_hold
+
+- Added one Medium Swing pitchless 2-beat piano comping vocabulary candidate: `medium_swing_piano_two_beat_region_local1and_hold`.
+- Modeled the phrase as ChordRegion-local vocabulary plus history-aware phrase-pair weighting: first 2-beat region `start_local2` (local 1+2) may be followed by next 2-beat region `local1and_hold` (local 1&, corresponding to full-bar beat 3&).
+- Kept the boundary clean: no bar-first/two-chord-bar selector, no voicing changes, no altered-dominant/source changes, no concrete velocity/duration/pedal/pitch in patterns, no API/Agent/HarmonyOS changes.
+- Added focused and standard-tune listening demos under `demos/`.
+
+Recommended next task: `v2_6_120_engine_medium_swing_two_beat_phrase_pair_listening_calibration`, using the new demos to decide whether the phrase-call/response weights should be softened or kept as-is.

@@ -265,9 +265,9 @@ def _acceptance(static_audit: dict[str, Any], runtime_audits: list[dict[str, Any
         and static_audit.get("no_new_pattern_vocabulary") is True
         and static_audit.get("no_core_voicing_change") is True
         and static_audit.get("no_expression_numeric_change") is True,
-        "same_vocabulary_preserved": static_audit.get("pattern_library_version") == MILESTONE_ID
+        "same_full_region_vocabulary_preserved_and_half_region_extensions_allowed": static_audit.get("pattern_library_version") == MILESTONE_ID
         and static_audit.get("full_region_candidate_count") == 13
-        and static_audit.get("half_region_candidate_count") == 1
+        and int(static_audit.get("half_region_candidate_count") or 0) >= 1
         and static_audit.get("class_A_candidate_count") == 6
         and static_audit.get("class_B_candidate_count") == 6
         and static_audit.get("core_candidate_count") == 1,

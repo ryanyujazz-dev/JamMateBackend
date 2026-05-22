@@ -1,0 +1,124 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_120 — Engine Bossa Nova Two-beat Phrase Pair Local 1& Hold",
+  "scope": "Add the user-requested Bossa two-beat phrase as style-owned, pitchless, ChordRegion-local piano comping vocabulary: one 2-beat region states local 1+2, and the following 2-beat region may answer on local 1& with a hold. The shared phrase-pair weighting now reads style metadata rather than hard-coding a Medium Swing cell name.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_120",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "policy_enabled": true,
+    "policy_version": "v2_6_120",
+    "bossa_policy_active": true,
+    "candidate_names": [
+      "bossa_piano_half_region_1_2",
+      "bossa_piano_half_region_1and_hold"
+    ],
+    "call_candidate_present": true,
+    "call_beats": [
+      0.0,
+      1.0
+    ],
+    "call_role": "call",
+    "call_triggers": [
+      "bossa_half_region_1and_hold"
+    ],
+    "response_candidate_present": true,
+    "response_beats": [
+      0.5
+    ],
+    "response_role": "response",
+    "response_responds_to": "half_region_1_2",
+    "response_expression_hint": "cell_soft_hold",
+    "response_semantic_hint": "soft_hold",
+    "response_voicing_boundary": "pattern_is_pitchless",
+    "legacy_bar_first_terms_in_response": [],
+    "base_policy_no_medium_swing_cell_hardcode": true,
+    "base_policy_records_history_when_phrase_policy_enabled": true
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 120,
+      "midi_path": "demos/v2_6_120_bossa_nova_two_beat_phrase_focus_demo.mid",
+      "title": "Bossa Two-Beat Phrase Focus",
+      "style": "bossa_nova",
+      "performance_bars": 12,
+      "note_events_by_track": {
+        "piano": 144,
+        "bass": 24,
+        "drums": 146
+      },
+      "piano_pattern_counts": {
+        "bossa_piano_half_region_1_2": 24,
+        "bossa_piano_half_region_1and_hold": 12
+      },
+      "phrase_policy_status_counts": {
+        "phrase_call_preferred": 24,
+        "phrase_response_preferred_after_call": 12
+      },
+      "call_event_count": 24,
+      "response_event_count": 12,
+      "response_local_beats": [
+        0.5
+      ],
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0
+    },
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 12020,
+      "midi_path": "demos/v2_6_120_blue_bossa_bossa_nova_two_beat_phrase_pair_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "note_events_by_track": {
+        "piano": 400,
+        "bass": 103,
+        "drums": 593
+      },
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 15,
+        "bossa_piano_cell_A_1_3and": 20,
+        "bossa_piano_cell_A_1_3": 10,
+        "bossa_piano_cell_A_1": 9,
+        "bossa_piano_cell_A_1_2_3and": 15,
+        "bossa_piano_cell_A_1_2and": 16,
+        "bossa_piano_half_region_1_2": 6,
+        "bossa_piano_half_region_1and_hold": 3,
+        "bossa_piano_cell_B_1and_3": 2,
+        "bossa_piano_cell_B_1and_3and": 2,
+        "bossa_piano_cell_A_1_4and": 2
+      },
+      "phrase_policy_status_counts": {
+        "phrase_call_preferred": 6,
+        "phrase_response_preferred_after_call": 3
+      },
+      "call_event_count": 6,
+      "response_event_count": 3,
+      "response_local_beats": [
+        0.5
+      ],
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_policy_and_candidates_present": true,
+      "phrase_shape_is_region_local": true,
+      "boundaries_preserved": true,
+      "shared_policy_is_not_medium_swing_cell_hardcoded": true,
+      "focus_demo_contains_phrase_response": true,
+      "blue_bossa_demo_still_generates": true,
+      "expression_boundary_clean": true
+    }
+  },
+  "recommended_next_task": "v2_6_121_engine_bossa_nova_two_beat_phrase_pair_listening_calibration"
+}

@@ -13,6 +13,7 @@ WEIGHT_CALIBRATION_POLICY_VERSION = "v2_6_58"
 EXPRESSION_HINT_HANDOFF_POLICY_VERSION = "v2_6_63"
 NO_4AND_DELAYED_TAIL_POLICY_VERSION = "v2_6_66"
 OPTIONAL_FILL_VARIATION_VOCABULARY_VERSION = "v2_6_71"
+TWO_BEAT_PHRASE_PAIR_VOCABULARY_VERSION = "v2_6_119"
 PATTERN_DOMAIN = "comping"
 TRACK_ROLE = "piano_harmonic_comping"
 DEFAULT_ONSET_MODE = "simultaneous_onset"
@@ -27,6 +28,7 @@ BOUNDARY_NOTES = (
     "semantic_expression_hint_handoff_v2_6_63",
     "hold_hints_resolved_by_expression_as_hold_until_next_touch",
     "optional_fill_variation_vocabulary_guarded_by_history_scorer_v2_6_71",
+    "two_beat_phrase_pair_vocabulary_v2_6_119",
 )
 
 EXPRESSION_PROFILE_BY_SEMANTIC_HINT = {
@@ -119,6 +121,20 @@ def _optional_fill_variation_metadata(*, role: str, activation_context: str) -> 
         "optional_fill_variation_contract": (
             "Optional fill/variation cells are pitchless ChordRegion-local candidates with very low base weight; "
             "StyleProfile reweights them by region context and the v2_6_67 history scorer still prevents consecutive active/fill/busy/push behavior."
+        ),
+    }
+
+
+def _two_beat_phrase_pair_metadata(*, role: str, family: str = "beat1_beat2_to_1and_hold") -> dict[str, Any]:
+    return {
+        "two_beat_phrase_pair_candidate": True,
+        "two_beat_phrase_pair_vocabulary_version": TWO_BEAT_PHRASE_PAIR_VOCABULARY_VERSION,
+        "two_beat_phrase_pair_family": family,
+        "two_beat_phrase_pair_role": role,
+        "two_beat_phrase_pair_contract": (
+            "A common two-2-beat-ChordRegion phrase is modeled as ordinary region-local vocabulary plus history-aware weighting: "
+            "the first region may state local 1+2, and the following region may answer on local 1& with a hold. "
+            "No bar-first two-chord-bar selector, concrete voicing, velocity, duration, pedal, or MIDI pitch is embedded in the pattern."
         ),
     }
 
@@ -451,14 +467,50 @@ def _two_beat_region_candidates(duration: float = 2.0) -> tuple[PatternCandidate
         ),
     )
     region_lookup_expansion = (
-        _short_region_lookup_candidate("medium_swing_piano_two_beat_region_start_local2", 0.35, 2.0, "start_local2", ((0.0, "anchor", "soft_hold"), (1.0, "support", "backbeat_hold")), "short_region_stable", density="medium"),
+        _short_region_lookup_candidate(
+            "medium_swing_piano_two_beat_region_start_local2",
+            0.35,
+            2.0,
+            "start_local2",
+            ((0.0, "anchor", "soft_hold"), (1.0, "support", "backbeat_hold")),
+            "short_region_stable",
+            density="medium",
+            extra_metadata=_two_beat_phrase_pair_metadata(role="call"),
+            extra_tags=("two_beat_phrase_pair", "phrase_call"),
+        ),
         _short_region_lookup_candidate("medium_swing_piano_two_beat_region_start_local1and", 0.08, 2.0, "start_local1and", ((0.0, "anchor", "soft_hold"), (0.5, "answer", "light_stab")), "short_region_answer", density="medium"),
         _short_region_lookup_candidate("medium_swing_piano_two_beat_region_local1and_only", 0.03, 2.0, "local1and", ((0.5, "answer", "light_stab"),), "short_region_offbeat", density="sparse"),
+        _short_region_lookup_candidate(
+            "medium_swing_piano_two_beat_region_local1and_hold",
+            0.40,
+            2.0,
+            "local1and_hold",
+            ((0.5, "phrase_response_hold", "soft_hold"),),
+            "short_region_phrase_response_hold",
+            density="sparse",
+            extra_metadata={
+                **_two_beat_phrase_pair_metadata(role="response"),
+                "two_beat_phrase_pair_responds_to_cell": "start_local2",
+                "two_beat_phrase_pair_local_beat_semantics": "second 2-beat region local 1& equals full-bar beat 3&",
+            },
+            extra_tags=("two_beat_phrase_pair", "phrase_response", "hold"),
+        ),
     )
     return active + region_lookup_expansion
 
 
-def _short_region_lookup_candidate(name: str, weight: float, duration: float, cell: str, specs: tuple[tuple[float, str, str], ...], rhythm_family: str, *, density: str) -> PatternCandidate:
+def _short_region_lookup_candidate(
+    name: str,
+    weight: float,
+    duration: float,
+    cell: str,
+    specs: tuple[tuple[float, str, str], ...],
+    rhythm_family: str,
+    *,
+    density: str,
+    extra_metadata: dict[str, Any] | None = None,
+    extra_tags: tuple[str, ...] = (),
+) -> PatternCandidate:
     beats = tuple(item[0] for item in specs)
     return PatternCandidate(
         name=name,
@@ -467,8 +519,11 @@ def _short_region_lookup_candidate(name: str, weight: float, duration: float, ce
         events=tuple(_event(beat, event_role=role, semantic_expression_hint=hint, can_anticipate=(beat == 0.0), required=(beat == 0.0)) for beat, role, hint in specs),
         tail_policy=_tail(beats),
         beat1_movability=_movable("region_lookup_short_region_start_anchor_can_be_anticipated_later") if 0.0 in beats else _not_movable("no_short_region_start_harmonic_event"),
-        metadata=_comping_metadata(density=density, cell=cell, function=f"{cell}_region_lookup", region_length_beats=duration, rhythm_family=rhythm_family, phrase_role="short_region_vocabulary", activation="active_region_length_lookup_v2_6_57", weight_calibration_class=_infer_weight_calibration_class(density, rhythm_family)),
-        tags=("swing", "piano", "region_length_lookup", _region_length_family(duration), "comping"),
+        metadata={
+            **_comping_metadata(density=density, cell=cell, function=f"{cell}_region_lookup", region_length_beats=duration, rhythm_family=rhythm_family, phrase_role="short_region_vocabulary", activation="active_region_length_lookup_v2_6_57", weight_calibration_class=_infer_weight_calibration_class(density, rhythm_family)),
+            **dict(extra_metadata or {}),
+        },
+        tags=("swing", "piano", "region_length_lookup", _region_length_family(duration), "comping", *tuple(extra_tags)),
     )
 
 
