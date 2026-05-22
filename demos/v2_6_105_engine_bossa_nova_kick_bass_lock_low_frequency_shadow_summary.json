@@ -1,0 +1,223 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_105 — Engine Bossa Nova Kick/Bass Lock and Low-frequency Shadow Refinement",
+  "scope": "Refine the existing Bossa low-frequency drum/bass layer in place. Bass remains root/fifth support, and kick remains a low-velocity shadow locked to the same root/fifth beats. Split/short ChordRegions stay root-only; no four-on-floor, rock backbeat, swing ride, piano, voicing, API, Agent, or HarmonyOS change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_105",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "policy_active": true,
+    "policy_version": "v2_6_105",
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_new_drum_vocabulary": true,
+    "no_piano_voicing_change": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "tracks": [
+      "bass",
+      "drums"
+    ],
+    "full_kick_beats": [
+      0.0,
+      2.0
+    ],
+    "full_kick_lock_slots": [
+      "root_on_1_locked_shadow",
+      "fifth_on_3_locked_shadow"
+    ],
+    "full_kick_locked_degrees": [
+      "root",
+      "fifth"
+    ],
+    "split_kick_beats": [
+      0.0
+    ],
+    "split_kick_lock_slots": [
+      "root_on_1_locked_shadow"
+    ],
+    "short_kick_beats": [
+      0.0
+    ],
+    "short_kick_lock_slots": [
+      "root_on_1_locked_shadow"
+    ],
+    "full_bass_degrees": [
+      "root",
+      "fifth"
+    ],
+    "full_bass_expected_kick_slots": [
+      "root_on_1_locked_shadow",
+      "fifth_on_3_locked_shadow"
+    ],
+    "split_bass_degrees": [
+      "root"
+    ],
+    "kick_shadow_roles": [
+      "shadow_not_driver"
+    ],
+    "kick_four_on_floor_driver_flags": [
+      "False"
+    ],
+    "forbidden_pattern_numeric_keys": [],
+    "recommended_next_task": "v2_6_106_engine_bossa_nova_light_marker_fill_policy"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23105,
+      "midi_path": "demos/v2_6_105_blue_bossa_3x_bossa_nova_kick_bass_lock_low_frequency_shadow_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 440,
+        "bass": 96,
+        "drums": 585
+      },
+      "piano_notes": 440,
+      "bass_notes": 96,
+      "drums_notes": 585,
+      "planned_bass_event_count": 96,
+      "planned_drum_event_count": 585,
+      "kick_event_count": 96,
+      "kick_lock_event_count": 96,
+      "kick_lock_coverage_ratio": 1.0,
+      "kick_root_events": 51,
+      "kick_fifth_events": 45,
+      "kick_lock_slot_counts": {
+        "root_on_1_locked_shadow": 51,
+        "fifth_on_3_locked_shadow": 45
+      },
+      "realized_kick_slot_average_velocity": {
+        "fifth_on_3_locked_shadow": 26.67,
+        "root_on_1_locked_shadow": 33.33
+      },
+      "kick_velocity_set": [
+        20,
+        21,
+        22,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "kick_min_velocity": 20,
+      "kick_max_velocity": 39,
+      "bass_min_velocity": 48,
+      "bass_max_velocity": 63,
+      "split_or_short_fifth_kick_events": 0,
+      "four_on_floor_driver_events": 0,
+      "rock_backbeat_driver_events": 0,
+      "drum_swing_or_rock_events": 0,
+      "bass_walking_like_events": 0,
+      "bass_degree_counts": {
+        "root": 51,
+        "fifth": 45
+      },
+      "bass_kick_counterpart_coverage_ratio": 1.0,
+      "kick_low_frequency_roles": [
+        "shadow_not_driver"
+      ],
+      "kick_timing_intents": [
+        "straight_even_not_swing"
+      ]
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23110,
+      "midi_path": "demos/v2_6_105_blue_bossa_5x_bossa_nova_kick_bass_lock_low_frequency_shadow_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 680,
+        "bass": 160,
+        "drums": 977
+      },
+      "piano_notes": 680,
+      "bass_notes": 160,
+      "drums_notes": 977,
+      "planned_bass_event_count": 160,
+      "planned_drum_event_count": 977,
+      "kick_event_count": 160,
+      "kick_lock_event_count": 160,
+      "kick_lock_coverage_ratio": 1.0,
+      "kick_root_events": 85,
+      "kick_fifth_events": 75,
+      "kick_lock_slot_counts": {
+        "root_on_1_locked_shadow": 85,
+        "fifth_on_3_locked_shadow": 75
+      },
+      "realized_kick_slot_average_velocity": {
+        "fifth_on_3_locked_shadow": 26.03,
+        "root_on_1_locked_shadow": 32.78
+      },
+      "kick_velocity_set": [
+        20,
+        21,
+        22,
+        23,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "kick_min_velocity": 20,
+      "kick_max_velocity": 39,
+      "bass_min_velocity": 48,
+      "bass_max_velocity": 63,
+      "split_or_short_fifth_kick_events": 0,
+      "four_on_floor_driver_events": 0,
+      "rock_backbeat_driver_events": 0,
+      "drum_swing_or_rock_events": 0,
+      "bass_walking_like_events": 0,
+      "bass_degree_counts": {
+        "root": 85,
+        "fifth": 75
+      },
+      "bass_kick_counterpart_coverage_ratio": 1.0,
+      "kick_low_frequency_roles": [
+        "shadow_not_driver"
+      ],
+      "kick_timing_intents": [
+        "straight_even_not_swing"
+      ]
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "policy_declares_kick_bass_lock": true,
+      "no_parallel_or_bar_first": true,
+      "full_region_kick_locks_to_root_and_fifth": true,
+      "split_and_short_regions_root_only": true,
+      "kick_shadow_not_driver": true,
+      "no_pattern_numeric_values": true,
+      "runtime_blue_bossa_kick_bass_lock_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_106_engine_bossa_nova_light_marker_fill_policy"
+}

@@ -1,0 +1,205 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_94 — Engine Bossa Nova Distance-Aware Expression Calibration",
+  "scope": "Calibrate Bossa non-core piano cell expression in place. Style-owned ExpressionProfiles declare distance articulation parameters, and the shared core ExpressionResolver applies them after anticipation/timeline rewrite. No Bossa-specific resolver, new pattern vocabulary, core voicing change, MIDI writer change, API, Agent, or HarmonyOS change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_94",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_94",
+    "behavior_change": true,
+    "no_parallel_resolver": true,
+    "no_style_specific_runtime": true,
+    "no_pattern_numeric_values": true,
+    "no_new_pattern_vocabulary": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "resolver_hook": "ExpressionResolver.policy_driven_distance_articulation",
+    "threshold_beats": 1.0,
+    "expression_policy_metadata_version": "v2_6_94",
+    "expression_policy_no_parallel_resolver": true,
+    "distance_sensitive_profiles": [
+      "cell_close_gap_short",
+      "cell_soft_hold"
+    ],
+    "cell_profile_thresholds": {
+      "cell_close_gap_short": 1.0,
+      "cell_soft_hold": 1.0
+    },
+    "cell_profile_short_durations": {
+      "cell_close_gap_short": 0.42,
+      "cell_soft_hold": 0.42
+    },
+    "cell_profile_sustain_durations": {
+      "cell_close_gap_short": 1.18,
+      "cell_soft_hold": 1.18
+    },
+    "legacy_alias_metadata_preserved": true,
+    "recommended_next_task": "v2_6_95_engine_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_audit",
+    "known_next_gap": "Bossa non-core piano touch is now distance-aware; next pass should audit dense harmonic rhythm / short-region clarity and Bossa voicing intent without changing core voicing."
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22704,
+      "midi_path": "demos/v2_6_94_blue_bossa_3x_bossa_nova_distance_aware_expression_calibration_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 404,
+        "bass": 102,
+        "drums": 102
+      },
+      "piano_active_events": 107,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 21,
+        "bossa_piano_cell_A_1_2and": 22,
+        "bossa_piano_cell_A_1_3and": 18,
+        "bossa_piano_cell_A_1": 6,
+        "bossa_piano_cell_A_1_2_3and": 15,
+        "bossa_piano_half_region_1_2": 12,
+        "bossa_piano_cell_A_1_3": 12,
+        "bossa_piano_cell_B_1and": 1
+      },
+      "piano_non_core_pattern_event_count": 74,
+      "piano_class_A_event_count": 73,
+      "piano_class_B_event_count": 1,
+      "piano_class_B_ratio_of_non_core_events": 0.0135,
+      "opening_first_two_bars_patterns": [
+        "bossa_piano_core_batida_1_2_3and"
+      ],
+      "opening_first_two_bars_core_only": true,
+      "distance_articulation_event_count": 74,
+      "distance_articulation_branch_counts": {
+        "sustain": 64,
+        "short": 10
+      },
+      "distance_articulation_profile_counts": {
+        "cell_soft_hold": 69,
+        "cell_close_gap_short": 5
+      },
+      "distance_close_gap_short_violation_count": 0,
+      "distance_wide_gap_sustain_violation_count": 0,
+      "expression_profiles": {
+        "core_short": 20,
+        "core_sustain": 13,
+        "cell_soft_hold": 69,
+        "cell_close_gap_short": 5
+      },
+      "expression_articulations": {
+        "short": 30,
+        "sustain": 77
+      },
+      "expression_pedal_modes": {
+        "none": 39,
+        "light": 68
+      },
+      "expression_avg_velocity": 48.692,
+      "expression_avg_duration_beats": 1.507,
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "expression_short_overlap_count": 0,
+      "expression_sustain_chop_risk_count": 0,
+      "active_anticipation_count": 11,
+      "terminal_ending_anticipation_count": 0,
+      "anticipation_timing_grids": [
+        "straight_upbeat"
+      ],
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22754,
+      "midi_path": "demos/v2_6_94_blue_bossa_5x_bossa_nova_distance_aware_expression_calibration_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 620,
+        "bass": 170,
+        "drums": 170
+      },
+      "piano_active_events": 174,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 24,
+        "bossa_piano_cell_A_1_2and": 18,
+        "bossa_piano_cell_A_1_3and": 38,
+        "bossa_piano_cell_A_1": 11,
+        "bossa_piano_cell_A_1_2_3and": 27,
+        "bossa_piano_cell_B_1and": 2,
+        "bossa_piano_cell_A_1_3": 26,
+        "bossa_piano_half_region_1_2": 20,
+        "bossa_piano_cell_B_1and_3": 4,
+        "bossa_piano_cell_B_1and_3and": 4
+      },
+      "piano_non_core_pattern_event_count": 130,
+      "piano_class_A_event_count": 120,
+      "piano_class_B_event_count": 10,
+      "piano_class_B_ratio_of_non_core_events": 0.0769,
+      "opening_first_two_bars_patterns": [
+        "bossa_piano_core_batida_1_2_3and"
+      ],
+      "opening_first_two_bars_core_only": true,
+      "distance_articulation_event_count": 130,
+      "distance_articulation_branch_counts": {
+        "sustain": 115,
+        "short": 15
+      },
+      "distance_articulation_profile_counts": {
+        "cell_soft_hold": 121,
+        "cell_close_gap_short": 9
+      },
+      "distance_close_gap_short_violation_count": 0,
+      "distance_wide_gap_sustain_violation_count": 0,
+      "expression_profiles": {
+        "core_short": 26,
+        "core_sustain": 18,
+        "cell_soft_hold": 121,
+        "cell_close_gap_short": 9
+      },
+      "expression_articulations": {
+        "short": 41,
+        "sustain": 133
+      },
+      "expression_pedal_modes": {
+        "none": 60,
+        "light": 114
+      },
+      "expression_avg_velocity": 48.201,
+      "expression_avg_duration_beats": 1.521,
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "expression_short_overlap_count": 0,
+      "expression_sustain_chop_risk_count": 0,
+      "active_anticipation_count": 22,
+      "terminal_ending_anticipation_count": 0,
+      "anticipation_timing_grids": [
+        "straight_upbeat"
+      ],
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_policy_registered": true,
+      "in_place_boundaries_preserved": true,
+      "expression_policy_declares_distance_profiles": true,
+      "runtime_blue_bossa_full_band_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_95_engine_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_audit"
+}

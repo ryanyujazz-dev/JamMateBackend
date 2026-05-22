@@ -1722,3 +1722,20 @@ v2_6_78 bar 88 Gmaj7: [43, 54, 59, 66, 69]  # fixed, one note below C3
 ```
 
 Next recommended task: `v2_6_79_engine_medium_swing_full_band_listening_checkpoint_after_low_register_clarity_guard`.
+
+## v2_6_119_engine_medium_swing_two_beat_phrase_pair_local1and_hold
+
+Goal: add the requested common 2-beat piano phrase without regressing into bar-first/two-chord-bar routing.
+
+Implemented boundary:
+- Pattern layer adds one pitchless `local1and_hold` candidate for 2-beat ChordRegions.
+- Style/base planning layer adds history-aware phrase-pair weighting from previous `start_local2` to following `local1and_hold`.
+- Expression remains semantic-only: the candidate uses `soft_hold`/`comp_medium`; ExpressionResolver decides and clamps the actual hold length inside the region.
+- Voicing, altered dominant, source metadata, API, Agent, and HarmonyOS are unchanged.
+
+Listening demos:
+- `demos/v2_6_119_two_beat_phrase_focus_medium_swing_two_beat_phrase_pair_demo.mid`
+- `demos/v2_6_119_autumn_leaves_medium_swing_two_beat_phrase_pair_demo.mid`
+- `demos/v2_6_119_all_the_things_you_are_medium_swing_two_beat_phrase_pair_demo.mid`
+
+Next: `v2_6_120_engine_medium_swing_two_beat_phrase_pair_listening_calibration`.

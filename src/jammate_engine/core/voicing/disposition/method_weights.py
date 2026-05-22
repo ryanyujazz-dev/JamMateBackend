@@ -24,9 +24,14 @@ DEFAULT_STYLE_DISPOSITION_METHOD_WEIGHTS: dict[str, dict[str, dict[str, float]]]
         "spread": {"lower_upper_grouped": 0.55, "foundation_projection": 0.20, "root_anchored": 0.15, "root_10th_projection": 0.10},
     },
     "bossa_nova": {
-        "family": {"closed": 0.62, "open": 0.33, "spread": 0.05},
-        "open": {"generic_open": 0.58, "drop2": 0.30, "drop3": 0.09, "drop2_and_4": 0.03},
-        "spread": {"lower_upper_grouped": 0.65, "foundation_projection": 0.20, "root_anchored": 0.10, "root_10th_projection": 0.05},
+        # v2_6_104 correction: Bossa may request OPEN-main texture, but the
+        # ordinary OPEN method consensus is shared with the tuned drop-family
+        # policy: DROP2 primary, DROP3 secondary, DROP2&4 low-frequency color,
+        # and GENERIC_OPEN fallback/rescue only.  Style policies should not
+        # promote GENERIC_OPEN into the normal runtime method pool.
+        "family": {"closed": 0.12, "open": 0.88, "spread": 0.00},
+        "open": {"generic_open": 0.0, "drop2": 0.52, "drop3": 0.38, "drop2_and_4": 0.10},
+        "spread": {"lower_upper_grouped": 0.0, "foundation_projection": 0.0, "root_anchored": 0.0, "root_10th_projection": 0.0},
     },
     "jazz_ballad": {
         "family": {"closed": 0.20, "open": 0.35, "spread": 0.45},

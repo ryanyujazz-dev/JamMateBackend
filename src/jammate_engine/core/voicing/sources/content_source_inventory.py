@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from jammate_engine.core.harmony.chord_parser import ParsedChord, parse_chord
 from jammate_engine.core.harmony.material import (
     ChordMaterial,
@@ -473,6 +475,18 @@ def _rooted_color_4note_source_inventory_options(
     legacy_alias = ""
     content_note = ""
     extra_notes: tuple[str, ...] = ()
+    altered_decision = resolve_altered_dominant_policy(policy, chord)
+    altered_rooted_options = _rooted_color_4note_altered_dominant_options(
+        chord=chord,
+        material=material,
+        policy=policy,
+        color_context=color_context,
+        specified=specified,
+        expansion=expansion,
+        altered_decision=altered_decision,
+    )
+    if altered_decision.explicit_chord_symbol_altered and altered_rooted_options:
+        return altered_rooted_options
 
     if _is_half_diminished_like(chord) or (chord.quality == "diminished" and chord.has_seventh):
         # Half-diminished and diminished-seventh quality depends on the 5th as
@@ -490,25 +504,6 @@ def _rooted_color_4note_source_inventory_options(
             "seventh_chord_expansion_preserves_diminished_fifth_identity",
             "triad_add9_source_blocked_for_seventh_chord",
         )
-    elif _altered_dominant_authorized_for_policy(chord, policy):
-        altered_decision = resolve_altered_dominant_policy(policy, chord)
-        colors = _ordered_altered_dominant_colors(chord, material, specified=specified, expansion=expansion)
-        if colors:
-            source_roles = ("root", "third", "seventh", "altered_color_a")
-            source = (_resolve_source_roles(chord, ("root", "third", "seventh")) + (colors[0],))
-            legacy_alias = "1_3_b7_X"
-            content_note = "rooted_color_4note_functional_content_type_root_third_seventh_altered_color"
-            extra_notes = (
-                "rooted_color_4note_altered_dominant_rooted_source",
-                "rooted_color_4note_altered_dominant_source_1_3_b7_X",
-                "altered_dominant_natural_5_omitted",
-                f"rooted_color_4note_altered_color_x_{_degree_order_token((colors[0],))}",
-                f"altered_dominant_functional_scope_{altered_decision.functional_scope.value}",
-                f"altered_dominant_inferred_functional_scope_{altered_decision.inferred_functional_scope.value}",
-                f"altered_dominant_authorization_reason_{altered_decision.reason}",
-                f"altered_dominant_intensity_{altered_decision.intensity.value}",
-                f"altered_dominant_source_weight_bias_rooted_color_{altered_dominant_source_weight_bias(policy, chord, 'rooted_color'):+.3f}",
-            )
     elif _explicit_eleventh_requested(specified) and (seventh_degree_for_chord(chord) or chord.has_seventh or chord.is_dominant):
         source_roles = ("root", "third", "seventh", "eleventh")
         source = _resolve_source_roles(chord, source_roles)
@@ -588,8 +583,9 @@ def _rooted_color_4note_source_inventory_options(
                 "seventh_chord_expansion_preserves_3_and_7",
             )
 
+    options: list[tuple[list[tuple[str, int]], tuple[str, ...]]] = []
     if source_roles and source:
-        return _functional_source_rotation_options(
+        options.extend(_functional_source_rotation_options(
             source=source,
             source_roles=source_roles,
             note_prefix="rooted_color_4note",
@@ -601,10 +597,50 @@ def _rooted_color_4note_source_inventory_options(
                 *extra_notes,
                 "voicing_source_roles_resolved_by_core_harmony",
             ),
-        )
+        ))
+    if altered_rooted_options:
+        options.extend(altered_rooted_options)
+    return options
 
-    return []
 
+def _rooted_color_4note_altered_dominant_options(
+    *,
+    chord: ParsedChord,
+    material: ChordMaterial,
+    policy: VoicingPolicy,
+    color_context: ColorPermissionContext,
+    specified: set[str],
+    expansion: bool,
+    altered_decision: Any,
+) -> list[tuple[list[tuple[str, int]], tuple[str, ...]]]:
+    if not altered_decision.authorized_for_chord:
+        return []
+    colors = _ordered_altered_dominant_colors(chord, material, specified=specified, expansion=expansion)
+    if not colors:
+        return []
+    source_roles = ("root", "third", "seventh", "altered_color_a")
+    source = _resolve_source_roles(chord, ("root", "third", "seventh")) + (colors[0],)
+    return _functional_source_rotation_options(
+        source=source,
+        source_roles=source_roles,
+        note_prefix="rooted_color_4note",
+        family_notes=(
+            "rooted_color_4note_functional_source_family",
+            *_four_note_color_permission_notes(chord, source, color_context),
+            "rooted_color_4note_functional_content_type_root_third_seventh_altered_color",
+            "rooted_color_4note_content_type_1_3_b7_X",
+            "rooted_color_4note_altered_dominant_rooted_source",
+            "rooted_color_4note_altered_dominant_source_1_3_b7_X",
+            "altered_dominant_natural_5_omitted",
+            f"rooted_color_4note_altered_color_x_{_degree_order_token((colors[0],))}",
+            f"altered_dominant_functional_scope_{altered_decision.functional_scope.value}",
+            f"altered_dominant_inferred_functional_scope_{altered_decision.inferred_functional_scope.value}",
+            f"altered_dominant_authorization_reason_{altered_decision.reason}",
+            f"altered_dominant_intensity_{altered_decision.intensity.value}",
+            f"altered_dominant_source_weight_bias_rooted_color_{altered_dominant_source_weight_bias(policy, chord, 'rooted_color'):+.3f}",
+            "voicing_source_roles_resolved_by_core_harmony",
+        ),
+    )
 
 
 
@@ -713,13 +749,16 @@ def _rootless_ab_options(
     if chord.quality == "diminished":
         return []
 
-    if _altered_dominant_authorized_for_policy(chord, policy):
-        # Altered dominant rootless content must use the dedicated no-root,
-        # no-natural-5 altered-color source. If the chart/policy supplies only
-        # one altered color and no second legal color is available, do not fall
-        # back to ordinary with_5 rootless material. The rooted altered source
-        # remains available through ROOTED_COLOR.
-        return _altered_dominant_rootless_ab_options(
+    altered_decision = resolve_altered_dominant_policy(policy, chord)
+    altered_options: list[tuple[list[tuple[str, int]], tuple[str, ...]]] = []
+    if altered_decision.authorized_for_chord:
+        # Altered dominant is a source-candidate pool, not a post-voicing note
+        # rewrite.  Explicit altered chart symbols such as G7alt/G7b9b13 remain
+        # chart fidelity and should not fall back to natural-5 rootless material.
+        # Plain dominants authorized by the altered policy, however, must keep
+        # ordinary 9/13 rootless sources in the same candidate pool so style
+        # weighting can make altered color occasional instead of absolute.
+        altered_options = _altered_dominant_rootless_ab_options(
             chord=chord,
             material=material,
             family=family,
@@ -730,6 +769,8 @@ def _rootless_ab_options(
             color_context=color_context,
             policy=policy,
         )
+        if altered_decision.explicit_chord_symbol_altered:
+            return altered_options
 
     if _explicit_other_color_should_take_priority(chord, specified) and not expansion:
         return _rootless_ab_explicit_only_options(chord, family, third, fifth, seventh, specified, color_context=color_context)
@@ -754,6 +795,8 @@ def _rootless_ab_options(
         specified=specified,
         color_context=color_context,
     ))
+    if altered_options:
+        options.extend(altered_options)
     return options
 
 

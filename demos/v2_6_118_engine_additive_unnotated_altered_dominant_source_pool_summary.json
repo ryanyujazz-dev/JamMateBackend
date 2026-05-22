@@ -1,0 +1,1020 @@
+{
+  "checkpoint_version": "v2_6_118",
+  "engine_version_tag": "v2_10_28",
+  "scope": "Style-neutral source-pool correction for unnotated altered dominants. Explicit altered symbols remain altered-only chart fidelity; plain dominants authorized by harmonic expansion + altered policy keep ordinary 9/13 sources and add altered sources before AB/method/projection. This milestone does not change projection, rhythm, expression, bass, drums, API, or Agent.",
+  "styles": [
+    {
+      "style": "bossa_nova",
+      "ok": true,
+      "score": "examples/leadsheets/blue_bossa.json",
+      "choruses": 3,
+      "seed": 26120,
+      "midi_path": "demos/v2_6_118_bossa_nova_additive_unnotated_altered_dominant_source_pool_demo.mid",
+      "piano_notes": 420,
+      "bass_notes": 101,
+      "drums_notes": 593,
+      "piano_harmonic_event_count": 105,
+      "candidate_plain_g7": {
+        "symbol": "G7",
+        "candidate_recipe_count": 32,
+        "source_type_counts": {
+          "ordinary_with_5": 8,
+          "ordinary_with_13": 8,
+          "altered_dominant_rootless": 8,
+          "ordinary_rooted_harmonic_expansion": 4,
+          "altered_dominant_rooted": 4
+        },
+        "content_family_counts": {
+          "rootless_A": 12,
+          "rootless_B": 12,
+          "rooted_color": 8
+        },
+        "ab_side_counts": {
+          "A": 12,
+          "B": 12,
+          "rooted": 8
+        },
+        "has_ordinary_source": true,
+        "has_safe_with_5": true,
+        "has_safe_with_13": true,
+        "has_altered_source": true,
+        "has_altered_rootless": true,
+        "has_altered_rooted": true,
+        "natural_five_in_altered_count": 0,
+        "sample_degree_orders": [
+          [
+            "3",
+            "5",
+            "b7",
+            "9"
+          ],
+          [
+            "5",
+            "b7",
+            "9",
+            "3"
+          ],
+          [
+            "b7",
+            "9",
+            "3",
+            "5"
+          ],
+          [
+            "9",
+            "3",
+            "5",
+            "b7"
+          ],
+          [
+            "3",
+            "13",
+            "b7",
+            "9"
+          ],
+          [
+            "13",
+            "b7",
+            "9",
+            "3"
+          ],
+          [
+            "b7",
+            "9",
+            "3",
+            "13"
+          ],
+          [
+            "9",
+            "3",
+            "13",
+            "b7"
+          ]
+        ]
+      },
+      "candidate_explicit_g7b9b13": {
+        "symbol": "G7b9b13",
+        "candidate_recipe_count": 12,
+        "source_type_counts": {
+          "altered_dominant_rootless": 8,
+          "altered_dominant_rooted": 4
+        },
+        "content_family_counts": {
+          "rootless_A": 4,
+          "rootless_B": 4,
+          "rooted_color": 4
+        },
+        "ab_side_counts": {
+          "A": 4,
+          "B": 4,
+          "rooted": 4
+        },
+        "has_ordinary_source": false,
+        "has_safe_with_5": false,
+        "has_safe_with_13": false,
+        "has_altered_source": true,
+        "has_altered_rootless": true,
+        "has_altered_rooted": true,
+        "natural_five_in_altered_count": 0,
+        "sample_degree_orders": [
+          [
+            "3",
+            "b7",
+            "b9",
+            "b13"
+          ],
+          [
+            "b7",
+            "b9",
+            "b13",
+            "3"
+          ],
+          [
+            "b9",
+            "b13",
+            "3",
+            "b7"
+          ],
+          [
+            "b13",
+            "3",
+            "b7",
+            "b9"
+          ],
+          [
+            "b7",
+            "b9",
+            "3",
+            "b13"
+          ],
+          [
+            "b9",
+            "3",
+            "b13",
+            "b7"
+          ],
+          [
+            "3",
+            "b13",
+            "b7",
+            "b9"
+          ],
+          [
+            "b13",
+            "b7",
+            "b9",
+            "3"
+          ]
+        ]
+      },
+      "selected_source_family_counts": {
+        "third_fifth_seventh_ninth": 65,
+        "third_seventh_ninth_eleventh": 13,
+        "altered_dominant_rootless": 18,
+        "third_eleventh_fifth_seventh": 9
+      },
+      "selected_content_family_counts": {
+        "rootless_A": 77,
+        "rootless_B": 28
+      },
+      "selected_altered_source_events": 18,
+      "selected_safe_rootless_9_13_events": 65,
+      "rows_sample": [
+        {
+          "event_id": "c0_b0_ch0_bossa_piano_core_batida_1_2_3and_0",
+          "region_id": "c0_b0_ch0",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b0_ch0_bossa_piano_core_batida_1_2_3and_1",
+          "region_id": "c0_b0_ch0",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b0_ch0_bossa_piano_core_batida_1_2_3and_2",
+          "region_id": "c0_b0_ch0",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_bossa_piano_core_batida_1_2_3and_0",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_bossa_piano_core_batida_1_2_3and_1",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_bossa_piano_core_batida_1_2_3and_2",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b2_ch0_bossa_piano_cell_A_1_3and_0",
+          "region_id": "c0_b2_ch0",
+          "original_chord_symbol": "Fm7",
+          "effective_chord_symbol": "Fm9",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b2_ch0_bossa_piano_cell_A_1_3and_1",
+          "region_id": "c0_b2_ch0",
+          "original_chord_symbol": "Fm7",
+          "effective_chord_symbol": "Fm9",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b3_ch0_bossa_piano_cell_A_1_3_0",
+          "region_id": "c0_b3_ch0",
+          "original_chord_symbol": "Fm7",
+          "effective_chord_symbol": "Fm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b3_ch0_bossa_piano_cell_A_1_3_1",
+          "region_id": "c0_b3_ch0",
+          "original_chord_symbol": "Fm7",
+          "effective_chord_symbol": "Fm9",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b4_ch0_bossa_piano_cell_A_1_3and_0",
+          "region_id": "c0_b4_ch0",
+          "original_chord_symbol": "Dm7b5",
+          "effective_chord_symbol": "Dm7b5(11)",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_seventh_ninth_eleventh",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b4_ch0_bossa_piano_cell_A_1_3and_1",
+          "region_id": "c0_b4_ch0",
+          "original_chord_symbol": "Dm7b5",
+          "effective_chord_symbol": "Dm7b5(11)",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_seventh_ninth_eleventh",
+          "ab_side": "A",
+          "altered_source": false
+        }
+      ]
+    },
+    {
+      "style": "medium_swing",
+      "ok": true,
+      "score": "examples/leadsheets/all_the_things_you_are.json",
+      "choruses": 3,
+      "seed": 26121,
+      "midi_path": "demos/v2_6_118_medium_swing_additive_unnotated_altered_dominant_source_pool_demo.mid",
+      "piano_notes": 792,
+      "bass_notes": 460,
+      "drums_notes": 864,
+      "piano_harmonic_event_count": 198,
+      "candidate_plain_g7": {
+        "symbol": "G7",
+        "candidate_recipe_count": 32,
+        "source_type_counts": {
+          "ordinary_with_5": 8,
+          "ordinary_with_13": 8,
+          "altered_dominant_rootless": 8,
+          "ordinary_rooted_harmonic_expansion": 4,
+          "altered_dominant_rooted": 4
+        },
+        "content_family_counts": {
+          "rootless_A": 12,
+          "rootless_B": 12,
+          "rooted_color": 8
+        },
+        "ab_side_counts": {
+          "A": 12,
+          "B": 12,
+          "rooted": 8
+        },
+        "has_ordinary_source": true,
+        "has_safe_with_5": true,
+        "has_safe_with_13": true,
+        "has_altered_source": true,
+        "has_altered_rootless": true,
+        "has_altered_rooted": true,
+        "natural_five_in_altered_count": 0,
+        "sample_degree_orders": [
+          [
+            "3",
+            "5",
+            "b7",
+            "9"
+          ],
+          [
+            "5",
+            "b7",
+            "9",
+            "3"
+          ],
+          [
+            "b7",
+            "9",
+            "3",
+            "5"
+          ],
+          [
+            "9",
+            "3",
+            "5",
+            "b7"
+          ],
+          [
+            "3",
+            "13",
+            "b7",
+            "9"
+          ],
+          [
+            "13",
+            "b7",
+            "9",
+            "3"
+          ],
+          [
+            "b7",
+            "9",
+            "3",
+            "13"
+          ],
+          [
+            "9",
+            "3",
+            "13",
+            "b7"
+          ]
+        ]
+      },
+      "candidate_explicit_g7b9b13": {
+        "symbol": "G7b9b13",
+        "candidate_recipe_count": 12,
+        "source_type_counts": {
+          "altered_dominant_rootless": 8,
+          "altered_dominant_rooted": 4
+        },
+        "content_family_counts": {
+          "rootless_A": 4,
+          "rootless_B": 4,
+          "rooted_color": 4
+        },
+        "ab_side_counts": {
+          "A": 4,
+          "B": 4,
+          "rooted": 4
+        },
+        "has_ordinary_source": false,
+        "has_safe_with_5": false,
+        "has_safe_with_13": false,
+        "has_altered_source": true,
+        "has_altered_rootless": true,
+        "has_altered_rooted": true,
+        "natural_five_in_altered_count": 0,
+        "sample_degree_orders": [
+          [
+            "3",
+            "b7",
+            "b9",
+            "b13"
+          ],
+          [
+            "b7",
+            "b9",
+            "b13",
+            "3"
+          ],
+          [
+            "b9",
+            "b13",
+            "3",
+            "b7"
+          ],
+          [
+            "b13",
+            "3",
+            "b7",
+            "b9"
+          ],
+          [
+            "b7",
+            "b9",
+            "3",
+            "b13"
+          ],
+          [
+            "b9",
+            "3",
+            "b13",
+            "b7"
+          ],
+          [
+            "3",
+            "b13",
+            "b7",
+            "b9"
+          ],
+          [
+            "b13",
+            "b7",
+            "b9",
+            "3"
+          ]
+        ]
+      },
+      "selected_source_family_counts": {
+        "third_fifth_seventh_ninth": 198
+      },
+      "selected_content_family_counts": {
+        "rootless_A": 139,
+        "rootless_B": 59
+      },
+      "selected_altered_source_events": 0,
+      "selected_safe_rootless_9_13_events": 198,
+      "rows_sample": [
+        {
+          "event_id": "c0_b0_ch0_medium_swing_piano_anchor_1_0",
+          "region_id": "c0_b0_ch0",
+          "original_chord_symbol": "Fm7",
+          "effective_chord_symbol": "Fm7",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop3",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_medium_swing_piano_1_2and_4_0",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Bbm7",
+          "effective_chord_symbol": "Bbm7",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_medium_swing_piano_1_2and_4_1",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Bbm7",
+          "effective_chord_symbol": "Bbm7",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_medium_swing_piano_1_2and_4_2",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Bbm7",
+          "effective_chord_symbol": "Bbm7",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b2_ch0_medium_swing_piano_1_3and_answer_0",
+          "region_id": "c0_b2_ch0",
+          "original_chord_symbol": "Eb7",
+          "effective_chord_symbol": "Eb7",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b2_ch0_medium_swing_piano_1_3and_answer_1",
+          "region_id": "c0_b2_ch0",
+          "original_chord_symbol": "Eb7",
+          "effective_chord_symbol": "Eb7",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b3_ch0_medium_swing_piano_anchor_1_3_0",
+          "region_id": "c0_b3_ch0",
+          "original_chord_symbol": "Abmaj7",
+          "effective_chord_symbol": "Abmaj7",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b3_ch0_medium_swing_piano_anchor_1_3_1",
+          "region_id": "c0_b3_ch0",
+          "original_chord_symbol": "Abmaj7",
+          "effective_chord_symbol": "Abmaj7",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b4_ch0_medium_swing_piano_1_3and_answer_0",
+          "region_id": "c0_b4_ch0",
+          "original_chord_symbol": "Dbmaj7",
+          "effective_chord_symbol": "Dbmaj7",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b4_ch0_medium_swing_piano_1_3and_answer_1",
+          "region_id": "c0_b4_ch0",
+          "original_chord_symbol": "Dbmaj7",
+          "effective_chord_symbol": "Dbmaj7",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b5_ch0_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "region_id": "c0_b5_ch0",
+          "original_chord_symbol": "Dm7",
+          "effective_chord_symbol": "Dm7",
+          "content_family": "rootless_A",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "A",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b5_ch1_medium_swing_piano_two_beat_region_start_anchor_0__anticipated_from_previous",
+          "region_id": "c0_b5_ch1",
+          "original_chord_symbol": "G7",
+          "effective_chord_symbol": "G7",
+          "content_family": "rootless_B",
+          "density": 4,
+          "method": "drop2",
+          "source_family": "third_fifth_seventh_ninth",
+          "ab_side": "B",
+          "altered_source": false
+        }
+      ]
+    },
+    {
+      "style": "jazz_ballad",
+      "ok": true,
+      "score": "examples/leadsheets/misty.json",
+      "choruses": 3,
+      "seed": 26122,
+      "midi_path": "demos/v2_6_118_jazz_ballad_additive_unnotated_altered_dominant_source_pool_demo.mid",
+      "piano_notes": 990,
+      "bass_notes": 150,
+      "drums_notes": 0,
+      "piano_harmonic_event_count": 200,
+      "candidate_plain_g7": {
+        "symbol": "G7",
+        "candidate_recipe_count": 8,
+        "source_type_counts": {
+          "ordinary_rooted_harmonic_expansion": 4,
+          "altered_dominant_rooted": 4
+        },
+        "content_family_counts": {
+          "rooted_color": 8
+        },
+        "ab_side_counts": {
+          "rooted": 8
+        },
+        "has_ordinary_source": true,
+        "has_safe_with_5": false,
+        "has_safe_with_13": false,
+        "has_altered_source": true,
+        "has_altered_rootless": false,
+        "has_altered_rooted": true,
+        "natural_five_in_altered_count": 0,
+        "sample_degree_orders": [
+          [
+            "R",
+            "3",
+            "b7",
+            "9"
+          ],
+          [
+            "3",
+            "b7",
+            "9",
+            "R"
+          ],
+          [
+            "b7",
+            "9",
+            "R",
+            "3"
+          ],
+          [
+            "9",
+            "R",
+            "3",
+            "b7"
+          ],
+          [
+            "R",
+            "3",
+            "b7",
+            "b9"
+          ],
+          [
+            "3",
+            "b7",
+            "b9",
+            "R"
+          ],
+          [
+            "b7",
+            "b9",
+            "R",
+            "3"
+          ],
+          [
+            "b9",
+            "R",
+            "3",
+            "b7"
+          ]
+        ]
+      },
+      "candidate_explicit_g7b9b13": {
+        "symbol": "G7b9b13",
+        "candidate_recipe_count": 12,
+        "source_type_counts": {
+          "altered_dominant_rootless": 8,
+          "altered_dominant_rooted": 4
+        },
+        "content_family_counts": {
+          "rootless_A": 4,
+          "rootless_B": 4,
+          "rooted_color": 4
+        },
+        "ab_side_counts": {
+          "A": 4,
+          "B": 4,
+          "rooted": 4
+        },
+        "has_ordinary_source": false,
+        "has_safe_with_5": false,
+        "has_safe_with_13": false,
+        "has_altered_source": true,
+        "has_altered_rootless": true,
+        "has_altered_rooted": true,
+        "natural_five_in_altered_count": 0,
+        "sample_degree_orders": [
+          [
+            "3",
+            "b7",
+            "b9",
+            "b13"
+          ],
+          [
+            "b7",
+            "b9",
+            "b13",
+            "3"
+          ],
+          [
+            "b9",
+            "b13",
+            "3",
+            "b7"
+          ],
+          [
+            "b13",
+            "3",
+            "b7",
+            "b9"
+          ],
+          [
+            "b7",
+            "b9",
+            "3",
+            "b13"
+          ],
+          [
+            "b9",
+            "3",
+            "b13",
+            "b7"
+          ],
+          [
+            "3",
+            "b13",
+            "b7",
+            "b9"
+          ],
+          [
+            "b13",
+            "b7",
+            "b9",
+            "3"
+          ]
+        ]
+      },
+      "selected_source_family_counts": {},
+      "selected_content_family_counts": {
+        "shell_plus_color": 59,
+        "shell_plus_5": 59,
+        "rooted_color": 34,
+        "seventh_chord_basic": 48
+      },
+      "selected_altered_source_events": 0,
+      "selected_safe_rootless_9_13_events": 0,
+      "rows_sample": [
+        {
+          "event_id": "c0_b0_ch0_ballad_piano_downbeat_1and_whisper_0",
+          "region_id": "c0_b0_ch0",
+          "original_chord_symbol": "Ebmaj7",
+          "effective_chord_symbol": "Ebmaj7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b0_ch0_ballad_piano_downbeat_1and_whisper_1",
+          "region_id": "c0_b0_ch0",
+          "original_chord_symbol": "Ebmaj7",
+          "effective_chord_symbol": "Ebmaj7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_ballad_phrase_two_chord_soft_marks_0",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Bbm7",
+          "effective_chord_symbol": "Bbm7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch0_ballad_phrase_two_chord_soft_marks_1",
+          "region_id": "c0_b1_ch0",
+          "original_chord_symbol": "Bbm7",
+          "effective_chord_symbol": "Bbm7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b1_ch1_ballad_piano_two_beat_soft_anchor_0",
+          "region_id": "c0_b1_ch1",
+          "original_chord_symbol": "Eb7",
+          "effective_chord_symbol": "Eb7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b2_ch0_ballad_piano_soft_downbeat_sustain_0",
+          "region_id": "c0_b2_ch0",
+          "original_chord_symbol": "Abmaj7",
+          "effective_chord_symbol": "Abmaj7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b3_ch0_ballad_piano_two_beat_soft_anchor_0__anticipated_from_previous",
+          "region_id": "c0_b3_ch0",
+          "original_chord_symbol": "Abm7",
+          "effective_chord_symbol": "Abm7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b3_ch1_ballad_piano_two_beat_soft_anchor_0",
+          "region_id": "c0_b3_ch1",
+          "original_chord_symbol": "Db7",
+          "effective_chord_symbol": "Db7",
+          "content_family": "shell_plus_color",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b4_ch0_ballad_piano_two_beat_soft_anchor_0",
+          "region_id": "c0_b4_ch0",
+          "original_chord_symbol": "Ebmaj7",
+          "effective_chord_symbol": "Ebmaj7",
+          "content_family": "shell_plus_5",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b4_ch1_ballad_piano_two_beat_soft_anchor_0",
+          "region_id": "c0_b4_ch1",
+          "original_chord_symbol": "Cm7",
+          "effective_chord_symbol": "Cm7",
+          "content_family": "shell_plus_5",
+          "density": 5,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b5_ch0_ballad_piano_two_beat_soft_anchor_0",
+          "region_id": "c0_b5_ch0",
+          "original_chord_symbol": "Fm7",
+          "effective_chord_symbol": "Fm7",
+          "content_family": "rooted_color",
+          "density": 6,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        },
+        {
+          "event_id": "c0_b5_ch1_ballad_piano_two_beat_soft_anchor_0__anticipated_from_previous",
+          "region_id": "c0_b5_ch1",
+          "original_chord_symbol": "Bb7",
+          "effective_chord_symbol": "Bb7",
+          "content_family": "seventh_chord_basic",
+          "density": 6,
+          "method": "",
+          "source_family": "",
+          "ab_side": "",
+          "altered_source": false
+        }
+      ]
+    }
+  ],
+  "global_findings": {
+    "styles_audited": [
+      "bossa_nova",
+      "medium_swing",
+      "jazz_ballad"
+    ],
+    "all_runtime_ok": true,
+    "plain_g7_source_pool_by_style": {
+      "bossa_nova": {
+        "ordinary_with_5": 8,
+        "ordinary_with_13": 8,
+        "altered_dominant_rootless": 8,
+        "ordinary_rooted_harmonic_expansion": 4,
+        "altered_dominant_rooted": 4
+      },
+      "medium_swing": {
+        "ordinary_with_5": 8,
+        "ordinary_with_13": 8,
+        "altered_dominant_rootless": 8,
+        "ordinary_rooted_harmonic_expansion": 4,
+        "altered_dominant_rooted": 4
+      },
+      "jazz_ballad": {
+        "ordinary_rooted_harmonic_expansion": 4,
+        "altered_dominant_rooted": 4
+      }
+    },
+    "explicit_g7b9b13_source_pool_by_style": {
+      "bossa_nova": {
+        "altered_dominant_rootless": 8,
+        "altered_dominant_rooted": 4
+      },
+      "medium_swing": {
+        "altered_dominant_rootless": 8,
+        "altered_dominant_rooted": 4
+      },
+      "jazz_ballad": {
+        "altered_dominant_rootless": 8,
+        "altered_dominant_rooted": 4
+      }
+    },
+    "principle": "Altered dominant augments source candidates for unnotated/plain dominants; explicit altered symbols remain altered-only; AB/method/projection consume the chosen source without post-voicing note mutation.",
+    "next_recommended_step": "v2_6_119_engine_style_level_expansion_alter_weight_calibration_by_functional_context"
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "all_expected_styles_audited": true,
+      "all_runtime_ok": true,
+      "plain_g7_keeps_ordinary_source_in_all_styles": true,
+      "plain_g7_adds_altered_source_in_all_styles": true,
+      "bossa_and_swing_plain_g7_keep_rootless_9_13_sources": true,
+      "explicit_g7b9b13_stays_altered_only_in_all_styles": true,
+      "altered_rootless_omits_natural_five": true,
+      "demos_written": true
+    }
+  }
+}

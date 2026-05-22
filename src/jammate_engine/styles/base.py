@@ -98,10 +98,13 @@ PIANO_COMPING_PHRASE_END_FILL_CONTEXT_PRECISION_POLICY_VERSION = "v2_6_73"
 PIANO_COMPING_STANDARD_TUNE_FILL_FREQUENCY_CHECKPOINT_VERSION = "v2_6_74"
 PIANO_COMPING_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_76"
 PIANO_COMPING_TWO_BEAT_REGION_DENSITY_RELIEF_POLICY_VERSION = "v2_6_80"
+PIANO_COMPING_TWO_BEAT_PHRASE_PAIR_POLICY_VERSION = "v2_6_119"
 MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_INTENT_USAGE_VERSION = "v2_6_85"
 MEDIUM_SWING_ARRANGEMENT_ARC_RUNTIME_LISTENING_REFINEMENT_VERSION = "v2_6_86"
 MEDIUM_SWING_FULL_BAND_ENDING_REALIZATION_CHECKPOINT_VERSION = "v2_6_87"
 MEDIUM_SWING_STYLE_BASELINE_PHASE_COMPLETION_CHECKPOINT_VERSION = "v2_6_88"
+BOSSA_NOVA_REPEAT_COUNT_ARRANGEMENT_ARC_POLICY_VERSION = "v2_6_97"
+BOSSA_NOVA_FULL_BAND_ARRANGEMENT_ARC_LISTENING_REFINEMENT_VERSION = "v2_6_98"
 PIANO_COMPING_REGION_FIRST_COVERAGE_GUARD_VERSION = "v2_6_62"
 
 
@@ -820,7 +823,7 @@ def _apply_piano_comping_two_beat_region_density_relief_policy(
     permits.
     """
 
-    if len(candidates) <= 1 or _region_length_family_for_coverage(float(region.duration_beats)) != "two_beat_region":
+    if not candidates or _region_length_family_for_coverage(float(region.duration_beats)) != "two_beat_region":
         return tuple(candidates)
 
     recent = _history_recent_entries(history, source_key)
@@ -909,6 +912,117 @@ def _apply_piano_comping_two_beat_region_density_relief_policy(
     return tuple(adjusted)
 
 
+def _apply_piano_comping_two_beat_phrase_pair_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    region: HarmonicRegion,
+    history: dict,
+    source_key: str,
+) -> tuple[PatternCandidate, ...]:
+    """Weight adjacent 2-beat ChordRegion phrase pairs through metadata.
+
+    v2_6_120 keeps the user-requested common phrase as a style-neutral
+    progression-local continuity preference: a first 2-beat ChordRegion may
+    state local 1+2, and the following 2-beat ChordRegion may answer on local
+    1& with a hold.  The scorer reads phrase-pair metadata from each style's
+    pattern vocabulary; it does not hard-code a style-specific cell name, create
+    bar-first/two-chord-bar routing, or write concrete voicing/expression values.
+    """
+
+    if not candidates or _region_length_family_for_coverage(float(region.duration_beats)) != "two_beat_region":
+        return tuple(candidates)
+
+    recent = _history_recent_entries(history, source_key)
+    previous = recent[-1] if recent else {}
+    previous_cell = str(previous.get("rhythmic_cell") or "")
+    previous_phrase_role = str(previous.get("two_beat_phrase_pair_role") or "")
+    previous_phrase_family = str(previous.get("two_beat_phrase_pair_family") or "")
+    previous_triggers = tuple(str(item) for item in previous.get("two_beat_phrase_pair_triggers_response_cells", ()) if str(item))
+    is_first_half = bool(region.is_first_region_of_bar) and not bool(region.is_last_region_of_bar)
+    is_second_half = bool(region.is_last_region_of_bar) and not bool(region.is_first_region_of_bar)
+
+    adjusted: list[PatternCandidate] = []
+    for candidate in candidates:
+        metadata = dict(candidate.metadata)
+        phrase_role = str(metadata.get("two_beat_phrase_pair_role") or "")
+        phrase_family = str(metadata.get("two_beat_phrase_pair_family") or "")
+        responds_to = tuple(
+            str(item)
+            for item in metadata.get("two_beat_phrase_pair_responds_to_cells", (metadata.get("two_beat_phrase_pair_responds_to_cell") or "",))
+            if str(item)
+        )
+        response_matches_previous = bool(
+            previous_phrase_role == "call"
+            and phrase_role == "response"
+            and (
+                (responds_to and previous_cell in responds_to)
+                or (previous_phrase_family and previous_phrase_family == phrase_family)
+                or (previous_triggers and str(metadata.get("rhythmic_cell") or "") in previous_triggers)
+            )
+        )
+        multiplier = 1.0
+        reasons: list[str] = []
+        status = "neutral"
+
+        if phrase_role == "call" and is_first_half:
+            multiplier *= 96.0
+            status = "phrase_call_preferred"
+            reasons.append("first_half_two_beat_local_1_plus_2_call_bonus")
+        elif phrase_role == "call" and is_second_half:
+            multiplier *= 0.35
+            status = "phrase_call_wrong_half_downweighted"
+            reasons.append("local_1_plus_2_call_reserved_for_first_half")
+
+        if phrase_role == "response":
+            if is_second_half and response_matches_previous:
+                multiplier *= 192.0
+                status = "phrase_response_preferred_after_call"
+                reasons.append("second_half_local_1and_hold_response_after_previous_local_1_plus_2")
+                if previous_phrase_role == "call" and previous_phrase_family == phrase_family:
+                    multiplier *= 1.20
+                    reasons.append("matching_two_beat_phrase_family_bonus")
+            elif is_second_half:
+                multiplier *= 0.72
+                status = "phrase_response_available_without_call"
+                reasons.append("second_half_local_1and_hold_kept_available_but_not_forced")
+            else:
+                multiplier *= 0.22
+                status = "phrase_response_wrong_half_downweighted"
+                reasons.append("local_1and_hold_response_reserved_for_following_two_beat_region")
+
+        if is_second_half and phrase_role != "response" and previous_phrase_role == "call":
+            multiplier *= 0.40
+            if status == "neutral":
+                status = "non_response_softened_after_phrase_call"
+            reasons.append("leave_room_for_local_1and_hold_phrase_response")
+
+        if not reasons:
+            reasons.append("two_beat_phrase_pair_neutral_passthrough")
+
+        metadata.update(
+            {
+                "two_beat_phrase_pair_policy_version": PIANO_COMPING_TWO_BEAT_PHRASE_PAIR_POLICY_VERSION,
+                "two_beat_phrase_pair_policy_applied": True,
+                "two_beat_phrase_pair_policy_multiplier": round(multiplier, 4),
+                "two_beat_phrase_pair_policy_status": status,
+                "two_beat_phrase_pair_policy_reasons": tuple(reasons),
+                "two_beat_phrase_pair_policy_previous_cell": previous_cell,
+                "two_beat_phrase_pair_policy_previous_role": previous_phrase_role,
+                "two_beat_phrase_pair_policy_previous_family": previous_phrase_family,
+                "two_beat_phrase_pair_policy_response_matched_previous": response_matches_previous,
+                "two_beat_phrase_pair_policy_is_first_half": is_first_half,
+                "two_beat_phrase_pair_policy_is_second_half": is_second_half,
+                "two_beat_phrase_pair_policy_contract": (
+                    "Common two-2-beat-ChordRegion phrase weighting reads pitchless candidate metadata and recent selected history: "
+                    "first region local 1+2 may be followed by next region local 1& hold. It does not create bar-first routing, "
+                    "does not write concrete voicing/expression values, and keeps all onsets region-local."
+                ),
+            }
+        )
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * multiplier), metadata=metadata))
+    return tuple(adjusted)
+
+
 def _candidate_continuity_metadata(candidate: PatternCandidate) -> dict[str, Any]:
     metadata = dict(candidate.metadata)
     calibration_class = str(metadata.get("weight_calibration_class") or "stable")
@@ -983,6 +1097,17 @@ def _candidate_continuity_metadata(candidate: PatternCandidate) -> dict[str, Any
         "tail_push_risk": tail_push_risk,
         "density": density,
         "region_length_family": region_family,
+        "two_beat_phrase_pair_candidate": bool(metadata.get("two_beat_phrase_pair_candidate", False)),
+        "two_beat_phrase_pair_family": str(metadata.get("two_beat_phrase_pair_family") or ""),
+        "two_beat_phrase_pair_role": str(metadata.get("two_beat_phrase_pair_role") or ""),
+        "two_beat_phrase_pair_triggers_response_cells": tuple(
+            str(item)
+            for item in metadata.get(
+                "two_beat_phrase_pair_triggers_response_cells",
+                (metadata.get("two_beat_phrase_pair_triggers_response_cell") or "",),
+            )
+            if str(item)
+        ),
         "event_count": event_count,
         "has_region_start": _candidate_has_region_start(candidate),
         "is_active": bool(is_active or continuity_class == "active"),
@@ -1466,6 +1591,30 @@ def _record_piano_comping_history(history: dict, source_key: str, candidate: Pat
     history[f"{source_key}:recent_tail_push_count"] = _recent_flag_count(recent, "is_tail_push")
 
 
+def _record_bossa_piano_comping_history(history: dict, source_key: str, candidate: PatternCandidate) -> None:
+    metadata = dict(candidate.metadata)
+    info = {
+        "name": candidate.name,
+        "category": candidate.category,
+        "rhythm_class": str(metadata.get("rhythm_class", "")),
+        "rhythmic_cell": str(metadata.get("rhythmic_cell", "")),
+        "hit_count": int(metadata.get("hit_count") or 0),
+        "native_4and": bool(metadata.get("native_4and")),
+        "archetype": str(metadata.get("bossa_context_archetype", "")),
+        "weighting_status": str(metadata.get("bossa_context_weighting_status", "")),
+    }
+    recent = history.get(f"{source_key}:recent_bossa_comping")
+    if not isinstance(recent, list):
+        recent = []
+    recent.append(info)
+    history[f"{source_key}:recent_bossa_comping"] = recent[-6:]
+    history[f"{source_key}:bossa_rhythm_class"] = info["rhythm_class"]
+    history[f"{source_key}:bossa_archetype"] = info["archetype"]
+    history[f"{source_key}:bossa_recent_class_B_count"] = sum(1 for item in recent[-4:] if item.get("rhythm_class") == "class_B")
+    history[f"{source_key}:bossa_recent_native_4and_count"] = sum(1 for item in recent[-4:] if item.get("native_4and"))
+    history[f"{source_key}:bossa_recent_three_hit_count"] = sum(1 for item in recent[-4:] if int(item.get("hit_count") or 0) >= 3)
+
+
 def _resolve_medium_swing_arrangement_arc_runtime_intent(region: HarmonicRegion) -> dict[str, Any]:
     try:
         from jammate_engine.styles.medium_swing.arrangement_policy import resolve_runtime_arrangement_arc_intent
@@ -1544,6 +1693,62 @@ def _apply_medium_swing_arrangement_arc_runtime_intent_policy(
     return tuple(adjusted)
 
 
+def _resolve_bossa_nova_arrangement_arc_runtime_intent(region: HarmonicRegion) -> dict[str, Any]:
+    try:
+        from jammate_engine.styles.bossa_nova.arrangement_policy import resolve_runtime_arrangement_arc_intent
+    except Exception:
+        return {}
+    return dict(resolve_runtime_arrangement_arc_intent(region.chorus_index, region.total_choruses))
+
+
+def _apply_bossa_nova_arrangement_arc_runtime_intent_policy(
+    candidates: Sequence[PatternCandidate],
+    *,
+    intent: dict[str, Any] | None,
+) -> tuple[PatternCandidate, ...]:
+    """Use Bossa repeat-count arrangement arc as style intent, not a selector."""
+
+    if not candidates or not intent:
+        return tuple(candidates)
+    try:
+        from jammate_engine.styles.bossa_nova.arrangement_policy import arrangement_arc_runtime_candidate_multiplier
+    except Exception:
+        return tuple(candidates)
+
+    adjusted: list[PatternCandidate] = []
+    for candidate in candidates:
+        multiplier, reasons, status = arrangement_arc_runtime_candidate_multiplier(dict(candidate.metadata), dict(intent))
+        metadata = {
+            **dict(candidate.metadata),
+            "bossa_nova_repeat_count_arrangement_arc_policy_version": BOSSA_NOVA_REPEAT_COUNT_ARRANGEMENT_ARC_POLICY_VERSION,
+            "bossa_nova_repeat_count_arrangement_arc_policy_applied": True,
+            "bossa_nova_repeat_count_arrangement_arc_phase": intent.get("phase"),
+            "bossa_nova_repeat_count_arrangement_arc_energy_band": intent.get("energy_band"),
+            "bossa_nova_repeat_count_arrangement_arc_density_bias": intent.get("density_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_piano_comping_bias": intent.get("piano_comping_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_piano_comping_runtime_intent": intent.get("piano_comping_runtime_intent"),
+            "bossa_nova_repeat_count_arrangement_arc_breath_bias": intent.get("breath_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_lift_bias": intent.get("lift_bias"),
+            "bossa_nova_repeat_count_arrangement_arc_chorus_index": intent.get("chorus_index"),
+            "bossa_nova_repeat_count_arrangement_arc_total_choruses": intent.get("total_choruses"),
+            "bossa_nova_repeat_count_arrangement_arc_normalized_position": intent.get("normalized_position"),
+            "bossa_nova_repeat_count_arrangement_arc_loop_block_position": intent.get("loop_block_position"),
+            "bossa_nova_repeat_count_arrangement_arc_multiplier": round(float(multiplier), 4),
+            "bossa_nova_repeat_count_arrangement_arc_status": status,
+            "bossa_nova_repeat_count_arrangement_arc_reasons": tuple(reasons),
+            "bossa_nova_repeat_count_arrangement_arc_not_three_chorus_hardcoded": True,
+            "bossa_nova_repeat_count_arrangement_arc_not_medium_swing_clone": True,
+            "bossa_nova_repeat_count_arrangement_arc_boundary": "style_intent_metadata_and_candidate_weighting_only",
+            "bossa_nova_repeat_count_arrangement_arc_contract": "v2_6_97 connects the Bossa-owned repeat-count-aware arc to existing piano comping candidate weighting and event metadata. It does not add vocabulary, create a selector, restore bar-first logic, choose voicing sources, write expression values, or hard-code a 3-chorus arc.",
+            "bossa_full_band_arrangement_arc_listening_refinement_active": True,
+            "bossa_full_band_arrangement_arc_listening_refinement_version": BOSSA_NOVA_FULL_BAND_ARRANGEMENT_ARC_LISTENING_REFINEMENT_VERSION,
+            "bossa_full_band_arrangement_arc_listening_refinement_track_role": "piano",
+            "bossa_full_band_arrangement_arc_listening_refinement_boundary": "piano_already_shaped_by_arc_candidate_policy;_bass_drums_read_same_arc_for_semantic_dynamics",
+        }
+        adjusted.append(replace(candidate, weight=max(0.0, float(candidate.weight) * float(multiplier)), metadata=metadata))
+    return tuple(adjusted)
+
+
 @dataclass(frozen=True)
 class StyleProfile:
     name: str
@@ -1618,16 +1823,22 @@ class StyleProfile:
         piano_ending_subset_policy = bool(self.arrangement_policy.get("piano_comping_ending_specific_subset_policy", False))
         piano_optional_fill_variation_policy = bool(self.arrangement_policy.get("piano_comping_optional_fill_variation_vocabulary_policy", False))
         piano_two_beat_density_relief_policy = bool(self.arrangement_policy.get("piano_comping_two_beat_region_density_relief_policy", False))
+        piano_two_beat_phrase_pair_policy = bool(self.arrangement_policy.get("piano_comping_two_beat_phrase_pair_policy", False))
         medium_swing_arrangement_arc_runtime_intent_usage = bool(self.arrangement_policy.get("medium_swing_arrangement_arc_runtime_intent_usage", False))
         medium_swing_arrangement_arc_runtime_listening_refinement = bool(self.arrangement_policy.get("medium_swing_arrangement_arc_runtime_listening_refinement", False))
         medium_swing_full_band_ending_realization_checkpoint = bool(self.arrangement_policy.get("medium_swing_full_band_ending_realization_checkpoint", False))
         medium_swing_style_baseline_phase_completion_checkpoint = bool(self.arrangement_policy.get("medium_swing_style_baseline_phase_completion_checkpoint", False))
         piano_region_first_coverage_guard = bool(self.arrangement_policy.get("piano_region_first_coverage_guard", False))
+        bossa_context_archetype_policy_active = bool(self.arrangement_policy.get("bossa_nova_context_archetype_policy_active", False))
+        bossa_repeat_count_arrangement_arc_policy_active = bool(self.arrangement_policy.get("bossa_nova_repeat_count_arrangement_arc_policy_active", False))
 
         arrangement_arc_intent: dict[str, Any] = {}
         if self.name == "medium_swing" and medium_swing_arrangement_arc_runtime_intent_usage:
             arrangement_arc_intent = _resolve_medium_swing_arrangement_arc_runtime_intent(region)
             region_context["medium_swing_arrangement_arc_intent"] = arrangement_arc_intent
+        if self.name == "bossa_nova" and bossa_repeat_count_arrangement_arc_policy_active:
+            arrangement_arc_intent = _resolve_bossa_nova_arrangement_arc_runtime_intent(region)
+            region_context["bossa_nova_arrangement_arc_intent"] = arrangement_arc_intent
 
         plans: list[PatternPlan] = []
         selected: list[str] = []
@@ -1665,6 +1876,8 @@ class StyleProfile:
                 choice_pool = _apply_piano_comping_ending_specific_subset_policy(choice_pool, region=region, context=region_context)
             if piano_two_beat_density_relief_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_two_beat_region_density_relief_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
+            if piano_two_beat_phrase_pair_policy and is_piano_comping_source:
+                choice_pool = _apply_piano_comping_two_beat_phrase_pair_policy(choice_pool, region=region, history=history, source_key=source_key)
             if medium_swing_arrangement_arc_runtime_intent_usage and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_medium_swing_arrangement_arc_runtime_intent_policy(
                     choice_pool,
@@ -1672,6 +1885,11 @@ class StyleProfile:
                     listening_refinement_enabled=medium_swing_arrangement_arc_runtime_listening_refinement,
                     ending_realization_checkpoint_enabled=medium_swing_full_band_ending_realization_checkpoint,
                     style_baseline_phase_completion_enabled=medium_swing_style_baseline_phase_completion_checkpoint,
+                )
+            if bossa_repeat_count_arrangement_arc_policy_active and is_piano_comping_source:
+                choice_pool = _apply_bossa_nova_arrangement_arc_runtime_intent_policy(
+                    choice_pool,
+                    intent=arrangement_arc_intent,
                 )
             if piano_optional_fill_variation_policy and is_piano_comping_source and len(choice_pool) > 1:
                 choice_pool = _apply_piano_comping_optional_fill_variation_vocabulary_policy(choice_pool, region=region, context=region_context, history=history, source_key=source_key)
@@ -1686,11 +1904,13 @@ class StyleProfile:
             history[f"{source_key}:category"] = candidate.category
             if is_piano_comping_source:
                 history[f"{source_key}:density"] = str(candidate.metadata.get("density", "medium"))
-                if piano_history_scorer:
+                if piano_history_scorer or piano_two_beat_phrase_pair_policy:
                     _record_piano_comping_history(history, source_key, candidate)
+                if self.name == "bossa_nova" and bossa_context_archetype_policy_active:
+                    _record_bossa_piano_comping_history(history, source_key, candidate)
             selected.append(candidate.name)
             plan = candidate.instantiate(region)
-            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or medium_swing_arrangement_arc_runtime_intent_usage or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard):
+            if is_piano_comping_source and (piano_history_scorer or piano_harmonic_function_policy or piano_progression_subset_policy or piano_ending_subset_policy or piano_optional_fill_variation_policy or piano_two_beat_density_relief_policy or piano_two_beat_phrase_pair_policy or medium_swing_arrangement_arc_runtime_intent_usage or bossa_repeat_count_arrangement_arc_policy_active or piano_no_4and_delayed_tail_policy or piano_region_first_coverage_guard or bossa_context_archetype_policy_active):
                 plan = replace(
                     plan,
                     events=[

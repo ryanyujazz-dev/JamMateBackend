@@ -1,0 +1,157 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_102 — Engine Bossa Nova No Forced 2/3-Note Voicing Policy Audit",
+  "scope": "Audit and refine Bossa dense harmonic-rhythm / short ChordRegion voicing policy in-place. Short regions keep ChordRegion-first pattern handling but no longer force 2-note guide-tone or 3-note low-density voicings; they use the normal Bossa 4-to-5-note voicing policy. No core voicing source/projection/selector changes, no new pattern vocabulary, no expression numeric changes, API, Agent, or HarmonyOS changes.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_102",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_102",
+    "behavior_change": true,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_new_pattern_vocabulary": true,
+    "no_expression_numeric_change": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "dense_short_threshold_beats": 2.25,
+    "voicing_policy_metadata_version": "v2_6_102",
+    "voicing_policy_no_core_voicing_change": true,
+    "dense_config_enabled": false,
+    "dense_config_preferred_density": 4,
+    "dense_config_min_density": 4,
+    "dense_config_max_density": 5,
+    "dense_config_preferred_content": "rootless_A",
+    "dense_config_root_support": "rootless_allowed",
+    "dense_config_avoid_forced_2_note": true,
+    "dense_config_avoid_forced_3_note": true,
+    "dense_config_normal_voicing_policy_for_short_regions": true,
+    "half_region_candidate_count": 1,
+    "half_region_candidate_name": "bossa_piano_half_region_1_2",
+    "half_region_region_shape": "two_beat_region",
+    "half_region_pattern_function": "dense_harmonic_rhythm_normal_voicing_adaptation",
+    "half_region_candidate_metadata_version": "v2_6_102",
+    "recommended_next_task": "v2_6_103_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement",
+    "known_next_gap": "The forced 2-note/3-note short-region voicing override is removed; next Bossa drum task can return to kick/bass lock and low-frequency shadow refinement."
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22705,
+      "midi_path": "demos/v2_6_102_blue_bossa_3x_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 412,
+        "bass": 96,
+        "drums": 585
+      },
+      "piano_active_events": 103,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 15,
+        "bossa_piano_cell_A_1_3and": 18,
+        "bossa_piano_cell_A_1_2and": 18,
+        "bossa_piano_cell_A_1_3": 4,
+        "bossa_piano_cell_A_1": 10,
+        "bossa_piano_cell_B_1and_3and": 4,
+        "bossa_piano_cell_A_1_2_3and": 18,
+        "bossa_piano_half_region_1_2": 12,
+        "bossa_piano_cell_B_1and_4": 2,
+        "bossa_piano_cell_B_1and_3": 2
+      },
+      "piano_non_core_pattern_event_count": 76,
+      "piano_class_A_event_count": 68,
+      "piano_class_B_event_count": 8,
+      "piano_class_B_ratio_of_non_core_events": 0.1053,
+      "short_region_piano_event_count": 12,
+      "short_region_content_family_counts": {
+        "seventh_chord_basic": 6,
+        "rooted_color": 6
+      },
+      "short_region_density_counts": {
+        "4": 12
+      },
+      "short_region_root_included_count": 12,
+      "short_region_span_violation_count": 0,
+      "ordinary_region_content_family_counts": {
+        "seventh_chord_basic": 80,
+        "rooted_color": 11
+      },
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "active_anticipation_count": 14,
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22755,
+      "midi_path": "demos/v2_6_102_blue_bossa_5x_bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 672,
+        "bass": 160,
+        "drums": 977
+      },
+      "piano_active_events": 168,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 24,
+        "bossa_piano_cell_A_1_2_3and": 21,
+        "bossa_piano_cell_A_1_2and": 36,
+        "bossa_piano_cell_B_1and": 2,
+        "bossa_piano_cell_A_1": 15,
+        "bossa_piano_cell_A_1_3and": 32,
+        "bossa_piano_cell_A_1_3": 12,
+        "bossa_piano_half_region_1_2": 20,
+        "bossa_piano_cell_B_1and_3": 4,
+        "bossa_piano_cell_A_1_4and": 2
+      },
+      "piano_non_core_pattern_event_count": 124,
+      "piano_class_A_event_count": 118,
+      "piano_class_B_event_count": 6,
+      "piano_class_B_ratio_of_non_core_events": 0.0484,
+      "short_region_piano_event_count": 20,
+      "short_region_content_family_counts": {
+        "seventh_chord_basic": 10,
+        "rooted_color": 10
+      },
+      "short_region_density_counts": {
+        "4": 20
+      },
+      "short_region_root_included_count": 20,
+      "short_region_span_violation_count": 0,
+      "ordinary_region_content_family_counts": {
+        "seventh_chord_basic": 128,
+        "rooted_color": 20
+      },
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "active_anticipation_count": 23,
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_policy_registered": true,
+      "in_place_boundaries_preserved": true,
+      "voicing_policy_declares_dense_short_region_intent": true,
+      "runtime_blue_bossa_full_band_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_103_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement"
+}
