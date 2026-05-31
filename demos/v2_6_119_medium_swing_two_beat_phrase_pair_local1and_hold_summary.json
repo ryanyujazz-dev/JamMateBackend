@@ -1,0 +1,185 @@
+{
+  "milestone": "v2_6_119_engine_medium_swing_two_beat_phrase_pair_local1and_hold",
+  "outputs": [
+    {
+      "slug": "two_beat_phrase_focus",
+      "midi_path": "/mnt/data/jammate_v26119/JamMateBackend/demos/v2_6_119_two_beat_phrase_focus_medium_swing_two_beat_phrase_pair_demo.mid",
+      "piano_events": 32,
+      "call_start_local2_count": 16,
+      "response_local1and_hold_count": 4,
+      "response_samples": [
+        {
+          "region_id": "c0_b2_ch1",
+          "onset_beat": 10.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.333333333333334,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c1_b1_ch1",
+          "onset_beat": 22.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333321,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c2_b0_ch1",
+          "onset_beat": 34.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333357,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c2_b2_ch1",
+          "onset_beat": 42.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333357,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        }
+      ]
+    },
+    {
+      "slug": "autumn_leaves",
+      "midi_path": "/mnt/data/jammate_v26119/JamMateBackend/demos/v2_6_119_autumn_leaves_medium_swing_two_beat_phrase_pair_demo.mid",
+      "piano_events": 214,
+      "call_start_local2_count": 60,
+      "response_local1and_hold_count": 23,
+      "response_samples": [
+        {
+          "region_id": "c0_b2_ch1",
+          "onset_beat": 10.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.333333333333334,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b5_ch1",
+          "onset_beat": 22.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.0,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b9_ch1",
+          "onset_beat": 38.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333357,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b14_ch1",
+          "onset_beat": 58.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.5,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b18_ch1",
+          "onset_beat": 74.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333286,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b20_ch1",
+          "onset_beat": 82.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333286,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b25_ch1",
+          "onset_beat": 102.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333286,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b30_ch1",
+          "onset_beat": 122.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.5,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        }
+      ]
+    },
+    {
+      "slug": "all_the_things_you_are",
+      "midi_path": "/mnt/data/jammate_v26119/JamMateBackend/demos/v2_6_119_all_the_things_you_are_medium_swing_two_beat_phrase_pair_demo.mid",
+      "piano_events": 198,
+      "call_start_local2_count": 10,
+      "response_local1and_hold_count": 5,
+      "response_samples": [
+        {
+          "region_id": "c0_b5_ch1",
+          "onset_beat": 22.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333321,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c0_b29_ch1",
+          "onset_beat": 118.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333286,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c2_b5_ch1",
+          "onset_beat": 310.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333144,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c2_b13_ch1",
+          "onset_beat": 342.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333144,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        },
+        {
+          "region_id": "c2_b34_ch1",
+          "onset_beat": 426.5,
+          "local_beat": 0.5,
+          "expression_hint": "comp_medium",
+          "duration_beats": 1.3333333333333144,
+          "policy_status": "phrase_response_preferred_after_call",
+          "previous_cell": "start_local2"
+        }
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ from ..disposition.method_lock import (
     method_lock_spec_from_metadata,
 )
 from ..disposition.method_weights import disposition_method_weight_spec_from_metadata
+from ..disposition.closed import compact_closed_parent_candidates_for_projection
 from ..disposition.models import (
     ClosedProjectionMethod,
     DispositionFamily,
@@ -52,7 +53,7 @@ def generate_candidates(symbol: str, policy: VoicingPolicy) -> list[VoicingCandi
     candidates = _maybe_use_grouped_spread_runtime_candidates(symbol, policy, candidates)
     if _method_lock_rescue_runtime_enabled(policy.metadata):
         candidates = _execute_method_lock_rescue_if_needed(symbol, policy, candidates)
-    candidates = _apply_medium_swing_four_note_rotation_alignment(candidates, policy)
+    candidates = _apply_style_neutral_four_note_orientation_alignment(candidates, policy)
     return _apply_medium_swing_deliberate_revoice_micro_motion_policy(candidates, policy)
 
 
@@ -245,29 +246,28 @@ def _coerce_float(value: object, *, default: float) -> float:
         return float(default)
 
 
-def _apply_medium_swing_four_note_rotation_alignment(
+def _apply_style_neutral_four_note_orientation_alignment(
     candidates: list[VoicingCandidate],
     policy: VoicingPolicy,
 ) -> list[VoicingCandidate]:
-    """Filter to the desired generic 4-note follow rotation when safely available.
+    """Filter to the desired style-neutral 4-note follow orientation when safe.
 
-    v2_6_51 generalizes the v2_6_50 rootless-only A/B follow hook.  It consumes
-    policy metadata produced by the realizer's local method-lock scope and can
-    align conservative rooted 4-note rotations, rooted-color 4-note rotations,
-    and rootless A/B rotations under the same contract.  If no matching current
-    candidate exists, the full pool is preserved and annotated for audit.
+    v2_6_117 treats A/B as a progression-level orientation continuity contract,
+    not a Medium Swing-specific trick. It consumes source/orientation metadata
+    produced before DROP projection and only filters to a matching follow
+    orientation when such a candidate exists and passes the motion guard.
     """
 
     if not candidates:
         return candidates
     metadata = dict(policy.metadata or {})
-    if not _four_note_rotation_alignment_policy_applied(metadata):
+    if not _four_note_orientation_alignment_policy_applied(metadata):
         return candidates
 
-    target = _four_note_rotation_alignment_target_from_metadata(metadata)
+    target = _four_note_orientation_alignment_target_from_metadata(metadata)
     if not target.get("desired_ab_side"):
         return [
-            _annotate_four_note_rotation_alignment_candidate(
+            _annotate_four_note_orientation_alignment_candidate(
                 candidate,
                 metadata,
                 applied=False,
@@ -279,10 +279,10 @@ def _apply_medium_swing_four_note_rotation_alignment(
             for candidate in candidates
         ]
 
-    matching = [candidate for candidate in candidates if _candidate_matches_four_note_rotation_alignment(candidate, target)]
+    matching = [candidate for candidate in candidates if _candidate_matches_four_note_orientation_alignment(candidate, target)]
     if not matching:
         return [
-            _annotate_four_note_rotation_alignment_candidate(
+            _annotate_four_note_orientation_alignment_candidate(
                 candidate,
                 metadata,
                 applied=False,
@@ -294,10 +294,10 @@ def _apply_medium_swing_four_note_rotation_alignment(
             for candidate in candidates
         ]
 
-    smoothness_guard = _four_note_rotation_alignment_smoothness_guard(matching, target)
+    smoothness_guard = _four_note_orientation_alignment_smoothness_guard(matching, target)
     if not smoothness_guard.get("passed"):
         return [
-            _annotate_four_note_rotation_alignment_candidate(
+            _annotate_four_note_orientation_alignment_candidate(
                 candidate,
                 metadata,
                 applied=False,
@@ -311,7 +311,7 @@ def _apply_medium_swing_four_note_rotation_alignment(
         ]
 
     return [
-        _annotate_four_note_rotation_alignment_candidate(
+        _annotate_four_note_orientation_alignment_candidate(
             candidate,
             metadata,
             applied=True,
@@ -325,25 +325,61 @@ def _apply_medium_swing_four_note_rotation_alignment(
     ]
 
 
-def _four_note_rotation_alignment_target_from_metadata(metadata: dict) -> dict[str, object]:
-    """Normalize v2_6_51 generic fields plus v2_6_50 rootless aliases."""
+def _four_note_orientation_alignment_target_from_metadata(metadata: dict) -> dict[str, object]:
+    """Normalize v2_6_117 style-neutral fields plus v2_6_51/v2_6_50 aliases.
 
+    Style-neutral orientation continuity should not force a minor-9 source to stay
+    minor-9 when the next chord is an altered dominant; expansion/alter policy
+    owns source color.  Therefore v2_6_117 treats content/source fields as audit
+    anchors by default, while legacy v2_6_51/v2_6_50 direct metadata keeps strict
+    content matching for backward-compatible focused tests.
+    """
+
+    neutral_requested = (
+        "progression_four_note_orientation_alignment_policy_desired_ab_side" in metadata
+        or "progression_four_note_orientation_alignment_policy_runtime_enabled" in metadata
+    )
     desired_ab_side = str(
-        metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_side")
+        metadata.get("progression_four_note_orientation_alignment_policy_desired_ab_side")
+        or metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_side")
         or metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_orientation")
         or ""
     )
-    desired_family = str(metadata.get("medium_swing_four_note_rotation_alignment_desired_family") or "")
+    desired_family = str(
+        metadata.get("progression_four_note_orientation_alignment_policy_desired_family")
+        or metadata.get("medium_swing_four_note_rotation_alignment_desired_family")
+        or ""
+    )
     desired_content_type = str(
-        metadata.get("medium_swing_four_note_rotation_alignment_desired_content_type")
+        metadata.get("progression_four_note_orientation_alignment_policy_desired_content_type")
+        or metadata.get("medium_swing_four_note_rotation_alignment_desired_content_type")
         or metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_content_type")
         or ""
     )
-    desired_source_family = str(metadata.get("medium_swing_four_note_rotation_alignment_desired_source_family") or "")
-    desired_pair_index = metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_pair_index")
-    desired_inversion = metadata.get("medium_swing_four_note_rotation_alignment_desired_inversion_index")
+    desired_source_family = str(
+        metadata.get("progression_four_note_orientation_alignment_policy_desired_source_family")
+        or metadata.get("medium_swing_four_note_rotation_alignment_desired_source_family")
+        or ""
+    )
+    desired_pair_index = metadata.get("progression_four_note_orientation_alignment_policy_desired_ab_pair_index")
+    if desired_pair_index is None:
+        desired_pair_index = metadata.get("medium_swing_four_note_rotation_alignment_desired_ab_pair_index")
+    desired_inversion = metadata.get("progression_four_note_orientation_alignment_policy_desired_inversion_index")
+    if desired_inversion is None:
+        desired_inversion = metadata.get("medium_swing_four_note_rotation_alignment_desired_inversion_index")
     if desired_inversion is None:
         desired_inversion = metadata.get("medium_swing_rootless_ab_orientation_alignment_desired_inversion_index")
+    previous_notes = metadata.get("progression_four_note_orientation_alignment_policy_previous_notes")
+    if previous_notes is None:
+        previous_notes = metadata.get("medium_swing_four_note_rotation_alignment_previous_notes")
+    strict_content = _coerce_bool(
+        metadata.get("progression_four_note_orientation_alignment_policy_enforce_same_content_type"),
+        default=not neutral_requested,
+    )
+    strict_source = _coerce_bool(
+        metadata.get("progression_four_note_orientation_alignment_policy_enforce_same_source_family"),
+        default=not neutral_requested,
+    )
     return {
         "desired_ab_side": desired_ab_side,
         "desired_family": desired_family,
@@ -351,11 +387,12 @@ def _four_note_rotation_alignment_target_from_metadata(metadata: dict) -> dict[s
         "desired_source_family": desired_source_family,
         "desired_pair_index": desired_pair_index,
         "desired_inversion": desired_inversion,
-        "previous_notes": tuple(_coerce_int_sequence(metadata.get("medium_swing_four_note_rotation_alignment_previous_notes"))),
+        "previous_notes": tuple(_coerce_int_sequence(previous_notes)),
+        "strict_content_type": strict_content,
+        "strict_source_family": strict_source,
     }
 
-
-def _candidate_matches_four_note_rotation_alignment(candidate: VoicingCandidate, target: dict[str, object]) -> bool:
+def _candidate_matches_four_note_orientation_alignment(candidate: VoicingCandidate, target: dict[str, object]) -> bool:
     metadata = dict(candidate.metadata or {})
     if not _coerce_bool(metadata.get("four_note_rotation_ab_eligible"), default=False):
         return False
@@ -365,10 +402,10 @@ def _candidate_matches_four_note_rotation_alignment(candidate: VoicingCandidate,
     if desired_family and str(metadata.get("four_note_rotation_family") or "") != desired_family:
         return False
     desired_content_type = str(target.get("desired_content_type") or "")
-    if desired_content_type and str(metadata.get("four_note_rotation_content_type") or "") != desired_content_type:
+    if _coerce_bool(target.get("strict_content_type"), default=True) and desired_content_type and str(metadata.get("four_note_rotation_content_type") or "") != desired_content_type:
         return False
     desired_source_family = str(target.get("desired_source_family") or "")
-    if desired_source_family and str(metadata.get("four_note_rotation_source_family") or "") != desired_source_family:
+    if _coerce_bool(target.get("strict_source_family"), default=True) and desired_source_family and str(metadata.get("four_note_rotation_source_family") or "") != desired_source_family:
         return False
     desired_pair_index = target.get("desired_pair_index")
     if desired_pair_index is not None and str(metadata.get("four_note_rotation_ab_pair_index")) != str(desired_pair_index):
@@ -379,7 +416,7 @@ def _candidate_matches_four_note_rotation_alignment(candidate: VoicingCandidate,
     return True
 
 
-def _four_note_rotation_alignment_smoothness_guard(
+def _four_note_orientation_alignment_smoothness_guard(
     matching_candidates: list[VoicingCandidate],
     target: dict[str, object],
 ) -> dict[str, Any]:
@@ -437,18 +474,20 @@ def _four_note_rotation_motion_stats(previous_notes: Iterable[int], current_note
     }
 
 
-def _four_note_rotation_alignment_smoothness_guard_metadata(smoothness_guard: dict[str, Any] | None) -> dict[str, Any]:
+def _four_note_orientation_alignment_smoothness_guard_metadata(smoothness_guard: dict[str, Any] | None) -> dict[str, Any]:
     if not smoothness_guard:
         return {}
     metadata: dict[str, Any] = {
+        "progression_four_note_orientation_alignment_policy_smoothness_guard_passed": bool(smoothness_guard.get("passed")),
+        "progression_four_note_orientation_alignment_policy_smoothness_guard_reason": smoothness_guard.get("reason"),
         "medium_swing_four_note_rotation_alignment_smoothness_guard_passed": bool(smoothness_guard.get("passed")),
         "medium_swing_four_note_rotation_alignment_smoothness_guard_reason": smoothness_guard.get("reason"),
     }
     for key in ("low_motion_abs", "top_motion_abs", "avg_motion_abs"):
         if key in smoothness_guard:
+            metadata[f"progression_four_note_orientation_alignment_policy_smoothness_guard_{key}"] = smoothness_guard.get(key)
             metadata[f"medium_swing_four_note_rotation_alignment_smoothness_guard_{key}"] = smoothness_guard.get(key)
     return metadata
-
 
 def _coerce_int_sequence(value: object) -> list[int]:
     if value is None:
@@ -461,7 +500,7 @@ def _coerce_int_sequence(value: object) -> list[int]:
         return []
 
 
-def _annotate_four_note_rotation_alignment_candidate(
+def _annotate_four_note_orientation_alignment_candidate(
     candidate: VoicingCandidate,
     policy_metadata: dict,
     *,
@@ -475,13 +514,24 @@ def _annotate_four_note_rotation_alignment_candidate(
     candidate_metadata = dict(candidate.metadata or {})
     metadata = {
         **candidate_metadata,
-        **_medium_swing_four_note_rotation_alignment_policy_metadata(policy_metadata),
+        **_four_note_orientation_alignment_policy_metadata(policy_metadata),
+        "progression_four_note_orientation_alignment_policy_filter_applied": bool(applied),
+        "progression_four_note_orientation_alignment_policy_filter_reason": reason.replace("four_note_rotation", "four_note_orientation"),
+        "progression_four_note_orientation_alignment_policy_candidate_matches": bool(matched),
+        "progression_four_note_orientation_alignment_policy_original_candidate_count": int(original_count),
+        "progression_four_note_orientation_alignment_policy_kept_candidate_count": int(kept_count),
+        "progression_four_note_orientation_alignment_policy_selected_family": candidate_metadata.get("four_note_rotation_family"),
+        "progression_four_note_orientation_alignment_policy_selected_ab_side": candidate_metadata.get("four_note_rotation_ab_side"),
+        "progression_four_note_orientation_alignment_policy_selected_content_type": candidate_metadata.get("four_note_rotation_content_type"),
+        "progression_four_note_orientation_alignment_policy_selected_source_family": candidate_metadata.get("four_note_rotation_source_family"),
+        "progression_four_note_orientation_alignment_policy_selected_ab_pair_index": candidate_metadata.get("four_note_rotation_ab_pair_index"),
+        "progression_four_note_orientation_alignment_policy_selected_inversion_index": candidate_metadata.get("four_note_rotation_inversion_index"),
         "medium_swing_four_note_rotation_alignment_filter_applied": bool(applied),
         "medium_swing_four_note_rotation_alignment_filter_reason": reason,
         "medium_swing_four_note_rotation_alignment_candidate_matches": bool(matched),
         "medium_swing_four_note_rotation_alignment_original_candidate_count": int(original_count),
         "medium_swing_four_note_rotation_alignment_kept_candidate_count": int(kept_count),
-        **_four_note_rotation_alignment_smoothness_guard_metadata(smoothness_guard),
+        **_four_note_orientation_alignment_smoothness_guard_metadata(smoothness_guard),
         "medium_swing_four_note_rotation_alignment_selected_family": candidate_metadata.get("four_note_rotation_family"),
         "medium_swing_four_note_rotation_alignment_selected_ab_side": candidate_metadata.get("four_note_rotation_ab_side"),
         "medium_swing_four_note_rotation_alignment_selected_content_type": candidate_metadata.get("four_note_rotation_content_type"),
@@ -522,8 +572,37 @@ def _rootless_ab_alignment_alias_candidate_metadata(
     }
 
 
-def _medium_swing_four_note_rotation_alignment_policy_metadata(policy_metadata: dict) -> dict:
-    keys = (
+def _four_note_orientation_alignment_policy_metadata(policy_metadata: dict) -> dict:
+    neutral_keys = (
+        "progression_four_note_orientation_alignment_policy_version",
+        "progression_four_note_orientation_alignment_policy_runtime_enabled",
+        "progression_four_note_orientation_alignment_policy_applied",
+        "progression_four_note_orientation_alignment_policy_reason",
+        "progression_four_note_orientation_alignment_policy_pair_type",
+        "progression_four_note_orientation_alignment_policy_previous_region_id",
+        "progression_four_note_orientation_alignment_policy_current_region_id",
+        "progression_four_note_orientation_alignment_policy_previous_family",
+        "progression_four_note_orientation_alignment_policy_desired_family",
+        "progression_four_note_orientation_alignment_policy_previous_ab_side",
+        "progression_four_note_orientation_alignment_policy_desired_ab_side",
+        "progression_four_note_orientation_alignment_policy_previous_content_type",
+        "progression_four_note_orientation_alignment_policy_desired_content_type",
+        "progression_four_note_orientation_alignment_policy_previous_source_family",
+        "progression_four_note_orientation_alignment_policy_desired_source_family",
+        "progression_four_note_orientation_alignment_policy_previous_ab_pair_index",
+        "progression_four_note_orientation_alignment_policy_desired_ab_pair_index",
+        "progression_four_note_orientation_alignment_policy_previous_inversion_index",
+        "progression_four_note_orientation_alignment_policy_desired_inversion_index",
+        "progression_four_note_orientation_alignment_policy_previous_notes",
+        "progression_four_note_orientation_alignment_policy_runtime_filtering_enabled",
+        "progression_four_note_orientation_alignment_policy_mode",
+        "progression_four_note_orientation_alignment_policy_scope",
+        "progression_four_note_orientation_alignment_policy_style",
+        "style_neutral_four_note_orientation_alignment_no_voicing_projection_change",
+        "style_neutral_four_note_orientation_alignment_no_source_inventory_change",
+        "style_neutral_four_note_orientation_alignment_no_selector_change",
+    )
+    medium_swing_keys = (
         "medium_swing_four_note_rotation_alignment_version",
         "medium_swing_four_note_rotation_alignment_runtime_enabled",
         "medium_swing_four_note_rotation_alignment_policy_applied",
@@ -548,8 +627,8 @@ def _medium_swing_four_note_rotation_alignment_policy_metadata(policy_metadata: 
         "medium_swing_four_note_rotation_alignment_mode",
         "medium_swing_four_note_rotation_alignment_scope",
     )
+    keys = (*neutral_keys, *medium_swing_keys)
     return {key: policy_metadata.get(key) for key in keys if key in policy_metadata}
-
 
 def _medium_swing_rootless_ab_orientation_alignment_policy_metadata(policy_metadata: dict) -> dict:
     keys = (
@@ -573,15 +652,18 @@ def _medium_swing_rootless_ab_orientation_alignment_policy_metadata(policy_metad
     return {key: policy_metadata.get(key) for key in keys if key in policy_metadata}
 
 
-def _four_note_rotation_alignment_policy_applied(metadata: dict | None) -> bool:
+def _four_note_orientation_alignment_policy_applied(metadata: dict | None) -> bool:
     metadata = dict(metadata or {})
-    generic_enabled = _coerce_bool(metadata.get("medium_swing_four_note_rotation_alignment_runtime_enabled"), default=False) and _coerce_bool(
+    neutral_enabled = _coerce_bool(metadata.get("progression_four_note_orientation_alignment_policy_runtime_enabled"), default=False) and _coerce_bool(
+        metadata.get("progression_four_note_orientation_alignment_policy_applied"),
+        default=False,
+    ) and _coerce_bool(metadata.get("progression_four_note_orientation_alignment_policy_runtime_filtering_enabled"), default=False)
+    medium_swing_enabled = _coerce_bool(metadata.get("medium_swing_four_note_rotation_alignment_runtime_enabled"), default=False) and _coerce_bool(
         metadata.get("medium_swing_four_note_rotation_alignment_policy_applied"),
         default=False,
     ) and _coerce_bool(metadata.get("medium_swing_four_note_rotation_alignment_runtime_filtering_enabled"), default=False)
     legacy_enabled = _rootless_ab_alignment_policy_applied(metadata)
-    return bool(generic_enabled or legacy_enabled)
-
+    return bool(neutral_enabled or medium_swing_enabled or legacy_enabled)
 
 def _rootless_ab_alignment_policy_applied(metadata: dict | None) -> bool:
     metadata = dict(metadata or {})
@@ -592,11 +674,18 @@ def _rootless_ab_alignment_policy_applied(metadata: dict | None) -> bool:
 
 
 # Backward-compatible public-ish helper names retained for older focused tests.
+def _apply_medium_swing_four_note_rotation_alignment(
+    candidates: list[VoicingCandidate],
+    policy: VoicingPolicy,
+) -> list[VoicingCandidate]:
+    return _apply_style_neutral_four_note_orientation_alignment(candidates, policy)
+
+
 def _apply_medium_swing_rootless_ab_orientation_alignment(
     candidates: list[VoicingCandidate],
     policy: VoicingPolicy,
 ) -> list[VoicingCandidate]:
-    return _apply_medium_swing_four_note_rotation_alignment(candidates, policy)
+    return _apply_style_neutral_four_note_orientation_alignment(candidates, policy)
 
 
 def _candidate_matches_rootless_ab_alignment(
@@ -606,7 +695,7 @@ def _candidate_matches_rootless_ab_alignment(
     desired_content_type: str,
     desired_inversion,
 ) -> bool:
-    return _candidate_matches_four_note_rotation_alignment(
+    return _candidate_matches_four_note_orientation_alignment(
         candidate,
         {
             "desired_family": "rootless_ab",
@@ -1430,27 +1519,22 @@ def _project_closed_parent_candidates_for_named_open_projection(
     policy: VoicingPolicy,
     validity_notes: tuple[str, ...] = (),
 ) -> list[list[tuple[str, int]]]:
-    """Return closed parent variants for project-then-filter DROP methods.
+    """Return compact closed parent variants for project-then-filter DROP methods.
 
-    DROP2, DROP3, and DROP2&4 should not inherit a single pre-selected closed
-    parent.  They need all source/orientation-aware closed register variants so
-    the dropped projections can be filtered by their own raised drop-register
-    guard and then selected.
+    DROP2, DROP3, and DROP2&4 are projections of compact CLOSED parents.  The
+    previous wiring reused ordinary CLOSED runtime placement variants; when a
+    style such as Bossa did not enable strict compact-closed metadata, those
+    "parents" could already be open/spread shapes such as ``[53, 56, 67, 71]``.
+    Dropping from those non-compact parents produced illegal-sounding shapes
+    like ``[53, 55, 56, 71]`` while still being labelled DROP2.
+
+    v2_6_111 hardens that boundary: named OPEN drop-family methods only accept
+    parents from the compact closed-parent helper.  If no compact parent exists,
+    this method returns an empty list so the named OPEN candidate is not emitted
+    rather than silently falling back to a non-compact legacy parent.
     """
 
-    seed = _project_closed_parent_for_named_open_projection(chord, degrees, family, policy, validity_notes)
-    variants = register_variants(seed, policy, Disposition.CLOSED) if seed else []
-    if not variants:
-        return [seed] if seed else []
-    out: list[list[tuple[str, int]]] = []
-    seen: set[tuple[tuple[str, int], ...]] = set()
-    for variant in variants:
-        key = tuple((str(degree), int(note)) for degree, note in sorted(variant, key=lambda item: item[1]))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(list(key))
-    return out
+    return compact_closed_parent_candidates_for_projection(chord.root_pc, degrees, policy)
 
 
 

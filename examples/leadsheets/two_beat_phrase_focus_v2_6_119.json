@@ -1,0 +1,74 @@
+{
+  "schema_version": "jammate_leadsheet_v2",
+  "title": "Two Beat Phrase Focus",
+  "key": "C",
+  "tempo": 132,
+  "default_time_signature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "metadata": {
+    "fixture_role": "v2_6_119_phrase_focus",
+    "melody_not_included": true
+  },
+  "sections": {
+    "A": {
+      "label": "A",
+      "phrase": "A",
+      "role": "normal",
+      "bars": [
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "G7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "A7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Dm7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "G7"
+            }
+          ]
+        },
+        {
+          "chords": [
+            {
+              "beat": 1.0,
+              "symbol": "Cmaj7"
+            },
+            {
+              "beat": 3.0,
+              "symbol": "A7"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "written_form": [
+    "A"
+  ]
+}

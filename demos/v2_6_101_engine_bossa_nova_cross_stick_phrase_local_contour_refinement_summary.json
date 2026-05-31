@@ -1,0 +1,289 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_101 — Engine Bossa Nova Cross-stick Phrase-local Contour Refinement",
+  "scope": "Refine the existing Bossa cross-stick layer in place. The same shaker/cross-stick/light-kick percussion candidate remains active, but cross-stick events now carry phrase-local A/B slots and arc-aware contour-density metadata. The shared percussion realizer maps those semantic slots to small velocity-shape offsets. No piano, bass, core voicing, API, Agent, HarmonyOS, or parallel percussion selector change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_101",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "policy_active": true,
+    "policy_version": "v2_6_101",
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_new_pattern_vocabulary": true,
+    "no_piano_bass_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "tracks": [
+      "drums"
+    ],
+    "full_A_cross_slots": [
+      "A_beat1_phrase_anchor",
+      "A_2and_syncopated_answer",
+      "A_beat4_phrase_tail"
+    ],
+    "full_B_cross_slots": [
+      "B_beat2_response_anchor",
+      "B_3and_light_answer"
+    ],
+    "breath_A_cross_slots": [
+      "A_beat1_phrase_anchor",
+      "A_2and_syncopated_answer"
+    ],
+    "release_A_cross_slots": [
+      "A_beat1_phrase_anchor",
+      "A_2and_syncopated_answer"
+    ],
+    "release_B_cross_slots": [
+      "B_beat2_response_anchor"
+    ],
+    "split_cross_slots": [
+      "split_region_light_mark"
+    ],
+    "full_A_cross_beats": [
+      0.0,
+      1.5,
+      3.0
+    ],
+    "full_B_cross_beats": [
+      1.0,
+      2.5
+    ],
+    "cross_contour_versions": [
+      "v2_6_101"
+    ],
+    "cross_contour_density_values": [
+      "breath_space_reduced",
+      "settled_release_sparse",
+      "split_region_single_mark",
+      "warm_flow_full"
+    ],
+    "forbidden_pattern_numeric_keys": [],
+    "recommended_next_task": "v2_6_102_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23101,
+      "midi_path": "demos/v2_6_101_blue_bossa_3x_bossa_nova_cross_stick_phrase_local_contour_refinement_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 332,
+        "bass": 96,
+        "drums": 585
+      },
+      "piano_notes": 332,
+      "bass_notes": 96,
+      "drums_notes": 585,
+      "planned_drum_event_count": 585,
+      "planned_cross_stick_event_count": 105,
+      "planned_cross_stick_contour_event_count": 105,
+      "planned_cross_stick_contour_coverage_ratio": 1.0,
+      "cross_stick_phrase_patterns_present": [
+        "A",
+        "B",
+        "split"
+      ],
+      "cross_stick_phrase_slot_counts": {
+        "A_beat1_phrase_anchor": 24,
+        "A_2and_syncopated_answer": 24,
+        "A_beat4_phrase_tail": 16,
+        "B_beat2_response_anchor": 21,
+        "B_3and_light_answer": 14,
+        "split_region_light_mark": 6
+      },
+      "cross_stick_contour_density_counts": {
+        "identity_clear": 38,
+        "split_region_single_mark": 6,
+        "gentle_lift_clear": 38,
+        "settled_release_sparse": 23
+      },
+      "realized_cross_stick_velocity_set": [
+        24,
+        25,
+        29,
+        30,
+        31,
+        32,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        49,
+        50,
+        51,
+        52
+      ],
+      "realized_cross_stick_velocity_unique_count": 22,
+      "realized_cross_stick_slot_average_velocity": {
+        "A_2and_syncopated_answer": 34.46,
+        "A_beat1_phrase_anchor": 42.33,
+        "A_beat4_phrase_tail": 47.0,
+        "B_3and_light_answer": 38.57,
+        "B_beat2_response_anchor": 41.33,
+        "split_region_light_mark": 32.0
+      },
+      "realized_cross_stick_density_minmax_velocity": {
+        "gentle_lift_clear": [
+          40,
+          52
+        ],
+        "identity_clear": [
+          35,
+          46
+        ],
+        "settled_release_sparse": [
+          24,
+          32
+        ],
+        "split_region_single_mark": [
+          24,
+          38
+        ]
+      },
+      "breath_A_tail_push_events": 0,
+      "release_tail_push_events": 0,
+      "split_cross_mark_events": 6,
+      "drum_swing_or_rock_events": 0,
+      "cross_stick_timing_intents": [
+        "straight_even_not_swing"
+      ]
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23106,
+      "midi_path": "demos/v2_6_101_blue_bossa_5x_bossa_nova_cross_stick_phrase_local_contour_refinement_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 556,
+        "bass": 160,
+        "drums": 977
+      },
+      "piano_notes": 556,
+      "bass_notes": 160,
+      "drums_notes": 977,
+      "planned_drum_event_count": 977,
+      "planned_cross_stick_event_count": 177,
+      "planned_cross_stick_contour_event_count": 177,
+      "planned_cross_stick_contour_coverage_ratio": 1.0,
+      "cross_stick_phrase_patterns_present": [
+        "A",
+        "B",
+        "split"
+      ],
+      "cross_stick_phrase_slot_counts": {
+        "A_beat1_phrase_anchor": 40,
+        "A_2and_syncopated_answer": 40,
+        "A_beat4_phrase_tail": 24,
+        "B_beat2_response_anchor": 35,
+        "B_3and_light_answer": 28,
+        "split_region_light_mark": 10
+      },
+      "cross_stick_contour_density_counts": {
+        "identity_clear": 38,
+        "split_region_single_mark": 10,
+        "warm_flow_full": 38,
+        "breath_space_reduced": 30,
+        "gentle_lift_clear": 38,
+        "settled_release_sparse": 23
+      },
+      "realized_cross_stick_velocity_set": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        49,
+        50,
+        51,
+        52
+      ],
+      "realized_cross_stick_velocity_unique_count": 26,
+      "realized_cross_stick_slot_average_velocity": {
+        "A_2and_syncopated_answer": 33.65,
+        "A_beat1_phrase_anchor": 41.4,
+        "A_beat4_phrase_tail": 45.96,
+        "B_3and_light_answer": 35.0,
+        "B_beat2_response_anchor": 40.43,
+        "split_region_light_mark": 31.5
+      },
+      "realized_cross_stick_density_minmax_velocity": {
+        "breath_space_reduced": [
+          26,
+          36
+        ],
+        "gentle_lift_clear": [
+          40,
+          52
+        ],
+        "identity_clear": [
+          35,
+          46
+        ],
+        "settled_release_sparse": [
+          24,
+          32
+        ],
+        "split_region_single_mark": [
+          24,
+          38
+        ],
+        "warm_flow_full": [
+          35,
+          46
+        ]
+      },
+      "breath_A_tail_push_events": 0,
+      "release_tail_push_events": 0,
+      "split_cross_mark_events": 10,
+      "drum_swing_or_rock_events": 0,
+      "cross_stick_timing_intents": [
+        "straight_even_not_swing"
+      ]
+    }
+  ],
+  "acceptance": {
+    "checks": {
+      "style_and_policy_registered": true,
+      "boundary_preserved": true,
+      "pattern_layer_stays_semantic": true,
+      "full_region_A_B_slots_are_phrase_local": true,
+      "breath_and_release_remove_forward_tail": true,
+      "runtime_blue_bossa_cross_stick_contour_passes": true
+    },
+    "passed": true
+  },
+  "recommended_next_task": "v2_6_102_engine_bossa_nova_kick_bass_lock_and_low_frequency_shadow_refinement"
+}

@@ -30,7 +30,8 @@ def test_voicing_content_planner_exports_v2_0_33_content_recipe_contract() -> No
 
     assert recipe.family == ContentFamily.ROOTLESS_A
     assert recipe.degree_names == ("3", "13", "b7", "5")
-    assert debug["density_recipe"]["recipe_id"] == "d4__2plus2__rootless_A__rootless_allowed"
+    assert debug["density_recipe"]["recipe_id"] == "d4__unGrouped__rootless_A__rootless_allowed"
+    assert debug["density_recipe"]["functional_grouping"] is None
     assert debug["harmony_material"]["available_tensions"] == ["9", "13"]
     assert "rootless_ab_explicit_chord_symbol_color_used" in recipe.validity_notes
 

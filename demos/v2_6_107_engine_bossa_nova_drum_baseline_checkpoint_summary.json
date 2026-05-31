@@ -1,0 +1,174 @@
+{
+  "checkpoint_version": "v2_6_107",
+  "engine_version_tag": "v2_10_28",
+  "scope": "Bossa drum baseline checkpoint after shaker microdynamics, cross-stick phrase-local contour, kick/bass low-frequency shadow lock, and sparse light marker policy. Metadata/audit/demo only; no new drum behavior.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_107",
+    "engine_version_tag": "v2_10_28",
+    "policy_active": true,
+    "policy_version": "v2_6_107",
+    "policy_behavior_change": false,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_new_drum_vocabulary": true,
+    "no_piano_bass_voicing_change": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "completed_versions": [
+      "v2_6_100",
+      "v2_6_101",
+      "v2_6_105",
+      "v2_6_106"
+    ],
+    "candidate_active": true,
+    "candidate_version": "v2_6_107",
+    "candidate_behavior_change": false,
+    "candidate_tags": [
+      "bossa",
+      "drums",
+      "shaker",
+      "cross_stick",
+      "light_kick",
+      "light_marker",
+      "drum_baseline_checkpoint",
+      "not_swing_ride",
+      "not_rock_backbeat",
+      "chord_region_first"
+    ],
+    "event_count": 13,
+    "candidate_event_checkpoint_coverage_ratio": 1.0,
+    "has_shaker_microdynamic": true,
+    "has_cross_stick_contour": true,
+    "has_kick_bass_lock": true,
+    "has_light_marker_policy": true,
+    "forbidden_pattern_numeric_keys": [],
+    "recommended_next_task": "v2_6_108_engine_bossa_nova_drum_listening_refinement_or_freeze"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23107,
+      "midi_path": "demos/v2_6_107_blue_bossa_3x_bossa_nova_drum_baseline_checkpoint_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 416,
+        "bass": 96,
+        "drums": 593
+      },
+      "piano_notes": 416,
+      "bass_notes": 96,
+      "drums_notes": 593,
+      "planned_drum_event_count": 593,
+      "checkpoint_event_count": 593,
+      "checkpoint_coverage_ratio": 1.0,
+      "shaker_microdynamic_event_count": 384,
+      "cross_stick_contour_event_count": 113,
+      "kick_bass_lock_event_count": 96,
+      "light_marker_event_count": 8,
+      "marker_kind_counts": {
+        "phrase_end_micro": 4,
+        "turnaround_light": 2,
+        "ending_soft": 2
+      },
+      "drum_swing_or_rock_events": 0,
+      "tom_crash_roll_marker_events": 0,
+      "velocity_ranges": {
+        "cross_stick": [
+          24,
+          52
+        ],
+        "kick": [
+          20,
+          39
+        ],
+        "marker": [
+          32,
+          41
+        ],
+        "shaker": [
+          22,
+          42
+        ]
+      },
+      "unique_velocity_counts": {
+        "cross_stick": 22,
+        "kick": 16,
+        "marker": 7,
+        "shaker": 21
+      }
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23113,
+      "midi_path": "demos/v2_6_107_blue_bossa_5x_bossa_nova_drum_baseline_checkpoint_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 668,
+        "bass": 160,
+        "drums": 989
+      },
+      "piano_notes": 668,
+      "bass_notes": 160,
+      "drums_notes": 989,
+      "planned_drum_event_count": 989,
+      "checkpoint_event_count": 989,
+      "checkpoint_coverage_ratio": 1.0,
+      "shaker_microdynamic_event_count": 640,
+      "cross_stick_contour_event_count": 189,
+      "kick_bass_lock_event_count": 160,
+      "light_marker_event_count": 12,
+      "marker_kind_counts": {
+        "phrase_end_micro": 8,
+        "turnaround_light": 2,
+        "ending_soft": 2
+      },
+      "drum_swing_or_rock_events": 0,
+      "tom_crash_roll_marker_events": 0,
+      "velocity_ranges": {
+        "cross_stick": [
+          24,
+          52
+        ],
+        "kick": [
+          20,
+          39
+        ],
+        "marker": [
+          32,
+          40
+        ],
+        "shaker": [
+          22,
+          42
+        ]
+      },
+      "unique_velocity_counts": {
+        "cross_stick": 26,
+        "kick": 17,
+        "marker": 7,
+        "shaker": 21
+      }
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "policy_declares_drum_checkpoint": true,
+      "checkpoint_is_metadata_only": true,
+      "no_parallel_or_bar_first": true,
+      "no_new_vocabulary_or_cross_track_change": true,
+      "candidate_events_stamped": true,
+      "static_layers_present": true,
+      "no_pattern_numeric_values": true,
+      "runtime_blue_bossa_drum_checkpoint_pass": true
+    }
+  }
+}

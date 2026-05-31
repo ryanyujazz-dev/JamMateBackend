@@ -24,6 +24,8 @@ MEDIUM_SWING_ROOTLESS_AB_ORIENTATION_ALIGNMENT_VERSION = "v2_6_50"
 MEDIUM_SWING_FOUR_NOTE_ROTATION_ALIGNMENT_VERSION = "v2_6_51"
 MEDIUM_SWING_DELIBERATE_REVOICE_GESTURE_BOUNDARY_VERSION = "v2_6_54"
 MEDIUM_SWING_DELIBERATE_REVOICE_MICRO_MOTION_POLICY_VERSION = "v2_6_55"
+STYLE_NEUTRAL_PROGRESSION_METHOD_LOCK_WIRING_VERSION = "v2_6_116"
+STYLE_NEUTRAL_FOUR_NOTE_ORIENTATION_ALIGNMENT_WIRING_VERSION = "v2_6_117"
 
 REALIZER_VOICING_REQUEST_ORCHESTRATION_OWNED_RESPONSIBILITIES: tuple[str, ...] = (
     "style_voicing_policy_input_coercion",
@@ -31,9 +33,11 @@ REALIZER_VOICING_REQUEST_ORCHESTRATION_OWNED_RESPONSIBILITIES: tuple[str, ...] =
     "one_default_voicing_selection_per_chord_region_cache",
     "explicit_fresh_revoicing_escape_hatch",
     "region_voicing_reuse_metadata_attachment",
-    "medium_swing_phrase_scope_method_lock_policy_runtime_wiring",
-    "medium_swing_rootless_ab_orientation_alignment_runtime_wiring",
-    "medium_swing_four_note_rotation_alignment_runtime_wiring",
+    "style_neutral_progression_method_lock_runtime_wiring",
+    "style_neutral_four_note_orientation_alignment_runtime_wiring",
+    "medium_swing_phrase_scope_method_lock_policy_runtime_wiring_compatibility_alias",
+    "medium_swing_rootless_ab_orientation_alignment_runtime_wiring_compatibility_alias",
+    "medium_swing_four_note_rotation_alignment_runtime_wiring_compatibility_alias",
     "medium_swing_deliberate_revoice_gesture_boundary_runtime_wiring",
     "medium_swing_deliberate_revoice_micro_motion_policy_runtime_wiring",
 )
@@ -106,11 +110,11 @@ class RealizerVoicingRequestOrchestrator:
     def __init__(self, rng=None) -> None:
         self.voicing_resolver = VoicingResolver(rng=rng)
         self.region_voicing_cache: RegionVoicingCache = {}
-        self.medium_swing_method_lock_seed: dict[str, Any] | None = None
+        self.progression_method_lock_seed: dict[str, Any] | None = None
 
     def begin_realization_pass(self) -> None:
         self.region_voicing_cache = {}
-        self.medium_swing_method_lock_seed = None
+        self.progression_method_lock_seed = None
 
     def resolve_event_voicing(
         self,
@@ -125,16 +129,17 @@ class RealizerVoicingRequestOrchestrator:
         fresh_request = deliberate_revoice_request_from_event(event)
         if cached is None or fresh_request["requested"]:
             event_policy = policy_with_event_voicing_context(base_policy, event)
-            event_policy = self._policy_with_medium_swing_phrase_scope_method_lock(event_policy, event)
+            event_policy = self._policy_with_style_neutral_progression_method_lock(event_policy, event)
             if cached is not None and fresh_request["requested"]:
                 event_policy = policy_with_deliberate_revoice_micro_motion_context(
                     event_policy,
                     previous_voicing=cached,
                     request=fresh_request,
                 )
+            request_chord_symbol = voicing_request_chord_symbol(event, event_policy)
             req = VoicingRequest(
                 event_id=event.event_id,
-                chord_symbol=event.chord_symbol,
+                chord_symbol=request_chord_symbol,
                 track=event.track,
                 gesture_type=event.gesture_type,
                 gesture=event.gesture,
@@ -144,6 +149,21 @@ class RealizerVoicingRequestOrchestrator:
                 onset_beat=event.onset_beat,
             )
             voicing = self.voicing_resolver.resolve(req)
+            if request_chord_symbol != event.chord_symbol:
+                voicing = replace(
+                    voicing,
+                    metadata={
+                        **dict(getattr(voicing, "metadata", {}) or {}),
+                        "voicing_request_chord_symbol_override_applied": True,
+                        "voicing_request_original_chord_symbol": event.chord_symbol,
+                        "voicing_request_effective_chord_symbol": request_chord_symbol,
+                        "voicing_request_chord_symbol_override_source": dict(event_policy.metadata or {}).get("voicing_request_chord_symbol_override_source"),
+                        "bossa_high_color_harmonic_expansion_policy_version": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_policy_version"),
+                        "bossa_high_color_harmonic_expansion_applied": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_applied"),
+                        "bossa_high_color_harmonic_expansion_color_family": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_color_family"),
+                        "bossa_high_color_harmonic_expansion_no_voicing_module_change": dict(event_policy.metadata or {}).get("bossa_high_color_harmonic_expansion_no_voicing_module_change"),
+                    },
+                )
             if cached is not None and fresh_request["requested"]:
                 voicing = annotate_deliberate_revoice_gesture_boundary(
                     voicing,
@@ -152,16 +172,16 @@ class RealizerVoicingRequestOrchestrator:
                     request=fresh_request,
                 )
             self.region_voicing_cache[cache_key] = voicing
-            self._record_medium_swing_phrase_scope_method_lock_seed(event_policy, event, voicing)
+            self._record_style_neutral_progression_method_lock_seed(event_policy, event, voicing)
             return voicing
         return reuse_region_voicing(cached, event.event_id)
 
-    def _policy_with_medium_swing_phrase_scope_method_lock(
+    def _policy_with_style_neutral_progression_method_lock(
         self,
         policy: VoicingPolicy,
         event: PatternEvent,
     ) -> VoicingPolicy:
-        """Apply v2_6_49 Medium Swing local progression method lock metadata.
+        """Apply style-neutral local progression method lock metadata.
 
         This is orchestration-only wiring. It reuses the existing core harmony
         functional-motion classifier and the existing method-lock candidate
@@ -170,13 +190,13 @@ class RealizerVoicingRequestOrchestrator:
         """
 
         metadata = dict(policy.metadata or {})
-        if not _medium_swing_phrase_scope_method_lock_enabled(metadata):
+        if not _progression_method_lock_enabled(metadata):
             return policy
 
-        seed = self.medium_swing_method_lock_seed
+        seed = self.progression_method_lock_seed
         current_region_id = str(getattr(event, "region_id", "") or "")
         if not seed or str(seed.get("region_id") or "") == current_region_id:
-            return _policy_with_medium_swing_method_lock_debug(
+            return _policy_with_progression_method_lock_debug(
                 policy,
                 applied=False,
                 reason="no_previous_distinct_seed_region",
@@ -184,7 +204,7 @@ class RealizerVoicingRequestOrchestrator:
 
         current_scope_id = str(metadata.get("voicing_texture_runtime_scope_id") or metadata.get("texture_scope_id") or "")
         if current_scope_id and str(seed.get("texture_scope_id") or "") != current_scope_id:
-            return _policy_with_medium_swing_method_lock_debug(
+            return _policy_with_progression_method_lock_debug(
                 policy,
                 applied=False,
                 reason="texture_scope_boundary",
@@ -193,8 +213,8 @@ class RealizerVoicingRequestOrchestrator:
             )
 
         previous_method = str(seed.get("method") or "")
-        if previous_method not in _MEDIUM_SWING_METHOD_LOCK_SEED_METHODS:
-            return _policy_with_medium_swing_method_lock_debug(
+        if previous_method not in _PROGRESSION_METHOD_LOCK_SEED_METHODS:
+            return _policy_with_progression_method_lock_debug(
                 policy,
                 applied=False,
                 reason="previous_method_not_propagated",
@@ -209,8 +229,8 @@ class RealizerVoicingRequestOrchestrator:
             next_chord_symbol=metadata.get("next_chord_symbol"),
         )
         pair_type = str(motion.previous_to_current_type or "")
-        if pair_type not in _MEDIUM_SWING_METHOD_LOCK_PAIR_TYPES:
-            return _policy_with_medium_swing_method_lock_debug(
+        if pair_type not in _PROGRESSION_METHOD_LOCK_PAIR_TYPES:
+            return _policy_with_progression_method_lock_debug(
                 policy,
                 applied=False,
                 reason="not_local_functional_progression",
@@ -220,7 +240,7 @@ class RealizerVoicingRequestOrchestrator:
             )
 
         next_region_id = "next" if metadata.get("next_chord_symbol") else ""
-        scope_id = _medium_swing_method_lock_scope_id(seed, current_region_id, current_scope_id, pair_type)
+        scope_id = _progression_method_lock_scope_id(metadata, seed, current_region_id, current_scope_id, pair_type)
         previous_region_id = str(seed.get("region_id") or "previous")
         scope_plan = method_lock_scope_plan_from_functional_motion(
             motion,
@@ -229,10 +249,10 @@ class RealizerVoicingRequestOrchestrator:
             next_region_id=next_region_id,
             scope_id=scope_id,
             mode="strict",
-            source="medium_swing_phrase_scope_method_lock_policy",
+            source="style_neutral_progression_method_lock_policy",
         )
         if not scope_plan.enabled:
-            scope_plan = _medium_swing_pair_method_lock_scope_plan(
+            scope_plan = _progression_pair_method_lock_scope_plan(
                 motion=motion,
                 previous_region_id=previous_region_id,
                 current_region_id=current_region_id or "current",
@@ -247,7 +267,7 @@ class RealizerVoicingRequestOrchestrator:
             runtime_filtering_enabled=True,
         )
         if not follow_metadata.get("voicing_method_lock_scope_runtime_wiring_enabled"):
-            return _policy_with_medium_swing_method_lock_debug(
+            return _policy_with_progression_method_lock_debug(
                 policy,
                 applied=False,
                 reason="follow_metadata_not_enabled",
@@ -258,20 +278,18 @@ class RealizerVoicingRequestOrchestrator:
 
         locked = {**metadata, **follow_metadata}
         locked.update(
-            {
-                "medium_swing_phrase_scope_method_lock_policy_version": MEDIUM_SWING_PHRASE_SCOPE_METHOD_LOCK_POLICY_VERSION,
-                "medium_swing_phrase_scope_method_lock_policy_runtime_enabled": True,
-                "medium_swing_phrase_scope_method_lock_policy_applied": True,
-                "medium_swing_phrase_scope_method_lock_policy_reason": "local_progression_follow_region_locked_to_previous_method",
-                "medium_swing_phrase_scope_method_lock_policy_pair_type": pair_type,
-                "medium_swing_phrase_scope_method_lock_policy_previous_region_id": str(seed.get("region_id") or ""),
-                "medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol": previous_chord_symbol,
-                "medium_swing_phrase_scope_method_lock_policy_previous_method": previous_method,
-                "medium_swing_phrase_scope_method_lock_policy_current_region_id": current_region_id,
-                "method_lock_rescue_runtime_enabled": True,
-            }
+            _progression_method_lock_metadata(
+                metadata,
+                applied=True,
+                reason="local_progression_follow_region_locked_to_previous_method",
+                pair_type=pair_type,
+                previous_region_id=str(seed.get("region_id") or ""),
+                previous_chord_symbol=previous_chord_symbol,
+                previous_method=previous_method,
+                current_region_id=current_region_id,
+            )
         )
-        locked = _metadata_with_medium_swing_four_note_rotation_alignment(
+        locked = _metadata_with_style_neutral_four_note_orientation_alignment(
             locked,
             seed=seed,
             current_region_id=current_region_id,
@@ -279,27 +297,27 @@ class RealizerVoicingRequestOrchestrator:
         )
         return replace(policy, metadata=locked)
 
-    def _record_medium_swing_phrase_scope_method_lock_seed(
+    def _record_style_neutral_progression_method_lock_seed(
         self,
         policy: VoicingPolicy,
         event: PatternEvent,
         voicing: VoicingPlan,
     ) -> None:
         metadata = dict(policy.metadata or {})
-        if not _medium_swing_phrase_scope_method_lock_enabled(metadata):
+        if not _progression_method_lock_enabled(metadata):
             return
 
         voicing_metadata = dict(voicing.metadata or {})
         family = str(voicing_metadata.get("disposition_projection_family") or "")
         method = str(voicing_metadata.get("disposition_projection_method") or "")
-        if family != "open" or method not in _MEDIUM_SWING_METHOD_LOCK_RECORDED_METHODS:
+        if family != "open" or method not in _PROGRESSION_METHOD_LOCK_RECORDED_METHODS:
             return
 
         region_id = str(getattr(event, "region_id", "") or "")
-        if self.medium_swing_method_lock_seed and str(self.medium_swing_method_lock_seed.get("region_id") or "") == region_id:
+        if self.progression_method_lock_seed and str(self.progression_method_lock_seed.get("region_id") or "") == region_id:
             return
 
-        self.medium_swing_method_lock_seed = {
+        self.progression_method_lock_seed = {
             "region_id": region_id,
             "event_id": str(getattr(event, "event_id", "") or ""),
             "chord_symbol": str(getattr(event, "chord_symbol", "") or ""),
@@ -310,36 +328,56 @@ class RealizerVoicingRequestOrchestrator:
         }
 
 
-def _metadata_with_medium_swing_four_note_rotation_alignment(
+def _metadata_with_style_neutral_four_note_orientation_alignment(
     metadata: dict[str, Any],
     *,
     seed: dict[str, Any],
     current_region_id: str,
     pair_type: str,
 ) -> dict[str, Any]:
-    """Attach v2_6_51 generic 4-note rotation alignment intent.
+    """Attach style-neutral progression four-note orientation continuity intent.
 
-    This generalizes the v2_6_50 rootless-only A/B follow contract.  The realizer
-    only carries the selected seed's source-rotation metadata forward; candidate
-    generation decides whether a matching current candidate exists and whether
-    filtering can safely apply.
+    This is the v2_6_117 first-principles contract: source/color has already
+    been decided before this point, method lock has already established the
+    local progression scope, and this helper only carries the selected seed's
+    generic four-note A/B orientation metadata forward.  Candidate generation
+    may then filter to a matching follow orientation when a safe candidate is
+    available.  No voicing source, DROP projection, selector scoring, or MIDI
+    realization is changed here.
     """
 
-    if not _medium_swing_four_note_rotation_alignment_enabled(metadata):
+    if not _progression_four_note_orientation_alignment_enabled(metadata):
         return metadata
+
     seed_metadata = dict(seed.get("voicing_metadata") or {})
     seed_rotation = _four_note_rotation_seed_from_metadata(seed_metadata)
     previous_family = str(seed_rotation.get("family") or "")
     previous_ab_side = str(seed_rotation.get("ab_side") or "")
     if not previous_family or previous_ab_side not in {"A", "B"} or not _coerce_bool(seed_rotation.get("ab_eligible"), default=False):
-        return {
+        out = {
             **metadata,
             **_metadata_with_medium_swing_rootless_ab_skip_alias(metadata, reason="previous_seed_not_rootless_ab"),
-            "medium_swing_four_note_rotation_alignment_version": MEDIUM_SWING_FOUR_NOTE_ROTATION_ALIGNMENT_VERSION,
-            "medium_swing_four_note_rotation_alignment_runtime_enabled": True,
-            "medium_swing_four_note_rotation_alignment_policy_applied": False,
-            "medium_swing_four_note_rotation_alignment_reason": "previous_seed_not_generic_four_note_rotation",
+            **_progression_four_note_orientation_alignment_metadata(
+                metadata,
+                applied=False,
+                reason="previous_seed_not_generic_four_note_orientation",
+                pair_type=pair_type,
+                previous_region_id=str(seed.get("region_id") or ""),
+                current_region_id=current_region_id,
+            ),
         }
+        if _medium_swing_four_note_rotation_alignment_enabled(metadata):
+            out.update(
+                _medium_swing_four_note_rotation_alignment_compat_metadata(
+                    out,
+                    applied=False,
+                    reason="previous_seed_not_generic_four_note_rotation",
+                    pair_type=pair_type,
+                    seed=seed,
+                    current_region_id=current_region_id,
+                )
+            )
+        return out
 
     previous_content_type = str(seed_rotation.get("content_type") or "")
     previous_source_family = str(seed_rotation.get("source_family") or "")
@@ -356,31 +394,53 @@ def _metadata_with_medium_swing_four_note_rotation_alignment(
 
     out = {
         **metadata,
-        "medium_swing_four_note_rotation_alignment_version": MEDIUM_SWING_FOUR_NOTE_ROTATION_ALIGNMENT_VERSION,
-        "medium_swing_four_note_rotation_alignment_runtime_enabled": True,
-        "medium_swing_four_note_rotation_alignment_policy_applied": True,
-        "medium_swing_four_note_rotation_alignment_reason": "method_locked_local_progression_follow_region_requests_generic_four_note_rotation_flip",
-        "medium_swing_four_note_rotation_alignment_pair_type": pair_type,
-        "medium_swing_four_note_rotation_alignment_previous_region_id": str(seed.get("region_id") or ""),
-        "medium_swing_four_note_rotation_alignment_current_region_id": current_region_id,
-        "medium_swing_four_note_rotation_alignment_previous_family": previous_family,
-        "medium_swing_four_note_rotation_alignment_desired_family": previous_family,
-        "medium_swing_four_note_rotation_alignment_previous_ab_side": previous_ab_side,
-        "medium_swing_four_note_rotation_alignment_desired_ab_side": desired_side,
-        "medium_swing_four_note_rotation_alignment_previous_content_type": previous_content_type,
-        "medium_swing_four_note_rotation_alignment_desired_content_type": previous_content_type,
-        "medium_swing_four_note_rotation_alignment_previous_source_family": previous_source_family,
-        "medium_swing_four_note_rotation_alignment_desired_source_family": previous_source_family,
-        "medium_swing_four_note_rotation_alignment_previous_ab_pair_index": previous_pair_index,
-        "medium_swing_four_note_rotation_alignment_desired_ab_pair_index": previous_pair_index,
-        "medium_swing_four_note_rotation_alignment_previous_inversion_index": previous_inversion_index,
-        "medium_swing_four_note_rotation_alignment_desired_inversion_index": desired_inversion_index,
-        "medium_swing_four_note_rotation_alignment_previous_notes": previous_notes,
-        "medium_swing_four_note_rotation_alignment_runtime_filtering_enabled": True,
-        "medium_swing_four_note_rotation_alignment_mode": "strict_when_matching_candidate_available",
-        "medium_swing_four_note_rotation_alignment_scope": "same_texture_scope_local_functional_pair",
+        **_progression_four_note_orientation_alignment_metadata(
+            metadata,
+            applied=True,
+            reason="method_locked_local_progression_follow_region_requests_four_note_orientation_flip",
+            pair_type=pair_type,
+            previous_region_id=str(seed.get("region_id") or ""),
+            current_region_id=current_region_id,
+            previous_family=previous_family,
+            desired_family=previous_family,
+            previous_ab_side=previous_ab_side,
+            desired_ab_side=desired_side,
+            previous_content_type=previous_content_type,
+            desired_content_type=previous_content_type,
+            previous_source_family=previous_source_family,
+            desired_source_family=previous_source_family,
+            previous_ab_pair_index=previous_pair_index,
+            desired_ab_pair_index=previous_pair_index,
+            previous_inversion_index=previous_inversion_index,
+            desired_inversion_index=desired_inversion_index,
+            previous_notes=previous_notes,
+        ),
     }
-    if previous_family == "rootless_ab":
+    if _medium_swing_four_note_rotation_alignment_enabled(metadata):
+        out.update(
+            _medium_swing_four_note_rotation_alignment_compat_metadata(
+                out,
+                applied=True,
+                reason="method_locked_local_progression_follow_region_requests_generic_four_note_rotation_flip",
+                pair_type=pair_type,
+                seed=seed,
+                current_region_id=current_region_id,
+                previous_family=previous_family,
+                desired_family=previous_family,
+                previous_ab_side=previous_ab_side,
+                desired_ab_side=desired_side,
+                previous_content_type=previous_content_type,
+                desired_content_type=previous_content_type,
+                previous_source_family=previous_source_family,
+                desired_source_family=previous_source_family,
+                previous_ab_pair_index=previous_pair_index,
+                desired_ab_pair_index=previous_pair_index,
+                previous_inversion_index=previous_inversion_index,
+                desired_inversion_index=desired_inversion_index,
+                previous_notes=previous_notes,
+            )
+        )
+    if previous_family == "rootless_ab" and _medium_swing_rootless_ab_orientation_alignment_enabled(out):
         out.update(
             _metadata_with_medium_swing_rootless_ab_orientation_alignment_alias(
                 out,
@@ -393,10 +453,128 @@ def _metadata_with_medium_swing_four_note_rotation_alignment(
                 previous_inversion_index=previous_inversion_index,
             )
         )
-    else:
+    elif _medium_swing_rootless_ab_orientation_alignment_enabled(out):
         out.update(_metadata_with_medium_swing_rootless_ab_skip_alias(out, reason="previous_seed_not_rootless_ab"))
     return out
 
+
+def _progression_four_note_orientation_alignment_metadata(
+    metadata: dict[str, Any],
+    *,
+    applied: bool,
+    reason: str,
+    pair_type: str,
+    previous_region_id: str,
+    current_region_id: str,
+    previous_family: str = "",
+    desired_family: str = "",
+    previous_ab_side: str = "",
+    desired_ab_side: str = "",
+    previous_content_type: str = "",
+    desired_content_type: str = "",
+    previous_source_family: str = "",
+    desired_source_family: str = "",
+    previous_ab_pair_index: Any = None,
+    desired_ab_pair_index: Any = None,
+    previous_inversion_index: Any = None,
+    desired_inversion_index: Any = None,
+    previous_notes: list[int] | None = None,
+) -> dict[str, Any]:
+    style = str(metadata.get("style") or "").strip().lower()
+    return {
+        "progression_four_note_orientation_alignment_policy_version": STYLE_NEUTRAL_FOUR_NOTE_ORIENTATION_ALIGNMENT_WIRING_VERSION,
+        "progression_four_note_orientation_alignment_policy_runtime_enabled": True,
+        "progression_four_note_orientation_alignment_policy_applied": bool(applied),
+        "progression_four_note_orientation_alignment_policy_reason": reason,
+        "progression_four_note_orientation_alignment_policy_pair_type": pair_type,
+        "progression_four_note_orientation_alignment_policy_previous_region_id": previous_region_id,
+        "progression_four_note_orientation_alignment_policy_current_region_id": current_region_id,
+        "progression_four_note_orientation_alignment_policy_previous_family": previous_family,
+        "progression_four_note_orientation_alignment_policy_desired_family": desired_family,
+        "progression_four_note_orientation_alignment_policy_previous_ab_side": previous_ab_side,
+        "progression_four_note_orientation_alignment_policy_desired_ab_side": desired_ab_side,
+        "progression_four_note_orientation_alignment_policy_previous_content_type": previous_content_type,
+        "progression_four_note_orientation_alignment_policy_desired_content_type": desired_content_type,
+        "progression_four_note_orientation_alignment_policy_previous_source_family": previous_source_family,
+        "progression_four_note_orientation_alignment_policy_desired_source_family": desired_source_family,
+        "progression_four_note_orientation_alignment_policy_previous_ab_pair_index": previous_ab_pair_index,
+        "progression_four_note_orientation_alignment_policy_desired_ab_pair_index": desired_ab_pair_index,
+        "progression_four_note_orientation_alignment_policy_previous_inversion_index": previous_inversion_index,
+        "progression_four_note_orientation_alignment_policy_desired_inversion_index": desired_inversion_index,
+        "progression_four_note_orientation_alignment_policy_previous_notes": list(previous_notes or []),
+        "progression_four_note_orientation_alignment_policy_runtime_filtering_enabled": True,
+        "progression_four_note_orientation_alignment_policy_mode": "strict_when_matching_candidate_available",
+        "progression_four_note_orientation_alignment_policy_scope": "same_texture_scope_local_functional_pair",
+        "progression_four_note_orientation_alignment_policy_style": style,
+        "style_neutral_four_note_orientation_alignment_no_voicing_projection_change": True,
+        "style_neutral_four_note_orientation_alignment_no_source_inventory_change": True,
+        "style_neutral_four_note_orientation_alignment_no_selector_change": True,
+    }
+
+
+def _medium_swing_four_note_rotation_alignment_compat_metadata(
+    metadata: dict[str, Any],
+    *,
+    applied: bool,
+    reason: str,
+    pair_type: str,
+    seed: dict[str, Any],
+    current_region_id: str,
+    previous_family: str = "",
+    desired_family: str = "",
+    previous_ab_side: str = "",
+    desired_ab_side: str = "",
+    previous_content_type: str = "",
+    desired_content_type: str = "",
+    previous_source_family: str = "",
+    desired_source_family: str = "",
+    previous_ab_pair_index: Any = None,
+    desired_ab_pair_index: Any = None,
+    previous_inversion_index: Any = None,
+    desired_inversion_index: Any = None,
+    previous_notes: list[int] | None = None,
+) -> dict[str, Any]:
+    return {
+        "medium_swing_four_note_rotation_alignment_version": MEDIUM_SWING_FOUR_NOTE_ROTATION_ALIGNMENT_VERSION,
+        "medium_swing_four_note_rotation_alignment_runtime_enabled": True,
+        "medium_swing_four_note_rotation_alignment_policy_applied": bool(applied),
+        "medium_swing_four_note_rotation_alignment_reason": reason,
+        "medium_swing_four_note_rotation_alignment_pair_type": pair_type,
+        "medium_swing_four_note_rotation_alignment_previous_region_id": str(seed.get("region_id") or ""),
+        "medium_swing_four_note_rotation_alignment_current_region_id": current_region_id,
+        "medium_swing_four_note_rotation_alignment_previous_family": previous_family,
+        "medium_swing_four_note_rotation_alignment_desired_family": desired_family,
+        "medium_swing_four_note_rotation_alignment_previous_ab_side": previous_ab_side,
+        "medium_swing_four_note_rotation_alignment_desired_ab_side": desired_ab_side,
+        "medium_swing_four_note_rotation_alignment_previous_content_type": previous_content_type,
+        "medium_swing_four_note_rotation_alignment_desired_content_type": desired_content_type,
+        "medium_swing_four_note_rotation_alignment_previous_source_family": previous_source_family,
+        "medium_swing_four_note_rotation_alignment_desired_source_family": desired_source_family,
+        "medium_swing_four_note_rotation_alignment_previous_ab_pair_index": previous_ab_pair_index,
+        "medium_swing_four_note_rotation_alignment_desired_ab_pair_index": desired_ab_pair_index,
+        "medium_swing_four_note_rotation_alignment_previous_inversion_index": previous_inversion_index,
+        "medium_swing_four_note_rotation_alignment_desired_inversion_index": desired_inversion_index,
+        "medium_swing_four_note_rotation_alignment_previous_notes": list(previous_notes or []),
+        "medium_swing_four_note_rotation_alignment_runtime_filtering_enabled": True,
+        "medium_swing_four_note_rotation_alignment_mode": "strict_when_matching_candidate_available",
+        "medium_swing_four_note_rotation_alignment_scope": "same_texture_scope_local_functional_pair",
+    }
+
+
+# v2_6_51 compatibility name retained for direct focused imports/tests.
+def _metadata_with_medium_swing_four_note_rotation_alignment(
+    metadata: dict[str, Any],
+    *,
+    seed: dict[str, Any],
+    current_region_id: str,
+    pair_type: str,
+) -> dict[str, Any]:
+    return _metadata_with_style_neutral_four_note_orientation_alignment(
+        metadata,
+        seed=seed,
+        current_region_id=current_region_id,
+        pair_type=pair_type,
+    )
 
 def _metadata_with_medium_swing_rootless_ab_orientation_alignment_alias(
     metadata: dict[str, Any],
@@ -561,6 +739,25 @@ def policy_with_deliberate_revoice_micro_motion_context(
     return replace(policy, metadata=metadata)
 
 
+
+def voicing_request_chord_symbol(event: PatternEvent, policy: VoicingPolicy) -> str:
+    """Return the chord symbol used for one voicing request.
+
+    This is a harmonic-request boundary, not a voicing source/projection hook.
+    Styles may attach an explicit, event-scoped harmonic-expansion symbol in
+    policy metadata; the core voicing resolver still owns all source admission,
+    drop-family projection, scoring, and selection.
+    """
+
+    metadata = dict(getattr(policy, "metadata", {}) or {})
+    if not _coerce_bool(metadata.get("voicing_request_chord_symbol_override_enabled"), default=False):
+        return event.chord_symbol
+    override = str(metadata.get("voicing_request_chord_symbol_override") or "").strip()
+    if not override:
+        return event.chord_symbol
+    return override
+
+
 def region_voicing_cache_key(event: PatternEvent) -> RegionVoicingCacheKey:
     return (event.region_id, event.chord_symbol, event.track)
 
@@ -707,7 +904,7 @@ def _coerce_float(value: Any, *, default: float) -> float:
     except (TypeError, ValueError):
         return float(default)
 
-_MEDIUM_SWING_METHOD_LOCK_PAIR_TYPES: set[str] = {
+_PROGRESSION_METHOD_LOCK_PAIR_TYPES: set[str] = {
     "ii_v",
     "minor_ii_v",
     "v_i_major",
@@ -715,11 +912,11 @@ _MEDIUM_SWING_METHOD_LOCK_PAIR_TYPES: set[str] = {
     "dominant_to_tonic",
 }
 
-_MEDIUM_SWING_METHOD_LOCK_RECORDED_METHODS: set[str] = {"drop2", "drop3", "drop2_and_4"}
-_MEDIUM_SWING_METHOD_LOCK_SEED_METHODS: set[str] = {"drop2", "drop3"}
+_PROGRESSION_METHOD_LOCK_RECORDED_METHODS: set[str] = {"drop2", "drop3", "drop2_and_4"}
+_PROGRESSION_METHOD_LOCK_SEED_METHODS: set[str] = {"drop2", "drop3"}
 
 
-def _medium_swing_pair_method_lock_scope_plan(
+def _progression_pair_method_lock_scope_plan(
     *,
     motion: Any,
     previous_region_id: str,
@@ -745,7 +942,7 @@ def _medium_swing_pair_method_lock_scope_plan(
             enabled=False,
             mode=VoicingMethodLockMode.OFF,
             current_region_id=current_region_id,
-            source="medium_swing_phrase_scope_method_lock_policy_previous_pair_disabled",
+            source="style_neutral_progression_method_lock_policy_previous_pair_disabled",
             harmonic_window_type=str(getattr(motion, "window_type", "none") or "none"),
             previous_to_current_type=str(getattr(motion, "previous_to_current_type", "none") or "none"),
             current_to_next_type=str(getattr(motion, "current_to_next_type", "none") or "none"),
@@ -762,7 +959,7 @@ def _medium_swing_pair_method_lock_scope_plan(
         region_ids=region_ids,
         seed_region_id=previous_region_id,
         current_region_id=current_region_id,
-        source="medium_swing_phrase_scope_method_lock_policy_previous_pair",
+        source="style_neutral_progression_method_lock_policy_previous_pair",
         harmonic_window_type=str(getattr(motion, "window_type", "none") or "none"),
         previous_to_current_type=str(getattr(motion, "previous_to_current_type", "none") or "none"),
         current_to_next_type=str(getattr(motion, "current_to_next_type", "none") or "none"),
@@ -770,10 +967,34 @@ def _medium_swing_pair_method_lock_scope_plan(
     )
 
 
-def _medium_swing_phrase_scope_method_lock_enabled(metadata: dict[str, Any]) -> bool:
-    return (
-        str(metadata.get("style") or "").strip().lower() == "medium_swing"
-        and _coerce_bool(metadata.get("medium_swing_phrase_scope_method_lock_policy_enabled"), default=False)
+def _progression_method_lock_enabled(metadata: dict[str, Any]) -> bool:
+    nested = metadata.get("progression_voicing_method_lock_policy") or metadata.get("progression_method_lock_policy") or {}
+    if not isinstance(nested, dict):
+        nested = {"enabled": nested}
+    return _coerce_bool(
+        nested.get("enabled")
+        or metadata.get("progression_voicing_method_lock_policy_enabled")
+        or metadata.get("style_neutral_progression_method_lock_policy_enabled")
+        or metadata.get("medium_swing_phrase_scope_method_lock_policy_enabled"),
+        default=False,
+    )
+
+
+def _progression_four_note_orientation_alignment_enabled(metadata: dict[str, Any]) -> bool:
+    nested = (
+        metadata.get("progression_four_note_orientation_alignment_policy")
+        or metadata.get("progression_orientation_continuity_policy")
+        or {}
+    )
+    if not isinstance(nested, dict):
+        nested = {"enabled": nested}
+    return _coerce_bool(
+        nested.get("enabled")
+        or metadata.get("progression_four_note_orientation_alignment_policy_enabled")
+        or metadata.get("style_neutral_four_note_orientation_alignment_policy_enabled")
+        or metadata.get("medium_swing_four_note_rotation_alignment_enabled")
+        or metadata.get("medium_swing_rootless_ab_orientation_alignment_enabled"),
+        default=False,
     )
 
 
@@ -795,7 +1016,7 @@ def _medium_swing_rootless_ab_orientation_alignment_enabled(metadata: dict[str, 
     )
 
 
-def _policy_with_medium_swing_method_lock_debug(
+def _policy_with_progression_method_lock_debug(
     policy: VoicingPolicy,
     *,
     applied: bool,
@@ -806,23 +1027,75 @@ def _policy_with_medium_swing_method_lock_debug(
 ) -> VoicingPolicy:
     metadata = dict(policy.metadata or {})
     metadata.update(
-        {
-            "medium_swing_phrase_scope_method_lock_policy_version": MEDIUM_SWING_PHRASE_SCOPE_METHOD_LOCK_POLICY_VERSION,
-            "medium_swing_phrase_scope_method_lock_policy_runtime_enabled": True,
-            "medium_swing_phrase_scope_method_lock_policy_applied": bool(applied),
-            "medium_swing_phrase_scope_method_lock_policy_reason": reason,
-            "medium_swing_phrase_scope_method_lock_policy_pair_type": pair_type,
-            "medium_swing_phrase_scope_method_lock_policy_previous_region_id": previous_region_id,
-            "medium_swing_phrase_scope_method_lock_policy_previous_method": previous_method,
-        }
+        _progression_method_lock_metadata(
+            metadata,
+            applied=applied,
+            reason=reason,
+            pair_type=pair_type,
+            previous_region_id=previous_region_id,
+            previous_chord_symbol="",
+            previous_method=previous_method,
+            current_region_id="",
+        )
     )
     return replace(policy, metadata=metadata)
 
 
-def _medium_swing_method_lock_scope_id(seed: dict[str, Any], current_region_id: str, texture_scope_id: str, pair_type: str) -> str:
+def _progression_method_lock_metadata(
+    metadata: dict[str, Any],
+    *,
+    applied: bool,
+    reason: str,
+    pair_type: str = "",
+    previous_region_id: str = "",
+    previous_chord_symbol: str = "",
+    previous_method: str = "",
+    current_region_id: str = "",
+) -> dict[str, Any]:
+    style = str(metadata.get("style") or "").strip().lower()
+    out: dict[str, Any] = {
+        "style_neutral_progression_method_lock_policy_version": STYLE_NEUTRAL_PROGRESSION_METHOD_LOCK_WIRING_VERSION,
+        "progression_voicing_method_lock_policy_runtime_enabled": True,
+        "progression_voicing_method_lock_policy_applied": bool(applied),
+        "progression_voicing_method_lock_policy_reason": reason,
+        "progression_voicing_method_lock_policy_pair_type": pair_type,
+        "progression_voicing_method_lock_policy_previous_region_id": previous_region_id,
+        "progression_voicing_method_lock_policy_previous_chord_symbol": previous_chord_symbol,
+        "progression_voicing_method_lock_policy_previous_method": previous_method,
+        "progression_voicing_method_lock_policy_current_region_id": current_region_id,
+        "progression_voicing_method_lock_policy_style": style,
+        "method_lock_rescue_runtime_enabled": True,
+        "style_neutral_progression_method_lock_no_voicing_projection_change": True,
+        "style_neutral_progression_method_lock_no_source_inventory_change": True,
+    }
+    if style == "medium_swing" or _coerce_bool(metadata.get("medium_swing_phrase_scope_method_lock_policy_enabled"), default=False):
+        out.update(
+            {
+                "medium_swing_phrase_scope_method_lock_policy_version": MEDIUM_SWING_PHRASE_SCOPE_METHOD_LOCK_POLICY_VERSION,
+                "medium_swing_phrase_scope_method_lock_policy_runtime_enabled": True,
+                "medium_swing_phrase_scope_method_lock_policy_applied": bool(applied),
+                "medium_swing_phrase_scope_method_lock_policy_reason": reason,
+                "medium_swing_phrase_scope_method_lock_policy_pair_type": pair_type,
+                "medium_swing_phrase_scope_method_lock_policy_previous_region_id": previous_region_id,
+                "medium_swing_phrase_scope_method_lock_policy_previous_chord_symbol": previous_chord_symbol,
+                "medium_swing_phrase_scope_method_lock_policy_previous_method": previous_method,
+                "medium_swing_phrase_scope_method_lock_policy_current_region_id": current_region_id,
+            }
+        )
+    return out
+
+
+def _progression_method_lock_scope_id(
+    metadata: dict[str, Any],
+    seed: dict[str, Any],
+    current_region_id: str,
+    texture_scope_id: str,
+    pair_type: str,
+) -> str:
     previous_region_id = str(seed.get("region_id") or "previous")
     scope = texture_scope_id or "section:unknown"
-    return f"medium_swing:{scope}:{pair_type}:{previous_region_id}->{current_region_id or 'current'}"
+    style = str(metadata.get("style") or "style").strip().lower() or "style"
+    return f"{style}:{scope}:{pair_type}:{previous_region_id}->{current_region_id or 'current'}"
 
 
 def _coerce_bool(value: Any, *, default: bool = False) -> bool:

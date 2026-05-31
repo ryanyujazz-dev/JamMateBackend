@@ -1,0 +1,84 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_89 — Engine Medium Swing Baseline Handoff / Next Style Selection",
+  "scope": "Behavior-preserving Engine-line handoff after the v2_6_88 Medium Swing full-band baseline. This checkpoint freezes Medium Swing as the current reference unless a concrete listening issue is reported, keeps pattern/expression/voicing/API/Agent/HarmonyOS behavior unchanged, and selects Bossa Nova as the default next style audit target.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_89",
+    "engine_version_tag": "v2_10_28",
+    "medium_swing_baseline_complete": true,
+    "medium_swing_baseline_version": "v2_6_88",
+    "handoff_enabled": true,
+    "handoff_version": "v2_6_89",
+    "handoff_contract": "v2_6_89 is a behavior-preserving handoff checkpoint on the latest v2_10_28 integration baseline. It freezes Medium Swing v2_6_88 as the Engine-line full-band reference unless the user reports a concrete listening issue, keeps all pattern/expression/voicing/API/Agent/HarmonyOS behavior unchanged, and selects Bossa Nova as the default next style baseline audit target.",
+    "handoff_freeze_condition": "freeze_medium_swing_unless_user_reports_specific_listening_issue",
+    "handoff_behavior_change": false,
+    "handoff_no_pattern_change": true,
+    "handoff_no_core_voicing_change": true,
+    "handoff_no_expression_numeric_change": true,
+    "handoff_no_api_agent_harmonyos_change": true,
+    "recommended_next_style": "bossa_nova",
+    "recommended_next_task": "v2_6_90_engine_bossa_nova_style_baseline_audit_from_latest_v2_10_28",
+    "repeat_policy_cases": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      8,
+      9,
+      10,
+      50
+    ],
+    "repeat_policy_long_loop_has_reset": true,
+    "repeat_policy_long_loop_has_peak": true,
+    "repeat_policy_50x_final_phase": "final_head_out_release",
+    "reference_medium_swing_demo_status": {
+      "v2_6_88_all_the_things_you_are_3x_medium_swing_style_baseline_phase_completion_checkpoint_demo.mid": true,
+      "v2_6_88_autumn_leaves_3x_medium_swing_style_baseline_phase_completion_checkpoint_demo.mid": true,
+      "v2_6_88_all_the_things_you_are_5x_medium_swing_style_baseline_phase_completion_checkpoint_demo.mid": true,
+      "v2_6_88_autumn_leaves_5x_medium_swing_style_baseline_phase_completion_checkpoint_demo.mid": true
+    },
+    "reference_medium_swing_demos_present": true,
+    "bossa_style_registered": true,
+    "bossa_pattern_library_version": "v2_0_42",
+    "bossa_pattern_candidate_count": 1,
+    "bossa_short_region_candidate_count": 1,
+    "bossa_core_batida_candidate_count": 1,
+    "bossa_core_batida_beats": [
+      0.0,
+      1.0,
+      2.5
+    ],
+    "bossa_core_batida_expression_hints": [
+      "core_short",
+      "core_short",
+      "core_sustain"
+    ],
+    "bossa_core_batida_boundary_notes": [
+      "pitchless",
+      "style_owned",
+      "identity_anchor_only_for_current_runtime",
+      "no_voicing_logic",
+      "no_final_expression_values"
+    ],
+    "bossa_nonblocking_next_audit_findings": [
+      "audit opening two bars: pickup/opening should use core_batida as identity anchor",
+      "audit generic AnticipationResolver behavior across Bossa barlines and two-bar continuity",
+      "audit distance-based articulation after anticipation before touching numeric expression values",
+      "audit bass/piano/percussion interaction against the Medium Swing full-band baseline method",
+      "inspect and clean legacy tag(s) in Bossa pattern metadata if still semantically misleading: two_chord_bar"
+    ]
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "medium_swing_v2_6_88_baseline_present": true,
+      "handoff_metadata_present": true,
+      "handoff_is_behavior_preserving": true,
+      "repeat_count_aware_policy_still_safe": true,
+      "reference_demos_present": true,
+      "bossa_default_next_style_ready_for_audit": true
+    }
+  },
+  "recommended_next_task": "v2_6_90_engine_bossa_nova_style_baseline_audit_from_latest_v2_10_28"
+}

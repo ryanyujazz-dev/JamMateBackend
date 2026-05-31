@@ -1,0 +1,617 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_96 — Engine Bossa Nova Bass + Drums Identity Audit",
+  "scope": "Replace the old Bossa bass one-size root/fifth pattern and drums hihat placeholder in place. Bass now declares root/fifth support for full regions and root-only support for split/short ChordRegions; drums now declare region-local shaker/cross-stick/light-kick identity. No piano vocabulary change, no parallel selector, no core voicing, API, Agent, or HarmonyOS change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_96",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_96",
+    "behavior_change": true,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_piano_pattern_change": true,
+    "no_expression_numeric_change": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "bass_identity": "root_fifth_support_not_walking",
+    "drums_identity": "shaker_cross_stick_light_kick",
+    "full_bass_candidate": {
+      "name": "bossa_bass_root_fifth_2bar_A",
+      "category": "bossa_root_fifth_support",
+      "rhythm_beats": [
+        0.0,
+        2.0
+      ],
+      "tags": [
+        "bossa",
+        "bass",
+        "root_fifth",
+        "not_walking",
+        "chord_region_first"
+      ],
+      "metadata": {
+        "style_id": "bossa_nova",
+        "pattern_domain": "bass_foundation",
+        "pattern_library_id": "bossa_nova.bass_foundation",
+        "pattern_library_version": "v2_6_96",
+        "bossa_bass_and_drums_identity_audit_active": true,
+        "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+        "bass_identity": "root_fifth_support_not_walking",
+        "bass_region_duration_family": "root_fifth_region",
+        "pattern_function": "long_region_root_fifth_support",
+        "chord_region_first": true,
+        "bar_first": false,
+        "walking_bass": false,
+        "swing_walking_vocabulary": false,
+        "voicing_boundary": "pitchless_degree_tokens_only",
+        "expression_boundary": "semantic_length_and_dynamic_profiles_only",
+        "region_duration_beats_at_selection": 4.0
+      },
+      "event_metadata": [
+        {
+          "degree": "root",
+          "bossa_bass_role": "bossa_root",
+          "bossa_bass_tag": "root_on_1",
+          "bass_identity": "root_fifth_support_not_walking",
+          "bass_region_duration_family": "root_fifth_region",
+          "length_profile": "bossa_root",
+          "dynamic_profile": "bossa_root",
+          "register_low": 26,
+          "register_high": 48,
+          "timing_intent": "straight_even",
+          "walking_bass": false,
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96"
+        },
+        {
+          "degree": "fifth",
+          "bossa_bass_role": "bossa_fifth",
+          "bossa_bass_tag": "fifth_on_3",
+          "bass_identity": "root_fifth_support_not_walking",
+          "bass_region_duration_family": "root_fifth_region",
+          "length_profile": "bossa_fifth",
+          "dynamic_profile": "bossa_fifth",
+          "register_low": 26,
+          "register_high": 48,
+          "timing_intent": "straight_even",
+          "walking_bass": false,
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96"
+        }
+      ]
+    },
+    "split_bass_candidate": {
+      "name": "bossa_bass_split_region_root_only",
+      "category": "bossa_split_region_root_support",
+      "rhythm_beats": [
+        0.0
+      ],
+      "tags": [
+        "bossa",
+        "bass",
+        "split_region",
+        "root_only",
+        "not_walking",
+        "chord_region_first"
+      ],
+      "metadata": {
+        "style_id": "bossa_nova",
+        "pattern_domain": "bass_foundation",
+        "pattern_library_id": "bossa_nova.bass_foundation",
+        "pattern_library_version": "v2_6_96",
+        "bossa_bass_and_drums_identity_audit_active": true,
+        "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+        "bass_identity": "root_fifth_support_not_walking",
+        "bass_region_duration_family": "split_region",
+        "pattern_function": "split_region_root_only_clarity",
+        "chord_region_first": true,
+        "bar_first": false,
+        "walking_bass": false,
+        "swing_walking_vocabulary": false,
+        "voicing_boundary": "pitchless_degree_tokens_only",
+        "expression_boundary": "semantic_length_and_dynamic_profiles_only",
+        "region_duration_beats_at_selection": 2.0
+      },
+      "event_metadata": [
+        {
+          "degree": "root",
+          "bossa_bass_role": "bossa_split_root",
+          "bossa_bass_tag": "split_region_root",
+          "bass_identity": "root_fifth_support_not_walking",
+          "bass_region_duration_family": "split_region",
+          "length_profile": "bossa_split_root",
+          "dynamic_profile": "bossa_split_root",
+          "register_low": 26,
+          "register_high": 48,
+          "timing_intent": "straight_even",
+          "walking_bass": false,
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96"
+        }
+      ]
+    },
+    "short_bass_candidate": {
+      "name": "bossa_bass_short_region_root_touch",
+      "category": "bossa_short_region_root_touch",
+      "rhythm_beats": [
+        0.0
+      ],
+      "tags": [
+        "bossa",
+        "bass",
+        "short_region",
+        "root_only",
+        "not_walking",
+        "chord_region_first"
+      ],
+      "metadata": {
+        "style_id": "bossa_nova",
+        "pattern_domain": "bass_foundation",
+        "pattern_library_id": "bossa_nova.bass_foundation",
+        "pattern_library_version": "v2_6_96",
+        "bossa_bass_and_drums_identity_audit_active": true,
+        "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+        "bass_identity": "root_fifth_support_not_walking",
+        "bass_region_duration_family": "very_short_region",
+        "pattern_function": "very_short_region_root_touch",
+        "chord_region_first": true,
+        "bar_first": false,
+        "walking_bass": false,
+        "swing_walking_vocabulary": false,
+        "voicing_boundary": "pitchless_degree_tokens_only",
+        "expression_boundary": "semantic_length_and_dynamic_profiles_only",
+        "region_duration_beats_at_selection": 1.0
+      },
+      "event_metadata": [
+        {
+          "degree": "root",
+          "bossa_bass_role": "bossa_short_root",
+          "bossa_bass_tag": "short_region_root",
+          "bass_identity": "root_fifth_support_not_walking",
+          "bass_region_duration_family": "very_short_region",
+          "length_profile": "bossa_short_root",
+          "dynamic_profile": "bossa_short_root",
+          "register_low": 26,
+          "register_high": 48,
+          "timing_intent": "straight_even",
+          "walking_bass": false,
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96"
+        }
+      ]
+    },
+    "full_drums_candidate": {
+      "name": "bossa_drums_shaker_cross_stick_kick_full_region_A",
+      "category": "bossa_shaker_cross_stick_light_kick_identity",
+      "rhythm_beats": [
+        0.0,
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        2.5,
+        3.0,
+        3.5,
+        0.0,
+        1.5,
+        3.0,
+        0.0,
+        2.0
+      ],
+      "tags": [
+        "bossa",
+        "drums",
+        "shaker",
+        "cross_stick",
+        "light_kick",
+        "not_swing_ride",
+        "not_rock_backbeat",
+        "chord_region_first"
+      ],
+      "metadata": {
+        "style_id": "bossa_nova",
+        "pattern_domain": "percussion_foundation",
+        "pattern_library_id": "bossa_nova.percussion_foundation",
+        "pattern_library_version": "v2_6_96",
+        "bossa_bass_and_drums_identity_audit_active": true,
+        "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+        "drum_identity": "shaker_cross_stick_light_kick",
+        "drum_region_duration_family": "full_region",
+        "cross_stick_phrase_pattern": "A",
+        "pattern_function": "shaker_cross_stick_light_kick_identity",
+        "chord_region_first": true,
+        "bar_first": false,
+        "swing_ride_pattern": false,
+        "rock_backbeat_pattern": false,
+        "timing_intent": "straight_even",
+        "region_duration_beats_at_selection": 4.0
+      },
+      "event_metadata": [
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "cross_stick",
+          "bossa_drum_voice": "cross_stick_A_1",
+          "dynamic_profile": "bossa_cross_main",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "cross_stick",
+          "bossa_drum_voice": "cross_stick_A_2and",
+          "dynamic_profile": "bossa_cross_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "cross_stick",
+          "bossa_drum_voice": "cross_stick_A_4",
+          "dynamic_profile": "bossa_cross_main",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "kick",
+          "bossa_drum_voice": "soft_kick_root_shadow",
+          "dynamic_profile": "bossa_kick_root",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "kick",
+          "bossa_drum_voice": "soft_kick_fifth_shadow",
+          "dynamic_profile": "bossa_kick_fifth",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        }
+      ]
+    },
+    "split_drums_candidate": {
+      "name": "bossa_drums_shaker_cross_stick_kick_split_region_A",
+      "category": "bossa_shaker_cross_stick_light_kick_identity",
+      "rhythm_beats": [
+        0.0,
+        0.5,
+        1.0,
+        1.5,
+        1.0,
+        0.0
+      ],
+      "tags": [
+        "bossa",
+        "drums",
+        "shaker",
+        "cross_stick",
+        "light_kick",
+        "not_swing_ride",
+        "not_rock_backbeat",
+        "chord_region_first"
+      ],
+      "metadata": {
+        "style_id": "bossa_nova",
+        "pattern_domain": "percussion_foundation",
+        "pattern_library_id": "bossa_nova.percussion_foundation",
+        "pattern_library_version": "v2_6_96",
+        "bossa_bass_and_drums_identity_audit_active": true,
+        "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+        "drum_identity": "shaker_cross_stick_light_kick",
+        "drum_region_duration_family": "split_region",
+        "cross_stick_phrase_pattern": "A",
+        "pattern_function": "shaker_cross_stick_light_kick_identity",
+        "chord_region_first": true,
+        "bar_first": false,
+        "swing_ride_pattern": false,
+        "rock_backbeat_pattern": false,
+        "timing_intent": "straight_even",
+        "region_duration_beats_at_selection": 2.0
+      },
+      "event_metadata": [
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "shaker",
+          "bossa_drum_voice": "shaker_time",
+          "dynamic_profile": "shaker_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "cross_stick",
+          "bossa_drum_voice": "cross_stick_split_mark",
+          "dynamic_profile": "bossa_cross_light",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        },
+        {
+          "drum": "kick",
+          "bossa_drum_voice": "soft_kick_root_shadow",
+          "dynamic_profile": "bossa_kick_root",
+          "stroke_profile": "short",
+          "timing_intent": "straight_even",
+          "bossa_bass_and_drums_identity_audit_version": "v2_6_96",
+          "drum_identity": "shaker_cross_stick_light_kick",
+          "swing_ride_pattern": false,
+          "rock_backbeat_pattern": false
+        }
+      ]
+    },
+    "recommended_next_task": "v2_6_97_engine_bossa_nova_repeat_count_arrangement_arc_policy"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22706,
+      "midi_path": "demos/v2_6_96_blue_bossa_3x_bossa_nova_bass_and_drums_identity_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 362,
+        "bass": 96,
+        "drums": 600
+      },
+      "piano_notes": 362,
+      "bass_notes": 96,
+      "drums_notes": 600,
+      "planned_bass_event_count": 96,
+      "planned_bass_degree_counts": {
+        "root": 51,
+        "fifth": 45
+      },
+      "planned_bass_length_profile_counts": {
+        "bossa_root": 45,
+        "bossa_fifth": 45,
+        "bossa_split_root": 6
+      },
+      "planned_bass_dynamic_profile_counts": {
+        "bossa_root": 24,
+        "bossa_fifth": 24,
+        "bossa_root_answer": 21,
+        "bossa_fifth_answer": 21,
+        "bossa_split_root": 6
+      },
+      "planned_bass_identity_versions": {
+        "v2_6_96": 96
+      },
+      "planned_bass_walking_like_event_count": 0,
+      "planned_bass_short_region_non_root_event_count": 0,
+      "planned_drum_event_count": 600,
+      "planned_drum_voice_counts": {
+        "shaker_time": 384,
+        "cross_stick_A_1": 24,
+        "cross_stick_A_2and": 24,
+        "cross_stick_A_4": 24,
+        "soft_kick_root_shadow": 51,
+        "soft_kick_fifth_shadow": 45,
+        "cross_stick_B_2": 21,
+        "cross_stick_B_3and": 21,
+        "cross_stick_split_mark": 6
+      },
+      "planned_drum_kind_counts": {
+        "shaker": 384,
+        "cross_stick": 120,
+        "kick": 96
+      },
+      "planned_drum_identity_versions": {
+        "v2_6_96": 600
+      },
+      "planned_drum_swing_ride_or_rock_event_count": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22756,
+      "midi_path": "demos/v2_6_96_blue_bossa_5x_bossa_nova_bass_and_drums_identity_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 588,
+        "bass": 160,
+        "drums": 1000
+      },
+      "piano_notes": 588,
+      "bass_notes": 160,
+      "drums_notes": 1000,
+      "planned_bass_event_count": 160,
+      "planned_bass_degree_counts": {
+        "root": 85,
+        "fifth": 75
+      },
+      "planned_bass_length_profile_counts": {
+        "bossa_root": 75,
+        "bossa_fifth": 75,
+        "bossa_split_root": 10
+      },
+      "planned_bass_dynamic_profile_counts": {
+        "bossa_root": 40,
+        "bossa_fifth": 40,
+        "bossa_root_answer": 35,
+        "bossa_fifth_answer": 35,
+        "bossa_split_root": 10
+      },
+      "planned_bass_identity_versions": {
+        "v2_6_96": 160
+      },
+      "planned_bass_walking_like_event_count": 0,
+      "planned_bass_short_region_non_root_event_count": 0,
+      "planned_drum_event_count": 1000,
+      "planned_drum_voice_counts": {
+        "shaker_time": 640,
+        "cross_stick_A_1": 40,
+        "cross_stick_A_2and": 40,
+        "cross_stick_A_4": 40,
+        "soft_kick_root_shadow": 85,
+        "soft_kick_fifth_shadow": 75,
+        "cross_stick_B_2": 35,
+        "cross_stick_B_3and": 35,
+        "cross_stick_split_mark": 10
+      },
+      "planned_drum_kind_counts": {
+        "shaker": 640,
+        "cross_stick": 200,
+        "kick": 160
+      },
+      "planned_drum_identity_versions": {
+        "v2_6_96": 1000
+      },
+      "planned_drum_swing_ride_or_rock_event_count": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_policy_registered": true,
+      "in_place_boundaries_preserved": true,
+      "bass_static_identity_declared": true,
+      "drums_static_identity_declared": true,
+      "runtime_blue_bossa_full_band_identity_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_97_engine_bossa_nova_repeat_count_arrangement_arc_policy"
+}

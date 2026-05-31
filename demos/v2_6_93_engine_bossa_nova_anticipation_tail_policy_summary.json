@@ -1,0 +1,219 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_93 — Engine Bossa Nova Anticipation Tail Policy + Native 4& Audit",
+  "scope": "Refine the existing Bossa style anticipation policy in place. The shared core AnticipationResolver now supports a style-configurable minimum previous-region duration, and Bossa requires a full-region tail with beat 4 and 4& empty. Native 4& cells remain current-chord events that occupy the 4& slot and block anticipation. No parallel anticipation engine, pattern-embedded anticipation, expression numeric change, or core voicing change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_93",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_93",
+    "behavior_change": true,
+    "no_parallel_engine": true,
+    "no_pattern_embedded_anticipation": true,
+    "no_bar_first_restore": true,
+    "no_core_voicing_change": true,
+    "no_expression_numeric_change": true,
+    "requires_previous_beat4_empty": true,
+    "requires_previous_4and_empty": true,
+    "preserves_native_4and": true,
+    "anticipation_policy_debug_name": "bossa_next_bar_beat1_to_previous_4and_when_tail_free",
+    "anticipation_policy_metadata_version": "v2_6_93",
+    "anticipation_policy_min_previous_region_duration_beats": 3.75,
+    "anticipation_policy_requires_previous_last_beat_empty": true,
+    "anticipation_policy_requires_previous_last_upbeat_empty": true,
+    "pattern_library_version": "v2_6_92",
+    "full_region_candidate_count": 13,
+    "half_region_candidate_count": 1,
+    "legacy_bar_first_tags": [],
+    "chord_region_first_tags_present": true,
+    "native_4and_candidates_marked": true,
+    "native_4and_probe": {
+      "previous_candidate": "bossa_piano_cell_A_1_4and",
+      "current_candidate": "bossa_piano_cell_A_1",
+      "previous_duration_beats": 4.0,
+      "allowed": false,
+      "blocked": true,
+      "anticipated_onsets": [],
+      "anticipated_local_beats": [],
+      "tail_checked_local_beats": []
+    },
+    "tail_free_probe": {
+      "previous_candidate": "bossa_piano_cell_A_1_3and",
+      "current_candidate": "bossa_piano_cell_A_1",
+      "previous_duration_beats": 4.0,
+      "allowed": true,
+      "blocked": false,
+      "anticipated_onsets": [
+        3.5
+      ],
+      "anticipated_local_beats": [
+        3.5
+      ],
+      "tail_checked_local_beats": [
+        [
+          3.0,
+          3.5
+        ]
+      ]
+    },
+    "short_region_probe": {
+      "previous_candidate": "bossa_piano_half_region_1_2",
+      "current_candidate": "bossa_piano_cell_A_1",
+      "previous_duration_beats": 2.0,
+      "allowed": false,
+      "blocked": true,
+      "anticipated_onsets": [],
+      "anticipated_local_beats": [],
+      "tail_checked_local_beats": []
+    },
+    "recommended_next_task": "v2_6_94_engine_bossa_nova_distance_aware_expression_calibration",
+    "known_next_gap": "Anticipation tail/native-4& separation is audited; next pass should calibrate Bossa distance-aware expression and sustain release without adding new rhythm cells."
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22703,
+      "midi_path": "demos/v2_6_93_blue_bossa_3x_bossa_nova_anticipation_tail_policy_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 400,
+        "bass": 102,
+        "drums": 102
+      },
+      "piano_active_events": 108,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 18,
+        "bossa_piano_cell_B_1and": 1,
+        "bossa_piano_cell_A_1_3and": 18,
+        "bossa_piano_cell_A_1": 6,
+        "bossa_piano_cell_A_1_4and": 6,
+        "bossa_piano_cell_A_1_2and": 16,
+        "bossa_piano_cell_A_1_3": 6,
+        "bossa_piano_cell_B_1and_3": 4,
+        "bossa_piano_half_region_1_2": 12,
+        "bossa_piano_cell_A_1_2_3and": 21
+      },
+      "piano_non_core_pattern_event_count": 78,
+      "piano_class_A_event_count": 73,
+      "piano_class_B_event_count": 5,
+      "piano_class_B_ratio_of_non_core_events": 0.0641,
+      "piano_native_4and_event_count": 3,
+      "native_4and_anticipated_event_count": 0,
+      "opening_first_two_bars_patterns": [
+        "bossa_piano_core_batida_1_2_3and"
+      ],
+      "opening_first_two_bars_core_only": true,
+      "active_anticipation_count": 12,
+      "terminal_ending_anticipation_count": 0,
+      "anticipation_timing_grids": [
+        "straight_upbeat"
+      ],
+      "anticipation_expected_upbeat_fractions": [
+        "0.5"
+      ],
+      "anticipation_policy_versions": [
+        "v2_6_93"
+      ],
+      "anticipation_min_previous_region_duration_values": [
+        "3.75"
+      ],
+      "anticipations_from_short_previous_region": 0,
+      "anticipation_tail_checked_local_beats": [
+        [
+          3.0,
+          3.5
+        ]
+      ],
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22753,
+      "midi_path": "demos/v2_6_93_blue_bossa_5x_bossa_nova_anticipation_tail_policy_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 590,
+        "bass": 170,
+        "drums": 170
+      },
+      "piano_active_events": 172,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 33,
+        "bossa_piano_cell_A_1_2_3and": 21,
+        "bossa_piano_cell_B_1and_3": 2,
+        "bossa_piano_cell_A_1_3": 16,
+        "bossa_piano_cell_A_1_2and": 28,
+        "bossa_piano_cell_A_1_3and": 36,
+        "bossa_piano_cell_A_1": 15,
+        "bossa_piano_half_region_1_2": 20,
+        "bossa_piano_cell_B_1and": 1
+      },
+      "piano_non_core_pattern_event_count": 119,
+      "piano_class_A_event_count": 116,
+      "piano_class_B_event_count": 3,
+      "piano_class_B_ratio_of_non_core_events": 0.0252,
+      "piano_native_4and_event_count": 0,
+      "native_4and_anticipated_event_count": 0,
+      "opening_first_two_bars_patterns": [
+        "bossa_piano_core_batida_1_2_3and"
+      ],
+      "opening_first_two_bars_core_only": true,
+      "active_anticipation_count": 29,
+      "terminal_ending_anticipation_count": 0,
+      "anticipation_timing_grids": [
+        "straight_upbeat"
+      ],
+      "anticipation_expected_upbeat_fractions": [
+        "0.5"
+      ],
+      "anticipation_policy_versions": [
+        "v2_6_93"
+      ],
+      "anticipation_min_previous_region_duration_values": [
+        "3.75"
+      ],
+      "anticipations_from_short_previous_region": 0,
+      "anticipation_tail_checked_local_beats": [
+        [
+          3.0,
+          3.5
+        ]
+      ],
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "pedal_cc64_event_count": 0,
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_policy_registered": true,
+      "in_place_boundaries_preserved": true,
+      "tail_policy_declared": true,
+      "native_4and_marked_and_blocks_tail": true,
+      "tail_free_full_region_allows_anticipation": true,
+      "short_region_blocks_bossa_anticipation": true,
+      "boundaries_preserved": true,
+      "runtime_blue_bossa_full_band_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_94_engine_bossa_nova_distance_aware_expression_calibration"
+}

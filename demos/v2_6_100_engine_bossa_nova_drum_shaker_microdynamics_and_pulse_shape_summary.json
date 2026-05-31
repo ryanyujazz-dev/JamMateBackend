@@ -1,0 +1,231 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_100 — Engine Bossa Nova Drum Shaker Microdynamics + Pulse Shape",
+  "scope": "Refine the existing Bossa shaker/hi-hat proxy in place. Pattern candidates keep the same shaker/cross-stick/light-kick identity shape and only annotate semantic straight-8th pulse slots; the shared percussion realizer maps those slots to microdynamic velocity shape. No piano, bass, voicing, API, Agent, or HarmonyOS change.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_100",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "policy_active": true,
+    "policy_version": "v2_6_100",
+    "behavior_change": true,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_new_pattern_vocabulary": true,
+    "no_piano_bass_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "tracks": [
+      "drums"
+    ],
+    "full_candidate_name": "bossa_drums_shaker_cross_stick_kick_full_region_A",
+    "full_candidate_category": "bossa_shaker_cross_stick_light_kick_identity",
+    "full_event_count": 13,
+    "full_shaker_event_count": 8,
+    "full_shaker_pulse_slots": [
+      "primary_clear",
+      "offbeat_light",
+      "secondary_mid",
+      "offbeat_feather",
+      "primary_clear",
+      "offbeat_light",
+      "secondary_mid",
+      "offbeat_feather"
+    ],
+    "full_shaker_pulse_slot_counts": {
+      "primary_clear": 2,
+      "offbeat_light": 2,
+      "secondary_mid": 2,
+      "offbeat_feather": 2
+    },
+    "full_shaker_microdynamic_versions": [
+      "v2_6_100"
+    ],
+    "forbidden_pattern_numeric_keys": [],
+    "split_max_beat": 1.5,
+    "split_shaker_event_count": 4,
+    "recommended_next_task": "v2_6_101_engine_bossa_nova_cross_stick_phrase_local_contour_refinement"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23100,
+      "midi_path": "demos/v2_6_100_blue_bossa_3x_bossa_nova_drum_shaker_microdynamics_and_pulse_shape_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 328,
+        "bass": 96,
+        "drums": 600
+      },
+      "piano_notes": 328,
+      "bass_notes": 96,
+      "drums_notes": 600,
+      "planned_drum_event_count": 600,
+      "planned_shaker_event_count": 384,
+      "planned_shaker_microdynamic_event_count": 384,
+      "planned_shaker_microdynamic_coverage_ratio": 1.0,
+      "planned_shaker_pulse_slot_counts": {
+        "primary_clear": 96,
+        "offbeat_light": 96,
+        "secondary_mid": 96,
+        "offbeat_feather": 96
+      },
+      "planned_shaker_dynamic_profile_counts": {
+        "shaker_light": 128,
+        "shaker_lift": 128,
+        "shaker_release": 128
+      },
+      "realized_shaker_velocity_set": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+      ],
+      "realized_shaker_velocity_unique_count": 21,
+      "realized_shaker_slot_average_velocity": {
+        "offbeat_feather": 28.67,
+        "offbeat_light": 30.67,
+        "primary_clear": 36.67,
+        "secondary_mid": 33.67
+      },
+      "realized_shaker_profile_minmax_velocity": {
+        "shaker_lift": [
+          32,
+          42
+        ],
+        "shaker_light": [
+          29,
+          39
+        ],
+        "shaker_release": [
+          22,
+          32
+        ]
+      },
+      "drum_swing_or_rock_events": 0,
+      "shaker_timing_intents": [
+        "straight_even_not_swing"
+      ],
+      "split_region_shaker_overflow_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23105,
+      "midi_path": "demos/v2_6_100_blue_bossa_5x_bossa_nova_drum_shaker_microdynamics_and_pulse_shape_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 568,
+        "bass": 160,
+        "drums": 1000
+      },
+      "piano_notes": 568,
+      "bass_notes": 160,
+      "drums_notes": 1000,
+      "planned_drum_event_count": 1000,
+      "planned_shaker_event_count": 640,
+      "planned_shaker_microdynamic_event_count": 640,
+      "planned_shaker_microdynamic_coverage_ratio": 1.0,
+      "planned_shaker_pulse_slot_counts": {
+        "primary_clear": 160,
+        "offbeat_light": 160,
+        "secondary_mid": 160,
+        "offbeat_feather": 160
+      },
+      "planned_shaker_dynamic_profile_counts": {
+        "shaker_light": 256,
+        "shaker_breath": 128,
+        "shaker_lift": 128,
+        "shaker_release": 128
+      },
+      "realized_shaker_velocity_set": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+      ],
+      "realized_shaker_velocity_unique_count": 21,
+      "realized_shaker_slot_average_velocity": {
+        "offbeat_feather": 28.19,
+        "offbeat_light": 30.2,
+        "primary_clear": 36.19,
+        "secondary_mid": 33.21
+      },
+      "realized_shaker_profile_minmax_velocity": {
+        "shaker_breath": [
+          24,
+          34
+        ],
+        "shaker_lift": [
+          32,
+          42
+        ],
+        "shaker_light": [
+          29,
+          39
+        ],
+        "shaker_release": [
+          22,
+          32
+        ]
+      },
+      "drum_swing_or_rock_events": 0,
+      "shaker_timing_intents": [
+        "straight_even_not_swing"
+      ],
+      "split_region_shaker_overflow_events": 0
+    }
+  ],
+  "acceptance": {
+    "checks": {
+      "style_and_policy_registered": true,
+      "boundary_preserved": true,
+      "pattern_layer_stays_semantic": true,
+      "full_region_has_shaker_pulse_slots": true,
+      "split_region_stays_region_local": true,
+      "runtime_blue_bossa_shaker_microdynamics_passes": true
+    },
+    "passed": true
+  },
+  "recommended_next_task": "v2_6_101_engine_bossa_nova_cross_stick_phrase_local_contour_refinement"
+}

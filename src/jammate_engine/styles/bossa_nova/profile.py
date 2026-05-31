@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from jammate_engine.styles.base import StylePolicyBundle, StyleProfile
 
-from . import anticipation_policy, bass_foundation_patterns, percussion_patterns, expression_policy, comping_patterns, voicing_policy, gesture_policy
+from . import anticipation_policy, arrangement_policy, bass_foundation_patterns, percussion_patterns, expression_policy, comping_patterns, voicing_policy, gesture_policy
 
 
 class BossaNovaProfile(StyleProfile):
@@ -21,7 +21,7 @@ class BossaNovaProfile(StyleProfile):
                     "boundary": "timing_policy_only_no_pattern_voicing_expression_content",
                     "metadata": {"style": "bossa_nova", "stage": "v2_0_43_timing_policy_contract"},
                 },
-                arrangement_policy={"default_feel": "bossa_nova", "opening_core_batida_bars": 2},
+                arrangement_policy=arrangement_policy.get_arrangement_policy(),
             ),
             pattern_sources=(
                 comping_patterns.get_pattern_candidates,
