@@ -10,6 +10,7 @@ from jammate_engine.core.expression import (
 
 
 BOSSA_DISTANCE_AWARE_EXPRESSION_VERSION = "v2_6_94"
+BOSSA_CORE_BATIDA_FRONT_VELOCITY_CALIBRATION_VERSION = "v2_6_122"
 
 
 def get_expression_policy() -> ExpressionPolicyBundle:
@@ -27,12 +28,16 @@ def get_expression_policy() -> ExpressionPolicyBundle:
             "core_short": ExpressionProfile(
                 name="core_short",
                 duration_beats=0.45,
-                velocity=56,
+                velocity=48,
                 articulation=ArticulationKind.SHORT,
                 touch=TouchKind.CLEAR,
                 pedal=PedalMode.NONE,
                 release_beats=0.03,
-                metadata={"role": "bossa_core_batida_short"},
+                metadata={
+                    "role": "bossa_core_batida_short",
+                    "bossa_core_batida_front_velocity_calibration_version": BOSSA_CORE_BATIDA_FRONT_VELOCITY_CALIBRATION_VERSION,
+                    "core_batida_front_two_hits_velocity": 48,
+                },
             ),
             "core_sustain": ExpressionProfile(
                 name="core_sustain",

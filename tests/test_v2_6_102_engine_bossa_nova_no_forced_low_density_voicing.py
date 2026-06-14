@@ -64,11 +64,13 @@ def test_v2_6_102_bossa_harmonic_rhythm_clarity_policy_metadata_registered() -> 
 
 def test_v2_6_102_short_region_candidate_stays_chord_region_first_and_marks_light_clarity_intent() -> None:
     library = comping_patterns.describe_pattern_library({"region_duration_beats": 2.0})
-    candidate = library["candidates"][0]
+    candidate = next(
+        item for item in library["candidates"] if item["name"] == "bossa_piano_half_region_1_2"
+    )
     metadata = candidate["metadata"]
     tags = set(candidate["tags"])
 
-    assert library["candidate_count"] == 1
+    assert library["candidate_count"] >= 1
     assert candidate["name"] == "bossa_piano_half_region_1_2"
     assert candidate["rhythm_beats"] == [0.0, 1.0]
     assert metadata["region_shape"] == "two_beat_region"

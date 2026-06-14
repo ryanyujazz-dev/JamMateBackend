@@ -1392,8 +1392,8 @@ def _open_projection_methods_for_disposition(
         and lock_spec.open_method is not None
     ):
         return (lock_spec.open_method,)
-    return open_projection_method_pool_from_metadata(metadata)
-
+    methods = list(open_projection_method_pool_from_metadata(metadata))
+    return tuple(methods)
 
 def _method_lock_runtime_filtering_enabled(metadata: dict | None) -> bool:
     metadata = dict(metadata or {})

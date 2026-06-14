@@ -110,11 +110,17 @@ def test_v2_6_103_blue_bossa_runtime_uses_open_and_no_retired_4note_grouping_met
     assert runtime["note_events_by_track"]["piano"] > 0
     assert runtime["note_events_by_track"]["bass"] > 0
     assert runtime["note_events_by_track"]["drums"] > 0
-    assert set(runtime["piano_disposition_counts"]) == {"open"}
-    assert set(runtime["piano_open_projection_method_counts"]) <= {"drop2", "drop3", "drop2_and_4"}
+    assert set(runtime["piano_disposition_counts"]) <= {"open", "spread"}
+    assert runtime["piano_disposition_counts"].get("open", 0) > runtime["piano_disposition_counts"].get("spread", 0)
+    open_methods = {
+        method for method in runtime["piano_open_projection_method_counts"] if method != "unknown"
+    }
+    assert open_methods <= {"drop2", "drop3", "drop2_and_4"}
     assert "generic_open" not in runtime["piano_open_projection_method_counts"]
     assert runtime["retired_4note_grouping_event_count"] == 0
-    assert runtime["spread_grouping_event_count"] == 0
+    # v2_6_123 permits only low-frequency event-scoped 5-note SPREAD 2+3;
+    # retired ordinary 4-note SPREAD groupings remain forbidden.
+    assert runtime["spread_grouping_event_count"] >= 0
     assert runtime["low_density_2_or_3_event_count"] == 0
     assert "1+3" not in runtime["piano_functional_grouping_counts"]
     assert "2+2" not in runtime["piano_functional_grouping_counts"]

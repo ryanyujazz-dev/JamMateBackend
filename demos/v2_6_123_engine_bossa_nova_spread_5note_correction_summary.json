@@ -1,0 +1,171 @@
+{
+  "checkpoint_version": "v2_6_123",
+  "engine_version_tag": "v2_10_28",
+  "scope": "Correct Bossa 5-note routing: OPEN/drop-family remains 4-note, generic_open fallback-only, occasional 5-note uses existing grouped-SPREAD 2+3 event-scoped policy. Core batida front velocity 48 is retained.",
+  "static_audit": {
+    "preferred_disposition": "open",
+    "preferred_density": 4,
+    "max_density": 5,
+    "open_projection_methods": [
+      "drop2",
+      "drop3",
+      "drop2_and_4"
+    ],
+    "generic_open_in_normal_method_pool": false,
+    "has_open_density_gate": false,
+    "has_selector_tail_lane": false,
+    "spread_policy": {
+      "version": "v2_6_123",
+      "enabled": true,
+      "scope": "event-scoped Bossa piano harmonic events only",
+      "contract": "Bossa ordinary body stays OPEN/drop-family 4-note. Occasional 5-note color must request the existing grouped-SPREAD 2+3 contract through event-scoped policy metadata; OPEN/generic_open remains fallback-only and must not be used as a 5-note color lane.",
+      "ordinary_body": "open_drop_family_4note",
+      "five_note_route": "existing_grouped_spread_runtime_candidates",
+      "selected_contract_id": "spread_2plus3_contract",
+      "compatible_contract_ids": [
+        "spread_2plus3_contract"
+      ],
+      "activation": "low_frequency_sustain_or_hold_events_only",
+      "weight_cycle": 16,
+      "active_slots": [
+        3
+      ],
+      "eligible_expression_hints": [
+        "core_sustain",
+        "cell_soft_hold"
+      ],
+      "generic_open_role": "fallback_or_rescue_only_not_5note_runtime_lane",
+      "no_core_voicing_change": true,
+      "no_projection_change": true,
+      "no_selector_tail_lane": true,
+      "no_open_density_gate": true,
+      "no_post_voicing_note_injection": true
+    },
+    "core_short_velocity": 48,
+    "core_sustain_velocity": 52
+  },
+  "ordinary_candidate_audit": {
+    "Cmaj7": {
+      "candidate_count": 72,
+      "density_disposition_method_counts": {
+        "d4:open:drop2": 24,
+        "d4:open:drop3": 24,
+        "d4:open:drop2_and_4": 24
+      },
+      "open_5note_count": 0,
+      "generic_open_count": 0
+    },
+    "G7": {
+      "candidate_count": 72,
+      "density_disposition_method_counts": {
+        "d4:open:drop2": 24,
+        "d4:open:drop3": 24,
+        "d4:open:drop2_and_4": 24
+      },
+      "open_5note_count": 0,
+      "generic_open_count": 0
+    },
+    "C6": {
+      "candidate_count": 24,
+      "density_disposition_method_counts": {
+        "d4:open:drop2": 8,
+        "d4:open:drop3": 8,
+        "d4:open:drop2_and_4": 8
+      },
+      "open_5note_count": 0,
+      "generic_open_count": 0
+    }
+  },
+  "spread_probe_audit": {
+    "policy_applied": true,
+    "selected_contract_id": "spread_2plus3_contract",
+    "candidate_count": 11,
+    "densities": [
+      5
+    ],
+    "dispositions": [
+      "spread"
+    ],
+    "recipe_ids": [
+      "spread_2plus3_contract"
+    ],
+    "candidate_pool_sources": [
+      "grouped_spread_runtime"
+    ],
+    "best_candidate": {
+      "score": 0.404,
+      "notes": [
+        48,
+        52,
+        59,
+        64,
+        67
+      ],
+      "degrees": [
+        "R",
+        "3",
+        "7",
+        "3",
+        "5"
+      ],
+      "density": 5,
+      "disposition": "spread",
+      "recipe_id": "spread_2plus3_contract",
+      "candidate_pool_source": "grouped_spread_runtime"
+    }
+  },
+  "runtime_audit": {
+    "ok": true,
+    "midi_path": "demos/v2_6_123_blue_bossa_bossa_nova_spread_5note_correction_demo.mid",
+    "density_method_counts": {
+      "d4:open:drop2:d4__unGrouped__rootless_A__rootless_allowed": 62,
+      "d4:open:drop2:d4__unGrouped__rootless_B__rootless_allowed": 20,
+      "d5:spread:None:spread_2plus3_contract": 4,
+      "d4:open:drop3:d4__unGrouped__rootless_A__rootless_allowed": 7,
+      "d4:open:drop3:d4__unGrouped__rootless_B__rootless_allowed": 2,
+      "d4:open:drop2:d4__unGrouped__seventh_chord_basic__rootless_allowed": 6
+    },
+    "five_note_spread_selected_count": 4,
+    "open_5note_selected_count": 0,
+    "generic_open_selected_count": 0,
+    "four_note_open_selected_count": 97,
+    "piano_harmonic_event_count": 101,
+    "core_batida_front_velocities_first_four": [
+      48,
+      48,
+      48,
+      48
+    ]
+  },
+  "spread_candidate_audition_demo": {
+    "midi_path": "demos/v2_6_123_bossa_nova_spread_5note_candidate_audition_demo.mid",
+    "symbol_sequence": [
+      "Cm9",
+      "Fm9",
+      "Dm7b5(11)",
+      "G7b9b13",
+      "Cm9",
+      "Cmaj9",
+      "F13",
+      "Bbmaj9"
+    ],
+    "note_event_count": 40
+  },
+  "core_velocity_focus_demo": {
+    "midi_path": "demos/v2_6_123_bossa_nova_core_batida_velocity_48_focus_demo.mid",
+    "front_two_hit_velocity": 48,
+    "sustain_velocity": 52
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "no_open_density_gate_or_tail_lane": true,
+      "generic_open_not_in_bossa_normal_pool": true,
+      "ordinary_pool_has_no_open_5note_or_generic": true,
+      "event_scoped_spread_probe_uses_2plus3_5note": true,
+      "runtime_has_low_frequency_spread_5note": true,
+      "runtime_has_no_open_5note_or_generic_open": true,
+      "core_batida_front_velocity_48_retained": true
+    }
+  }
+}
