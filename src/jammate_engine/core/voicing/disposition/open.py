@@ -182,6 +182,10 @@ def named_open_projection_metadata(
         "open_projection_parent_closed_required": True,
         "open_projection_from_parent_closed_projection": True,
         "open_named_projection_project_then_filter_selection": True,
+        "open_named_projection_parent_source": "compact_closed_parent_candidates_for_projection",
+        "open_named_projection_noncompact_parent_fallback_used": False,
+        "open_named_projection_legacy_parent_fallback_used": False,
+        "open_named_projection_silent_fallback_allowed": False,
     }
     if parent_index is not None:
         metadata["open_named_projection_parent_rotation_index"] = int(parent_index)

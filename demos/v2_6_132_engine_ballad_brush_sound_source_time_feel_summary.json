@@ -1,0 +1,1989 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_132 — Engine Ballad Brush Source Shared Swing-8 Timing Contract",
+  "scope": "Reset Jazz Ballad drums around a real brush sound source: bar-level brush time feel, continuous eighth sweep path, contextual 1&/2&/3&/4& offbeat policy, soft 2/4 foot anchors, felt-not-heard feather kick, phrase breath, and final release. No custom internal brush drum voices, no chord-region dense drum loop, and no piano/bass/voicing/API/Agent/HarmonyOS change.",
+  "static_audit": {
+    "arrangement_policy_version": "v2_6_132",
+    "brush_sound_source_assumed": true,
+    "bar_level_scope": "bar_level_brush_time_feel_with_region_projection",
+    "not_chord_region_loop": true,
+    "no_custom_internal_brush_voices": true,
+    "motion_points": [
+      "1",
+      "1&",
+      "2",
+      "2&",
+      "3",
+      "3&",
+      "4",
+      "4&"
+    ],
+    "candidate_debugs": {
+      "basic_bar": {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_basic_brush_time_whole_bar",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5,
+          2.0,
+          3.0,
+          3.0,
+          3.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_soft_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          },
+          {
+            "beat": 2.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "3",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 2.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "4&",
+            "offbeat_role": "pickup_or_breath_to_next_bar",
+            "articulation": "snare_brush_soft_4and_breath",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 6,
+          "kick": 1,
+          "hihat_pedal": 2
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1,
+          "3": 1,
+          "4": 2,
+          "4&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "basic_brush_time",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 4.0,
+            "region_role": "whole_bar"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 9,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      "swing_skip_bar": {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_brush_swing_skip_whole_bar",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5,
+          2.0,
+          3.0,
+          3.0,
+          3.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_swing_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          },
+          {
+            "beat": 2.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "3",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 2.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "4&",
+            "offbeat_role": "pickup_or_breath_to_next_bar",
+            "articulation": "snare_brush_swing_skip_to_next",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 6,
+          "kick": 1,
+          "hihat_pedal": 2
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1,
+          "3": 1,
+          "4": 2,
+          "4&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "brush_swing_skip",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 4.0,
+            "region_role": "whole_bar"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 9,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      "first_half_split": {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_brush_swing_skip_first_half",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_swing_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 3,
+          "kick": 1,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "brush_swing_skip",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 2.0,
+            "region_role": "first_half"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 5,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      "second_half_split": {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_brush_swing_skip_second_half",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          1.0,
+          1.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "3",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "4&",
+            "offbeat_role": "pickup_or_breath_to_next_bar",
+            "articulation": "snare_brush_swing_skip_to_next",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 3,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "3": 1,
+          "4": 2,
+          "4&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "brush_swing_skip",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 2.0,
+            "bar_end": 4.0,
+            "region_role": "second_half"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 4,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      "phrase_breath": {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_phrase_breath_release_whole_bar",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          1.0,
+          2.0,
+          2.5,
+          3.0,
+          3.0,
+          3.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 2.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "3",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 2.0
+          },
+          {
+            "beat": 2.5,
+            "role": "ballad_phrase_brush_breath",
+            "drum": "snare",
+            "slot": "3&",
+            "offbeat_role": "pickup_to_4",
+            "articulation": "snare_brush_drag_into_4",
+            "dynamic_profile": "brush_breath_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 2.5
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_4_only",
+            "dynamic_profile": "brush_hat_pp",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.5,
+            "role": "ballad_phrase_brush_breath",
+            "drum": "snare",
+            "slot": "4&",
+            "offbeat_role": "pickup_or_breath_to_next_bar",
+            "articulation": "snare_brush_soft_release_to_next",
+            "dynamic_profile": "brush_breath_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 6,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "3&": 1,
+          "4": 2,
+          "4&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "phrase_breath_release",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_4_only",
+          "brush_kick_policy_intent": "none",
+          "brush_density_band": "very_low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 4.0,
+            "region_role": "whole_bar"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 7,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      "final_release": {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_final_release_whole_bar",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_final_brush_release",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_final_release_sweep",
+            "dynamic_profile": "brush_breath_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_final_soft_cymbal_release",
+            "drum": "ride",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "soft_cymbal_decay_from_brush_source",
+            "dynamic_profile": "brush_cymbal_pp",
+            "stroke_profile": "brush_cymbal",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 1,
+          "ride": 1
+        },
+        "event_slot_counts": {
+          "1": 1,
+          "2&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "final_release",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "none",
+          "brush_kick_policy_intent": "none",
+          "brush_density_band": "very_low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 4.0,
+            "region_role": "whole_bar"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 2,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      }
+    }
+  },
+  "runtime_audit": {
+    "ok": true,
+    "midi_path": "demos/v2_6_132_misty_jazz_ballad_brush_sound_source_time_feel_demo.mid",
+    "note_events_by_track": {
+      "piano": 1026,
+      "bass": 150,
+      "drums": 885
+    },
+    "performance_choruses": 3,
+    "performance_bars": 96,
+    "regions": 150,
+    "audited_region_count": 150,
+    "audible_candidate_count": 150,
+    "expected_brush_pattern_event_count": 894,
+    "brush_feel_cell_counts": {
+      "pure_legato_brush": 12,
+      "brush_swing_skip": 49,
+      "basic_brush_time": 49,
+      "brush_two_feel": 40
+    },
+    "brush_event_drum_counts": {
+      "snare": 572,
+      "kick": 154,
+      "hihat_pedal": 168
+    },
+    "brush_event_slot_counts": {
+      "1": 296,
+      "2": 288,
+      "3": 50,
+      "4": 72,
+      "4&": 42,
+      "2&": 138,
+      "3&": 8
+    },
+    "brush_event_articulation_counts": {
+      "snare_brush_continuous_sweep_pressure": 384,
+      "snare_brush_soft_4and_breath": 27,
+      "felt_not_heard_feather_kick": 154,
+      "soft_foot_hat_anchor": 168,
+      "snare_brush_swing_skip": 49,
+      "snare_brush_swing_skip_to_next": 15,
+      "snare_brush_soft_skip": 89,
+      "snare_brush_pickup_to_4": 8
+    },
+    "sample_candidates": [
+      {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_pure_legato_brush_whole_bar",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          3.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 2.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "3",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 2.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "4&",
+            "offbeat_role": "pickup_or_breath_to_next_bar",
+            "articulation": "snare_brush_soft_4and_breath",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 5
+        },
+        "event_slot_counts": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 1,
+          "4&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "pure_legato_brush",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "none",
+          "brush_kick_policy_intent": "none",
+          "brush_density_band": "very_low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 4.0,
+            "region_role": "whole_bar"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 5,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_brush_swing_skip_short_region",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_swing_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 3,
+          "kick": 1,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "brush_swing_skip",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 2.0,
+            "region_role": "short_region"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 5,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_brush_swing_skip_short_region",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_swing_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 3,
+          "kick": 1,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "brush_swing_skip",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 2.0,
+            "region_role": "short_region"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 5,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_brush_swing_skip_whole_bar",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5,
+          2.0,
+          3.0,
+          3.0,
+          3.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_swing_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          },
+          {
+            "beat": 2.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "3",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 2.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "4",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.0
+          },
+          {
+            "beat": 3.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "4&",
+            "offbeat_role": "pickup_or_breath_to_next_bar",
+            "articulation": "snare_brush_swing_skip_to_next",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 3.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 6,
+          "kick": 1,
+          "hihat_pedal": 2
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1,
+          "3": 1,
+          "4": 2,
+          "4&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "brush_swing_skip",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 4.0,
+            "region_role": "whole_bar"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 9,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_basic_brush_time_short_region",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_soft_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 3,
+          "kick": 1,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "basic_brush_time",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 2.0,
+            "region_role": "short_region"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 5,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      },
+      {
+        "candidate_count": 1,
+        "name": "jazz_ballad_brush_source_basic_brush_time_short_region",
+        "category": "jazz_ballad_bar_level_brush_sound_source_time_feel",
+        "rhythm_beats": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.5
+        ],
+        "events": [
+          {
+            "beat": 0.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 0.0,
+            "role": "ballad_feather_kick",
+            "drum": "kick",
+            "slot": "1",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "felt_not_heard_feather_kick",
+            "dynamic_profile": "brush_feather",
+            "stroke_profile": "feather",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 0.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_foot_hat_anchor",
+            "drum": "hihat_pedal",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "soft_foot_hat_anchor",
+            "dynamic_profile": "brush_hat_p",
+            "stroke_profile": "brush_foot",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.0,
+            "role": "ballad_brush_sweep_pressure",
+            "drum": "snare",
+            "slot": "2",
+            "offbeat_role": "downbeat_pressure",
+            "articulation": "snare_brush_continuous_sweep_pressure",
+            "dynamic_profile": "brush_motion_pp",
+            "stroke_profile": "brush_sweep",
+            "timing_intent": "auto",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.0
+          },
+          {
+            "beat": 1.5,
+            "role": "ballad_brush_offbeat_swish",
+            "drum": "snare",
+            "slot": "2&",
+            "offbeat_role": "swing_skip_lift",
+            "articulation": "snare_brush_soft_skip",
+            "dynamic_profile": "brush_skip_pp",
+            "stroke_profile": "brush_swish",
+            "timing_intent": "swing_upbeat",
+            "brush_timing_contract": "style_timing_policy_swing8",
+            "brush_timing_owner": "style_timing_policy_not_pattern",
+            "logical_grid_position": 1.5
+          }
+        ],
+        "event_drum_counts": {
+          "snare": 3,
+          "kick": 1,
+          "hihat_pedal": 1
+        },
+        "event_slot_counts": {
+          "1": 2,
+          "2": 2,
+          "2&": 1
+        },
+        "metadata": {
+          "style_id": "jazz_ballad",
+          "pattern_domain": "percussion_foundation",
+          "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
+          "pattern_library_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_time_feel_active": true,
+          "jazz_ballad_brush_sound_source_time_feel_version": "v2_6_132",
+          "jazz_ballad_brush_sound_source_assumed": true,
+          "jazz_ballad_drum_planning_scope": "bar_level_brush_time_feel_with_region_projection",
+          "jazz_ballad_drum_not_chord_region_loop": true,
+          "jazz_ballad_no_custom_internal_brush_voices": true,
+          "jazz_ballad_brush_timbre_delegated_to_sound_source": true,
+          "brush_feel_cell": "basic_brush_time",
+          "brush_motion_lane": "logical_eighth_sweep_path_resolved_by_style_swing8_timing",
+          "brush_motion_points": [
+            "1",
+            "1&",
+            "2",
+            "2&",
+            "3",
+            "3&",
+            "4",
+            "4&"
+          ],
+          "brush_audible_motion_policy": "logical_quarter_pressure_plus_contextual_swing8_offbeat_articulation",
+          "brush_offbeat_policy": {
+            "1&": "continuation_motion",
+            "2&": "swing_skip_lift",
+            "3&": "pickup_to_4",
+            "4&": "pickup_or_breath_to_next_bar"
+          },
+          "brush_time_anchor_intent": "hat_2_4_soft",
+          "brush_kick_policy_intent": "beat1_feather",
+          "brush_density_band": "low",
+          "bar_region_projection": {
+            "bar_start": 0.0,
+            "bar_end": 2.0,
+            "region_role": "short_region"
+          },
+          "brush_runtime_audible": true,
+          "brush_runtime_note_event_count": 5,
+          "allowed_drum_voices": [
+            "snare",
+            "hihat_pedal",
+            "kick",
+            "ride"
+          ],
+          "brush_no_swing_ride": true,
+          "brush_no_rock_backbeat": true,
+          "brush_no_piano_bass_voicing_change": true
+        }
+      }
+    ]
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "version_declared": true,
+      "brush_source_assumed": true,
+      "bar_level_not_chord_loop": true,
+      "motion_grid_includes_offbeats": true,
+      "no_custom_internal_brush_drums": true,
+      "standard_drum_entries_only": true,
+      "basic_bar_has_brush_pressure_hat_and_feather": true,
+      "skip_bar_articulates_2and_4and": true,
+      "offbeats_use_shared_swing8_timing": true,
+      "split_regions_project_same_bar_plan": true,
+      "phrase_breath_articulates_3and_and_4and": true,
+      "final_release_contextual": true,
+      "misty_runtime_has_drum_layer": true,
+      "piano_bass_still_present": true
+    }
+  },
+  "recommended_next_task": "v2_6_133_engine_ballad_brush_sound_source_listening_calibration"
+}

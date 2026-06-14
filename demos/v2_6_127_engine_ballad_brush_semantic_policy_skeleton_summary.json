@@ -1,0 +1,278 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_127 — Engine Ballad Brush Semantic Policy Skeleton",
+  "scope": "Introduce a Jazz Ballad brush semantic policy skeleton in the existing jazz_ballad percussion owner. The milestone exposes per-region brush texture/time-anchor/kick/phrase-breath/density intent for audit, but intentionally keeps default Ballad drums silent and emits no MIDI drum notes.",
+  "static_audit": {
+    "policy_version": "v2_6_127",
+    "arrangement_policy_active": true,
+    "arrangement_policy_version": "v2_6_127",
+    "declared_texture_intents": [
+      "none",
+      "circular_sparse",
+      "circular_standard",
+      "half_bar_breath_sweep",
+      "release_sweep"
+    ],
+    "declared_time_anchor_intents": [
+      "none",
+      "4_only",
+      "2_4_soft"
+    ],
+    "declared_kick_policy_intents": [
+      "none",
+      "beat1_only",
+      "one_three",
+      "all_four_feather"
+    ],
+    "declared_phrase_breath_intents": [
+      "none",
+      "brush_drag_to_4",
+      "soft_swish_4and",
+      "section_breath",
+      "final_release"
+    ],
+    "declared_density_bands": [
+      "silent",
+      "very_low",
+      "low",
+      "medium"
+    ],
+    "default_candidate_count": 0,
+    "ordinary_decision": {
+      "texture": "circular_sparse",
+      "time_anchor": "4_only",
+      "kick_policy": "none",
+      "phrase_breath": "none",
+      "density": "very_low",
+      "audible": false,
+      "source_bar_index": 4,
+      "chorus_index": 1,
+      "phrase_tail": false,
+      "final_release_context": false
+    },
+    "phrase_tail_decision": {
+      "texture": "half_bar_breath_sweep",
+      "time_anchor": "4_only",
+      "kick_policy": "none",
+      "phrase_breath": "soft_swish_4and",
+      "density": "very_low",
+      "audible": false,
+      "source_bar_index": 7,
+      "chorus_index": 0,
+      "phrase_tail": true,
+      "final_release_context": false
+    },
+    "final_release_decision": {
+      "texture": "release_sweep",
+      "time_anchor": "none",
+      "kick_policy": "none",
+      "phrase_breath": "final_release",
+      "density": "very_low",
+      "audible": false,
+      "source_bar_index": 31,
+      "chorus_index": 2,
+      "phrase_tail": true,
+      "final_release_context": true
+    },
+    "boundary": "metadata_only_no_audible_drum_events_no_midi_notes_no_expression_values",
+    "no_fixed_loop": true,
+    "no_swing_ride": true,
+    "no_rock_backbeat": true
+  },
+  "runtime_audit": {
+    "ok": true,
+    "title": "Misty",
+    "style": "jazz_ballad",
+    "midi_path": "demos/v2_6_127_misty_jazz_ballad_brush_semantic_policy_skeleton_demo.mid",
+    "performance_choruses": 3,
+    "performance_bars": 96,
+    "regions": 150,
+    "audited_region_count": 150,
+    "note_events_by_track": {
+      "piano": 994,
+      "bass": 150
+    },
+    "drum_note_events": 0,
+    "brush_texture_counts": {
+      "circular_sparse": 36,
+      "none": 108,
+      "half_bar_breath_sweep": 5,
+      "release_sweep": 1
+    },
+    "brush_time_anchor_counts": {
+      "none": 121,
+      "4_only": 29
+    },
+    "brush_kick_policy_counts": {
+      "none": 150
+    },
+    "brush_phrase_breath_counts": {
+      "none": 144,
+      "section_breath": 5,
+      "final_release": 1
+    },
+    "brush_density_counts": {
+      "very_low": 42,
+      "silent": 108
+    },
+    "sample_decisions": [
+      {
+        "texture": "circular_sparse",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "very_low",
+        "audible": false,
+        "source_bar_index": 0,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 1,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 1,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "circular_sparse",
+        "time_anchor": "4_only",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "very_low",
+        "audible": false,
+        "source_bar_index": 2,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 3,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 3,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 4,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 4,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 5,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 5,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 6,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      },
+      {
+        "texture": "none",
+        "time_anchor": "none",
+        "kick_policy": "none",
+        "phrase_breath": "none",
+        "density": "silent",
+        "audible": false,
+        "source_bar_index": 6,
+        "chorus_index": 0,
+        "phrase_tail": false,
+        "final_release_context": false
+      }
+    ]
+  },
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "version_declared": true,
+      "default_runtime_still_silent": true,
+      "misty_still_generates_piano_and_bass": true,
+      "semantic_dimensions_present": true,
+      "ordinary_and_boundary_decisions_present": true,
+      "runtime_region_decisions_exposed": true,
+      "no_generic_loop_contract": true
+    }
+  },
+  "recommended_next_task": "v2_6_128_engine_ballad_first_audible_sparse_brush_foundation"
+}

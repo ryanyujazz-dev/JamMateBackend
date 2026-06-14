@@ -1,0 +1,254 @@
+{
+  "contract_version": "v2_10_28",
+  "milestone": "v2_6_91 — Engine Bossa Nova Non-Core Rhythm Cell Vocabulary",
+  "scope": "Activate Bossa Nova non-core piano rhythm cells directly in the existing V2 ChordRegion-first pattern library. This replaces the old core-only runtime path without adding a parallel selector or moving expression/voicing/API/Agent/HarmonyOS boundaries.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_91",
+    "engine_version_tag": "v2_10_28",
+    "style_registered": true,
+    "arrangement_policy_version": "v2_6_91",
+    "behavior_change": true,
+    "replaces_core_only_runtime": true,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "expression_numeric_calibration_change": false,
+    "expression_aliases_only": true,
+    "opening_core_batida_bars": 2,
+    "pattern_library_version": "v2_6_91",
+    "full_region_candidate_count": 13,
+    "half_region_candidate_count": 1,
+    "class_A_candidate_count": 6,
+    "class_B_candidate_count": 6,
+    "core_candidate_count": 1,
+    "non_core_candidate_names": [
+      "bossa_piano_cell_A_1",
+      "bossa_piano_cell_A_1_2and",
+      "bossa_piano_cell_A_1_3and",
+      "bossa_piano_cell_A_1_4and",
+      "bossa_piano_cell_A_1_3",
+      "bossa_piano_cell_A_1_2_3and",
+      "bossa_piano_cell_B_1and",
+      "bossa_piano_cell_B_1and_3",
+      "bossa_piano_cell_B_1and_3and",
+      "bossa_piano_cell_B_1and_4",
+      "bossa_piano_cell_B_1and_4and",
+      "bossa_piano_cell_B_1and_3_4and"
+    ],
+    "core_batida_beats": [
+      0.0,
+      1.0,
+      2.5
+    ],
+    "core_batida_expression_hints": [
+      "core_short",
+      "core_short",
+      "core_sustain"
+    ],
+    "non_core_expression_hints": [
+      "cell_close_gap_short",
+      "cell_soft_hold"
+    ],
+    "legacy_bar_first_tags": [],
+    "chord_region_first_tags_present": true,
+    "native_4and_candidate_names": [
+      "bossa_piano_cell_A_1_4and",
+      "bossa_piano_cell_B_1and_4and",
+      "bossa_piano_cell_B_1and_3_4and"
+    ],
+    "expression_alias_profiles": {
+      "cell_close_gap_short": {
+        "duration_beats": 0.45,
+        "velocity": 56,
+        "numeric_source_profile": "core_short"
+      },
+      "cell_soft_hold": {
+        "duration_beats": 1.3,
+        "velocity": 52,
+        "numeric_source_profile": "core_sustain"
+      }
+    },
+    "recommended_next_task": "v2_6_92_engine_bossa_nova_context_archetype_policy_and_history_scorer_refinement",
+    "known_next_gap": "Non-core rhythm cells are now active, but articulation remains profile-alias based rather than true distance-sensitive Bossa articulation; next pass should refine groove archetype/context weighting and then add distance-aware expression."
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 22702,
+      "midi_path": "demos/v2_6_91_blue_bossa_3x_bossa_nova_non_core_rhythm_cell_vocabulary_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 386,
+        "bass": 102,
+        "drums": 102
+      },
+      "piano_active_events": 108,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 6,
+        "bossa_piano_cell_A_1": 5,
+        "bossa_piano_cell_A_1_2and": 20,
+        "bossa_piano_cell_A_1_3": 8,
+        "bossa_piano_cell_A_1_2_3and": 33,
+        "bossa_piano_cell_B_1and_4": 4,
+        "bossa_piano_half_region_1_2": 12,
+        "bossa_piano_cell_A_1_3and": 16,
+        "bossa_piano_cell_B_1and": 2,
+        "bossa_piano_cell_B_1and_3and": 2
+      },
+      "piano_non_core_pattern_event_count": 90,
+      "piano_class_A_event_count": 82,
+      "piano_class_B_event_count": 8,
+      "piano_native_4and_event_count": 0,
+      "piano_class_B_ratio_of_non_core_events": 0.0889,
+      "opening_first_two_bars_patterns": [
+        "bossa_piano_core_batida_1_2_3and"
+      ],
+      "opening_first_two_bars_core_only": true,
+      "active_anticipation_count": 10,
+      "anticipated_target_local_slots": {
+        "3.5": 10
+      },
+      "terminal_ending_anticipation_count": 0,
+      "anticipation_timing_grids": [
+        "straight_upbeat"
+      ],
+      "anticipation_expected_upbeat_fractions": [
+        "0.5"
+      ],
+      "expression_profiles": {
+        "core_short": 10,
+        "core_sustain": 8,
+        "cell_soft_hold": 79,
+        "cell_close_gap_short": 11
+      },
+      "articulations": {
+        "short": 21,
+        "sustain": 87
+      },
+      "pedal_modes": {
+        "none": 28,
+        "light": 80
+      },
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "pedal_cc64_event_count": 0,
+      "piano_content_families": {
+        "seventh_chord_basic": 74,
+        "rooted_color": 11,
+        "guide_tone": 23
+      },
+      "piano_densities": {
+        "4": 85,
+        "2": 23
+      },
+      "piano_dispositions": {
+        "closed": 108
+      },
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 22752,
+      "midi_path": "demos/v2_6_91_blue_bossa_5x_bossa_nova_non_core_rhythm_cell_vocabulary_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 648,
+        "bass": 170,
+        "drums": 170
+      },
+      "piano_active_events": 179,
+      "piano_pattern_counts": {
+        "bossa_piano_core_batida_1_2_3and": 12,
+        "bossa_piano_cell_A_1_2and": 30,
+        "bossa_piano_cell_A_1": 10,
+        "bossa_piano_cell_A_1_3and": 30,
+        "bossa_piano_cell_A_1_3": 20,
+        "bossa_piano_cell_A_1_2_3and": 48,
+        "bossa_piano_half_region_1_2": 20,
+        "bossa_piano_cell_B_1and": 1,
+        "bossa_piano_cell_A_1_4and": 2,
+        "bossa_piano_cell_B_1and_4": 2,
+        "bossa_piano_cell_B_1and_3and": 2,
+        "bossa_piano_cell_B_1and_4and": 2
+      },
+      "piano_non_core_pattern_event_count": 147,
+      "piano_class_A_event_count": 140,
+      "piano_class_B_event_count": 7,
+      "piano_native_4and_event_count": 4,
+      "piano_class_B_ratio_of_non_core_events": 0.0476,
+      "opening_first_two_bars_patterns": [
+        "bossa_piano_core_batida_1_2_3and"
+      ],
+      "opening_first_two_bars_core_only": true,
+      "active_anticipation_count": 20,
+      "anticipated_target_local_slots": {
+        "3.5": 20
+      },
+      "terminal_ending_anticipation_count": 0,
+      "anticipation_timing_grids": [
+        "straight_upbeat"
+      ],
+      "anticipation_expected_upbeat_fractions": [
+        "0.5"
+      ],
+      "expression_profiles": {
+        "core_short": 18,
+        "core_sustain": 14,
+        "cell_soft_hold": 131,
+        "cell_close_gap_short": 16
+      },
+      "articulations": {
+        "short": 34,
+        "sustain": 145
+      },
+      "pedal_modes": {
+        "none": 48,
+        "light": 131
+      },
+      "expression_warning_count": 0,
+      "expression_missing_count": 0,
+      "expression_cross_region_count": 0,
+      "expression_cross_next_event_count": 0,
+      "pedal_cc64_event_count": 0,
+      "piano_content_families": {
+        "seventh_chord_basic": 123,
+        "rooted_color": 22,
+        "guide_tone": 34
+      },
+      "piano_densities": {
+        "4": 145,
+        "2": 34
+      },
+      "piano_dispositions": {
+        "closed": 179
+      },
+      "piano_lower_foundation_low_register_events": 0,
+      "piano_lower_foundation_span_violation_events": 0
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "style_and_policy_registered": true,
+      "direct_replacement_not_parallel_path": true,
+      "pattern_library_has_core_A_B_vocabulary": true,
+      "core_batida_identity_preserved": true,
+      "boundaries_preserved": true,
+      "expression_aliases_exist_without_new_numeric_calibration": true,
+      "runtime_blue_bossa_full_band_passes": true
+    }
+  },
+  "recommended_next_task": "v2_6_92_engine_bossa_nova_context_archetype_policy_and_history_scorer_refinement"
+}

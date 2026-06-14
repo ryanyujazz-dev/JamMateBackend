@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from jammate_engine.core.harmony.chord_parser import ParsedChord, parse_chord
 from jammate_engine.core.harmony.material import (
     ChordMaterial,
@@ -67,7 +69,9 @@ def content_degree_options(
     if family == ContentFamily.SEVENTH_BASIC:
         return _seventh_basic_1357_options(chord, policy)
     if family == ContentFamily.ROOTED_COLOR:
-        return _rooted_color_4note_source_inventory_options(chord, material, policy)
+        options = _rooted_color_4note_source_inventory_options(chord, material, policy)
+        options.extend(_rooted_color_5note_source_inventory_options(chord, material, policy))
+        return options
     if family in {ContentFamily.ROOTLESS_A, ContentFamily.ROOTLESS_B}:
         return _rootless_ab_options(chord, material, family, policy)
     if family in TRIAD_FAMILIES:
@@ -473,6 +477,18 @@ def _rooted_color_4note_source_inventory_options(
     legacy_alias = ""
     content_note = ""
     extra_notes: tuple[str, ...] = ()
+    altered_decision = resolve_altered_dominant_policy(policy, chord)
+    altered_rooted_options = _rooted_color_4note_altered_dominant_options(
+        chord=chord,
+        material=material,
+        policy=policy,
+        color_context=color_context,
+        specified=specified,
+        expansion=expansion,
+        altered_decision=altered_decision,
+    )
+    if altered_decision.explicit_chord_symbol_altered and altered_rooted_options:
+        return altered_rooted_options
 
     if _is_half_diminished_like(chord) or (chord.quality == "diminished" and chord.has_seventh):
         # Half-diminished and diminished-seventh quality depends on the 5th as
@@ -490,25 +506,6 @@ def _rooted_color_4note_source_inventory_options(
             "seventh_chord_expansion_preserves_diminished_fifth_identity",
             "triad_add9_source_blocked_for_seventh_chord",
         )
-    elif _altered_dominant_authorized_for_policy(chord, policy):
-        altered_decision = resolve_altered_dominant_policy(policy, chord)
-        colors = _ordered_altered_dominant_colors(chord, material, specified=specified, expansion=expansion)
-        if colors:
-            source_roles = ("root", "third", "seventh", "altered_color_a")
-            source = (_resolve_source_roles(chord, ("root", "third", "seventh")) + (colors[0],))
-            legacy_alias = "1_3_b7_X"
-            content_note = "rooted_color_4note_functional_content_type_root_third_seventh_altered_color"
-            extra_notes = (
-                "rooted_color_4note_altered_dominant_rooted_source",
-                "rooted_color_4note_altered_dominant_source_1_3_b7_X",
-                "altered_dominant_natural_5_omitted",
-                f"rooted_color_4note_altered_color_x_{_degree_order_token((colors[0],))}",
-                f"altered_dominant_functional_scope_{altered_decision.functional_scope.value}",
-                f"altered_dominant_inferred_functional_scope_{altered_decision.inferred_functional_scope.value}",
-                f"altered_dominant_authorization_reason_{altered_decision.reason}",
-                f"altered_dominant_intensity_{altered_decision.intensity.value}",
-                f"altered_dominant_source_weight_bias_rooted_color_{altered_dominant_source_weight_bias(policy, chord, 'rooted_color'):+.3f}",
-            )
     elif _explicit_eleventh_requested(specified) and (seventh_degree_for_chord(chord) or chord.has_seventh or chord.is_dominant):
         source_roles = ("root", "third", "seventh", "eleventh")
         source = _resolve_source_roles(chord, source_roles)
@@ -588,8 +585,9 @@ def _rooted_color_4note_source_inventory_options(
                 "seventh_chord_expansion_preserves_3_and_7",
             )
 
+    options: list[tuple[list[tuple[str, int]], tuple[str, ...]]] = []
     if source_roles and source:
-        return _functional_source_rotation_options(
+        options.extend(_functional_source_rotation_options(
             source=source,
             source_roles=source_roles,
             note_prefix="rooted_color_4note",
@@ -601,10 +599,177 @@ def _rooted_color_4note_source_inventory_options(
                 *extra_notes,
                 "voicing_source_roles_resolved_by_core_harmony",
             ),
+        ))
+    if altered_rooted_options:
+        options.extend(altered_rooted_options)
+    return options
+
+
+def _rooted_color_5note_source_inventory_options(
+    chord: ParsedChord,
+    material: ChordMaterial,
+    policy: VoicingPolicy,
+) -> list[tuple[list[tuple[str, int]], tuple[str, ...]]]:
+    """Return optional 5-note rooted color sources for styles that opt in.
+
+    The source layer owns *what* tones may be present; projection remains a
+    separate concern. This function deliberately does not retune Bossa or any
+    other style by default. A style must explicitly declare that preferred
+    density is a soft target and that 5-note source candidates may be generated.
+    """
+
+    if not _rooted_color_5note_source_pool_enabled(policy):
+        return []
+    min_density, _preferred_density, max_density = policy.effective_density_range
+    if max_density < 5 or min_density > 5:
+        return []
+
+    color_context = _color_permission_context(chord, material, policy)
+    specified = set(color_context.explicit)
+    expansion = bool(color_context.expansion_enabled)
+    altered_decision = resolve_altered_dominant_policy(policy, chord)
+    if not expansion and not specified and not altered_decision.explicit_chord_symbol_altered:
+        return []
+
+    source_roles: tuple[str, ...] | None = None
+    source: tuple[str, ...] | None = None
+    content_note = ""
+    legacy_alias = ""
+    extra_notes: tuple[str, ...] = ()
+
+    if altered_decision.authorized_for_chord and chord.is_dominant:
+        colors = _ordered_altered_dominant_colors(chord, material, specified=specified, expansion=expansion)
+        if len(colors) >= 2:
+            source_roles = ("root", "third", "seventh", "altered_color_a", "altered_color_b")
+            source = _resolve_source_roles(chord, ("root", "third", "seventh")) + tuple(colors[:2])
+            legacy_alias = "1_3_b7_X_Y"
+            content_note = "rooted_color_5note_functional_content_type_root_third_seventh_altered_color_a_altered_color_b"
+            extra_notes = (
+                "rooted_color_5note_altered_dominant_source",
+                "altered_dominant_natural_5_omitted",
+                f"rooted_color_5note_altered_color_a_{_degree_order_token((colors[0],))}",
+                f"rooted_color_5note_altered_color_b_{_degree_order_token((colors[1],))}",
+                f"altered_dominant_functional_scope_{altered_decision.functional_scope.value}",
+                f"altered_dominant_inferred_functional_scope_{altered_decision.inferred_functional_scope.value}",
+                f"altered_dominant_intensity_{altered_decision.intensity.value}",
+            )
+
+    if source is None and (_is_half_diminished_like(chord) or (chord.quality == "diminished" and chord.has_seventh)):
+        ninth = resolve_functional_degree_role(chord, "ninth")
+        source_roles = ("root", "third", "fifth", "seventh", "ninth")
+        source = _resolve_source_roles(chord, source_roles)
+        legacy_alias = "1_3_b5_7_9" if _is_half_diminished_like(chord) else "1_b3_b5_bb7_9"
+        content_note = "rooted_color_5note_functional_content_type_root_third_fifth_seventh_ninth"
+        extra_notes = (
+            "rooted_color_5note_diminished_identity_source_family",
+            "global_seventh_chord_expansion_source_integrity_gate_applied",
+            "seventh_chord_expansion_preserves_3_and_7",
+            "seventh_chord_expansion_preserves_diminished_fifth_identity",
+            f"rooted_color_5note_resolved_ninth_{_degree_order_token((ninth,))}",
         )
 
-    return []
+    if source is None and chord.has_sixth and ("9" in specified or expansion):
+        source_roles = ("root", "third", "fifth", "sixth", "ninth")
+        source = _resolve_source_roles(chord, source_roles)
+        legacy_alias = "1_3_5_6_9"
+        content_note = "rooted_color_5note_functional_content_type_root_third_fifth_sixth_ninth"
+        extra_notes = ("rooted_color_5note_6_9_source_family", "rooted_color_5note_13569_alias")
 
+    if source is None and _seventh_chord_source_integrity_required(chord):
+        if chord.quality == "minor":
+            source_roles = ("root", "third", "seventh", "ninth", "eleventh")
+            legacy_alias = "1_b3_b7_9_11"
+            content_note = "rooted_color_5note_functional_content_type_root_third_seventh_ninth_eleventh"
+        else:
+            source_roles = ("root", "third", "seventh", "ninth", "thirteenth")
+            legacy_alias = "1_3_7_9_13"
+            content_note = "rooted_color_5note_functional_content_type_root_third_seventh_ninth_thirteenth"
+        source = _resolve_source_roles(chord, source_roles)
+        extra_notes = (
+            "rooted_color_5note_harmonic_expansion_source_family",
+            "harmonic_expansion_color_used",
+            "global_seventh_chord_expansion_source_integrity_gate_applied",
+            "seventh_chord_expansion_preserves_3_and_7",
+        )
+
+    if source is None and expansion and chord.quality not in {"diminished", "augmented"}:
+        source_roles = ("root", "third", "fifth", "sixth", "ninth")
+        source = _resolve_source_roles(chord, source_roles)
+        legacy_alias = "1_3_5_6_9"
+        content_note = "rooted_color_5note_functional_content_type_root_third_fifth_sixth_ninth"
+        extra_notes = ("rooted_color_5note_triad_low_order_6_9_source_family",)
+
+    if not source_roles or not source:
+        return []
+    permission_notes = _four_note_color_permission_notes(chord, source, color_context)
+    if "four_note_color_permission_blocked_unallowed_color" in permission_notes:
+        return []
+    return _functional_source_rotation_options(
+        source=source,
+        source_roles=source_roles,
+        note_prefix="rooted_color_5note",
+        family_notes=(
+            "rooted_color_5note_functional_source_family",
+            *permission_notes,
+            content_note,
+            f"rooted_color_5note_content_type_{legacy_alias}",
+            *extra_notes,
+            "voicing_source_roles_resolved_by_core_harmony",
+            "preferred_density_soft_target_5note_candidate",
+        ),
+    )
+
+
+def _rooted_color_5note_source_pool_enabled(policy: VoicingPolicy) -> bool:
+    metadata = dict(getattr(policy, "metadata", None) or {})
+    nested = metadata.get("rooted_color_5note_source_pool") or metadata.get("five_note_source_pool") or {}
+    if not isinstance(nested, dict):
+        nested = {"enabled": nested}
+    values = {**metadata, **nested}
+    return bool(
+        values.get("enabled")
+        or values.get("rooted_color_5note_source_pool_enabled")
+        or values.get("five_note_source_pool_enabled")
+    )
+
+def _rooted_color_4note_altered_dominant_options(
+    *,
+    chord: ParsedChord,
+    material: ChordMaterial,
+    policy: VoicingPolicy,
+    color_context: ColorPermissionContext,
+    specified: set[str],
+    expansion: bool,
+    altered_decision: Any,
+) -> list[tuple[list[tuple[str, int]], tuple[str, ...]]]:
+    if not altered_decision.authorized_for_chord:
+        return []
+    colors = _ordered_altered_dominant_colors(chord, material, specified=specified, expansion=expansion)
+    if not colors:
+        return []
+    source_roles = ("root", "third", "seventh", "altered_color_a")
+    source = _resolve_source_roles(chord, ("root", "third", "seventh")) + (colors[0],)
+    return _functional_source_rotation_options(
+        source=source,
+        source_roles=source_roles,
+        note_prefix="rooted_color_4note",
+        family_notes=(
+            "rooted_color_4note_functional_source_family",
+            *_four_note_color_permission_notes(chord, source, color_context),
+            "rooted_color_4note_functional_content_type_root_third_seventh_altered_color",
+            "rooted_color_4note_content_type_1_3_b7_X",
+            "rooted_color_4note_altered_dominant_rooted_source",
+            "rooted_color_4note_altered_dominant_source_1_3_b7_X",
+            "altered_dominant_natural_5_omitted",
+            f"rooted_color_4note_altered_color_x_{_degree_order_token((colors[0],))}",
+            f"altered_dominant_functional_scope_{altered_decision.functional_scope.value}",
+            f"altered_dominant_inferred_functional_scope_{altered_decision.inferred_functional_scope.value}",
+            f"altered_dominant_authorization_reason_{altered_decision.reason}",
+            f"altered_dominant_intensity_{altered_decision.intensity.value}",
+            f"altered_dominant_source_weight_bias_rooted_color_{altered_dominant_source_weight_bias(policy, chord, 'rooted_color'):+.3f}",
+            "voicing_source_roles_resolved_by_core_harmony",
+        ),
+    )
 
 
 
@@ -713,13 +878,16 @@ def _rootless_ab_options(
     if chord.quality == "diminished":
         return []
 
-    if _altered_dominant_authorized_for_policy(chord, policy):
-        # Altered dominant rootless content must use the dedicated no-root,
-        # no-natural-5 altered-color source. If the chart/policy supplies only
-        # one altered color and no second legal color is available, do not fall
-        # back to ordinary with_5 rootless material. The rooted altered source
-        # remains available through ROOTED_COLOR.
-        return _altered_dominant_rootless_ab_options(
+    altered_decision = resolve_altered_dominant_policy(policy, chord)
+    altered_options: list[tuple[list[tuple[str, int]], tuple[str, ...]]] = []
+    if altered_decision.authorized_for_chord:
+        # Altered dominant is a source-candidate pool, not a post-voicing note
+        # rewrite.  Explicit altered chart symbols such as G7alt/G7b9b13 remain
+        # chart fidelity and should not fall back to natural-5 rootless material.
+        # Plain dominants authorized by the altered policy, however, must keep
+        # ordinary 9/13 rootless sources in the same candidate pool so style
+        # weighting can make altered color occasional instead of absolute.
+        altered_options = _altered_dominant_rootless_ab_options(
             chord=chord,
             material=material,
             family=family,
@@ -730,6 +898,8 @@ def _rootless_ab_options(
             color_context=color_context,
             policy=policy,
         )
+        if altered_decision.explicit_chord_symbol_altered:
+            return altered_options
 
     if _explicit_other_color_should_take_priority(chord, specified) and not expansion:
         return _rootless_ab_explicit_only_options(chord, family, third, fifth, seventh, specified, color_context=color_context)
@@ -754,6 +924,8 @@ def _rootless_ab_options(
         specified=specified,
         color_context=color_context,
     ))
+    if altered_options:
+        options.extend(altered_options)
     return options
 
 
@@ -1210,17 +1382,40 @@ def _first_color(colors: list[str], fallback: str) -> str:
 
 
 def trim_content_degrees(degrees: list[tuple[str, int]], policy: VoicingPolicy) -> list[tuple[str, int]]:
-    """Apply the legacy density limit while preserving required root support."""
+    """Apply the density limit while preserving required root support.
+
+    ``preferred_density`` is a musical center of gravity, not necessarily a
+    generation cap.  Older behavior trimmed every source to the preferred
+    density; styles that explicitly opt into a soft preferred-density contract
+    can now keep candidates up to ``max_density`` and let scoring/weights make
+    the denser sources occasional.
+    """
 
     if not degrees:
         return []
     min_density, preferred_density, max_density_limit = policy.effective_density_range
-    max_density = max(min_density, min(preferred_density, max_density_limit, len(degrees)))
+    if _preferred_density_is_soft_generation_target(policy):
+        max_density = max(min_density, min(max_density_limit, len(degrees)))
+    else:
+        max_density = max(min_density, min(preferred_density, max_density_limit, len(degrees)))
     trimmed = degrees[:max_density]
     if policy.root_support in {RootSupportPolicy.ROOT_REQUIRED, RootSupportPolicy.BASS_ROOT_REQUIRED} and all(degree != "R" for degree, _ in trimmed):
         root = next((item for item in degrees if item[0] == "R"), ("R", 0))
         trimmed = [root, *trimmed]
     return trimmed[: policy.max_density]
+
+
+def _preferred_density_is_soft_generation_target(policy: VoicingPolicy) -> bool:
+    metadata = dict(getattr(policy, "metadata", None) or {})
+    nested = metadata.get("voicing_density_generation_policy") or metadata.get("density_generation_policy") or {}
+    if not isinstance(nested, dict):
+        nested = {}
+    values = {**metadata, **nested}
+    return bool(
+        values.get("preferred_density_is_soft_target")
+        or values.get("allow_density_above_preferred_to_max")
+        or values.get("generate_candidates_up_to_max_density")
+    )
 
 
 def content_validity_notes(chord: ParsedChord, family: ContentFamily, degree_names: tuple[str, ...], policy: VoicingPolicy | None = None) -> tuple[str, ...]:

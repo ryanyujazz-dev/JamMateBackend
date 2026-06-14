@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from jammate_api.routes.accompaniment_routes import router as accompaniment_router
 from jammate_api.routes.agent_routes import router as agent_router
@@ -13,6 +14,14 @@ app = FastAPI(
     title="JamMate API",
     version=APP_VERSION,
     description="Service layer exposing direct JamMate Engine APIs and JamMate Agent orchestration APIs.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health_router)

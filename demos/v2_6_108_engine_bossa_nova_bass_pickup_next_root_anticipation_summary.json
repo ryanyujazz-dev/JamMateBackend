@@ -1,0 +1,216 @@
+{
+  "checkpoint_version": "v2_6_108",
+  "engine_version_tag": "v2_10_28",
+  "scope": "Bossa bass refinement after drum checkpoint: keep root/fifth support, add occasional 2& fifth pickup and controlled 4& next-root anticipation on full ChordRegions only, while keeping split/short regions root-only and keeping kick as a main-beat shadow rather than following pickups.",
+  "static_audit": {
+    "checkpoint_version": "v2_6_108",
+    "engine_version_tag": "v2_10_28",
+    "policy_active": true,
+    "policy_version": "v2_6_108",
+    "policy_behavior_change": true,
+    "no_parallel_selector": true,
+    "no_bar_first_restore": true,
+    "no_walking_bass": true,
+    "no_piano_pattern_change": true,
+    "no_core_voicing_change": true,
+    "no_api_agent_harmonyos_change": true,
+    "full_candidate_names": [
+      "bossa_bass_root_fifth_2bar_A",
+      "bossa_bass_root_2and_fifth_pickup_3_fifth",
+      "bossa_bass_root_fifth_4and_next_root",
+      "bossa_bass_root_2and_fifth_3_fifth_4and_next_root"
+    ],
+    "full_candidate_variants": [
+      "root_fifth_main",
+      "two_and_fifth_pickup",
+      "four_and_next_root",
+      "two_and_pickup_plus_four_and_next_root"
+    ],
+    "full_candidate_count": 4,
+    "has_2and_pickup_candidate": true,
+    "has_4and_next_root_candidate": true,
+    "split_region_degrees": [
+      "root"
+    ],
+    "short_region_degrees": [
+      "root"
+    ],
+    "forbidden_pattern_numeric_keys": [],
+    "recommended_next_task": "v2_6_109_engine_bossa_nova_bass_articulation_and_register_policy"
+  },
+  "runtime_audits": [
+    {
+      "ok": true,
+      "choruses": 3,
+      "seed": 23108,
+      "midi_path": "demos/v2_6_108_blue_bossa_3x_bossa_nova_bass_pickup_next_root_anticipation_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 48,
+      "regions": 51,
+      "note_events_by_track": {
+        "piano": 428,
+        "bass": 103,
+        "drums": 593
+      },
+      "piano_notes": 428,
+      "bass_notes": 103,
+      "drums_notes": 593,
+      "planned_bass_event_count": 103,
+      "planned_drum_event_count": 593,
+      "bass_degree_counts": {
+        "root": 51,
+        "fifth": 49,
+        "next_root": 3
+      },
+      "bass_local_beat_counts": {
+        "0.0": 51,
+        "2.0": 45,
+        "1.5": 4,
+        "3.5": 3
+      },
+      "bass_candidate_counts": {
+        "bossa_bass_root_fifth_2bar_A": 44,
+        "bossa_bass_root_fifth_2bar_B_answer": 34,
+        "bossa_bass_root_2and_fifth_pickup_3_fifth": 9,
+        "bossa_bass_root_2and_fifth_3_fifth_4and_next_root": 4,
+        "bossa_bass_split_region_root_only": 6,
+        "bossa_bass_root_fifth_4and_next_root": 6
+      },
+      "bass_pickup_variant_counts": {
+        "None": 103
+      },
+      "pickup_2and_event_count": 4,
+      "next_root_4and_event_count": 3,
+      "split_short_non_root_events": 0,
+      "terminal_next_root_events": 0,
+      "kick_pickup_follow_events": 0,
+      "walking_like_bass_events": 0,
+      "bass_velocity_ranges": {
+        "root": [
+          52,
+          63
+        ],
+        "fifth": [
+          48,
+          57
+        ],
+        "next_root": [
+          53,
+          55
+        ]
+      },
+      "bass_duration_ranges": {
+        "main": [
+          0.82,
+          1.32
+        ],
+        "pickup_2and": [
+          0.38,
+          0.38
+        ],
+        "next_root_4and": [
+          0.42,
+          0.42
+        ]
+      },
+      "drum_kick_event_count": 96,
+      "drum_kick_velocity_range": [
+        20,
+        39
+      ]
+    },
+    {
+      "ok": true,
+      "choruses": 5,
+      "seed": 23109,
+      "midi_path": "demos/v2_6_108_blue_bossa_5x_bossa_nova_bass_pickup_next_root_anticipation_demo.mid",
+      "title": "Blue Bossa",
+      "style": "bossa_nova",
+      "performance_bars": 80,
+      "regions": 85,
+      "note_events_by_track": {
+        "piano": 684,
+        "bass": 165,
+        "drums": 989
+      },
+      "piano_notes": 684,
+      "bass_notes": 165,
+      "drums_notes": 989,
+      "planned_bass_event_count": 165,
+      "planned_drum_event_count": 989,
+      "bass_degree_counts": {
+        "root": 85,
+        "fifth": 78,
+        "next_root": 2
+      },
+      "bass_local_beat_counts": {
+        "0.0": 85,
+        "2.0": 75,
+        "1.5": 3,
+        "3.5": 2
+      },
+      "bass_candidate_counts": {
+        "bossa_bass_root_fifth_2bar_A": 76,
+        "bossa_bass_root_fifth_2bar_B_answer": 64,
+        "bossa_bass_root_2and_fifth_pickup_3_fifth": 9,
+        "bossa_bass_split_region_root_only": 10,
+        "bossa_bass_root_fifth_4and_next_root": 6
+      },
+      "bass_pickup_variant_counts": {
+        "None": 165
+      },
+      "pickup_2and_event_count": 3,
+      "next_root_4and_event_count": 2,
+      "split_short_non_root_events": 0,
+      "terminal_next_root_events": 0,
+      "kick_pickup_follow_events": 0,
+      "walking_like_bass_events": 0,
+      "bass_velocity_ranges": {
+        "root": [
+          52,
+          63
+        ],
+        "fifth": [
+          48,
+          57
+        ],
+        "next_root": [
+          55,
+          55
+        ]
+      },
+      "bass_duration_ranges": {
+        "main": [
+          0.82,
+          1.32
+        ],
+        "pickup_2and": [
+          0.38,
+          0.38
+        ],
+        "next_root_4and": [
+          0.42,
+          0.42
+        ]
+      },
+      "drum_kick_event_count": 160,
+      "drum_kick_velocity_range": [
+        20,
+        39
+      ]
+    }
+  ],
+  "acceptance": {
+    "passed": true,
+    "checks": {
+      "policy_declares_bass_pickup": true,
+      "no_parallel_or_bar_first_or_walking": true,
+      "no_cross_track_or_voicing_change": true,
+      "full_region_candidates_include_pickup_and_nextroot": true,
+      "split_short_regions_root_only": true,
+      "no_pattern_numeric_values": true,
+      "runtime_blue_bossa_bass_pickup_pass": true
+    }
+  }
+}

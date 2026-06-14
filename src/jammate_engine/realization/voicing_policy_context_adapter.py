@@ -6,13 +6,16 @@ from typing import Any
 
 from jammate_engine.core.harmony.chord_parser import parse_chord
 from jammate_engine.core.pattern_runtime.pattern_event import PatternEvent
-from jammate_engine.core.voicing import ColorPolicyMode, Disposition, VoicingPolicy
+from jammate_engine.core.voicing import ColorPolicyMode, ContentFamily, Disposition, RootSupportPolicy, VoicingPolicy
 
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_VERSION = "v2_6_23"
 MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_USAGE_POLICY_VERSION = "v2_6_77"
 MEDIUM_SWING_EXISTING_VOICING_CAPABILITY_LOW_REGISTER_CLARITY_GUARD_VERSION = "v2_6_78"
 MEDIUM_SWING_BASS_PIANO_INTERACTION_GUARD_VERSION = "v2_6_82"
+BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION = "v2_6_103"
+BOSSA_HIGH_COLOR_HARMONIC_EXPANSION_POLICY_VERSION = "v2_6_114"
+BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION = "v2_6_124"
 
 HARMONIC_REALIZER_POLICY_CONTEXT_ADAPTER_OWNED_RESPONSIBILITIES = (
     "event_scoped_voicing_policy_metadata_bridge",
@@ -82,6 +85,9 @@ def _policy_with_event_texture_scope(policy: VoicingPolicy, event: PatternEvent)
     """
 
     policy = _policy_with_event_harmonic_context(policy, event)
+    policy = _policy_with_bossa_high_color_harmonic_expansion_policy(policy, event)
+    policy = _policy_with_bossa_harmonic_rhythm_region_clarity_voicing_intent(policy, event)
+    policy = _policy_with_bossa_spread_5note_low_weight_policy(policy, event)
     policy = _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy, event)
     policy = _policy_with_ballad_spread_grouping_mix_policy(policy, event)
     policy = _policy_with_spread_upper_3note_expansion_ratio(policy, event)
@@ -149,6 +155,479 @@ def _policy_with_event_harmonic_context(policy: VoicingPolicy, event: PatternEve
         "performance_bar_index": event_metadata.get("region_performance_bar_index"),
     }
     return replace(policy, metadata={**metadata, **harmonic_metadata})
+
+
+
+def _policy_with_bossa_high_color_harmonic_expansion_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
+    """Attach Bossa high-color harmonic-expansion intent without touching voicing.
+
+    This is a harmonic-color policy bridge.  It never constructs sources,
+    chooses content families, projects DROP voicings, scores candidates, or
+    realizes notes.  When the existing harmonic-expansion switch is enabled it
+    may provide an expanded chord-symbol *request* for the voicing request
+    boundary, e.g. Cm7 -> Cm9 or G7b9 -> G7b9b13.  The existing core voicing
+    module then handles source admission, drop-family projection, and selection.
+    """
+
+    metadata = dict(policy.metadata or {})
+    if str(metadata.get("style") or "") != "bossa_nova":
+        return policy
+
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    if getattr(event, "track", "") != "piano" or getattr(event, "role", "") != "harmonic":
+        return policy
+
+    expansion_enabled = _policy_harmonic_expansion_enabled(policy, metadata)
+    if not expansion_enabled:
+        scoped = {
+            **metadata,
+            "bossa_high_color_harmonic_expansion_policy_version": BOSSA_HIGH_COLOR_HARMONIC_EXPANSION_POLICY_VERSION,
+            "bossa_high_color_harmonic_expansion_checked": True,
+            "bossa_high_color_harmonic_expansion_applied": False,
+            "bossa_high_color_harmonic_expansion_reason": "harmonic_expansion_disabled",
+            "bossa_high_color_harmonic_expansion_no_voicing_module_change": True,
+        }
+        return replace(policy, metadata=scoped)
+
+    original_symbol = str(getattr(event, "chord_symbol", "") or "")
+    expanded_symbol, color_family = _bossa_high_color_expanded_symbol(original_symbol, event_metadata)
+    applied = bool(expanded_symbol and expanded_symbol != original_symbol)
+    scoped = {
+        **metadata,
+        "bossa_high_color_harmonic_expansion_policy_version": BOSSA_HIGH_COLOR_HARMONIC_EXPANSION_POLICY_VERSION,
+        "bossa_high_color_harmonic_expansion_checked": True,
+        "bossa_high_color_harmonic_expansion_applied": applied,
+        "bossa_high_color_harmonic_expansion_original_symbol": original_symbol,
+        "bossa_high_color_harmonic_expansion_voicing_symbol": expanded_symbol or original_symbol,
+        "bossa_high_color_harmonic_expansion_color_family": color_family,
+        "bossa_high_color_harmonic_expansion_ratio_target": 0.80,
+        "bossa_high_color_harmonic_expansion_no_voicing_module_change": True,
+        "bossa_high_color_harmonic_expansion_no_projection_change": True,
+        "bossa_high_color_harmonic_expansion_no_selector_change": True,
+        "bossa_high_color_harmonic_expansion_boundary": "style harmonic-color request only; core voicing keeps existing source/projection/selector ownership",
+        "harmonic_expansion_enabled": True,
+        "color_policy_mode": ColorPolicyMode.STYLE_SAFE_EXTENSIONS.value,
+        "altered_dominant_policy": {
+            "enabled": True,
+            "intensity": "high",
+            "scopes": ["resolving_v7"],
+            "source_weight_biases": {
+                "rootless_ab": 0.18,
+                "rooted_color": 0.02,
+                "upper_structure": -0.12,
+            },
+        },
+    }
+    if applied:
+        scoped.update(
+            {
+                "voicing_request_chord_symbol_override_enabled": True,
+                "voicing_request_chord_symbol_override": expanded_symbol,
+                "voicing_request_chord_symbol_override_source": "bossa_high_color_harmonic_expansion_policy",
+                "voicing_request_chord_symbol_override_contract": "harmonic expansion may request a richer chord symbol for voicing only; pattern, bass, drums, and written leadsheet symbols stay unchanged",
+            }
+        )
+    return replace(
+        policy,
+        harmonic_expansion_enabled=True,
+        color_policy_mode=ColorPolicyMode.STYLE_SAFE_EXTENSIONS,
+        metadata=scoped,
+    )
+
+
+def _policy_harmonic_expansion_enabled(policy: VoicingPolicy, metadata: dict[str, Any]) -> bool:
+    mode = str(metadata.get("color_policy_mode") or getattr(getattr(policy, "color_policy_mode", None), "value", "") or "")
+    return bool(metadata.get("harmonic_expansion_enabled", getattr(policy, "harmonic_expansion_enabled", False))) or mode in {
+        ColorPolicyMode.STYLE_SAFE_EXTENSIONS.value,
+        ColorPolicyMode.ALTERED_DOMINANT.value,
+        ColorPolicyMode.RICH_REHARM_COLOR.value,
+    }
+
+
+def _bossa_high_color_expanded_symbol(chord_symbol: str, event_metadata: dict[str, Any]) -> tuple[str, str]:
+    try:
+        chord = parse_chord(chord_symbol)
+    except Exception:
+        return chord_symbol, "unparsed_keep_original"
+
+    root = str(getattr(chord, "root_name", "") or "")
+    if not root:
+        return chord_symbol, "missing_root_keep_original"
+
+    next_symbol = str(event_metadata.get("next_chord_symbol") or "")
+    next_chord = None
+    if next_symbol:
+        try:
+            next_chord = parse_chord(next_symbol)
+        except Exception:
+            next_chord = None
+
+    if bool(getattr(chord, "is_half_diminished", False)):
+        if "11" in set(getattr(chord, "extensions", ()) or ()):
+            return chord_symbol, "half_diminished_11_already_explicit"
+        return f"{root}m7b5(11)", "minor_ii_half_diminished_11"
+
+    if bool(getattr(chord, "is_dominant", False)):
+        alterations = set(getattr(chord, "alterations", ()) or ())
+        suffix = str(getattr(chord, "suffix", "") or "7")
+        if "b13" in alterations:
+            return chord_symbol, "dominant_b13_already_explicit"
+        if _bossa_dominant_resolves_to_minor(chord, next_chord):
+            if "b9" in alterations or "#9" in alterations or "alt" in chord_symbol.lower():
+                return f"{root}7b9b13", "minor_cadence_dominant_b9_b13"
+            return f"{root}7b9b13", "minor_cadence_plain_dominant_b9_b13"
+        if _bossa_dominant_is_tritone_sub(chord, next_chord):
+            if "#11" in alterations:
+                return chord_symbol, "tritone_sub_sharp11_already_explicit"
+            return f"{root}7#11", "tritone_sub_lydian_dominant_sharp11"
+        if "13" in set(getattr(chord, "extensions", ()) or ()):
+            return chord_symbol, "dominant_13_already_explicit"
+        if "b9" in alterations or "#9" in alterations:
+            return f"{root}7b9b13", "altered_dominant_complete_b9_b13"
+        return f"{root}13", "warm_dominant_13"
+
+    if bool(getattr(chord, "has_major_seventh", False)):
+        if "9" in set(getattr(chord, "extensions", ()) or ()):
+            return chord_symbol, "major_tonic_maj9_already_explicit"
+        return f"{root}maj9", "major_tonic_maj9"
+
+    if str(getattr(chord, "quality", "") or "") == "minor" and bool(getattr(chord, "has_seventh", False)):
+        if "9" in set(getattr(chord, "extensions", ()) or ()):
+            return chord_symbol, "minor_9_already_explicit"
+        return f"{root}m9", "minor_ii_or_tonic_m9"
+
+    if bool(getattr(chord, "has_sixth", False)):
+        return chord_symbol, "sixth_color_keep_original"
+
+    return chord_symbol, "no_bossa_high_color_override_for_quality"
+
+
+def _bossa_dominant_resolves_to_minor(chord: Any, next_chord: Any | None) -> bool:
+    if next_chord is None:
+        return False
+    if str(getattr(next_chord, "quality", "") or "") not in {"minor", "half_diminished"}:
+        return False
+    try:
+        return int((int(getattr(chord, "root_pc")) + 5) % 12) == int(getattr(next_chord, "root_pc"))
+    except Exception:
+        return False
+
+
+def _bossa_dominant_is_tritone_sub(chord: Any, next_chord: Any | None) -> bool:
+    if next_chord is None:
+        return False
+    try:
+        return int((int(getattr(chord, "root_pc")) - int(getattr(next_chord, "root_pc"))) % 12) == 1
+    except Exception:
+        return False
+
+
+def _policy_with_bossa_harmonic_rhythm_region_clarity_voicing_intent(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
+    """Attach Bossa dense-region voicing intent without implementing voicing.
+
+    v2_6_102 superseded the earlier v2_6_95 short/dense-region override, and
+    v2_6_103 makes Bossa OPEN-main while keeping the no-forced-2/3-note rule, and v2_6_104 removes generic_open from the ordinary Bossa method pool.
+    Short/dense Bossa ChordRegions remain ChordRegion-first, but they no longer
+    force 2-note guide-tone or 3-note low-density voicings.  This function now
+    only annotates the event-scoped policy metadata and lets the existing core
+    voicing resolver use the normal 4-to-5-note OPEN-main Bossa policy.  It does not
+    build sources, project notes, score candidates, realize MIDI, write
+    expression values, or restore bar-first/two_chord_bar logic.
+    """
+
+    metadata = dict(policy.metadata or {})
+    if str(metadata.get("style") or "") != "bossa_nova":
+        return policy
+    if not _coerce_bool(metadata.get("bossa_harmonic_rhythm_region_clarity_and_voicing_intent_active"), default=False):
+        return policy
+
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    if getattr(event, "track", "") != "piano" or getattr(event, "role", "") != "harmonic":
+        return _bossa_voicing_intent_debug(
+            policy,
+            applied=False,
+            reason="non_piano_harmonic_event",
+            event_metadata=event_metadata,
+        )
+
+    region_duration = _coerce_float(event_metadata.get("region_duration_beats"), default=4.0)
+    threshold = _coerce_float(metadata.get("bossa_nova_harmonic_rhythm_region_clarity_and_voicing_intent_dense_short_region_threshold_beats"), default=2.25)
+    archetype = str(event_metadata.get("bossa_context_archetype") or "")
+    pattern_function = str(event_metadata.get("pattern_function") or "")
+    region_shape = str(event_metadata.get("region_shape") or "")
+    dense_short_region = (
+        region_duration <= threshold + 1e-9
+        or archetype == "dense_harmonic_marks"
+        or "harmonic_rhythm" in pattern_function
+        or region_shape in {"one_beat_region", "two_beat_region", "short_chord_region"}
+    )
+    if not dense_short_region:
+        return _bossa_voicing_intent_debug(
+            policy,
+            applied=False,
+            reason="ordinary_full_region_keeps_base_bossa_voicing_policy",
+            event_metadata=event_metadata,
+            region_duration=region_duration,
+        )
+
+    # v2_6_102 deliberately superseded the v2_6_95 short/dense-region
+    # guide-tone override.  v2_6_103 keeps that rule and changes the ordinary
+    # Bossa style texture to OPEN-main; v2_6_104 removes generic_open from the
+    # ordinary Bossa method pool.  This adapter still does not choose sources,
+    # project notes, or score candidates.
+    return _bossa_voicing_intent_debug(
+        policy,
+        applied=False,
+        reason="dense_short_region_keeps_normal_bossa_open_4_to_5_note_drop_family_policy_v2_6_104",
+        event_metadata=event_metadata,
+        region_duration=region_duration,
+    )
+
+
+def _bossa_voicing_intent_debug(
+    policy: VoicingPolicy,
+    *,
+    applied: bool,
+    reason: str,
+    event_metadata: dict[str, Any],
+    region_duration: float | None = None,
+) -> VoicingPolicy:
+    metadata = dict(policy.metadata or {})
+    return replace(
+        policy,
+        metadata={
+            **metadata,
+            **_bossa_voicing_intent_metadata(
+                applied=applied,
+                reason=reason,
+                event_metadata=event_metadata,
+                region_duration=region_duration,
+            ),
+        },
+    )
+
+
+def _bossa_voicing_intent_metadata(
+    *,
+    applied: bool,
+    reason: str,
+    event_metadata: dict[str, Any],
+    region_duration: float | None = None,
+) -> dict[str, Any]:
+    return {
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_version": BOSSA_HARMONIC_RHYTHM_REGION_CLARITY_AND_VOICING_INTENT_VERSION,
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_checked": True,
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_applied": bool(applied),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_reason": reason,
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_region_duration_beats": (
+            _coerce_float(region_duration, default=0.0) if region_duration is not None else _coerce_float(event_metadata.get("region_duration_beats"), default=0.0)
+        ),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_region_shape": event_metadata.get("region_shape"),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_archetype": event_metadata.get("bossa_context_archetype"),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_pattern_function": event_metadata.get("pattern_function"),
+        "bossa_harmonic_rhythm_region_clarity_and_voicing_intent_contract": (
+            "Event-scoped Bossa voicing intent only; no core voicing source/projection/selector change, no pattern voicing, no expression values, and no bar-first routing."
+        ),
+    }
+
+
+
+def _policy_with_bossa_spread_5note_low_weight_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:
+    """Request occasional existing grouped-SPREAD 5-note Bossa color.
+
+    This is the corrective v2_6_124 path: Bossa OPEN/drop-family remains the
+    ordinary 4-note body, and ``generic_open`` remains fallback/rescue only.
+    When Bossa wants a low-frequency 5-note texture, this adapter only writes
+    event-scoped metadata that asks the existing grouped-SPREAD runtime pool for
+    the 1+4 contract. It does not construct sources, change OPEN projection,
+    score/select candidates, apply expression, or write MIDI.
+    """
+
+    metadata = dict(policy.metadata or {})
+    if str(metadata.get("style") or "") != "bossa_nova":
+        return policy
+
+    nested = metadata.get("bossa_spread_5note_low_weight_policy") or {}
+    if not isinstance(nested, dict):
+        nested = {"enabled": nested}
+    if not _coerce_bool(nested.get("enabled"), default=False):
+        return policy
+
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    if getattr(event, "track", "") != "piano" or getattr(event, "role", "") != "harmonic":
+        return _bossa_spread_5note_policy_debug(
+            policy,
+            applied=False,
+            reason="event_is_not_piano_harmonic_comping",
+            slot=None,
+        )
+
+    eligible_hints = tuple(str(item) for item in nested.get("eligible_expression_hints", ("core_sustain", "cell_soft_hold")) or ())
+    expression_hint = str(getattr(event, "expression_hint", "") or "")
+    if eligible_hints and expression_hint not in set(eligible_hints):
+        return _bossa_spread_5note_policy_debug(
+            policy,
+            applied=False,
+            reason="event_expression_hint_not_sustain_or_hold",
+            slot=None,
+        )
+
+    try:
+        cycle = max(1, int(nested.get("weight_cycle", 16) or 16))
+    except (TypeError, ValueError):
+        cycle = 16
+    active_slots = nested.get("active_slots", (3,))
+    if isinstance(active_slots, (str, int, float)):
+        active_slots = (active_slots,)
+    try:
+        active_slot_set = {int(slot) % cycle for slot in active_slots}
+    except (TypeError, ValueError):
+        active_slot_set = {3 % cycle}
+    slot = _bossa_spread_5note_low_frequency_slot(event, cycle)
+    if slot not in active_slot_set:
+        return _bossa_spread_5note_policy_debug(
+            policy,
+            applied=False,
+            reason="low_frequency_slot_not_selected",
+            slot=slot,
+        )
+
+    selected_contract_id = str(nested.get("selected_contract_id") or "spread_1plus4_contract")
+    compatible_contract_ids = tuple(
+        str(item) for item in (nested.get("compatible_contract_ids") or (selected_contract_id,)) if str(item)
+    ) or (selected_contract_id,)
+
+    scoped = {
+        **metadata,
+        "bossa_spread_5note_low_weight_policy_version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+        "bossa_spread_5note_low_weight_policy_applied": True,
+        "bossa_spread_5note_low_weight_policy_reason": "event_scoped_low_frequency_spread_1plus4_request",
+        "bossa_spread_5note_low_weight_policy_slot": slot,
+        "bossa_spread_5note_low_weight_policy_cycle": cycle,
+        "bossa_spread_5note_low_weight_policy_expression_hint": expression_hint,
+        "bossa_spread_5note_low_weight_policy_boundary": "event_scoped_policy_requests_existing_grouped_spread_runtime_candidates_only",
+        "bossa_spread_5note_low_weight_policy_no_core_voicing_change": True,
+        "bossa_spread_5note_low_weight_policy_no_open_generic_5note_lane": True,
+        "primary_family": "spread",
+        "allowed_families": ["spread"],
+        "spread_selector_enabled": True,
+        "spread_groupwise_voice_leading_runtime_enabled": True,
+        "spread_grouping_mix_candidate_pool": {
+            "version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+            "use_compatible_contracts": True,
+            "compatible_contract_ids": list(compatible_contract_ids),
+            "selected_contract_id": selected_contract_id,
+            "selection_boundary": "existing_grouped_spread_runtime_candidate_pool",
+        },
+        "spread_runtime_adapter": {
+            **dict(metadata.get("spread_runtime_adapter") or {}),
+            "version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+            "adapter_conversion_allowed": True,
+            "request_source": "bossa_spread_5note_low_weight_policy",
+        },
+        "spread_runtime_adapter_emit_all_candidates": True,
+        "spread_emit_all_candidates_for_groupwise_selection": True,
+        "ballad_spread_grouping_mix_selected_contract_id": selected_contract_id,
+        "spread_grouping_mix_selected_contract_id": selected_contract_id,
+        "spread_density_runtime_contract_ids": list(compatible_contract_ids),
+        "spread_rooted_bass_anchor_enabled": True,
+        "spread_lower_low": int(nested.get("spread_lower_low", 48) or 48),
+        "spread_lower_high": int(nested.get("spread_lower_high", 60) or 60),
+        "spread_lower_1note_target_low": int(nested.get("spread_lower_1note_target_low", 48) or 48),
+        "spread_root_bass_anchor_low": int(nested.get("spread_root_bass_anchor_low", 48) or 48),
+        "spread_root_bass_anchor_high": int(nested.get("spread_root_bass_anchor_high", 60) or 60),
+        "spread_root_bass_anchor_target": int(nested.get("spread_root_bass_anchor_target", 48) or 48),
+        "spread_whole_register_low": int(nested.get("spread_whole_register_low", 48) or 48),
+        "spread_whole_register_high": int(nested.get("spread_whole_register_high", 76) or 76),
+        "spread_lower_2note_low": int(nested.get("spread_lower_2note_low", 48) or 48),
+        "spread_lower_2note_high": int(nested.get("spread_lower_2note_high", 60) or 60),
+        "spread_lower_2note_target_low": int(nested.get("spread_lower_2note_target_low", 54) or 54),
+        "spread_upper_low": int(nested.get("spread_upper_low", 56) or 56),
+        "spread_upper_high": int(nested.get("spread_upper_high", 76) or 76),
+        "spread_upper_target_low": int(nested.get("spread_upper_target_low", 60) or 60),
+        "spread_min_group_gap": int(nested.get("spread_min_group_gap", 1) or 1),
+        "spread_max_group_gap": int(nested.get("spread_max_group_gap", 14) or 14),
+        "spread_max_overall_span": int(nested.get("spread_max_overall_span", 28) or 28),
+        "spread_low_register_density_guard_enabled": True,
+        "spread_low_register_density_threshold": int(nested.get("spread_low_register_density_threshold", 48) or 48),
+        "spread_low_register_density_max_notes_below": int(nested.get("spread_low_register_density_max_notes_below", 1) or 1),
+        "spread_upper_4note_emit_all_parent_projections": True,
+        "spread_upper_4note_allow_octave_shift_candidates": True,
+    }
+    return replace(
+        policy,
+        preferred_disposition=Disposition.SPREAD,
+        allowed_dispositions=(Disposition.SPREAD, Disposition.OPEN),
+        preferred_density=5,
+        min_density=4,
+        max_density=5,
+        register_low=min(int(policy.register_low), 48),
+        register_high=int(policy.register_high),
+        top_voice_high=min(int(policy.top_voice_high), 72),
+        harmonic_expansion_enabled=True,
+        color_policy_mode=ColorPolicyMode.STYLE_SAFE_EXTENSIONS,
+        metadata=scoped,
+    )
+
+
+def _bossa_spread_5note_low_frequency_slot(event: PatternEvent, cycle: int) -> int:
+    event_metadata = dict(getattr(event, "metadata", {}) or {})
+    bar = _safe_int(event_metadata.get("region_performance_bar_index", event_metadata.get("region_bar_index", 0)), default=0)
+    chord_index = _safe_int(event_metadata.get("region_chord_index", 0), default=0)
+    chorus = _safe_int(event_metadata.get("region_chorus_index", 0), default=0)
+    local_beat = getattr(event, "local_beat", None)
+    try:
+        local_slot = int(round(float(local_beat or 0.0) * 2.0))
+    except (TypeError, ValueError):
+        local_slot = 0
+    return (bar * 3 + chord_index * 5 + chorus * 7 + local_slot) % max(1, int(cycle))
+
+
+def _bossa_spread_5note_policy_debug(
+    policy: VoicingPolicy,
+    *,
+    applied: bool,
+    reason: str,
+    slot: int | None,
+) -> VoicingPolicy:
+    metadata = dict(policy.metadata or {})
+    debug = {
+        **metadata,
+        "bossa_spread_5note_low_weight_policy_version": BOSSA_SPREAD_5NOTE_LOW_WEIGHT_POLICY_VERSION,
+        "bossa_spread_5note_low_weight_policy_applied": bool(applied),
+        "bossa_spread_5note_low_weight_policy_reason": reason,
+        "bossa_spread_5note_low_weight_policy_slot": slot,
+        "bossa_spread_5note_low_weight_policy_boundary": "event_scoped_policy_requests_existing_grouped_spread_runtime_candidates_only",
+        "bossa_spread_5note_low_weight_policy_no_core_voicing_change": True,
+        "bossa_spread_5note_low_weight_policy_no_open_generic_5note_lane": True,
+    }
+    return replace(policy, metadata=debug)
+
+def _coerce_content_family(value: Any, default: ContentFamily) -> ContentFamily:
+    if isinstance(value, ContentFamily):
+        return value
+    try:
+        return ContentFamily(str(value))
+    except Exception:
+        return default
+
+
+def _coerce_root_support(value: Any, default: RootSupportPolicy) -> RootSupportPolicy:
+    if isinstance(value, RootSupportPolicy):
+        return value
+    try:
+        return RootSupportPolicy(str(value))
+    except Exception:
+        return default
+
+
+def _coerce_float(value: Any, *, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return float(default)
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
 
 
 def _policy_with_medium_swing_existing_voicing_capability_usage_policy(policy: VoicingPolicy, event: PatternEvent) -> VoicingPolicy:

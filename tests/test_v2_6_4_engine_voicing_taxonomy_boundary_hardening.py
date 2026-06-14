@@ -157,8 +157,12 @@ def test_v2_6_4_style_voicing_policies_are_policy_only_and_generate_taxonomy_can
         candidates = generate_candidates("Cmaj9", policy)
         assert candidates, policy.metadata.get("style")
         assert any(candidate.content_family is not None for candidate in candidates)
-        assert any(candidate.functional_grouping is not None for candidate in candidates)
         assert any(candidate.recipe_id for candidate in candidates)
+        # v2_6_103 retires ordinary 4-note CLOSED/OPEN 1+3 / 2+2 grouping metadata.
+        # Grouping remains visible only when the selected recipe is genuinely grouped
+        # (2/3-note simple groups or 5+ SPREAD-style lower/upper contracts).
+        if any(int(candidate.density or 0) != 4 for candidate in candidates):
+            assert any(candidate.functional_grouping is not None for candidate in candidates)
         assert any("content_recipe" in candidate.metadata for candidate in candidates)
         assert any("register_guard" in candidate.metadata for candidate in candidates)
 
