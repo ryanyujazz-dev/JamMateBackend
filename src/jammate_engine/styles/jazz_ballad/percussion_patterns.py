@@ -9,7 +9,8 @@ from jammate_engine.core.pattern_runtime import PatternCandidate, TailPolicy, ev
 JAZZ_BALLAD_BRUSH_SEMANTIC_POLICY_VERSION = "v2_6_127"
 JAZZ_BALLAD_FIRST_AUDIBLE_SPARSE_BRUSH_VERSION = "v2_6_128"
 JAZZ_BALLAD_COMPLETE_BRUSH_DRUM_SYSTEM_VERSION = "v2_6_131"
-JAZZ_BALLAD_BRUSH_SOUND_SOURCE_TIME_FEEL_VERSION = "v2_6_133"
+JAZZ_BALLAD_BRUSH_SOUND_SOURCE_TIME_FEEL_VERSION = "v2_6_137"
+JAZZ_BALLAD_BRUSH_SECTION_HINT_VERSION = "v2_6_137"
 
 BRUSH_FEEL_CELLS = (
     "pure_legato_brush",
@@ -22,10 +23,33 @@ BRUSH_FEEL_CELLS = (
 )
 BRUSH_CLASSIC_FILL_CELLS = (
     "none",
+    # Explicit foreground fills remain available for future explicit requests,
+    # but the automatic Ballad planner defaults to subtle transition hints.
     "soft_pickup_to_4",
     "tap_drag_tap_release",
     "single_stroke_4_to_next",
     "turnaround_sweep_roll",
+    # Subtle section/phrase transition hint vocabulary.
+    "section_tail_4and_hint",
+    "section_tail_4and_whisper",
+    "section_tail_3and_4and_feather_hint",
+    "v1_soft_swish_4and_hint",
+    "v1_section_breath_4_to_4and_hint",
+    "section_entry_brush_bloom",
+    "section_entry_1and_bloom_hint",
+    "section_entry_soft_1_to_1and_hint",
+    "cadence_3and_4_hint",
+    "cadence_3and_4and_whisper",
+    "cadence_4_hat_brush_hint",
+    "cadence_3_to_4_tom_hat_hint",
+    "v1_drag_to_4_hint",
+    "turnaround_soft_2and_4and_hint",
+    "turnaround_2and_3and_4and_whisper",
+    "turnaround_2and_4_hat_hint",
+    "turnaround_cross_stick_4_hint",
+    "bridge_entry_soft_1_2and_hint",
+    "bridge_entry_low_tom_bloom_hint",
+    "section_tail_4_hat_cymbal_hint",
     "final_brush_release",
 )
 BRUSH_OFFBEAT_ROLES = {
@@ -123,25 +147,38 @@ def _select_classic_fill_cell(
     first_bar_of_section: bool,
     density: str,
 ) -> str:
-    """Select a phrase-level brush fill cell without changing the time-feel layer.
+    """Select a subtle section/phrase transition hint cell.
 
-    The cells are classic brush-fill gestures expressed as bar-level overlays.
-    They should connect phrases and cadences; they must not become a separate
-    chord-region loop or a dense drum-fill engine.
+    v2_6_137 keeps the v2_6_135 idea that automatic Ballad fills should be
+    phrase/section hints rather than foreground drum-fill displays.  After
+    re-reading the V1 Ballad brush implementation, the automatic V2 cells are
+    mapped from V1's useful primitives: brush_drag_to_4, section_breath,
+    soft_swish_4and, and final_release.  They remain quieter, shorter, and
+    resolved by the shared swing-8 timing layer instead of foreground fill
+    displays.  Stronger tap-drag/single-stroke cells remain vocabulary only
+    for future explicit requests.
     """
 
     if feel_cell == "final_release" or flags.get("final_release"):
         return "final_brush_release"
     if first_bar_of_section:
-        return "none"
+        # Prefer a downbeat bloom on a different brush-kit lane; 1& blooms are
+        # retained in the vocabulary but no longer the default transition cue.
+        return "bridge_entry_low_tom_bloom_hint" if chorus_index >= 1 else "section_entry_brush_bloom"
     if flags.get("section_tail") or source_mod8 == 7:
-        return "single_stroke_4_to_next" if chorus_index >= 1 else "tap_drag_tap_release"
+        if chorus_index >= 1:
+            return "section_tail_4_hat_cymbal_hint"
+        return "v1_soft_swish_4and_hint"
     if flags.get("phrase_tail") or source_mod4 == 3:
-        return "tap_drag_tap_release"
-    if chorus_index >= 1 and source_mod8 in {5, 6} and density in {"low", "medium"}:
-        return "soft_pickup_to_4"
-    if chorus_index >= 1 and source_mod8 == 3:
-        return "turnaround_sweep_roll"
+        if chorus_index >= 1 and density in {"low", "medium"}:
+            return "cadence_3_to_4_tom_hat_hint"
+        return "v1_drag_to_4_hint"
+    if chorus_index >= 1 and source_mod8 == 5 and density in {"low", "medium"}:
+        return "turnaround_cross_stick_4_hint"
+    if chorus_index >= 1 and source_mod8 == 6 and density in {"low", "medium"}:
+        return "turnaround_2and_4_hat_hint"
+    if chorus_index >= 1 and source_mod8 == 4 and density in {"low", "medium"}:
+        return "bridge_entry_low_tom_bloom_hint"
     return "none"
 
 def build_brush_semantic_policy_decision(context: dict | None = None) -> dict[str, Any]:
@@ -237,7 +274,17 @@ def build_brush_semantic_policy_decision(context: dict | None = None) -> dict[st
         ),
         "brush_fill_policy_active": True,
         "brush_fill_policy_version": JAZZ_BALLAD_BRUSH_SOUND_SOURCE_TIME_FEEL_VERSION,
-        "brush_fill_scope": "phrase_or_section_overlay_not_chord_region_loop",
+        "brush_transition_hint_vocabulary_expanded": True,
+        "brush_transition_hint_dynamic_contract": "subtle_hint_overlay_not_foreground_fill",
+        "brush_transition_hint_timbre_variation_active": True,
+        "brush_offbeat_articulation_density_contract": "reduced_contextual_offbeats",
+        "brush_transition_hint_v1_reference_primitives": (
+            "brush_drag_to_4",
+            "section_breath",
+            "soft_swish_4and",
+            "final_release",
+        ),
+        "brush_fill_scope": "section_or_phrase_transition_hint_not_chord_region_loop",
         "brush_fill_timing_contract": "style_timing_policy_swing8",
         "brush_phrase_context": {
             "region_span_beats": region_span,
@@ -253,7 +300,7 @@ def build_brush_semantic_policy_decision(context: dict | None = None) -> dict[st
         "brush_no_swing_ride": True,
         "brush_no_rock_backbeat": True,
         "brush_no_piano_bass_voicing_change": True,
-        "recommended_next_task": "v2_6_134_engine_ballad_brush_fill_listening_calibration",
+        "recommended_next_task": "v2_6_138_engine_ballad_hint_timbre_and_offbeat_density_listening_calibration",
     }
 
 
@@ -263,6 +310,9 @@ def _candidate_metadata(decision: dict[str, Any], *, event_count: int) -> dict[s
         "pattern_domain": "percussion_foundation",
         "pattern_library_id": "jazz_ballad.brush_sound_source_time_feel",
         "pattern_library_version": JAZZ_BALLAD_BRUSH_SOUND_SOURCE_TIME_FEEL_VERSION,
+        "brush_fill_audibility_rework_active": True,
+        "brush_section_transition_hint_active": True,
+        "brush_section_transition_hint_version": JAZZ_BALLAD_BRUSH_SECTION_HINT_VERSION,
         "jazz_ballad_brush_sound_source_time_feel_active": True,
         "jazz_ballad_brush_sound_source_time_feel_version": JAZZ_BALLAD_BRUSH_SOUND_SOURCE_TIME_FEEL_VERSION,
         "jazz_ballad_brush_sound_source_assumed": True,
@@ -286,7 +336,16 @@ def _candidate_metadata(decision: dict[str, Any], *, event_count: int) -> dict[s
         "bar_region_projection": decision["bar_region_projection"],
         "brush_runtime_audible": event_count > 0,
         "brush_runtime_note_event_count": int(event_count),
-        "allowed_drum_voices": ("snare", "hihat_pedal", "kick", "ride"),
+        "brush_fill_audibility_rework_active": True,
+        "brush_transition_hint_vocabulary_expanded": True,
+        "brush_transition_hint_dynamic_contract": "subtle_hint_overlay_not_foreground_fill",
+        "brush_transition_hint_timbre_variation_active": True,
+        "brush_offbeat_articulation_density_contract": "reduced_contextual_offbeats",
+        "brush_transition_hint_v1_reference_primitives": decision.get("brush_transition_hint_v1_reference_primitives"),
+        "brush_fill_audibility_contract": "section_transition_hint_lane_without_background_duck",
+        "brush_transition_hint_timbre_variation_active": True,
+        "brush_offbeat_articulation_density_contract": "reduced_contextual_offbeats",
+        "allowed_drum_voices": ("snare", "cross_stick", "hihat_pedal", "kick", "ride", "low_tom", "mid_tom"),
         "brush_no_swing_ride": True,
         "brush_no_rock_backbeat": True,
         "brush_no_piano_bass_voicing_change": True,
@@ -306,6 +365,10 @@ def _timing_intent_for_slot(slot: str) -> str:
     return "swing_upbeat" if "&" in str(slot) else "auto"
 
 def _event(beat: float, *, role: str, drum: str, dynamic: str, stroke: str, articulation: str, decision: dict[str, Any], slot: str) -> Any:
+    # Section transition hints are intentionally not foreground fills in
+    # v2_6_137.  They ride inside the brush texture; only explicit fills and
+    # final releases own foreground space.
+    fill_foreground = role in {"ballad_classic_brush_fill", "ballad_final_brush_release", "ballad_final_soft_cymbal_release"}
     return event_spec(
         track="drums",
         beat=beat,
@@ -326,6 +389,17 @@ def _event(beat: float, *, role: str, drum: str, dynamic: str, stroke: str, arti
             "brush_event_role": role,
             "brush_offbeat_role": BRUSH_OFFBEAT_ROLES.get(slot, "downbeat_pressure"),
             "brush_fill_policy_active": decision.get("brush_fill_policy_active") is True,
+            "brush_fill_audibility_rework_active": True,
+            "brush_section_transition_hint_active": True,
+            "brush_section_transition_hint_version": JAZZ_BALLAD_BRUSH_SECTION_HINT_VERSION,
+            "brush_transition_hint_vocabulary_expanded": True,
+            "brush_transition_hint_dynamic_contract": "subtle_hint_overlay_not_foreground_fill",
+        "brush_transition_hint_timbre_variation_active": True,
+        "brush_offbeat_articulation_density_contract": "reduced_contextual_offbeats",
+            "brush_fill_audibility_contract": "section_transition_hint_lane_without_background_duck",
+        "brush_transition_hint_timbre_variation_active": True,
+        "brush_offbeat_articulation_density_contract": "reduced_contextual_offbeats",
+            "brush_fill_foreground_lane": fill_foreground,
             "brush_classic_fill_cell": decision.get("brush_classic_fill_cell", "none"),
             "jazz_ballad_no_custom_internal_brush_voices": True,
             "jazz_ballad_brush_timbre_delegated_to_sound_source": True,
@@ -349,9 +423,58 @@ def _append_if_in_region(events: list[Any], bar_beat: float, *, role: str, drum:
     events.append(_event(local, role=role, drum=drum, dynamic=dynamic, stroke=stroke, articulation=articulation, decision=decision, slot=slot))
 
 
+def _render_transition_hint_entry(fill_cell: str, articulation: str, role: str, dynamic: str, stroke: str) -> tuple[str, str, str]:
+    """Map subtle Ballad transition hints across brush-kit sound entries.
+
+    These are still standard drum entries; the brush sound source is expected
+    to interpret them as brush/timbre articulations.  The goal is to avoid every
+    phrase hint speaking as the same snare-brush color while keeping dynamics
+    subtle and avoiding foreground drum fills.
+    """
+
+    if role != "ballad_section_transition_hint":
+        return "snare", dynamic, stroke
+    art = str(articulation)
+    text = f"{fill_cell} {art}"
+    if "cymbal" in art or "ride_" in art:
+        return "ride", dynamic, "brush_cymbal"
+    if "hat" in art:
+        return "hihat_pedal", "brush_hat_pp" if dynamic == "brush_hint_pp" else "brush_hat_p", "brush_foot"
+    if "cross_stick" in art:
+        return "cross_stick", dynamic, "brush_hint_tap"
+    if "low_tom" in art:
+        return "low_tom", dynamic, "brush_hint_swish"
+    if "mid_tom" in art:
+        return "mid_tom", dynamic, "brush_hint_swish"
+    if "entry" in text or "bloom" in text:
+        return "low_tom", dynamic, "brush_hint_swish"
+    if "turnaround" in text:
+        if "4and" in art:
+            return "ride", dynamic, "brush_cymbal"
+        if "3and" in art:
+            return "mid_tom", dynamic, "brush_hint_swish"
+        if "2and" in art:
+            return "cross_stick", dynamic, "brush_hint_tap"
+        return "cross_stick", dynamic, "brush_hint_tap"
+    if "cadence" in text:
+        if "4and" in art:
+            return "ride", dynamic, "brush_cymbal"
+        if "3and" in art or "3_hint" in art:
+            return "low_tom", dynamic, "brush_hint_swish"
+        return "cross_stick", dynamic, "brush_hint_tap"
+    if "drag_to_4" in text and "soft_whisper" in art:
+        return "cross_stick", dynamic, "brush_hint_tap"
+    return "snare", dynamic, stroke
+
+
+
 def _append_brush_motion(events: list[Any], decision: dict[str, Any]) -> None:
     cell = str(decision.get("brush_feel_cell"))
     density = str(decision.get("brush_density_band"))
+    phrase_context = dict(decision.get("brush_phrase_context") or {})
+    source_mod4 = phrase_context.get("source_bar_mod4")
+    phrase_tail = bool(phrase_context.get("phrase_tail"))
+    section_tail = bool(phrase_context.get("section_tail"))
     # Quarter pressure pulses are the audible part of a continuous brush path.
     for beat, slot in ((0.0, "1"), (1.0, "2"), (2.0, "3"), (3.0, "4")):
         _append_if_in_region(
@@ -365,23 +488,25 @@ def _append_brush_motion(events: list[Any], decision: dict[str, Any]) -> None:
             decision=decision,
             slot=slot,
         )
-    # Offbeats are contextual articulation points in the same continuous motion.
+    # v2_6_137: the written brush path still passes through swing-8 offbeats,
+    # but audible offbeat articulation is intentionally reduced.  The shared
+    # swing-8 timing layer owns performed placement; this layer only decides
+    # whether an offbeat should speak as a brush-source articulation.
     offbeats: tuple[tuple[float, str, str], ...]
     if cell == "pure_legato_brush":
-        offbeats = ((3.5, "4&", "snare_brush_soft_4and_breath"),)
+        offbeats = ()
     elif cell == "basic_brush_time":
-        offbeats = ((1.5, "2&", "snare_brush_soft_skip"), (3.5, "4&", "snare_brush_soft_4and_breath"))
+        offbeats = ((3.5, "4&", "snare_brush_soft_4and_breath"),) if (phrase_tail or section_tail or source_mod4 == 3) else ()
     elif cell == "brush_swing_skip":
-        offbeats = ((1.5, "2&", "snare_brush_swing_skip"), (3.5, "4&", "snare_brush_swing_skip_to_next"))
+        offbeats = ((1.5, "2&", "snare_brush_swing_skip"),) if source_mod4 == 1 else ((3.5, "4&", "snare_brush_swing_skip_to_next"),)
     elif cell == "brush_two_feel":
-        offbeats = ((1.5, "2&", "snare_brush_soft_skip"), (2.5, "3&", "snare_brush_pickup_to_4"), (3.5, "4&", "snare_brush_soft_4and_breath"))
+        offbeats = ((2.5, "3&", "snare_brush_pickup_to_4"),) if source_mod4 in {1, 2} else ((3.5, "4&", "snare_brush_soft_4and_breath"),)
     elif cell == "brush_four_feel_development":
-        offbeats = ((0.5, "1&", "snare_brush_continuation"), (1.5, "2&", "snare_brush_swing_skip"), (2.5, "3&", "snare_brush_pickup_to_4"), (3.5, "4&", "snare_brush_swing_skip_to_next"))
+        offbeats = ((1.5, "2&", "snare_brush_swing_skip"), (3.5, "4&", "snare_brush_swing_skip_to_next"))
     else:
         offbeats = ()
     if density == "very_low":
-        # Keep a single bar-connecting offbeat in sparse sections.
-        offbeats = tuple(item for item in offbeats if item[1] == "4&")
+        offbeats = tuple(item for item in offbeats if item[1] == "4&" and (phrase_tail or section_tail))
     for beat, slot, articulation in offbeats:
         _append_if_in_region(
             events,
@@ -394,7 +519,6 @@ def _append_brush_motion(events: list[Any], decision: dict[str, Any]) -> None:
             decision=decision,
             slot=slot,
         )
-
 
 def _append_anchor(events: list[Any], decision: dict[str, Any]) -> None:
     intent = str(decision.get("brush_time_anchor_intent"))
@@ -419,54 +543,242 @@ def _append_feather_kick(events: list[Any], decision: dict[str, Any]) -> None:
         _append_if_in_region(events, beat, role="ballad_feather_kick", drum="kick", dynamic="brush_feather", stroke="feather", articulation="felt_not_heard_feather_kick", decision=decision, slot=f"{int(beat)+1}")
 
 
+def _classic_fill_window(decision: dict[str, Any]) -> tuple[float, float] | None:
+    fill_cell = str(decision.get("brush_classic_fill_cell") or "none")
+    if fill_cell == "none":
+        return None
+    # Automatic section hints are not foreground fills in v2_6_137: they should
+    # sit inside the brush texture instead of carving space out of it.  Keep
+    # ducking only for explicit stronger fill cells and final release.
+    subtle_hint_cells = {
+        "section_tail_4and_hint",
+        "section_tail_4and_whisper",
+        "section_tail_3and_4and_feather_hint",
+        "v1_soft_swish_4and_hint",
+        "v1_section_breath_4_to_4and_hint",
+        "section_entry_brush_bloom",
+        "section_entry_1and_bloom_hint",
+        "section_entry_soft_1_to_1and_hint",
+        "cadence_3and_4_hint",
+        "cadence_3and_4and_whisper",
+        "cadence_4_hat_brush_hint",
+        "cadence_3_to_4_tom_hat_hint",
+        "v1_drag_to_4_hint",
+        "turnaround_soft_2and_4and_hint",
+        "turnaround_2and_3and_4and_whisper",
+        "turnaround_2and_4_hat_hint",
+        "turnaround_cross_stick_4_hint",
+        "bridge_entry_soft_1_2and_hint",
+        "bridge_entry_low_tom_bloom_hint",
+        "section_tail_4_hat_cymbal_hint",
+    }
+    if fill_cell in subtle_hint_cells:
+        return None
+    if fill_cell == "soft_pickup_to_4":
+        return (2.45, 3.05)
+    if fill_cell == "tap_drag_tap_release":
+        return (1.45, 3.9)
+    if fill_cell == "single_stroke_4_to_next":
+        return (1.95, 3.9)
+    if fill_cell == "turnaround_sweep_roll":
+        return (1.45, 3.9)
+    if fill_cell == "final_brush_release":
+        return (0.0, 4.0)
+    return None
+
+def _duck_background_for_classic_fill(events: list[Any], decision: dict[str, Any]) -> None:
+    """Let the foreground brush fill speak by clearing overlapping background sweep.
+
+    v2_6_134 proved that foreground ducking makes fills audible, but the result
+    was too explicit for ordinary Ballad transitions.  v2_6_135 keeps only a
+    tiny selective space around transition-hint cues; background brush time
+    should still feel continuous.
+    """
+
+    window = _classic_fill_window(decision)
+    if window is None:
+        return
+    start, end = window
+    background_roles = {
+        "ballad_brush_sweep_pressure",
+        "ballad_brush_offbeat_swish",
+        "ballad_phrase_brush_breath",
+    }
+    events[:] = [
+        event
+        for event in events
+        if not (
+            event.role in background_roles
+            and str(event.metadata.get("drum")) == "snare"
+            and start - 1e-9 <= float(event.local_beat) <= end + 1e-9
+        )
+    ]
+
+
 def _append_classic_fill_overlay(events: list[Any], decision: dict[str, Any]) -> None:
     fill_cell = str(decision.get("brush_classic_fill_cell") or "none")
     if fill_cell == "none":
         return
     if fill_cell == "final_brush_release":
         events.clear()
-        _append_if_in_region(events, 0.0, role="ballad_final_brush_release", drum="snare", dynamic="brush_breath_pp", stroke="brush_sweep", articulation="snare_brush_final_release_sweep", decision=decision, slot="1")
-        _append_if_in_region(events, 1.5, role="ballad_final_soft_cymbal_release", drum="ride", dynamic="brush_cymbal_pp", stroke="brush_cymbal", articulation="soft_cymbal_decay_from_brush_source", decision=decision, slot="2&")
+        _append_if_in_region(
+            events,
+            0.0,
+            role="ballad_final_brush_release",
+            drum="snare",
+            dynamic="brush_fill_release_mf",
+            stroke="brush_fill_release",
+            articulation="snare_brush_final_release_sweep_foreground",
+            decision=decision,
+            slot="1",
+        )
+        _append_if_in_region(
+            events,
+            1.5,
+            role="ballad_final_soft_cymbal_release",
+            drum="ride",
+            dynamic="brush_fill_cymbal_p",
+            stroke="brush_cymbal",
+            articulation="soft_cymbal_decay_from_brush_source_foreground",
+            decision=decision,
+            slot="2&",
+        )
         return
 
-    gestures: tuple[tuple[float, str, str, str], ...]
-    if fill_cell == "soft_pickup_to_4":
+    # Each tuple: bar beat, logical slot, role, articulation, dynamic profile, stroke profile.
+    # These remain brush-source intents on standard drum entries; they are not custom drum voices.
+    gestures: tuple[tuple[float, str, str, str, str, str], ...]
+    if fill_cell == "section_tail_4and_hint":
         gestures = (
-            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_pickup_to_4_soft_sweep"),
-            (3.0, "4", "ballad_classic_brush_fill", "snare_brush_soft_answer_on_4"),
+            (3.5, "4&", "ballad_section_transition_hint", "snare_brush_section_tail_soft_4and_hint_to_next", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "section_tail_4and_whisper":
+        gestures = (
+            (3.5, "4&", "ballad_section_transition_hint", "snare_brush_section_tail_4and_whisper_to_next", "brush_hint_pp", "brush_hint_swish"),
+        )
+    elif fill_cell == "section_tail_3and_4and_feather_hint":
+        gestures = (
+            (2.5, "3&", "ballad_section_transition_hint", "snare_brush_section_tail_3and_feather_lift", "brush_hint_pp", "brush_hint_swish"),
+            (3.5, "4&", "ballad_section_transition_hint", "snare_brush_section_tail_4and_feather_to_next", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "v1_soft_swish_4and_hint":
+        gestures = (
+            (3.5, "4&", "ballad_section_transition_hint", "v1_soft_swish_4and_mapped_to_shared_swing8", "brush_hint_pp", "brush_hint_swish"),
+        )
+    elif fill_cell == "v1_section_breath_4_to_4and_hint":
+        gestures = (
+            (3.0, "4", "ballad_section_transition_hint", "v1_section_breath_soft_4_sweep", "brush_hint_pp", "brush_hint_swish"),
+            (3.5, "4&", "ballad_section_transition_hint", "v1_section_breath_soft_4and_cymbal_or_sweep_hint", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "section_entry_brush_bloom":
+        gestures = (
+            (0.0, "1", "ballad_section_transition_hint", "snare_brush_section_entry_soft_bloom_on_1", "brush_hint_p", "brush_hint_swish"),
+        )
+    elif fill_cell == "section_entry_1and_bloom_hint":
+        gestures = (
+            (0.5, "1&", "ballad_section_transition_hint", "snare_brush_section_entry_1and_bloom_hint", "brush_hint_pp", "brush_hint_swish"),
+        )
+    elif fill_cell == "section_entry_soft_1_to_1and_hint":
+        gestures = (
+            (0.0, "1", "ballad_section_transition_hint", "snare_brush_section_entry_soft_1_bloom", "brush_hint_pp", "brush_hint_swish"),
+            (0.5, "1&", "ballad_section_transition_hint", "snare_brush_section_entry_soft_1and_bloom", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "cadence_3and_4_hint":
+        gestures = (
+            (2.5, "3&", "ballad_section_transition_hint", "snare_brush_cadence_pickup_3and", "brush_hint_pp", "brush_hint_swish"),
+            (3.0, "4", "ballad_section_transition_hint", "snare_brush_cadence_soft_answer_4", "brush_hint_p", "brush_hint_tap"),
+        )
+    elif fill_cell == "cadence_3and_4and_whisper":
+        gestures = (
+            (2.5, "3&", "ballad_section_transition_hint", "snare_brush_cadence_3and_whisper", "brush_hint_pp", "brush_hint_swish"),
+            (3.5, "4&", "ballad_section_transition_hint", "snare_brush_cadence_4and_whisper_to_next", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "cadence_4_hat_brush_hint":
+        gestures = (
+            (3.0, "4", "ballad_section_transition_hint", "snare_brush_cadence_beat4_hint_inside_hat", "brush_hint_p", "brush_hint_tap"),
+        )
+    elif fill_cell == "cadence_3_to_4_tom_hat_hint":
+        gestures = (
+            (2.0, "3", "ballad_section_transition_hint", "low_tom_brush_cadence_beat3_hint", "brush_hint_pp", "brush_hint_swish"),
+            (3.0, "4", "ballad_section_transition_hint", "hat_cadence_beat4_soft_close_hint", "brush_hint_p", "brush_hint_tap"),
+        )
+    elif fill_cell == "v1_drag_to_4_hint":
+        gestures = (
+            (2.5, "3&", "ballad_section_transition_hint", "v1_brush_drag_to_4_pickup_mapped_to_shared_swing8", "brush_hint_pp", "brush_hint_swish"),
+            (3.0, "4", "ballad_section_transition_hint", "v1_brush_drag_to_4_soft_whisper", "brush_hint_p", "brush_hint_tap"),
+        )
+    elif fill_cell == "turnaround_soft_2and_4and_hint":
+        gestures = (
+            (1.5, "2&", "ballad_section_transition_hint", "snare_brush_turnaround_soft_2and_lift", "brush_hint_pp", "brush_hint_swish"),
+            (3.5, "4&", "ballad_section_transition_hint", "snare_brush_turnaround_soft_4and_to_next", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "turnaround_2and_3and_4and_whisper":
+        gestures = (
+            (1.5, "2&", "ballad_section_transition_hint", "snare_brush_turnaround_2and_whisper_lift", "brush_hint_pp", "brush_hint_swish"),
+            (2.5, "3&", "ballad_section_transition_hint", "snare_brush_turnaround_3and_whisper_pickup", "brush_hint_pp", "brush_hint_swish"),
+            (3.5, "4&", "ballad_section_transition_hint", "snare_brush_turnaround_4and_whisper_to_next", "brush_hint_p", "brush_hint_release"),
+        )
+    elif fill_cell == "turnaround_2and_4_hat_hint":
+        gestures = (
+            (1.5, "2&", "ballad_section_transition_hint", "snare_brush_turnaround_2and_hint", "brush_hint_pp", "brush_hint_swish"),
+            (3.0, "4", "ballad_section_transition_hint", "snare_brush_turnaround_4_hat_inside_brush_hint", "brush_hint_p", "brush_hint_tap"),
+        )
+    elif fill_cell == "turnaround_cross_stick_4_hint":
+        gestures = (
+            (3.0, "4", "ballad_section_transition_hint", "cross_stick_turnaround_beat4_hint", "brush_hint_p", "brush_hint_tap"),
+        )
+    elif fill_cell == "bridge_entry_soft_1_2and_hint":
+        gestures = (
+            (0.0, "1", "ballad_section_transition_hint", "snare_brush_bridge_entry_soft_1_hint", "brush_hint_pp", "brush_hint_swish"),
+            (1.5, "2&", "ballad_section_transition_hint", "snare_brush_bridge_entry_soft_2and_lift", "brush_hint_p", "brush_hint_swish"),
+        )
+    elif fill_cell == "bridge_entry_low_tom_bloom_hint":
+        gestures = (
+            (0.0, "1", "ballad_section_transition_hint", "low_tom_brush_bridge_or_section_entry_bloom", "brush_hint_p", "brush_hint_swish"),
+        )
+    elif fill_cell == "section_tail_4_hat_cymbal_hint":
+        gestures = (
+            (3.0, "4", "ballad_section_transition_hint", "hat_section_tail_soft_4_hint", "brush_hint_pp", "brush_hint_tap"),
+            (3.5, "4&", "ballad_section_transition_hint", "ride_cymbal_section_tail_4and_breath_hint", "brush_hint_pp", "brush_hint_release"),
+        )
+    elif fill_cell == "soft_pickup_to_4":
+        gestures = (
+            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_foreground_pickup_to_4", "brush_fill_pickup_p", "brush_fill_swish"),
+            (3.0, "4", "ballad_classic_brush_fill", "snare_brush_foreground_answer_on_4", "brush_fill_release_mp", "brush_fill_tap"),
         )
     elif fill_cell == "tap_drag_tap_release":
         gestures = (
-            (1.5, "2&", "ballad_classic_brush_fill", "snare_brush_tap_drag_start"),
-            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_drag_through_3and"),
-            (3.0, "4", "ballad_classic_brush_fill", "snare_brush_tap_release_on_4"),
-            (3.5, "4&", "ballad_classic_brush_fill", "snare_brush_soft_release_to_next"),
+            (1.5, "2&", "ballad_classic_brush_fill", "snare_brush_foreground_tap_drag_start", "brush_fill_pickup_p", "brush_fill_tap"),
+            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_foreground_drag_through_3and", "brush_fill_drag_mp", "brush_fill_drag"),
+            (3.0, "4", "ballad_classic_brush_fill", "snare_brush_foreground_tap_release_on_4", "brush_fill_release_mf", "brush_fill_tap"),
+            (3.5, "4&", "ballad_classic_brush_fill", "snare_brush_foreground_soft_release_to_next", "brush_fill_release_mp", "brush_fill_release"),
         )
     elif fill_cell == "single_stroke_4_to_next":
         gestures = (
-            (2.0, "3", "ballad_classic_brush_fill", "snare_brush_single_stroke_4_soft_1"),
-            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_single_stroke_4_soft_2"),
-            (3.0, "4", "ballad_classic_brush_fill", "snare_brush_single_stroke_4_soft_3"),
-            (3.5, "4&", "ballad_classic_brush_fill", "snare_brush_single_stroke_4_soft_4_to_next"),
+            (2.0, "3", "ballad_classic_brush_fill", "snare_brush_foreground_single_stroke_4_1", "brush_fill_pickup_p", "brush_fill_tap"),
+            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_foreground_single_stroke_4_2", "brush_fill_drag_mp", "brush_fill_tap"),
+            (3.0, "4", "ballad_classic_brush_fill", "snare_brush_foreground_single_stroke_4_3", "brush_fill_release_mf", "brush_fill_tap"),
+            (3.5, "4&", "ballad_classic_brush_fill", "snare_brush_foreground_single_stroke_4_to_next", "brush_fill_release_mp", "brush_fill_release"),
         )
     elif fill_cell == "turnaround_sweep_roll":
         gestures = (
-            (1.5, "2&", "ballad_classic_brush_fill", "snare_brush_turnaround_sweep_roll_start"),
-            (2.0, "3", "ballad_classic_brush_fill", "snare_brush_turnaround_sweep_roll_mid"),
-            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_turnaround_sweep_roll_lift"),
-            (3.5, "4&", "ballad_classic_brush_fill", "snare_brush_turnaround_sweep_roll_to_next"),
+            (1.5, "2&", "ballad_classic_brush_fill", "snare_brush_foreground_turnaround_roll_start", "brush_fill_pickup_p", "brush_fill_tap"),
+            (2.0, "3", "ballad_classic_brush_fill", "snare_brush_foreground_turnaround_roll_mid", "brush_fill_drag_mp", "brush_fill_swish"),
+            (2.5, "3&", "ballad_classic_brush_fill", "snare_brush_foreground_turnaround_roll_lift", "brush_fill_release_mp", "brush_fill_swish"),
+            (3.5, "4&", "ballad_classic_brush_fill", "snare_brush_foreground_turnaround_roll_to_next", "brush_fill_release_mf", "brush_fill_release"),
         )
     else:
         return
 
-    for beat, slot, role, articulation in gestures:
+    for beat, slot, role, articulation, dynamic, stroke in gestures:
+        drum, resolved_dynamic, resolved_stroke = _render_transition_hint_entry(fill_cell, articulation, role, dynamic, stroke)
         _append_if_in_region(
             events,
             beat,
             role=role,
-            drum="snare",
-            dynamic="brush_breath_pp" if slot in {"4&", "2&"} else "brush_skip_pp",
-            stroke="brush_swish",
+            drum=drum,
+            dynamic=resolved_dynamic,
+            stroke=resolved_stroke,
             articulation=articulation,
             decision=decision,
             slot=slot,
@@ -492,6 +804,9 @@ def _events_for_decision(decision: dict[str, Any]) -> tuple[Any, ...]:
     _append_brush_motion(events, decision)
     _append_anchor(events, decision)
     _append_feather_kick(events, decision)
+    # Foreground fill gestures need audible space; duck only the overlapping
+    # snare brush background while keeping quiet time anchors/feather intact.
+    _duck_background_for_classic_fill(events, decision)
     _append_phrase_release(events, decision)
     # Keep order stable after combining layers.
     events.sort(key=lambda item: (float(item.local_beat), str(item.role), str(item.metadata.get("drum"))))
@@ -528,7 +843,7 @@ def get_pattern_candidates(context: dict | None = None) -> tuple[PatternCandidat
             category="jazz_ballad_bar_level_brush_sound_source_time_feel",
             events=events,
             tail_policy=TailPolicy.from_local_beats(beats, can_receive_next_chord_anticipation=False),
-            tags=("jazz_ballad", "drums", "brush_source", "bar_level", "offbeat_policy", "feather_kick", "not_chord_region_loop", "audible_v2_6_131"),
+            tags=("jazz_ballad", "drums", "brush_source", "bar_level", "offbeat_policy", "feather_kick", "not_chord_region_loop", "audible_v2_6_137"),
             metadata=metadata,
         ),
     )

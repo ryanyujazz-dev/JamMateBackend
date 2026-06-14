@@ -23,8 +23,8 @@ from jammate_engine.styles.jazz_ballad.profile import JazzBalladProfile
 
 DEMOS_DIR = PROJECT_ROOT / "demos"
 LEADSHEET_DIR = PROJECT_ROOT / "examples" / "leadsheets"
-MILESTONE_ID = "v2_6_134"
-MILESTONE_LABEL = "v2_6_134 — Engine Ballad Audible Classic Brush Fill Rework"
+MILESTONE_ID = "v2_6_137"
+MILESTONE_LABEL = "v2_6_137 — Engine Ballad Hint Timbre Variation and Offbeat Density Calibration"
 
 
 def main() -> None:
@@ -37,18 +37,16 @@ def main() -> None:
         "contract_version": ENGINE_VERSION_TAG,
         "milestone": MILESTONE_LABEL,
         "scope": (
-            "Rework Jazz Ballad classic brush fills from metadata-only overlays into an audible foreground fill lane: "
-            "background snare sweep is ducked inside the fill window, fill dynamics use a clear pickup→drag→release contour, "
-            "and all offbeats keep shared swing-8 timing. No custom brush voices, no chord-region fill loop, and no piano/bass/voicing/API/Agent/HarmonyOS change."
+            "Vary Ballad transition-hint timbre across standard brush-kit entries (snare, cross-stick, hat, ride/cymbal, tom-brush lanes) while reducing articulated offbeat density. The logical brush path still includes swing-8 offbeats, but many offbeats remain motion-only; explicit tap-drag/single-stroke fills remain vocabulary only. No piano/bass/voicing/API/Agent/HarmonyOS change."
         ),
         "static_audit": static,
         "runtime_audit": runtime,
         "fill_focus_demo": fill_focus_demo,
         "acceptance": acceptance,
-        "recommended_next_task": "v2_6_135_engine_ballad_brush_fill_listening_calibration",
+        "recommended_next_task": "v2_6_138_engine_ballad_hint_timbre_and_offbeat_density_listening_calibration",
     }
-    summary_path = DEMOS_DIR / f"{MILESTONE_ID}_engine_ballad_audible_classic_brush_fill_rework_summary.json"
-    report_path = DEMOS_DIR / f"{MILESTONE_ID}_engine_ballad_audible_classic_brush_fill_rework_report.md"
+    summary_path = DEMOS_DIR / f"{MILESTONE_ID}_engine_ballad_hint_timbre_and_offbeat_density_summary.json"
+    report_path = DEMOS_DIR / f"{MILESTONE_ID}_engine_ballad_hint_timbre_and_offbeat_density_report.md"
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     report_path.write_text(_render_report(summary), encoding="utf-8")
     print(json.dumps({"summary": str(summary_path), "report": str(report_path), "acceptance": acceptance}, indent=2, ensure_ascii=False))
@@ -104,7 +102,7 @@ def _static_audit() -> dict[str, Any]:
         "second_half_split": {"region_duration_beats": 2.0, "region_source_bar_index": 1, "region_chorus_index": 0, "region_total_choruses": 3, "region_is_last_region_of_bar": True},
         "phrase_breath": {"region_duration_beats": 4.0, "region_source_bar_index": 7, "region_chorus_index": 0, "region_total_choruses": 3},
         "later_chorus_pickup_fill": {"region_duration_beats": 4.0, "region_source_bar_index": 5, "region_chorus_index": 1, "region_total_choruses": 3},
-        "later_chorus_section_fill": {"region_duration_beats": 4.0, "region_source_bar_index": 7, "region_chorus_index": 1, "region_total_choruses": 3},
+        "later_chorus_section_fill": {"region_duration_beats": 4.0, "region_source_bar_index": 7, "region_chorus_index": 1, "region_total_choruses": 3, "region_is_last_bar_of_section": True},
         "final_release": {"region_duration_beats": 4.0, "region_source_bar_index": 31, "region_chorus_index": 2, "region_total_choruses": 3, "region_is_last_bar_of_chorus": True},
     }
     return {
@@ -144,13 +142,13 @@ def _candidate_note_events(context: dict[str, Any], *, bar_start: float) -> list
 
 
 def _write_fill_focus_demo() -> dict[str, Any]:
-    midi_path = DEMOS_DIR / f"{MILESTONE_ID}_jazz_ballad_audible_classic_brush_fill_focus_demo.mid"
+    midi_path = DEMOS_DIR / f"{MILESTONE_ID}_jazz_ballad_hint_timbre_and_offbeat_density_focus_demo.mid"
     contexts = [
         ("basic_time", {"region_duration_beats": 4.0, "region_source_bar_index": 0, "region_chorus_index": 0, "region_total_choruses": 3}),
-        ("tap_drag_tap_release", {"region_duration_beats": 4.0, "region_source_bar_index": 3, "region_chorus_index": 0, "region_total_choruses": 3}),
-        ("soft_pickup_to_4", {"region_duration_beats": 4.0, "region_source_bar_index": 5, "region_chorus_index": 1, "region_total_choruses": 3}),
-        ("single_stroke_4_to_next", {"region_duration_beats": 4.0, "region_source_bar_index": 7, "region_chorus_index": 1, "region_total_choruses": 3}),
-        ("turnaround_sweep_roll", {"region_duration_beats": 4.0, "region_source_bar_index": 3, "region_chorus_index": 1, "region_total_choruses": 3}),
+        ("v1_drag_to_4_hint", {"region_duration_beats": 4.0, "region_source_bar_index": 3, "region_chorus_index": 0, "region_total_choruses": 3}),
+        ("turnaround_cross_stick_4_hint", {"region_duration_beats": 4.0, "region_source_bar_index": 5, "region_chorus_index": 1, "region_total_choruses": 3}),
+        ("v1_section_breath_4_to_4and_hint", {"region_duration_beats": 4.0, "region_source_bar_index": 7, "region_chorus_index": 1, "region_total_choruses": 3, "region_is_last_bar_of_section": True}),
+        ("bridge_entry_low_tom_bloom_hint", {"region_duration_beats": 4.0, "region_source_bar_index": 8, "region_chorus_index": 1, "region_total_choruses": 3, "region_is_first_bar_of_section": True}),
         ("final_release", {"region_duration_beats": 4.0, "region_source_bar_index": 31, "region_chorus_index": 2, "region_total_choruses": 3, "region_is_last_bar_of_chorus": True}),
     ]
     events: list[NoteEvent] = []
@@ -172,14 +170,14 @@ def _write_fill_focus_demo() -> dict[str, Any]:
     write_midi(events, midi_path, tempo_bpm=72)
     return {
         "midi_path": str(midi_path.relative_to(PROJECT_ROOT)),
-        "demo_type": "drum_only_fill_focus",
+        "demo_type": "drum_only_section_transition_hint_focus",
         "note_event_count": len(events),
         "bars": debug,
     }
 
 def _generate_misty_runtime_audit() -> dict[str, Any]:
     score = json.loads((LEADSHEET_DIR / "misty.json").read_text(encoding="utf-8"))
-    midi_path = DEMOS_DIR / f"{MILESTONE_ID}_misty_jazz_ballad_audible_classic_brush_fill_rework_demo.mid"
+    midi_path = DEMOS_DIR / f"{MILESTONE_ID}_misty_jazz_ballad_hint_timbre_and_offbeat_density_demo.mid"
     result = generate_accompaniment(
         {
             "leadsheet": score,
@@ -213,6 +211,7 @@ def _generate_misty_runtime_audit() -> dict[str, Any]:
         "brush_event_articulation_counts": dict(Counter(str(event.get("articulation")) for event in event_rows)),
         "brush_classic_fill_cell_counts": dict(Counter(str(item.get("metadata", {}).get("brush_classic_fill_cell")) for item in audible_candidates)),
         "classic_fill_event_count": sum(1 for event in event_rows if str(event.get("role")) == "ballad_classic_brush_fill"),
+        "section_transition_hint_event_count": sum(1 for event in event_rows if str(event.get("role")) == "ballad_section_transition_hint"),
         "sample_candidates": audible_candidates[:6],
     }
 
@@ -266,22 +265,24 @@ def _acceptance(static: dict[str, Any], runtime: dict[str, Any]) -> dict[str, An
     section_fill = debug.get("later_chorus_section_fill") or {}
     final = debug.get("final_release") or {}
     runtime_drums = set((runtime.get("brush_event_drum_counts") or {}).keys())
-    allowed = {"snare", "hihat_pedal", "kick", "ride"}
+    allowed = {"snare", "cross_stick", "hihat_pedal", "kick", "ride", "low_tom", "mid_tom"}
     custom = {"brush_swirl", "brush_sweep", "brush_tap", "brush_release"}
     note_counts = runtime.get("note_events_by_track") or {}
     skip_slots = set((skip.get("event_slot_counts") or {}).keys())
     first_slots = set((first.get("event_slot_counts") or {}).keys())
     second_slots = set((second.get("event_slot_counts") or {}).keys())
-    fill_events = [event for event in (pickup.get("events") or []) + (section_fill.get("events") or []) + (breath.get("events") or []) if str(event.get("role")) == "ballad_classic_brush_fill"]
-    foreground_fill_events = [event for event in fill_events if event.get("brush_fill_foreground_lane") is True]
-    fill_dynamic_profiles = {str(event.get("dynamic_profile")) for event in fill_events}
-    ducked_background_in_breath = [
+    hint_events = [
         event
-        for event in (breath.get("events") or [])
-        if str(event.get("role")) in {"ballad_brush_sweep_pressure", "ballad_brush_offbeat_swish", "ballad_phrase_brush_breath"}
-        and str(event.get("drum")) == "snare"
-        and 1.45 <= float(event.get("beat") or 0.0) <= 3.9
+        for event in (pickup.get("events") or []) + (section_fill.get("events") or []) + (breath.get("events") or [])
+        if str(event.get("role")) == "ballad_section_transition_hint"
     ]
+    foreground_hint_events = [event for event in hint_events if event.get("brush_fill_foreground_lane") is True]
+    hint_dynamic_profiles = {str(event.get("dynamic_profile")) for event in hint_events}
+    # Background is allowed to continue around the hint; only the exact cue slot
+    # should get a small amount of space.  The important check is that we do not
+    # wipe the whole half-bar like the previous foreground-fill experiment.
+    section_tail_slots = {str(event.get("slot")) for event in (section_fill.get("events") or []) if str(event.get("role")) == "ballad_section_transition_hint"}
+    runtime_cells = set((runtime.get("brush_classic_fill_cell_counts") or {}).keys())
     checks = {
         "version_declared": static.get("arrangement_policy_version") == MILESTONE_ID,
         "brush_source_assumed": static.get("brush_sound_source_assumed") is True,
@@ -290,17 +291,21 @@ def _acceptance(static: dict[str, Any], runtime: dict[str, Any]) -> dict[str, An
         "no_custom_internal_brush_drums": custom.isdisjoint(runtime_drums),
         "standard_drum_entries_only": runtime_drums.issubset(allowed),
         "basic_bar_has_brush_pressure_hat_and_feather": basic.get("candidate_count") == 1 and {"snare", "hihat_pedal", "kick"}.issubset(set((basic.get("event_drum_counts") or {}).keys())),
-        "skip_bar_articulates_2and_4and": {"2&", "4&"}.issubset(skip_slots),
+        "skip_bar_uses_reduced_offbeat_articulation": len({slot for slot in skip_slots if "&" in slot}) <= 1,
         "offbeats_use_shared_swing8_timing": _offbeats_use_shared_swing8_timing(skip),
-        "split_regions_project_same_bar_plan": {"1", "2", "2&"}.issubset(first_slots) and {"3", "4", "4&"}.issubset(second_slots) and "1" not in second_slots,
-        "phrase_breath_articulates_3and_and_4and": {"3&", "4&"}.issubset(set((breath.get("event_slot_counts") or {}).keys())),
-        "classic_fill_uses_foreground_lane": bool(fill_events) and len(foreground_fill_events) == len(fill_events),
-        "classic_fill_uses_audible_dynamic_profiles": bool(fill_dynamic_profiles) and all(profile.startswith("brush_fill_") for profile in fill_dynamic_profiles),
-        "classic_fill_ducks_overlapping_background_snare": ducked_background_in_breath == [],
-        "pickup_fill_uses_3and_to_4": (pickup.get("metadata") or {}).get("brush_classic_fill_cell") == "soft_pickup_to_4" and {"3&", "4"}.issubset(set((pickup.get("event_slot_counts") or {}).keys())),
-        "section_fill_uses_single_stroke_4": (section_fill.get("metadata") or {}).get("brush_classic_fill_cell") == "single_stroke_4_to_next" and {"3", "3&", "4", "4&"}.issubset(set((section_fill.get("event_slot_counts") or {}).keys())),
+        "split_regions_project_same_bar_plan_with_reduced_offbeats": {"1", "2"}.issubset(first_slots) and {"3", "4"}.issubset(second_slots) and "1" not in second_slots,
+        "phrase_tail_keeps_4and_transition_hint": "4&" in set((breath.get("event_slot_counts") or {}).keys()),
+        "section_hints_are_not_foreground_lane": bool(hint_events) and len(foreground_hint_events) == 0,
+        "section_hints_use_subtle_hint_dynamic_profiles": bool(hint_dynamic_profiles) and all(profile.startswith(("brush_hint_", "brush_hat_")) for profile in hint_dynamic_profiles),
+        "pickup_uses_timbre_varied_turnaround_hint": (pickup.get("metadata") or {}).get("brush_classic_fill_cell") == "turnaround_cross_stick_4_hint" and {"4"}.issubset(set((pickup.get("event_slot_counts") or {}).keys())),
+        "section_tail_uses_hat_cymbal_timbre_hint": (section_fill.get("metadata") or {}).get("brush_classic_fill_cell") == "section_tail_4_hat_cymbal_hint" and {"4", "4&"}.issubset(section_tail_slots),
+        "cadence_uses_timbre_varied_hint_or_v1_drag": (breath.get("metadata") or {}).get("brush_classic_fill_cell") in {"section_tail_4_hat_cymbal_hint", "v1_soft_swish_4and_hint", "v1_drag_to_4_hint", "cadence_3_to_4_tom_hat_hint"},
+        "v1_reference_primitives_declared": bool((breath.get("metadata") or {}).get("brush_transition_hint_v1_reference_primitives")),
+        "no_default_long_explicit_fill_cells": not ({"tap_drag_tap_release", "single_stroke_4_to_next", "turnaround_sweep_roll"} & runtime_cells),
         "final_release_contextual": final.get("candidate_count") == 1 and set((final.get("event_drum_counts") or {}).keys()).issubset({"snare", "ride"}),
-        "misty_runtime_has_classic_fill_events": int(runtime.get("classic_fill_event_count") or 0) > 0,
+        "misty_runtime_has_section_hint_events": int(runtime.get("section_transition_hint_event_count") or 0) > 0,
+        "misty_runtime_hint_timbre_varies": len({drum for drum in runtime_drums if drum in {"cross_stick", "hihat_pedal", "ride", "low_tom", "mid_tom"}}) >= 3,
+        "misty_runtime_offbeats_reduced": sum(count for slot, count in (runtime.get("brush_event_slot_counts") or {}).items() if "&" in str(slot)) < sum(count for slot, count in (runtime.get("brush_event_slot_counts") or {}).items() if "&" not in str(slot)),
         "misty_runtime_has_drum_layer": runtime.get("ok") is True and int(note_counts.get("drums", 0) or 0) > 0,
         "piano_bass_still_present": int(note_counts.get("piano", 0) or 0) > 0 and int(note_counts.get("bass", 0) or 0) > 0,
     }
@@ -335,8 +340,9 @@ def _render_report(summary: dict[str, Any]) -> str:
         f"- Brush event slot counts: `{runtime.get('brush_event_slot_counts')}`",
         f"- Classic fill cell counts: `{runtime.get('brush_classic_fill_cell_counts')}`",
         f"- Classic fill event count: `{runtime.get('classic_fill_event_count')}`",
+        f"- Section transition hint event count: `{runtime.get('section_transition_hint_event_count')}`",
         "",
-        "## Fill-focus demo",
+        "## Hint timbre/offbeat-density focus demo",
         "",
         f"- MIDI: `{summary.get('fill_focus_demo', {}).get('midi_path')}`",
         f"- Bars: `{summary.get('fill_focus_demo', {}).get('bars')}`",

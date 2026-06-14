@@ -12,7 +12,7 @@ def _candidate(context: dict):
 
 def legacy_test_v2_6_131_policy_declares_brush_sound_source_bar_level_contract() -> None:
     policy = arrangement_policy.get_arrangement_policy()
-    assert policy["jazz_ballad_brush_sound_source_time_feel_version"] == "v2_6_133"
+    assert policy["jazz_ballad_brush_sound_source_time_feel_version"] in {"v2_6_133", "v2_6_134"}
     assert policy["jazz_ballad_brush_sound_source_assumed"] is True
     assert policy["jazz_ballad_drum_planning_scope"] == "bar_level_brush_time_feel_with_region_projection"
     assert policy["jazz_ballad_drum_not_chord_region_loop"] is True

@@ -11,6 +11,9 @@ DRUM_NOTES = {
     "kick": 36,
     "snare": 38,
     "cross_stick": 37,
+    "low_tom": 45,
+    "mid_tom": 47,
+    "high_tom": 50,
     "shaker": 42,
 }
 
@@ -53,6 +56,13 @@ DYNAMIC_VELOCITY = {
     "brush_hat_pp": 24,
     "brush_feather": 18,
     "brush_cymbal_pp": 22,
+    "brush_hint_pp": 24,
+    "brush_hint_p": 29,
+    "brush_fill_pickup_p": 36,
+    "brush_fill_drag_mp": 42,
+    "brush_fill_release_mp": 46,
+    "brush_fill_release_mf": 52,
+    "brush_fill_cymbal_p": 38,
 }
 
 STROKE_DURATION = {
@@ -63,6 +73,13 @@ STROKE_DURATION = {
     "brush_swish": 0.18,
     "brush_foot": 0.06,
     "brush_cymbal": 0.32,
+    "brush_hint_tap": 0.08,
+    "brush_hint_swish": 0.14,
+    "brush_hint_release": 0.18,
+    "brush_fill_tap": 0.11,
+    "brush_fill_swish": 0.20,
+    "brush_fill_drag": 0.30,
+    "brush_fill_release": 0.34,
     "feather": 0.05,
 }
 

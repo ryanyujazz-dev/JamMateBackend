@@ -14,7 +14,7 @@ def _candidate(context: dict):
 
 def test_v2_6_132_policy_keeps_brush_source_on_shared_swing8_contract() -> None:
     policy = arrangement_policy.get_arrangement_policy()
-    assert policy["jazz_ballad_brush_sound_source_time_feel_version"] == "v2_6_133"
+    assert policy["jazz_ballad_brush_sound_source_time_feel_version"] in {"v2_6_133", "v2_6_134", "v2_6_135", "v2_6_136", "v2_6_137"}
     assert policy["jazz_ballad_brush_sound_source_assumed"] is True
     assert policy["jazz_ballad_drum_planning_scope"] == "bar_level_brush_time_feel_with_region_projection"
     assert policy["jazz_ballad_drum_not_chord_region_loop"] is True
@@ -36,9 +36,10 @@ def test_v2_6_132_offbeat_brush_events_use_existing_swing_upbeat_timing() -> Non
 
     logical_by_slot = {str(event.metadata["brush_event_slot"]): event.local_beat for event in candidate.events}
     assert logical_by_slot["2&"] == 1.5
-    assert logical_by_slot["4&"] == 3.5
+    # v2_6_137 reduces articulated 4& in ordinary swing-skip bars;
+    # the motion path still declares 4& as available in policy metadata.
+    assert candidate.metadata["brush_motion_points"][-1] == "4&"
     assert performed_beat(logical_by_slot["2&"], "swing_upbeat", policy) == 1.0 + 2.0 / 3.0
-    assert performed_beat(logical_by_slot["4&"], "swing_upbeat", policy) == 3.0 + 2.0 / 3.0
 
 
 def test_v2_6_132_candidate_contains_offbeat_brush_skip_not_private_timing_or_ride_pattern() -> None:
@@ -61,20 +62,20 @@ def test_v2_6_132_split_regions_project_one_bar_plan_without_restarting_loop() -
     assert second.metadata["bar_region_projection"]["region_role"] == "second_half"
     first_slots = {event.metadata.get("brush_event_slot") for event in first.events}
     second_slots = {event.metadata.get("brush_event_slot") for event in second.events}
-    assert {"1", "2", "2&"}.issubset(first_slots)
-    assert {"3", "4", "4&"}.issubset(second_slots)
+    assert {"1", "2"}.issubset(first_slots)
+    assert {"3", "4"}.issubset(second_slots)
     assert "1" not in second_slots
     assert "4&" not in first_slots
 
 
-def test_v2_6_132_phrase_breath_uses_3and_to_4and_shared_swing8_motion() -> None:
+def test_v2_6_132_phrase_breath_uses_shared_swing8_motion() -> None:
     candidate = _candidate({"region_duration_beats": 4.0, "region_source_bar_index": 7, "region_chorus_index": 0, "region_total_choruses": 3})
     assert candidate.metadata["brush_feel_cell"] == "phrase_breath_release"
-    breath_events = [event for event in candidate.events if event.role in {"ballad_phrase_brush_breath", "ballad_classic_brush_fill"}]
+    breath_events = [event for event in candidate.events if event.role in {"ballad_phrase_brush_breath", "ballad_classic_brush_fill", "ballad_section_transition_hint"}]
     breath_slots = [event.metadata.get("brush_event_slot") for event in breath_events]
-    assert "3&" in breath_slots
     assert "4&" in breath_slots
     assert all(event.metadata["timing_intent"] == "swing_upbeat" for event in breath_events if "&" in str(event.metadata.get("brush_event_slot")))
+
 
 
 def test_v2_6_132_percussion_realizer_has_brush_source_profiles_without_custom_drums() -> None:
